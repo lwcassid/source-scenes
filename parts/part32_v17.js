@@ -11,7 +11,7 @@ reg({
     s.pending = i; s.actT = 0;
   },
   tags: ['ONE ROAD', 'LINES THAT SING', 'ALWAYS FAST', 'TARDIGRADE FINALE'],
-  desc: 'The instrument round. The three-lane guitar-hero grid is gone — it read as a game. The road is one road again, and the music feedback moved into the ROAD-LINES themselves: the left edge burns orange and flashes with every arp you play, the right edge burns violet and flashes with every stab — loud, unmistakable, "something is happening with the music" at a glance. Lean to steer and to light your side of the world; reach toward the source to flare the beams and swell the mix. Speed stays decoupled — show up and you cruise fast, and playing never slows you. Everything else from V16 stays: the manta glides down the passage, the crab scuttles broadside, the cavern gives its light back to the mushrooms/crystals/jellies, the tunnel is a clean curving geometric bore with drones, and the tardigrade charges the road for a finale. Camera is now a LOW ISO PROFILE — the Akira rides in full profile as a bold silhouette (best for scrim, and you finally see the machine); it eases back to the high attract view whenever the wall goes idle. (chase + first-person live behind state.camMode.)',
+  desc: 'The instrument round. The three-lane guitar-hero grid is gone — it read as a game. The road is one road again, and the music feedback moved into the ROAD-LINES themselves: the left edge burns orange and flashes with every arp you play, the right edge burns violet and flashes with every stab — loud, unmistakable, "something is happening with the music" at a glance. Lean to steer and to light your side of the world; reach toward the source to flare the beams and swell the mix. Speed stays decoupled — show up and you cruise fast, and playing never slows you. Everything else from V16 stays: the manta glides down the passage, the crab scuttles broadside, the cavern gives its light back to the mushrooms/crystals/jellies, the tunnel is a clean curving geometric bore with drones, and the tardigrade charges the road for a finale. Camera is FIRST-PERSON — from the saddle, the whole horizon open ahead — and it eases in from the high attract view on one smooth continuous blend (no snap). Chase + low-iso still live behind state.camMode.',
   interact: 'Lean to steer; your side of the world lights up (orange left, violet right) and — new in V17 — that side’s road-line IGNITES and pulses in time with the notes it is playing, so you can SEE the music answer your hands. Reach toward the source to flare your headlight and swell the whole mix. Presence alone keeps you fast; the hands play, they don’t throttle.',
   sound: 'Its own engine — 78-ish BPM aeolian minor. Left hand plays arps/bells (and lights the orange line), right hand plays stabs/pad (and lights the violet line), both drive the drums; sub under everything, hats double-time only in the tunnel, the mourner lead over cave and sunset. Same rig roles and channels.',
   init(P) {
@@ -19,7 +19,7 @@ reg({
       speed: 6, steer: 0, lane: 0, pres: 0, bob: 0, asleep: true,
       act: 0, actT: 0, trans: 0, pending: null, curveA: 0, curvePh: 0, tunPh: 0,
       kickPulse: 0, arpFlash: 0, stabFlash: 0, arpIdx: 0, lastEvP: 0,
-      chomp: 0, chompHit: 0, chompDone: false, camMode: 2 // 0 chase · 1 first-person · 2 low iso (default)
+      chomp: 0, chompHit: 0, chompDone: false, camMode: 1 // 0 chase · 1 first-person (default) · 2 low iso
     };
     if (typeof THREE === 'undefined') { P.state.noGL = true; return; }
     if (P._three) { try { P._three.renderer.dispose(); } catch (e) {} }
@@ -555,6 +555,13 @@ reg({
       gg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos2), 3));
       const ridge = new THREE.Mesh(gg, B(0x0b0616, { fog: false }));
       ridge.position.set(0, 0, -290); sc.add(ridge); T3.ridge = ridge;
+      // V17 · HORIZON BACKDROP — a fog-free solid dark wall filling everything
+      // BELOW the horizon (top edge exactly at y=0), sitting just in front of the
+      // sun. This clips the sun/halo to a clean waterline so its lower half can
+      // never bleed "below the mountains" when the distant ground fogs out.
+      const hb = new THREE.Mesh(new THREE.PlaneGeometry(3000, 600), new THREE.MeshBasicMaterial({ color: 0x05030c, fog: false }));
+      hb.position.set(0, -300, -296); // spans y = -600..0
+      sc.add(hb); T3.horizonBk = hb;
     }
     {
       const n2 = 220, pos2 = new Float32Array(n2 * 3);
@@ -614,9 +621,9 @@ reg({
     under.position.set(0, 0.1, 0.2); bike.add(under); T3.under = under;
     const rim = new THREE.PointLight(0x7a5cf0, 0.7, 12, 1.6); // deep purple rim on the flanks
     rim.position.set(0.8, 3.0, 3.2); bike.add(rim); T3.rim = rim;
-    // KEY: a cool near-white light riding just above and behind the camera line,
-    // aimed down at the machine so its top surfaces and the rider read
-    const key = new THREE.PointLight(0xbcd4ff, 1.5, 9, 1.8);
+    // KEY: a soft cool light above/behind, just enough to model the top surfaces
+    // — V17 dropped it from 1.5 to 0.55 so the machine stops blowing out to white
+    const key = new THREE.PointLight(0xaec2ec, 0.55, 8, 2.0);
     key.position.set(0, 3.0, 2.6); bike.add(key); T3.bikeKey = key;
     const cock = new THREE.PointLight(0xff7a4c, 0.9, 7, 1.5); // low orange machine-light
     cock.position.set(0, 2.2, -0.8); bike.add(cock); T3.cock = cock;
@@ -642,8 +649,10 @@ reg({
           const bb2 = new THREE.Box3().setFromObject(m);
           const c2 = bb2.getCenter(new THREE.Vector3());
           m.position.set(-c2.x, -bb2.min.y, -c2.z);
-          // V16: brighter body + a real self-glow so the machine reads in the dark
-          m.traverse(o => { if (o.isMesh) o.material = new THREE.MeshLambertMaterial({ color: 0x33405e, emissive: 0x1a2340, emissiveIntensity: 1.0, flatShading: true }); });
+          // V17: a DARK machine (the white blob was the light body + key + bloom).
+          // Deep body, faint self-glow — it reads by its neon accents and rim, not
+          // by going white under the key light.
+          m.traverse(o => { if (o.isMesh) o.material = new THREE.MeshLambertMaterial({ color: 0x1b2740, emissive: 0x0a1024, emissiveIntensity: 0.5, flatShading: true }); });
           T3.placeholder.forEach(p2 => p2.visible = false);
           T3.bike.add(m); T3.bikeModel = m;
           const topY = bb2.max.y - bb2.min.y;
@@ -1172,6 +1181,7 @@ reg({
     T3.tunG.visible = act === 2; T3.sunsetG.visible = act === 3;
     T3.stars.visible = act !== 2 && act !== 0;
     T3.ridge.visible = act === 1 || act === 3;
+    if (T3.horizonBk) T3.horizonBk.visible = act === 1 || act === 3;
     if (T3.planet) T3.planet.visible = act === 3;
     // the long clock that paces the planet's rare events — it only advances
     // while someone is riding, so the surprises are EARNED, not scheduled
@@ -1521,52 +1531,51 @@ reg({
     T3.bike.rotation.z = -s.steer * 0.34 - slopeF(-10) * 2.2; // bank into the road's own bend too
     T3.rider.rotation.z = -s.steer * 0.16;
     T3.bike.position.y = T3.world.position.y + Math.sin(s.bob * 2.1) * 0.02 * (s.speed / 40); // ride the road's rise and fall — no more floating
-    // V13 CAMERA: the attract state stays elevated and calm so a bystander can
-    // read the whole scene; engagement drops into a LOW CHASE behind the tail —
-    // embodied, banking with the machine, trailing it with a breath of lag
-    // V15 · ONE CONTINUOUS CAMERA. No modes, no cuts: presence eases the view
-    // down and IN over ~2.5s, and the machine rides much larger in frame.
+    // V17 · ONE SMOOTH CAMERA, blended by presence between an ATTRACT pose (high,
+    // behind, whole-scene legible) and an ENGAGED pose chosen by s.camMode
+    // (0 chase · 1 first-person · 2 low iso). No thresholds, no snaps: position
+    // AND aim both lerp continuously by camK, then a single lookAt — so switching
+    // modes or ramping presence never jumps.
     const camKraw = s.pres * s.pres * (3 - 2 * s.pres);
     s.camKs = (s.camKs || 0) + (camKraw - (s.camKs || 0)) * Math.min(1, dt * 0.55); // the blend breathes — it never rips
     const camK = s.camKs;
     s.camX = (s.camX || 0) + ((s.steer * 0.85) * camK - (s.camX || 0)) * Math.min(1, dt * 2.1); // the lag IS the weight
     s.camR = (s.camR || 0) + ((-s.steer * 0.1 - slopeF(-10) * 0.5) * camK - (s.camR || 0)) * Math.min(1, dt * 2.6);
-    T3.cam.rotation.z = s.camR + (act === 2 ? -Math.sin(s.tunCurvePh) * 0.17 * camK : 0); // bank into the tunnel's curve
-    T3.cam.rotation.y = 0.05 * camK - s.camX * 0.06;
-    T3.cam.rotation.x = (-0.27 + 0.215 * camK) + (act === 2 ? Math.cos(s.tunPh) * 0.03 : 0);
-    T3.cam.position.x = 1.05 * (1 - camK) + s.camX;
-    // near-field motion grows with intensity: bob + a shiver of kick
-    T3.cam.position.y = (4.9 - 2.7 * camK)
-      + Math.sin(s.bob) * (0.015 + camK * 0.03) * (s.speed / 40)
-      + s.kickPulse * camK * 0.045
-      + T3.world.position.y * 0.4;
-    T3.cam.position.z = -3.1 * camK; // ride up close behind the tail — the machine fills the frame
-    T3.cam.fov = 58 + camK * 5 + (tunnel ? thr * 8 + (s.tunBuild || 0) * 6 : 0);
-    // V17 · CAMERA OPTIONS (s.camMode): 0 = chase (above), 1 = first-person
-    // (in the saddle), 2 = low iso profile. Blended in by presence so the idle
-    // attract view always stays high and legible for a bystander.
     const bikeY = T3.world.position.y, bob = Math.sin(s.bob) * 0.03 * (s.speed / 40);
-    if (s.camMode === 1 && camK > 0.001) { // FIRST PERSON — from the rider's helmet
-      const fpx = -s.lane * 0.15 + s.camX * 0.3, fpy = 1.95 + bikeY * 0.5 + bob + s.kickPulse * 0.02;
-      T3.cam.position.set(
-        T3.cam.position.x + (fpx - T3.cam.position.x) * camK,
-        T3.cam.position.y + (fpy - T3.cam.position.y) * camK,
-        T3.cam.position.z + (-10.4 - T3.cam.position.z) * camK);
-      T3._look = T3._look || new THREE.Vector3();
-      T3._look.set(s.steer * 10, 1.1 + bikeY, -90);
-      if (camK > 0.985) { T3.cam.lookAt(T3._look); T3.cam.rotation.z += s.camR * 1.2 + (act === 2 ? -Math.sin(s.tunCurvePh) * 0.2 : 0); }
-      T3.cam.fov = 70 + camK * 6 + (tunnel ? thr * 8 : 0);
-    } else if (s.camMode === 2 && camK > 0.001) { // LOW ISO — the machine in profile
-      const ix = 3.6 - s.lane, iy = 2.2 + bikeY * 0.5 + bob, iz = -5.6;
-      T3.cam.position.set(
-        T3.cam.position.x + (ix - T3.cam.position.x) * camK,
-        T3.cam.position.y + (iy - T3.cam.position.y) * camK,
-        T3.cam.position.z + (iz - T3.cam.position.z) * camK);
-      T3._look = T3._look || new THREE.Vector3();
-      T3._look.set(-s.lane * 0.5, 1.05 + bikeY, -11.2); // look at the bike
-      if (camK > 0.985) { T3.cam.lookAt(T3._look); T3.cam.rotation.z += -s.steer * 0.06; }
-      T3.cam.fov = 46 + camK * 4;
+    const tunBank = act === 2 ? -Math.sin(s.tunCurvePh) * 0.17 : 0;
+    // cached vectors so the blend doesn't allocate every frame
+    const V = T3._camV || (T3._camV = { ap: new THREE.Vector3(), al: new THREE.Vector3(), ep: new THREE.Vector3(), el: new THREE.Vector3() });
+    // ATTRACT pose (camK → 0)
+    V.ap.set(1.05, 4.9 + bikeY * 0.4, 2.0);
+    V.al.set(0, 1.2 + bikeY, -46);
+    // ENGAGED pose (camK → 1) by mode
+    let efov = 63, eroll = s.camR + tunBank;
+    if (s.camMode === 1) {            // FIRST PERSON — in the saddle
+      V.ep.set(s.camX * 0.3 - s.lane * 0.12, 1.98 + bikeY + bob + s.kickPulse * 0.02, -10.2);
+      V.el.set(s.steer * 12, 1.25 + bikeY, -92);
+      efov = 76; eroll = s.camR * 1.1 + tunBank;
+    } else if (s.camMode === 2) {     // LOW ISO — the machine in profile
+      V.ep.set(3.4 - s.lane, 2.2 + bikeY + bob, -5.6);
+      V.el.set(-s.lane * 0.5, 1.05 + bikeY, -11.2);
+      efov = 48; eroll = -s.steer * 0.06;
+    } else {                          // CHASE — over the tail
+      V.ep.set(s.camX, 2.2 + bikeY + bob + s.kickPulse * 0.04, -3.1);
+      V.el.set(s.camX * 0.5, 1.0 + bikeY, -34);
+      efov = 63; eroll = s.camR + tunBank;
     }
+    // blend attract → engaged and aim
+    T3.cam.position.set(
+      V.ap.x + (V.ep.x - V.ap.x) * camK,
+      V.ap.y + (V.ep.y - V.ap.y) * camK,
+      V.ap.z + (V.ep.z - V.ap.z) * camK);
+    T3.cam.up.set(0, 1, 0);
+    T3.cam.lookAt(
+      V.al.x + (V.el.x - V.al.x) * camK,
+      V.al.y + (V.el.y - V.al.y) * camK,
+      V.al.z + (V.el.z - V.al.z) * camK);
+    T3.cam.rotation.z += eroll * camK;                          // banking (added after the aim)
+    T3.cam.rotation.x += (act === 2 ? Math.cos(s.tunPh) * 0.03 * camK : 0); // the tunnel dive
+    T3.cam.fov = 58 + (efov - 58) * camK + (tunnel ? thr * 8 + (s.tunBuild || 0) * 6 : 0);
     T3.cam.updateProjectionMatrix();
     T3.tailL.scale.setScalar(1 + s.kickPulse * 0.8);
   },
