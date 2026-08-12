@@ -24284,7 +24284,7 @@ reg({
     s.pending = i; s.actT = 0;
   },
   tags: ['ONE ROAD', 'LINES THAT SING', 'ALWAYS FAST', 'TARDIGRADE FINALE'],
-  desc: 'The instrument round. The three-lane guitar-hero grid is gone — it read as a game. The road is one road again, and the music feedback moved into the ROAD-LINES themselves: the left edge burns orange and flashes with every arp you play, the right edge burns violet and flashes with every stab — loud, unmistakable, "something is happening with the music" at a glance. Lean to steer and to light your side of the world; reach toward the source to flare the beams and swell the mix. Speed stays decoupled — show up and you cruise fast, and playing never slows you. Everything else from V16 stays: the manta glides down the passage, the crab scuttles broadside, the cavern gives its light back to the mushrooms/crystals/jellies, the tunnel is a clean curving geometric bore with drones, and the tardigrade charges the road for a finale. Camera is up for grabs — chase, first-person, or a low iso profile.',
+  desc: 'The instrument round. The three-lane guitar-hero grid is gone — it read as a game. The road is one road again, and the music feedback moved into the ROAD-LINES themselves: the left edge burns orange and flashes with every arp you play, the right edge burns violet and flashes with every stab — loud, unmistakable, "something is happening with the music" at a glance. Lean to steer and to light your side of the world; reach toward the source to flare the beams and swell the mix. Speed stays decoupled — show up and you cruise fast, and playing never slows you. Everything else from V16 stays: the manta glides down the passage, the crab scuttles broadside, the cavern gives its light back to the mushrooms/crystals/jellies, the tunnel is a clean curving geometric bore with drones, and the tardigrade charges the road for a finale. Camera is now a LOW ISO PROFILE — the Akira rides in full profile as a bold silhouette (best for scrim, and you finally see the machine); it eases back to the high attract view whenever the wall goes idle. (chase + first-person live behind state.camMode.)',
   interact: 'Lean to steer; your side of the world lights up (orange left, violet right) and — new in V17 — that side’s road-line IGNITES and pulses in time with the notes it is playing, so you can SEE the music answer your hands. Reach toward the source to flare your headlight and swell the whole mix. Presence alone keeps you fast; the hands play, they don’t throttle.',
   sound: 'Its own engine — 78-ish BPM aeolian minor. Left hand plays arps/bells (and lights the orange line), right hand plays stabs/pad (and lights the violet line), both drive the drums; sub under everything, hats double-time only in the tunnel, the mourner lead over cave and sunset. Same rig roles and channels.',
   init(P) {
@@ -24292,7 +24292,7 @@ reg({
       speed: 6, steer: 0, lane: 0, pres: 0, bob: 0, asleep: true,
       act: 0, actT: 0, trans: 0, pending: null, curveA: 0, curvePh: 0, tunPh: 0,
       kickPulse: 0, arpFlash: 0, stabFlash: 0, arpIdx: 0, lastEvP: 0,
-      chomp: 0, chompHit: 0, chompDone: false, camMode: 0
+      chomp: 0, chompHit: 0, chompDone: false, camMode: 2 // 0 chase · 1 first-person · 2 low iso (default)
     };
     if (typeof THREE === 'undefined') { P.state.noGL = true; return; }
     if (P._three) { try { P._three.renderer.dispose(); } catch (e) {} }
