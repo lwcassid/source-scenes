@@ -219,7 +219,76 @@
 
   footer{padding:32px 24px 48px;text-align:center;font-size:10px;letter-spacing:.26em;color:var(--txt-faint);text-transform:uppercase;line-height:2.2}
   footer span{color:var(--txt-dim)}
+  /* ---------- SHOWTIME — the scene takes the actual display ---------- */
+  #stageFS{position:absolute;top:14px;right:14px;z-index:8;width:40px;height:40px;border-radius:10px;
+    font-size:17px;display:flex;align-items:center;justify-content:center;
+    background:rgba(10,10,14,.55);border:1px solid var(--line);color:var(--txt);
+    opacity:0;pointer-events:none;transition:opacity .25s}
+  .ostage:hover #stageFS{opacity:1;pointer-events:auto} /* appears when you hover the stage */
+  #overlay.zen #stageFS{opacity:0;pointer-events:none}
+  @media (pointer:coarse){#stageFS{opacity:.5;pointer-events:auto}} /* no hover on touch — keep it faintly present */
+  .edgeNav{display:none;position:absolute;top:0;bottom:0;width:13%;z-index:7;cursor:pointer;align-items:center}
+  #edgeL{left:0;justify-content:flex-start}
+  #edgeR{right:0;justify-content:flex-end}
+  .edgeNav span{font-size:56px;line-height:1;color:#fff;opacity:0;transition:opacity .25s;padding:0 18px;
+    text-shadow:0 2px 18px rgba(0,0,0,.85);user-select:none}
+  .edgeNav:hover span{opacity:.7}
+  #overlay.fs .edgeNav{display:flex} /* only in true fullscreen — the wall keeps its normal manners */
+  /* in fullscreen the STAGE owns every pixel: the bars float over it and zen fades them away */
+  #overlay.fs .obar{position:absolute;top:0;left:0;right:0;z-index:12;background:rgba(8,8,11,.72);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)}
+  #overlay.fs .oconsole{position:absolute;bottom:0;left:0;right:0;z-index:12;background:rgba(8,8,11,.72);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,.08)}
+  #overlay.fs .obar,#overlay.fs .obar h2,#overlay.fs .oconsole,#overlay.fs .whint{color:#cfd6e4}
+  #dbg{display:none;position:absolute;left:12px;bottom:12px;z-index:14;font-family:var(--mono);font-size:10px;transition:opacity .4s}
+  #overlay.fs #dbg{display:block}
+  #overlay.zen #dbg:not(.open){opacity:0}
+  #dbgTab{display:inline-block;padding:5px 11px;border-radius:8px;background:rgba(10,10,14,.6);
+    border:1px solid var(--line);color:var(--txt-dim);cursor:pointer;letter-spacing:.16em;opacity:.35;transition:opacity .2s}
+  #dbgTab:hover{opacity:1}
+  #dbg.open #dbgTab{opacity:1;color:var(--acc)}
+  #dbgBody{display:none;margin-top:8px;padding:12px 14px;border-radius:10px;min-width:260px;
+    background:rgba(8,8,10,.88);border:1px solid var(--line);color:#cfd6e4;line-height:1.9;white-space:pre}
+  #dbg.open #dbgBody{display:block}
+
+  /* ---------- MOBILE — the wall in your pocket ---------- */
+  @media (max-width:760px){
+    header{padding:6px 8px;gap:8px;min-height:44px}
+    .brand h1{font-size:10.5px;letter-spacing:.18em}
+    .hright{gap:5px}
+    .tgroup{gap:4px;padding:3px 7px 3px 6px}
+    .glabel{display:none} /* the pills explain themselves — labels cost width */
+    #widgetTop{width:108px;height:28px}
+    button{font-size:8.5px;padding:7px 9px} /* smaller type, same tap height */
+    input[type=range]{width:52px}
+    select{max-width:120px;font-size:9.5px}
+    #mapPop{left:10px;right:10px;width:auto;top:50px}
+    main{padding:12px 8px 40px}
+    .grid{gap:10px;grid-template-columns:1fr} /* one clean column — cards stay large and tappable */
+    .libbar{gap:7px;margin:0 2px 12px}
+    .libbar h2{font-size:13px;letter-spacing:.2em}
+    .libbar input[type=search],.libbar #searchBox{min-width:0;flex:1}
+    /* focus overlay: wrap the bar, shrink the title, keep every control tappable */
+    .obar{padding:8px 8px;gap:6px;flex-wrap:wrap}
+    .obar .otitle{gap:7px}
+    .obar .otitle h2{font-size:12px;letter-spacing:.16em}
+    .obar .otitle .tid{display:none}
+    .oconsole{padding:8px 8px 10px;gap:10px}
+    .conBox:first-child .whint{display:none} /* coaching text yields the space to the monitor */
+    #widgetFocus{width:120px;height:80px}
+    #midiMon{height:78px}
+    .whint{font-size:9px}
+    #infoPanel{width:100vw}
+    #useHint{top:10px;font-size:9px;padding:7px 12px;white-space:nowrap}
+  }
+  /* phones held sideways — the natural way to ride: give everything to the stage */
+  @media (max-width:1000px) and (max-height:500px){
+    .oconsole{display:none}
+    .obar{padding:6px 8px}
+  }
 </style>
+<script>
+// one flag the scenes can ask: coarse pointer or narrow screen = phone rules
+window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches) || window.innerWidth < 820;
+</script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js" crossorigin="anonymous"></script>
@@ -329,6 +398,10 @@
   </div>
   <div class="ostage">
     <canvas id="focusCanvas"></canvas>
+    <button id="stageFS" title="Showtime — take the whole display">⛶</button>
+    <div id="edgeL" class="edgeNav"><span>‹</span></div>
+    <div id="edgeR" class="edgeNav"><span>›</span></div>
+    <div id="dbg"><div id="dbgTab">DBG</div><div id="dbgBody"></div></div>
     <div id="useHint">reach away from the source = more · left half = L · right half = R</div>
     <div class="lslider left" id="slL">
       <div class="track"></div><div class="fill"></div><div class="knob"></div>
@@ -10291,7 +10364,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -11101,7 +11174,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -12000,7 +12073,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -13055,7 +13128,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -14189,7 +14262,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -15379,7 +15452,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -16994,7 +17067,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -18715,7 +18788,7 @@ reg({
     cam.position.set(1.05, 3.3, 0);
     T3.cam = cam;
     // REAL glow — render through UnrealBloom when the post stack is present
-    if (typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') {
+    if (!window.IS_MOBILE && typeof THREE.EffectComposer === 'function' && typeof THREE.UnrealBloomPass === 'function') { // phones skip the post stack — fill rate is precious
       const comp = new THREE.EffectComposer(r);
       comp.setSize(P.w, P.h);
       comp.addPass(new THREE.RenderPass(sc, cam));
@@ -20402,6 +20475,232 @@ reg({
     };
   }
 });
+/* ---------- SRC-15.3 · FERRO BLOOM V3 (the converging garden) ---------- */
+reg({
+  id: 'SRC-15.3', family: 'SRC-15', ver: 3,
+  title: 'Ferro Bloom V3', tech: 'SHADER FIELD / MOTION ILLUSION',
+  music: { bpm: 66, root: 50, mode: 'lydian', prog: [0, 1], chordBars: 8 },
+  fx: {},
+  tags: ['GROW+SHRINK ILLUSION', 'BUDDING FAMILY', 'ONE FIELD', 'BAR-QUANTIZED BLOOMS'],
+  desc: 'At rest: an orange-cored blob of banded light, undulating slowly in the black — clearly alive, giving nothing away. Engage and it BLOOMS: soft gradient bands flow outward through the inner flower while the outer flower’s bands flow inward, converging on a stationary ring — the eye reads growth and collapse at once, a flower that swallows itself while opening. One hand grows the family: new blooms bud from the mass on the downbeat and merge into it, contours flowing around the union like one organism. The other hand is the flow itself — from glacial drift to a pulse that locks to the beat. Blue, teal, cream and lavender bands; every core an ember of orange.',
+  interact: 'L = the family — reach out and blooms bud one per bar, up to seven, each merging into the mass (pull back and they retreat the same way). R = the flow — the speed of the gradients through every flower, from near-frozen to beat-locked pulsing. The illusion needs a middle speed; finding it is the play.',
+  sound: 'Each bloom is one voice of a voice-led lydian pad — the chord thickens as the garden grows, and every bud is announced by a soft bell on the downbeat. The flow hand drives a quantized arp that lights each bloom’s core as its note plays (quarters at a drift, sixteenths at full flow), plus CC74 brightness. Sub root underneath. Ableton: pads ch2, arp ch4, bells ch5.',
+  init(P) {
+    P.state = {
+      pres: 0, count: 1, target: 1, spd: 0, uph: 0, pulse: 0, breath: 0,
+      birth: [1, 0, 0, 0, 0, 0, 0], lit: [0, 0, 0, 0, 0, 0, 0]
+    };
+    if (typeof THREE === 'undefined') { P.state.noGL = true; return; }
+    if (P._three) { try { P._three.renderer.dispose(); } catch (e) {} }
+    const T3 = {}; P._three = T3;
+    const r = new THREE.WebGLRenderer({ antialias: false });
+    r.setSize(P.w, P.h, false);
+    T3.renderer = r;
+    const sc = new THREE.Scene();
+    const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const uni = {
+      uT: { value: 0 }, uRes: { value: new THREE.Vector2(P.w, P.h) },
+      uPh: { value: 0 }, uPres: { value: 0 }, uPulse: { value: 0 },
+      uBreath: { value: 1 }, uAmb: { value: 1 },
+      uBirth: { value: new Float32Array(7) }, uLit: { value: new Float32Array(7) }
+    };
+    T3.uni = uni;
+    const mat = new THREE.ShaderMaterial({
+      uniforms: uni,
+      vertexShader: 'void main(){ gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: [
+        'uniform float uT, uPh, uPres, uPulse, uBreath, uAmb;',
+        'uniform vec2 uRes;',
+        'uniform float uBirth[7];',
+        'uniform float uLit[7];',
+        'const float TAU = 6.28318530718;',
+        // bloom layout: hero at center, satellites budding around at golden angles
+        'vec2 bloomPos(int i){',
+        '  if (i == 0) return vec2(0.0, 0.0);',
+        '  float fi = float(i);',
+        '  float ang = fi * 2.39996 + 0.8;',
+        '  float dst = 0.34 + 0.05 * mod(fi * 37.0, 3.0) / 3.0 + 0.02 * fi;',
+        '  return vec2(cos(ang), sin(ang)) * dst;',
+        '}',
+        'float bloomScale(int i){ return i == 0 ? 0.30 : (0.15 + 0.045 * mod(float(i) * 53.0, 4.0) / 3.0); }',
+        'float bloomK(int i){ return i == 0 ? 8.0 : (5.0 + mod(float(i) * 29.0, 4.0)); }',
+        'void main(){',
+        '  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / min(uRes.x, uRes.y);',
+        // idle breath: the whole mass swells and relaxes, more in ambient
+        '  float breathAmt = 0.015 + 0.035 * uBreath;',
+        '  p *= 1.0 / (1.0 + breathAmt * sin(uT * 0.45));',
+        '  float k = 0.15;',            // smooth-union softness
+        '  float acc = 0.0;',           // exp accumulator for smin
+        '  vec3 col = vec3(0.0);',
+        '  float coreSum = 0.0; vec3 coreCol = vec3(0.0);',
+        '  for (int i = 0; i < 7; i++){',
+        '    float b = uBirth[i];',
+        '    if (b < 0.02) continue;',
+        '    vec2 q = p - bloomPos(i);',
+        '    float d = length(q);',
+        '    float th = atan(q.y, q.x);',
+        '    float wob = (0.05 + 0.10 * uBreath) * sin(uT * 0.35 + float(i) * 2.1 + th * 2.0);',
+        '    float S = bloomScale(i) * (0.25 + 0.75 * b);',   // buds inflate from 25%
+        '    float R = S * (1.0 + (0.16 + wob * 0.5) * cos(bloomK(i) * th + float(i) * 1.9 + sin(uT * 0.22 + float(i)) * 0.35));',
+        '    float f = d / max(R, 1e-4);',
+        '    acc += exp(-f / k);',
+        // orange core, lit by its arp note and the beat pulse
+        '    float cr = S * (0.16 + 0.05 * uLit[i]);',
+        '    float g1 = exp(-pow(d / cr, 2.0)) * b;',
+        '    coreSum += g1;',
+        '    coreCol += (vec3(1.0, 0.47, 0.16) * g1 * (0.85 + uPulse * 0.5 + uLit[i] * 1.3)',
+        '             +  vec3(1.0, 0.82, 0.6) * exp(-pow(d / (cr * 0.38), 2.0)) * b * (0.7 + uLit[i]));',
+        '  }',
+        '  float f = -k * log(max(acc, 1e-20));', // the merged field: 0 at cores, 1 at the union edge
+        // THE ILLUSION: band direction flips smoothly across the mid ring —
+        // inner bands flow OUTWARD, outer bands flow INWARD, converging on a
+        // stationary ring. Same frequency, one continuous phase function: no seam.
+        '  float dir = 1.0 - 2.0 * smoothstep(0.45, 0.65, f);',
+        '  float phase = f * 5.5 - uPh * dir;', // fewer, FATTER bands — mesh-proof, reference-soft
+        '  float band = 0.5 + 0.5 * cos(TAU * phase);',
+        '  band = pow(band, 0.85);', // wide airbrushed crests
+        // palette: deep blue -> teal -> cream, lavender in the far field
+        '  vec3 deep = vec3(0.05, 0.09, 0.30);',
+        '  vec3 teal = vec3(0.10, 0.52, 0.52);',
+        '  vec3 cream = vec3(0.95, 0.88, 0.78);',
+        '  vec3 lav  = vec3(0.60, 0.52, 0.85);',
+        '  vec3 bc = mix(deep, teal, smoothstep(0.12, 0.72, band));',
+        '  bc = mix(bc, cream, smoothstep(0.84, 1.0, band));',
+        '  bc = mix(bc, lav, 0.42 * smoothstep(0.45, 1.0, f) * band);', // lavender owns the outer field
+        '  float inside = 1.0 - smoothstep(0.90, 1.02, f);',  // the flower exists to its edge
+        '  float presL = 0.40 + 0.60 * uPres;',
+        '  col += bc * inside * presL * (0.55 + 0.42 * band) * (1.0 + uPulse * 0.18) * 0.92;',
+        '  col += teal * exp(-max(f - 1.0, 0.0) * 4.0) * 0.10 * presL;', // soft halo just past the edge
+        '  col += coreCol;',
+        // ambient tease: three faint drifting gradient spots in the black, idle only
+        '  for (int j = 0; j < 3; j++){',
+        '    float fj = float(j);',
+        '    vec2 aq = vec2(sin(uT * 0.05 + fj * 2.1) * 0.62, cos(uT * 0.041 + fj * 3.7) * 0.42);',
+        '    float ad = length(p - aq);',
+        '    col += mix(deep, teal, 0.5 + 0.5 * sin(fj * 2.0)) * exp(-pow(ad / 0.13, 2.0)) * 0.30 * uAmb;',
+        '    col += vec3(1.0, 0.47, 0.16) * exp(-pow(ad / 0.035, 2.0)) * 0.35 * uAmb;',
+        '  }',
+        '  gl_FragColor = vec4(col, 1.0);',
+        '}'
+      ].join('\n')
+    });
+    sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+    T3.scene = sc; T3.cam = cam;
+  },
+  step(P, dt, t, inp) {
+    const s = P.state;
+    if (s.noGL) return;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    // abandoned gardens sleep back to a single bud, one retreat per bar
+    if (s.pres < 0.12) { s.idleT = (s.idleT || 0) + dt; if (s.idleT > 12) s.target = 1; }
+    else s.idleT = 0;
+    // L = the family. Schmitt thresholds so the count never flickers; the
+    // AUDIO clock does the actual budding, one per bar, on the downbeat.
+    const pos = clamp(inp.L) * 6.99;
+    const cur = s.target - 1;
+    if (pos > cur + 0.85 && s.target < 7) s.target++;
+    else if (pos < cur - 0.85 && s.target > 1) s.target--;
+    // R = the flow
+    s.spd += (clamp(inp.R) - s.spd) * Math.min(1, dt * 2.5);
+    s.uph += dt * (0.018 + Math.pow(s.spd, 1.6) * 0.55) * (0.35 + 0.65 * s.pres);
+    s.pulse = Math.max(0, s.pulse - dt * 3.2);
+    for (let i = 0; i < 7; i++) {
+      const want = i < s.count ? 1 : 0;
+      s.birth[i] += (want - s.birth[i]) * Math.min(1, dt * 1.1);
+      s.lit[i] = Math.max(0, s.lit[i] - dt * 3.5);
+    }
+    s.breath = 1 - s.pres * 0.7; // undulation is strongest at rest — the tease
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    if (s.noGL || !P._three) {
+      g.fillStyle = '#04050c'; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(150,180,220,0.7)'; g.font = `${Math.max(10, h * 0.03)}px ui-monospace,monospace`;
+      g.textAlign = 'center';
+      g.fillText('FERRO BLOOM V3 · THE CONVERGING GARDEN', w / 2, h / 2 - 12);
+      g.fillText('open on the hosted site (WebGL)', w / 2, h / 2 + 14);
+      g.textAlign = 'left';
+      return;
+    }
+    const T3 = P._three, u = T3.uni;
+    u.uT.value = t; u.uPh.value = s.uph;
+    u.uPres.value = s.pres; u.uPulse.value = s.pulse;
+    u.uBreath.value = s.breath;
+    u.uAmb.value = Math.max(0, 1 - s.pres * 1.4) * 0.9;
+    for (let i = 0; i < 7; i++) { u.uBirth.value[i] = s.birth[i]; u.uLit.value[i] = s.lit[i]; }
+    T3.renderer.render(T3.scene, T3.cam);
+    g.clearRect(0, 0, w, h);
+    g.drawImage(T3.renderer.domElement, 0, 0, w, h);
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(180,210,220,0.75)'; g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('BLOOMS ' + s.count + (s.target !== s.count ? ' → ' + s.target : '') + '  ·  FLOW ' + Math.round(s.spd * 100) + '%' + (s.pres < 0.3 ? '  ·  SLEEPING' : ''), 10, h - 10);
+  },
+  audio(A, P) {
+    const v = A.voice();
+    const f = v.filter('lowpass', 600, 0.7);
+    f.connect(v.group);
+    // one pad voice per bloom, voice-led on the chord ladder
+    const DEG = [0, 2, 4, 1, 3, 5, 6];
+    const voices = DEG.map((d, i) => {
+      const o = v.osc('sawtooth', H.chordTone(d, i < 2 ? 0 : 1));
+      const gg = v.g(0.0001);
+      o.connect(gg); gg.connect(f);
+      return { o, gg, d, oct: i < 2 ? 0 : 1 };
+    });
+    // sub root — the scene is never fully silent
+    const sub = v.osc('sine', H.rootFreq(-1));
+    const subG = v.g(0.03); sub.connect(subG); subG.connect(v.group);
+    if (A.revIn) { const s2 = A.ctx.createGain(); s2.gain.value = 0.6; f.connect(s2); s2.connect(A.revIn); }
+    H.onChord(() => {
+      voices.forEach(vc => A.set(vc.o.frequency, H.chordTone(vc.d, vc.oct), 2.2));
+      A.set(sub.frequency, H.rootFreq(-1), 2.2);
+    });
+    v.fadeIn(1, 1.2);
+    let nextT = T.next(0.25), step16 = 0, arpIdx = 0;
+    return {
+      tick(inp) {
+        const s = P.state;
+        A.set(f.frequency, 300 + s.spd * 2400 + s.pres * 400, 0.3);
+        // each living bloom holds its voice; gains breathe with presence
+        voices.forEach((vc, i) => A.set(vc.gg.gain, (i < s.count ? 0.022 : 0.0001) * (0.45 + 0.55 * s.pres), 1.1));
+        MOut.expr('pad', s.spd); MOut.expr('arp', s.count / 7);
+        const horizon = A.t() + 0.15;
+        while (nextT < horizon) {
+          const st = step16 % 16;
+          const tt = nextT;
+          // THE DOWNBEAT IS THE GARDENER: one bud (or one retreat) per bar
+          if (st === 0 && s.count !== s.target) {
+            const growing = s.count < s.target;
+            s.count += growing ? 1 : -1;
+            const deg = DEG[Math.max(0, s.count - 1)];
+            if (growing) {
+              A.bell(H.chordTone(deg, 2), { at: tt, vol: 0.07, dur: 2.6, rev: 0.7 });
+              MOut.evNote('bells', H.chordTone(deg, 2), 0.14, tt, 2.2);
+            }
+          }
+          // beat-lock pulse for the visuals at high flow
+          if (st % 4 === 0 && s.spd > 0.55 && s.pres > 0.2) s.pulse = 1;
+          // the arp: quantized subdivision follows the flow hand; each note
+          // lights its bloom's core — the garden IS the sequencer readout
+          const div = s.spd < 0.25 ? 4 : s.spd < 0.5 ? 2 : s.spd < 0.78 ? 1 : 0.5; // in 16th steps... handled below
+          const stepHit = s.spd < 0.25 ? (st % 16 === 0) : s.spd < 0.5 ? (st % 8 === 0) : s.spd < 0.78 ? (st % 4 === 0) : (st % 2 === 0);
+          if (stepHit && s.pres > 0.15 && s.spd > 0.04 && s.count > 0) {
+            const bi = arpIdx % s.count;
+            const freq = H.chordTone(DEG[bi], 1);
+            A.pluck2(freq, { at: tt, vol: 0.03 + s.spd * 0.045, pan: Math.sin(bi * 1.7) * 0.4, rev: 0.5, del: 0.25 });
+            MOut.evNote('arp', freq, 0.1 + s.spd * 0.06, tt, 0.3);
+            s.lit[bi] = 1;
+            arpIdx++;
+          }
+          step16++; nextT += T.beat * 0.25;
+        }
+        if (nextT < A.t()) nextT = T.next(0.25);
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
 /* ============================================================
    HISTORY — earlier versions of explorations, excavated from
    the session record. Registered with family + ver so every
@@ -22083,6 +22382,88 @@ document.getElementById('oActs').addEventListener('click', e => {
   };
   ov.addEventListener('pointermove', wake);
   document.addEventListener('fullscreenchange', wake);
+})();
+/* ============================================================
+   SHOWTIME — installation player mode.
+   Hover the stage → ⛶ appears → true fullscreen. In fullscreen:
+   click the left/right screen edges to walk the SET LIST (starred
+   scenes in wall order; nothing starred = whatever the wall shows),
+   scenes auto-advance every 10 minutes, and a collapsible DBG tab
+   verifies the input rig without leaving the show.
+   ============================================================ */
+(() => {
+  const ov = document.getElementById('overlay');
+  const fsBtn = document.getElementById('stageFS');
+  if (!fsBtn) return;
+  fsBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (ov.requestFullscreen) ov.requestFullscreen();
+  });
+  document.addEventListener('fullscreenchange', () => {
+    ov.classList.toggle('fs', !!document.fullscreenElement);
+    resetRotation();
+  });
+  // THE SET LIST — starring a card on the wall is how a scene makes the show
+  const showList = () => {
+    const tiles = [...grid.children]
+      .filter(t2 => t2.style.display !== 'none')
+      .sort((a2, b2) => (+a2.style.order || 0) - (+b2.style.order || 0));
+    const starred = tiles.filter(t2 => FAV.set.has(t2.dataset.pid));
+    return starred.length ? starred : tiles;
+  };
+  const step = (dir) => {
+    if (focus.idx < 0) return;
+    const tiles = showList();
+    if (!tiles.length) return;
+    const cur = famOf(PIECES[focus.idx]);
+    let ci = tiles.findIndex(t2 => t2.dataset.pid === cur);
+    ci = (ci + dir + tiles.length) % tiles.length;
+    const nt = tiles[ci];
+    if (nt && nt.cur) { closeFocus(); openFocus(nt.cur.idx); }
+    resetRotation();
+  };
+  document.getElementById('edgeL').addEventListener('click', () => step(-1));
+  document.getElementById('edgeR').addEventListener('click', () => step(1));
+  // ten minutes per scene, reset by any manual navigation
+  const ROT_MS = 10 * 60 * 1000;
+  let rotT = null, rotAt = 0;
+  function resetRotation() {
+    clearTimeout(rotT); rotT = null; rotAt = 0;
+    if (document.fullscreenElement && focus.idx >= 0) {
+      rotAt = Date.now() + ROT_MS;
+      rotT = setTimeout(() => step(1), ROT_MS);
+    }
+  }
+  window.SHOW = { next: () => step(1), prev: () => step(-1), resetRotation };
+  // DBG — the little truth window: is the rig actually feeling your hands?
+  const dbg = document.getElementById('dbg'), body = document.getElementById('dbgBody');
+  document.getElementById('dbgTab').addEventListener('click', () => dbg.classList.toggle('open'));
+  let frames = 0, fps = 0, fpsT = performance.now();
+  (function fpsLoop() { frames++; requestAnimationFrame(fpsLoop); })();
+  setInterval(() => {
+    const now = performance.now();
+    fps = Math.round(frames * 1000 / (now - fpsT)); frames = 0; fpsT = now;
+    if (!dbg.classList.contains('open') || !document.fullscreenElement) return;
+    const d = focus.idx >= 0 ? PIECES[focus.idx] : null;
+    const st = focus.P && focus.P.state;
+    const bar = (side) => {
+      const v = chan[side].v;
+      const n = Math.round(clamp(v) * 14);
+      return '▮'.repeat(n) + '▯'.repeat(14 - n) + ' ' + v.toFixed(2) + ' ' + chan[side].mode.toUpperCase();
+    };
+    const secs = rotAt ? Math.max(0, Math.round((rotAt - Date.now()) / 1000)) : 0;
+    const mmss = rotAt ? String(Math.floor(secs / 60)) + ':' + String(secs % 60).padStart(2, '0') : '—';
+    const inMap = (midi.map.L || midi.map.R)
+      ? 'L:' + (midi.map.L ? 'cc' + midi.map.L.cc : '—') + ' R:' + (midi.map.R ? 'cc' + midi.map.R.cc : '—')
+      : 'unmapped (MAP → LEARN)';
+    body.textContent =
+      'SCENE  ' + (d ? d.id + ' · ' + d.title : '—') + (st && d && d.acts ? '\nACT    ' + d.acts[st.act] : '') +
+      '\nL HAND ' + bar('L') +
+      '\nR HAND ' + bar('R') +
+      '\nMIDI IN  ' + inMap +
+      '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
+      '\nNEXT SCENE ' + mmss + '   FPS ' + fps;
+  }, 500);
 })();
 // live indicators: act chip highlight + now-playing role dots
 setInterval(() => {
