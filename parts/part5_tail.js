@@ -427,6 +427,68 @@ document.getElementById('oActs').addEventListener('click', e => {
   document.addEventListener('fullscreenchange', wake);
 })();
 /* ============================================================
+   SCENE DEEP LINKS — every scene has its own shareable URL.
+   #scene=SRC-15.4 opens that exact version; #scene=SRC-15 opens
+   the family's latest. Opening a scene writes the hash, closing
+   clears it, and the LINK button copies the URL. #fav= links
+   are untouched.
+   ============================================================ */
+(() => {
+  const sceneFromHash = () => {
+    const m = location.hash.match(/^#scene=([A-Za-z0-9.\-]+)/);
+    if (!m) return -1;
+    const id = m[1];
+    // a versioned id (SRC-15.4) is exact; a bare family id (SRC-15) means LATEST
+    if (/\.\d+$/.test(id)) return PIECES.findIndex(p => p.id === id);
+    let best = -1, bv = 0;
+    PIECES.forEach((p, pi) => { if ((p.family || p.id) === id && (p.ver || 1) >= bv) { bv = p.ver || 1; best = pi; } });
+    if (best < 0) best = PIECES.findIndex(p => p.id === id);
+    return best;
+  };
+  // wrap open/close so the URL always mirrors the stage
+  const _open = openFocus, _close = closeFocus;
+  let syncing = false;
+  window.openFocus = function (i) {
+    _open(i);
+    if (!syncing && PIECES[i]) {
+      try { history.replaceState(null, '', location.pathname + '#scene=' + PIECES[i].id); } catch (e) {}
+    }
+  };
+  window.closeFocus = function () {
+    _close();
+    if (!syncing && location.hash.startsWith('#scene=')) {
+      try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    }
+  };
+  // arriving with a scene link → straight to the stage
+  const boot = () => {
+    const i = sceneFromHash();
+    if (i >= 0) { syncing = true; window.openFocus(i); syncing = false;
+      try { history.replaceState(null, '', location.pathname + '#scene=' + PIECES[i].id); } catch (e) {} }
+  };
+  if (document.readyState === 'complete') setTimeout(boot, 300);
+  else window.addEventListener('load', () => setTimeout(boot, 300));
+  // pasting a different scene link while the app is open
+  window.addEventListener('hashchange', () => {
+    const i = sceneFromHash();
+    if (i >= 0 && i !== focus.idx) {
+      syncing = true;
+      if (focus.idx >= 0) window.closeFocus();
+      window.openFocus(i);
+      syncing = false;
+    }
+  });
+  // LINK — copy this scene's URL
+  const b = document.getElementById('fShare');
+  if (b) b.addEventListener('click', () => {
+    if (focus.idx < 0) return;
+    const url = location.origin + location.pathname + '#scene=' + PIECES[focus.idx].id;
+    const done = () => { b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'LINK', 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Scene link:', url));
+    else prompt('Scene link:', url);
+  });
+})();
+/* ============================================================
    SHOWTIME — installation player mode.
    Hover the stage → ⛶ appears → true fullscreen. In fullscreen:
    click the left/right screen edges to walk the SET LIST (starred
