@@ -35,6 +35,7 @@ cd "$(dirname "$0")/.."
   cat parts/part27_fb5.js
   cat parts/part28_fb6.js
   cat parts/part29_fb7.js
+  cat parts/part30_fb8.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
