@@ -48,6 +48,7 @@ cd "$(dirname "$0")/.."
   cat parts/part40_ws4.js
   cat parts/part42_ws5.js
   cat parts/part43_ws6.js
+  cat parts/part44_ws7.js
   cat parts/part40_v16.js
   cat parts/part41_v17.js
   cat parts/part50_sg7.js
