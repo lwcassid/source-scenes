@@ -62,3 +62,13 @@ That's it. Forever.
 projected-on-mesh rules, how the music engine works, how to build and
 publish — lives *inside the project itself*. Claude reads it automatically
 at the start of every session. You just talk.
+
+## "Can I use Cowork, or does it have to be claude.ai/code?"
+
+For **scene work, start from claude.ai/code with source-scenes picked** —
+that's the zero-surprise route, because the session opens directly inside
+the project. Cowork is great for everything *around* the scenes
+(moodboards, references, planning), and once your GitHub connection is set
+up it can usually publish scenes too. If a session ever says it can't
+reach the project, don't debug anything — just start again from
+**claude.ai/code** and it'll work.
