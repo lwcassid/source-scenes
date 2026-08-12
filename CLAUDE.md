@@ -81,3 +81,28 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
   `tools/decimate.py`); target < ~2MB per new model.
 - Verify the deploy: after pushing, fetch the live site and confirm the new
   version registered (version pill shows it).
+
+## Working in parallel (multiple people / sessions)
+`index.html` is a BUILD ARTIFACT committed to the repo. Scene part files never
+conflict (one file per version), but a stale clone that rebuilds and pushes
+`index.html` will silently drop someone's newer scene from the LIVE SITE
+(their part file stays safe; the deploy just lags). Rules:
+1. `git pull` IMMEDIATELY before running `tools/build.sh`, every time.
+2. If a push is rejected: pull, then REBUILD (`bash tools/build.sh`) and
+   commit the regenerated `index.html`. NEVER hand-merge index.html — it is
+   generated; regeneration IS the merge.
+3. Also update `.claude/skills/sound-craft/SKILL.md` awareness: sound-only
+   revisions follow the same versioning law and the same pull-build-push flow.
+4. Human protocol: say in the group chat when you're publishing. If the live
+   site ever looks like it lost a version, any session can fix it in one
+   move: pull → build → push.
+
+## Lanes (who touches what)
+- Kasia + Nima sessions: SCENE WORK ONLY — new versions of their scenes.
+  Do not modify core parts (`part1_head.html`, `part2*`, `part5_tail.js`,
+  `part15_history.js`) or `tools/` without coordinating with Lance.
+- Lance handles structural work (harmony engine, UI/library chrome, tools).
+  Structural changes must be ADDITIVE/OPT-IN where possible (existing scenes
+  keep working untouched), and after ANY core change run
+  `SCENE=<id> node tools/playtest.js` against at least 2–3 scenes —
+  including someone else's — before pushing.
