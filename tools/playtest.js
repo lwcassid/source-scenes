@@ -23,6 +23,26 @@ const { chromium } = require(PW);
   await page.goto('file://' + require('path').resolve(preview));
   await page.waitForTimeout(2500);
 
+  // SCENE=ALL → smoke every registered scene: open, drive hands, count errors.
+  // Run this after ANY structural/core change before pushing.
+  if (sceneId === 'ALL') {
+    const n = await page.evaluate(() => PIECES.length);
+    let bad = 0;
+    for (let i = 0; i < n; i++) {
+      const before = errs.length;
+      const id = await page.evaluate(i => { openFocus(i); return PIECES[i].id; }, i);
+      await page.waitForTimeout(800);
+      await page.evaluate(() => { try { setChan('L', 0.6); setChan('R', 0.6); focus.P.state.pres = 1; } catch (e) {} });
+      await page.waitForTimeout(600);
+      const nw = errs.length - before;
+      if (nw) { bad++; console.log(`FAIL ${id}  +${nw} error(s): ${errs[errs.length - 1]}`); }
+      else console.log(`ok   ${id}`);
+    }
+    console.log(`smoke done: ${n} scenes, ${bad} failing, ${errs.length} total errors`);
+    await browser.close();
+    process.exit(bad ? 2 : 0);
+  }
+
   const idx = await page.evaluate(id => {
     // versioned id (SRC-15.4) → exact; bare family id (SRC-15) → NEWEST
     let i = -1;
