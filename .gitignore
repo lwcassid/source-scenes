@@ -1,0 +1,5 @@
+# sighted-iteration artifacts (regenerated on demand)
+night-circuit-preview.html
+scratchshots/
+# harness deps for tools/shot*.mjs (install locally: npm i playwright-core)
+node_modules/
