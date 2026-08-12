@@ -40,6 +40,13 @@ const H = {
     this.root = m.root !== undefined ? m.root : 50;
     this.mode = m.mode || 'aeolian';
     this.prog = m.prog || [0, 5, 3, 4];
+    // EXPLICIT CHORDS (opt-in): music.chords = arrays of semitone offsets from
+    // root — any voicing, any extension, borrowed chords welcome. Scenes that
+    // use them get a PINNED key (no auto-modulation) for jamming with live
+    // musicians. music.chordNames labels them for the HUD.
+    this.chords = m.chords || null;
+    this.chordNames = m.chordNames || null;
+    if (this.chords && !m.prog) this.prog = this.chords.map((_, i) => i);
     this.chordBars = m.chordBars || 2;
     this.step = 0; this.phrase = 0; this.nextChangeBar = this.chordBars;
     this.listeners = [];
@@ -53,6 +60,14 @@ const H = {
   },
   build() {
     const deg = this.prog[this.step];
+    if (this.chords) {
+      const ci = ((deg % this.chords.length) + this.chords.length) % this.chords.length;
+      this.chordSemis = this.chords[ci].map(s => this.root + s);
+      this.label = this.chordNames ? this.chordNames[ci]
+        : NOTE_NAMES[((this.chordSemis[0] % 12) + 12) % 12];
+      this.keyLabel = NOTE_NAMES[((this.root % 12) + 12) % 12] + ' ' + this.mode.toUpperCase();
+      return;
+    }
     this.chordSemis = [0, 2, 4, 6].map(k => this.degSemi(deg + k));
     this.label = NOTE_NAMES[((this.chordSemis[0] % 12) + 12) % 12] +
       (this.mode === 'lydian' || this.mode === 'ionian' || this.mode === 'mixolydian' ? '' : 'm') + '7';
@@ -72,6 +87,7 @@ const H = {
     }
   },
   modulate() {
+    if (this.chords) return; // explicit-chord scenes stay pinned — live players are in a key
     const r = this.hrand();
     if (r < 0.4) this.root += 5;        // up a fourth
     else if (r < 0.7) this.root -= 2;   // down a step
