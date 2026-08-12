@@ -1,0 +1,22 @@
+# Netlify builds the site from parts/ on EVERY context — production, branch
+# deploys, and PR deploy previews. This means contributors never have to run
+# tools/build.sh or commit index.html by hand: push your part file (and its
+# line in tools/build.sh) and Netlify assembles + syntax-checks the site.
+#
+# Preview links for testing before merge:
+#   • Open a PR  -> Netlify posts a "Deploy Preview" link on it automatically.
+#   • Branch URL -> <your-branch>--source-interaction-library.netlify.app
+#     (slashes in the branch name become dashes) once branch deploys are on.
+[build]
+  command = "bash tools/build.sh"
+  publish = "."
+
+# Keep production pinned to main; every other branch/PR is a preview.
+[context.production]
+  command = "bash tools/build.sh"
+
+[context.deploy-preview]
+  command = "bash tools/build.sh"
+
+[context.branch-deploy]
+  command = "bash tools/build.sh"
