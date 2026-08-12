@@ -96,3 +96,13 @@ conflict (one file per version), but a stale clone that rebuilds and pushes
 4. Human protocol: say in the group chat when you're publishing. If the live
    site ever looks like it lost a version, any session can fix it in one
    move: pull → build → push.
+
+## Lanes (who touches what)
+- Kasia + Nima sessions: SCENE WORK ONLY — new versions of their scenes.
+  Do not modify core parts (`part1_head.html`, `part2*`, `part5_tail.js`,
+  `part15_history.js`) or `tools/` without coordinating with Lance.
+- Lance handles structural work (harmony engine, UI/library chrome, tools).
+  Structural changes must be ADDITIVE/OPT-IN where possible (existing scenes
+  keep working untouched), and after ANY core change run
+  `SCENE=<id> node tools/playtest.js` against at least 2–3 scenes —
+  including someone else's — before pushing.
