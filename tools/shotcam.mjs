@@ -10,7 +10,7 @@ const p = await b.newPage({ viewport: { width: 1280, height: 760 } });
 p.on('pageerror', e => console.log('PAGEERR:', e.message));
 await p.goto('file://' + path.resolve('night-circuit-preview.html'), { waitUntil: 'load', timeout: 60000 });
 await p.waitForTimeout(2500);
-await p.evaluate(() => { const i = PIECES.findIndex(x => x.id === 'SRC-18.17'); openFocus(i); });
+await p.evaluate(() => { const i = PIECES.findIndex(x => x.id === 'SRC-18.18'); openFocus(i); });
 await p.waitForTimeout(3200);
 for (const st of spec) {
   const [label, cam, L, R, act, ms] = st.split(':');
