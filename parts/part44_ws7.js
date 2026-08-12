@@ -11,7 +11,7 @@ reg({
   _spawnGust(P, w, h) {
     return {
       x: P.rand() * w, y: P.rand() * h,
-      r: Math.min(w, h) * (0.1 + P.rand() * 0.16),
+      r: Math.sqrt(w * h) * (0.15 + P.rand() * 0.2), // sized off the canvas's characteristic scale, not its shorter side — stays right on wide windows
       life: 0, maxLife: 4.2 + P.rand() * 6,
       wander: P.rand() * TAU, wSpeed: 26 + P.rand() * 64, str: 0,
       streamAngle: (P.rand() - 0.5) * 1.0, wobPh: P.rand() * TAU, wobFr: 0.12 + P.rand() * 0.28, wobAmp: 0.18 + P.rand() * 0.22
@@ -28,7 +28,7 @@ reg({
         pri: P.rand(), lenP: Math.pow(P.rand(), 1.6), hueJ: (P.rand() - 0.5) * 40, ph: P.rand() * TAU, boost: 0
       });
     }
-    const NG = 3, gusts = [];
+    const NG = 4, gusts = [];
     for (let i = 0; i < NG; i++) { const gu = this._spawnGust(P, w, h); gu.life = P.rand() * gu.maxLife; gusts.push(gu); }
     P.state = { mass, gusts, head: 0, spin: 0, turnPulse: 0, hue: 200, dens: 0, gust: 0, pres: 0 };
   },
@@ -89,7 +89,7 @@ reg({
 
       const own = clamp((base - m.pri) / 0.28); // this particle's own turn to elongate, gated by R — a narrow band
       const ownSharp = own * own; // sharpen the cutoff so marginal particles stay short even inside a stream
-      const targetLen = 2 + boost * ownSharp * (10 + m.lenP * 110); // growth ONLY inside an active stream — sharp clusters, real empty space between
+      const targetLen = 2 + boost * ownSharp * (16 + m.lenP * 170); // growth ONLY inside an active stream — sharp clusters, real empty space between
       m.TLcur += (targetLen - m.TLcur) * Math.min(1, dt * 1.7);
       const cap = Math.max(2, Math.round(m.TLcur));
       if (wrapped) {
@@ -118,13 +118,13 @@ reg({
         continue;
       }
       // emergent long line — this particle's own path, brighter and whiter the longer it holds
-      const lenFrac = clamp((trail.length - 5) / 60);
-      const a = (0.14 + lenFrac * 0.6 + m.boost * 0.22) * pres;
-      const wgt = (0.7 + m.lenP * 0.7 + lenFrac * 2.6 + m.boost * 1.0) * ms;
+      const lenFrac = clamp((trail.length - 5) / 95);
+      const a = (0.18 + lenFrac * 0.78 + m.boost * 0.3) * pres;
+      const wgt = (0.7 + m.lenP * 0.9 + lenFrac * 3.6 + m.boost * 1.6) * ms;
       const gr = g.createLinearGradient(trail[0].x, trail[0].y, trail[trail.length - 1].x, trail[trail.length - 1].y);
       gr.addColorStop(0, `hsla(${hue},32%,40%,0)`);
-      gr.addColorStop(0.62, `hsla(${hue},20%,74%,${a})`);
-      gr.addColorStop(1, `hsla(${hue},8%,${92 + m.boost * 6}%,${Math.min(1, a * 1.25)})`);
+      gr.addColorStop(0.6, `hsla(${hue},18%,78%,${a})`);
+      gr.addColorStop(1, `hsla(${hue},6%,${94 + m.boost * 6}%,${Math.min(1, a * 1.35)})`);
       g.strokeStyle = gr;
       g.lineWidth = wgt;
       g.lineCap = 'round'; g.lineJoin = 'round';
