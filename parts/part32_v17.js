@@ -385,7 +385,7 @@ reg({
     {
       // octagonal bore — flat-shaded facets read sci-fi, not anatomical
       const tube = new THREE.CylinderGeometry(4.7, 4.7, 360, 8, 1, true);
-      const tun = new THREE.Mesh(tube, new THREE.MeshLambertMaterial({ color: 0x0c1018, side: THREE.BackSide, flatShading: true }));
+      const tun = new THREE.Mesh(tube, new THREE.MeshLambertMaterial({ color: 0x0c1018, emissive: 0x090c16, side: THREE.BackSide, flatShading: true }));
       tun.rotation.x = Math.PI / 2; tun.position.set(0, 2.4, -150);
       tunG.add(tun); T3.tunBore = tun;
       const tunWire = new THREE.Mesh(tube, new THREE.MeshBasicMaterial({ color: 0x1e4a6a, wireframe: true, transparent: true, opacity: 0.05, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -462,6 +462,21 @@ reg({
         dr.position.set((i % 2 ? 1 : -1) * (1.6 + (i % 3)), 1.6 + ((i * 5) % 3) - 1, -(i * 44) - 30);
         dr.userData = { nav: nav.material, ph: i * 1.7, lane: (i % 2 ? 1 : -1) * (1.6 + (i % 3)), yb: 1.6 + ((i * 5) % 3) - 1 };
         tunG.add(dr); T3.drones.push(dr);
+      }
+      // V17 · SPEED STREAKS — bright dashes in a shell around the bore that rush
+      // past the camera, stretching with velocity. Sells 300 km/h and fills the
+      // dark bore with motion. Section-colored, additive, fat enough for scrim.
+      T3.streaks = [];
+      const strkG = new THREE.BoxGeometry(0.08, 0.08, 2.6);
+      for (let i = 0; i < 54; i++) {
+        const ang = rnd() * Math.PI * 2, rad = 3.0 + rnd() * 1.6;
+        const col = T3.tunZoneCols[(rnd() * T3.tunZoneCols.length) | 0];
+        const m = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+        m.toneMapped = false;
+        const st = new THREE.Mesh(strkG, m);
+        st.position.set(Math.cos(ang) * rad, 2.4 + Math.sin(ang) * rad, -rnd() * 360);
+        st.userData = { m };
+        tunG.add(st); T3.streaks.push(st);
       }
     }
     // ---- ACT 3 · PALM SUNSET ----
@@ -601,7 +616,7 @@ reg({
     // NOTE: .add() returns the GROUP — assigning to its return value once
     // teleported the whole bike under the camera. The bulb gets its own const.
     const headBulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), B(0xbfd8ff));
-    headBulb.position.set(0, 0.95, -1.8); bike.add(headBulb);
+    headBulb.position.set(0, 0.95, -1.8); bike.add(headBulb); T3.headBulb = headBulb; // hidden in first-person (it sits right in the camera)
     // V15: the painted light-cone is retired with the pool sprite — real beams only.
     const rider = new THREE.Group(); bike.add(rider); T3.rider = rider;
     rider.position.set(0, 1.15, 0.55);
@@ -1368,6 +1383,16 @@ reg({
         dr.rotation.z = Math.cos(ph) * 0.3;
         dr.userData.nav.opacity = 0.5 + Math.abs(Math.sin(t * 6 + dr.userData.ph)) * 0.5; // blinking nav light
       }
+      // speed streaks rush past, longer + brighter the faster you go
+      if (T3.streaks) {
+        const spd = clamp((s.speed - 10) / 42);
+        for (const st of T3.streaks) {
+          st.position.z += dz * 1.7 + dt * 22; // faster than the ground — they whip by
+          if (st.position.z > 6) st.position.z -= 366;
+          st.scale.z = 1 + spd * 4.5;                       // motion-stretch
+          st.userData.m.opacity = 0.08 + spd * 0.5 + s.kickPulse * 0.12;
+        }
+      }
       // V16 · SECTION COLORS: each ring takes the color of the zone it's passing
       // through, so travelling the bore walks you through cyan → magenta →
       // amber → violet → green districts. The beat still chases across them.
@@ -1379,7 +1404,7 @@ reg({
         const zone = Math.floor((-r2.ring.position.z + 500) / 60) % ZC.length;
         r2.m.color.setHex(ZC[zone]);
         const chase = (i2 % 4) === beatIdx ? s.kickPulse : 0;
-        r2.m.opacity = 0.12 + bld * 0.15 + chase * (0.22 + bld * 0.55);
+        r2.m.opacity = 0.2 + bld * 0.15 + chase * (0.25 + bld * 0.55);
         if (r2.ring.position.z < -6 && r2.ring.position.z > nearZ) { nearZ = r2.ring.position.z; nearest = r2; }
       });
       if (nearest) {
@@ -1473,7 +1498,7 @@ reg({
     T3.halo.position.copy(T3.sun.position); T3.halo.position.z -= 1;
     // atmosphere per act (+ transition fog swell that masks the swap)
     const fogA = [0.028, 0.0135, 0.017, 0.009][act];
-    T3.hemi.intensity = [0.055, 0.2, 0.075, 0.3][act]; // V15: the cavern lifts its floor of light — a projector at night on playa dust needs pixels to hold onto
+    T3.hemi.intensity = [0.055, 0.2, 0.14, 0.3][act]; // V17: lift the tunnel a touch so the bore reads without the harsh beams
     T3.scene.fog.density = fogA - thr * 0.003 + s.trans * 0.05;
     const fogCol = [0x170c30, 0x0a0714, 0x060a16, 0x140a18][act]; // cave veil carries luminance now, not just black
     T3.scene.fog.color.setHex(fogCol);
@@ -1578,6 +1603,7 @@ reg({
     T3.cam.fov = 58 + (efov - 58) * camK + (tunnel ? thr * 8 + (s.tunBuild || 0) * 6 : 0);
     T3.cam.updateProjectionMatrix();
     T3.tailL.scale.setScalar(1 + s.kickPulse * 0.8);
+    if (T3.headBulb) T3.headBulb.visible = s.camMode !== 1; // no floating white ball in first-person
   },
   draw(P, g, w, h, t, inp) {
     const s = P.state;
