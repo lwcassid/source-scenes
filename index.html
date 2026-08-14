@@ -36904,6 +36904,641 @@ reg({
     };
   }
 });
+/* ---------- SRC-37.3 · IRIS ENGINE V3 (halos that melt together) ---------- */
+reg({
+  id: 'SRC-37.3', family: 'SRC-37', ver: 3, title: 'Iris Engine V3', tech: 'RING HALOS / MORPH = CHORD',
+  music: {
+    bpm: 112, root: 40, mode: 'phrygian', chordBars: 8,
+    // SIX CHORDS FOR SIX SHAPES — the chord is chosen by the shape the right
+    // hand is making, not by a timer.
+    chords: [
+      [0, 7, 15, 19, 22],   // 0 · circles      Em7
+      [0, 8, 15, 20, 24],   // 1 · three lobes  C/E
+      [0, 7, 14, 17, 22],   // 2 · four lobes   Em11
+      [0, 5, 12, 17, 22],   // 3 · five lobes   Am11/E
+      [0, 1, 8, 13, 20],    // 4 · six lobes    E♭9 phrygian
+      [0, 1, 8, 15, 18]     // 5 · seven lobes  E♭9♯11
+    ],
+    chordNames: ['Em7', 'C/E', 'Em11', 'Am11/E', 'E♭9 phryg', 'E♭9♯11']
+  },
+  fx: { bloom: 0.6 },
+  tags: ['FIG PALETTE', 'SHAPE CHOOSES THE CHORD', 'HALOS MELT AT SPEED', 'THE ROOM CLOSES FROM THE SIDES'],
+  desc: 'A tunnel of fat bands in fig colours — indigo, royal purple, amber, pale tan, fig flesh — boiling out of one eye. Each band carries a halo, and the faster the engine runs the wider those halos spread, until neighbouring rings stop being separate things and melt into one another into a single moving body of light. Every band also listens: when anything else on the wall rings the tone it is tuned to, it flares on its own. And the room has edges — the picture is brightest through the middle and gives itself up toward the left and right walls, so when the instrument is left alone it does not blink out, it closes in from the sides like a door shutting.',
+  interact: 'R = MORPH, and morph is harmony. Drawn in the rings are true circles; reach out and they grow lobes — three, four, five, six, seven — and lean off-axis, and each of those six shapes has its own chord, taken the moment the shape settles: Em7 → C/E → Em11 → Am11/E → E♭9 → E♭9♯11, open to sour. The picture tells you which harmony you are in before the ear does. L = INTENSITY: a ladder of speeds from a band every two beats up to sixteenths, and with it the halos widen — at the top of the ladder the rings have bled into each other and the tunnel is one melting body rather than a set of hoops. As long as either hand is off its rest the scene stays lit. Only when both hands come home AND stop moving does the light withdraw, from the sides inward, over about ten seconds; the smallest movement brings the whole room back instantly.',
+  sound: 'The arpeggio walks the chord ladder one note per band (MIDI role: arp), with the grid step taken straight from the ring rate so the note and the band arrive together. Underneath, a sawtooth pedal filtered by two formants driven directly off the raw hands (CC1/CC2) — even between notes a moving hand changes the vowel of the drone — and a tremolo on it running at exactly the ring rate, so the flicker you see is the flicker you hear. When the shape settles into a new morph the harmony JUMPS rather than waiting for the bar. Bells double the arpeggio an octave up once the tunnel is both fast and lobed; the kick appears only at the top of the intensity ladder. With both hands at rest the whole rig ducks to a bare pedal as the picture closes in. Ableton: arp ch4, texture ch6 = the vowel drone, pad ch2, bells ch5, perc ch10.',
+
+  init(P) {
+    P.state = {
+      pres: 0, NR: 22, morph: 0, morphS: 0, lean: 0, leanS: 0, rate: 1, rateS: 1, rateIdx: 1,
+      phase: 0, pulse: 0, spin: 0, wake: 0, act: 0, melt: 0, exc: new Float32Array(16),
+      prevL: 0, prevR: 0, candT: 0, cand: 0, warp: 0
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+
+    /* ---- AWAKE = A HAND OFF ITS REST, OR A HAND MOVING ------------------
+       Holding a position IS playing — a theremin player parked at 90 is
+       engaged, and the scene has no business fading on them. It only lets go
+       when both hands are home and nothing has moved for about ten seconds. */
+    const vel = (Math.abs(inp.L - s.prevL) + Math.abs(inp.R - s.prevR)) / Math.max(dt, 1e-3);
+    s.prevL = inp.L; s.prevR = inp.R;
+    s.act += (vel - s.act) * Math.min(1, dt * 12);
+    const held = clamp((Math.max(inp.L, inp.R) - 0.03) / 0.22);   // any real CC value holds it open
+    const woken = Math.min(1, s.act * 2.6);
+    s.wake = Math.max(s.wake * Math.pow(0.5, dt / 3.4), Math.max(held, woken));
+
+    // ---- L: intensity. A ladder of speeds, so crossings stay on the grid.
+    const LAD = [0.5, 1, 2, 3, 4, 6];
+    const want = clamp(inp.L) * (LAD.length - 0.001) | 0;
+    if (want > s.rateIdx && inp.L > want / LAD.length + 0.03) s.rateIdx = want;
+    else if (want < s.rateIdx && inp.L < (want + 1) / LAD.length - 0.03) s.rateIdx = want;
+    s.rate = LAD[s.rateIdx];
+    s.rateS += (s.rate - s.rateS) * Math.min(1, dt * 4);
+    // MELT: how much the halos have spread into each other
+    s.melt += (clamp(inp.L * 0.7 + s.rateIdx / 5 * 0.3) - s.melt) * Math.min(1, dt * 4);
+
+    // ---- R: morph. Six shapes, and the shape IS the chord.
+    const m = clamp(inp.R) * 5.999 | 0;
+    if (m !== s.cand) { s.cand = m; s.candT = t; }
+    if (m !== s.morph && t - s.candT > 0.22) s.morph = m;
+    s.morphS += (s.morph - s.morphS) * Math.min(1, dt * 5);
+    s.warp = clamp(inp.R);
+    s.lean = clamp(inp.R) * 0.3;
+    s.leanS += (s.lean - s.leanS) * Math.min(1, dt * 4);
+
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.phase = beats * s.rate;
+    const fr = s.phase - Math.floor(s.phase);
+    s.pulse = Math.pow(1 - fr, 2.6);
+    s.spin += dt * (0.05 + s.warp * 0.2);
+
+    if (typeof AE !== 'undefined' && AE.SB && typeof H !== 'undefined' && H.chordSemis.length) {
+      for (let i = 0; i < 16; i++) {
+        const e = AE.SB.excite(H.chordTone(i, -1));
+        s.exc[i] += (e - s.exc[i]) * Math.min(1, dt * 8);
+      }
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#050308';
+    g.fillRect(0, 0, w, h);
+    const wake = smooth(clamp(s.wake));
+    if (wake < 0.006) {
+      g.fillStyle = 'rgba(235,199,154,0.3)';
+      g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+      g.fillText('· ASLEEP — MOVE A HAND ·', 10, h - 10);
+      return;
+    }
+    const cx = w / 2 - s.leanS * w * 0.12;
+    const cy = h / 2 + Math.sin(s.spin * 0.7) * h * 0.025;
+    const maxR = Math.hypot(w, h) * 0.62;
+    const NR = s.NR, bright = 0.45 + s.pres * 0.55;
+    const SEG = P.focused ? 96 : 40;
+    const INK = [
+      [255, 178, 68], [176, 74, 205], [255, 226, 186], [255, 96, 46], [122, 86, 190]
+    ];
+    const warm = 0.3 + clamp(inp.L) * 0.7, cool = 0.3 + clamp(inp.R) * 0.7;
+    // THE ROOM CLOSES FROM THE SIDES: the walls give up their light first and
+    // the middle is the last thing left, so sleep reads as a door shutting
+    const edge = clamp((wake - 0.55) / 0.45);       // the far left and right
+    const mid = clamp((wake - 0.18) / 0.5);         // the thirds
+    const core = clamp(wake / 0.3);                 // the middle itself
+
+    g.globalCompositeOperation = 'lighter';
+    for (let k = NR - 1; k >= 0; k--) {
+      const u = ((k + s.phase) % NR + NR) % NR / NR;
+      const r0 = Math.pow(u, 1.5) * maxR;
+      if (r0 < 2) continue;
+      const far = Math.pow(1 - Math.min(1, r0 / (maxR * 1.02)), 1.15);
+      if (far < 0.012) continue;
+      const near = 1 - Math.abs(u - 0.34) / 0.34;
+      const flare = Math.max(0, near) * s.pulse;
+      const tone = s.exc[(k * 3) % 16] || 0;        // what this band can hear
+      const lobes = 2 + Math.round(s.morphS);
+      const amp = r0 * (0.015 + s.warp * 0.15) * Math.pow(u, 0.7);
+      const off = s.leanS * r0 * 0.45;
+      const base = Math.max(3 * ms, r0 * 0.05 + 3 * ms);
+      const c0 = INK[k % 5], c1 = INK[(k + 2) % 5], c2 = INK[(k + 4) % 5];
+
+      // TWO PASSES: the band, and a wide soft halo around it. At speed the
+      // halos of neighbouring rings overlap and the tunnel melts into one body.
+      for (let pass = 0; pass < 2; pass++) {
+        const halo = pass === 0;
+        // the halos must BLEED into their neighbours, not flood the frame —
+        // past about 40% overlap the tunnel stops reading as rings at all
+        const lw = halo
+          ? base * (1.4 + s.melt * 2.6)
+          : base * (1 + flare * 0.6 + tone * 0.4) * (1 + s.melt * 0.4);
+        const a = (halo ? (0.03 + s.melt * 0.085 + tone * 0.08)
+          : (0.5 + flare * 0.5 + tone * 0.35)) * bright * far;
+        if (a < 0.004) continue;
+        const gr = g.createLinearGradient(cx - maxR, 0, cx + maxR, 0);
+        gr.addColorStop(0, `rgba(${c0[0]},${c0[1]},${c0[2]},${a * warm * edge})`);
+        gr.addColorStop(0.26, `rgba(${c0[0]},${c0[1]},${c0[2]},${a * warm * mid})`);
+        gr.addColorStop(0.5, `rgba(${c1[0]},${c1[1]},${c1[2]},${a * core})`);
+        gr.addColorStop(0.74, `rgba(${c2[0]},${c2[1]},${c2[2]},${a * cool * mid})`);
+        gr.addColorStop(1, `rgba(${c2[0]},${c2[1]},${c2[2]},${a * cool * edge})`);
+        g.strokeStyle = gr;
+        g.lineWidth = lw;
+        g.beginPath();
+        for (let i = 0; i <= SEG; i++) {
+          const an = i / SEG * TAU;
+          const rr = r0 + Math.sin(an * lobes + s.spin * 1.7 + k * 0.6) * amp
+            + Math.sin(an * (lobes + 2) - s.spin * 1.1 + k * 0.31) * amp * 0.4;
+          const x = cx + Math.cos(an) * rr + off, y = cy + Math.sin(an) * rr * 0.97;
+          i ? g.lineTo(x, y) : g.moveTo(x, y);
+        }
+        g.closePath();
+        g.stroke();
+      }
+    }
+    // the eye: a warm amber breath, never a white disc
+    const rr = Math.pow(0.34, 1.5) * maxR;
+    const eg = g.createRadialGradient(cx, cy, 0, cx, cy, rr * 1.15);
+    eg.addColorStop(0, `rgba(255,226,186,${(0.1 + s.pulse * 0.22) * bright * core})`);
+    eg.addColorStop(0.5, `rgba(255,178,68,${(0.05 + s.pulse * 0.12) * bright * core})`);
+    eg.addColorStop(1, 'rgba(255,96,46,0)');
+    g.fillStyle = eg;
+    g.beginPath(); g.arc(cx, cy, rr * 1.15, 0, TAU); g.fill();
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(255,226,186,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const names = ['1 / 2 BEATS', '1 PER BEAT', '8ths', 'TRIPLETS', '16ths', 'SEXTUPLETS'];
+    g.fillText('SHAPE ' + (2 + s.morph) + '-LOBE · ' + (H.label || '') +
+      '   INTENSITY ' + names[s.rateIdx] + '   MELT ' + Math.round(s.melt * 100) +
+      '   WAKE ' + Math.round(wake * 100) + (wake < 0.3 ? '  · CLOSING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- THE VOWEL DRONE: the hands are two formants -------------------- */
+    const o1 = v.osc('sawtooth', 82), o2 = v.osc('sawtooth', 82);
+    o2.detune.value = 7;
+    const fA = v.filter('bandpass', 500, 4.5), fB = v.filter('bandpass', 1400, 5.5);
+    const gA = v.g(0.03), gB = v.g(0.02);
+    const trem = v.g(1);
+    const lfo = v.osc('sine', 2), lfoG = v.g(0.35);
+    lfo.connect(lfoG); lfoG.connect(trem.gain);
+    o1.connect(fA); o2.connect(fA); o1.connect(fB); o2.connect(fB);
+    fA.connect(gA); fB.connect(gB);
+    gA.connect(trem); gB.connect(trem); trem.connect(v.group);
+    if (AE.revIn) { const sd = A.ctx.createGain(); sd.gain.value = 0.4; trem.connect(sd); sd.connect(AE.revIn); }
+
+    const bed = A.padVoices(v, 3, { type: 'triangle', gain: 0.01, cutoff: 340, q: 0.7 });
+    const place = glide => {
+      A.leadToChord(bed, -1, glide);
+      const rf = H.rootFreq(-2);
+      A.set(o1.frequency, rf, 0.12); A.set(o2.frequency, rf, 0.12);
+      if (typeof MOut !== 'undefined') MOut.evNote('texture', rf, 0.12, 0, 4.2);
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.2);
+
+    let nextT = T.next(1), idx = 0, bar = -1, shape = -1;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const wake = smooth(clamp(s.wake));
+        const gate = (0.3 + s.pres * 0.7) * (0.22 + wake * 0.78);
+        const L = inp ? inp.L : 0, R = inp ? inp.R : 0;
+
+        /* ---- THE SHAPE IS THE CHORD: jump the moment it settles ------- */
+        if (s.morph !== shape) {
+          shape = s.morph;
+          H.prog = [shape];
+          H.step = 0;
+          H.build();
+          place(0.28);
+          if (typeof T !== 'undefined' && T.running) H.nextChangeBar = T.bar() + H.chordBars;
+        }
+
+        A.set(fA.frequency, 220 + L * 1500, 0.05);
+        A.set(fB.frequency, 700 + R * 3400, 0.05);
+        A.set(gA.gain, (0.016 + L * 0.03) * gate, 0.15);
+        A.set(gB.gain, (0.01 + R * 0.024) * gate, 0.15);
+        A.set(lfo.frequency, Math.max(0.2, s.rateS / Math.max(T.beat, 0.05)), 0.2);
+        A.set(lfoG.gain, 0.2 + clamp(s.rateS / 6) * 0.5, 0.3);
+        bed.forEach(b => { b.level((0.007 + s.pres * 0.005) * (0.3 + wake * 0.7), 0.5); b.bright(260 + R * 500, 0.4); });
+
+        /* ---- the arpeggio, one note per band --------------------------- */
+        const stepBeats = 1 / s.rate;
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          idx += 1 + s.morph;
+          const i = ((idx % 13) + 13) % 13;
+          const f = H.chordTone(i, 0);
+          const vol = (0.03 + clamp(L) * 0.05) * gate * (s.rate > 3 ? 0.75 : 1);
+          const pan = Math.sin(idx * 1.7) * 0.5;
+          if (wake > 0.06) {
+            A.pluck2(f, { at: nextT, vol, dur: Math.min(1.1, stepBeats * T.beat * 1.8), pan, rev: 0.4, del: 0.2, role: 'arp' });
+            if (s.morph >= 2 && s.rate >= 2 && (idx % 4) === 0) {
+              A.bell(H.chordTone(i + 3, 1), { at: nextT, vol: vol * 0.5, dur: 1.6, pan: -pan, rev: 0.66 });
+            }
+          }
+          nextT += T.beat * stepBeats;
+        }
+        if (nextT < now) nextT = T.next(1);
+
+        if (T.running && s.rateIdx >= 4 && wake > 0.4) {
+          const b = T.bar();
+          if (b !== bar) { bar = b; A.kick(T.next(4), 0.18 + clamp(s.warp) * 0.1); }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('arp', clamp(s.rateS / 6));
+          MOut.expr('texture', wake);
+          MOut.expr('pad', clamp(s.morph / 5));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-42.3 · RIDGE LOOM V3 (left hand plays bass, right hand plays lead) ---------- */
+reg({
+  id: 'SRC-42.3', family: 'SRC-42', ver: 3, title: 'Ridge Loom V3', tech: 'SIX CORES / BASS LEFT, LEADS RIGHT',
+  music: {
+    bpm: 96, root: 49, mode: 'dorian', chordBars: 2,
+    chords: [
+      [0, 7, 15, 21, 26],   // C♯m13   — the dorian sixth
+      [0, 5, 12, 17, 21],   // F♯/C♯
+      [0, 7, 14, 19, 22],   // C♯m9
+      [0, 10, 15, 19, 24]   // C♯m7
+    ],
+    chordNames: ['C♯m13', 'F♯/C♯', 'C♯m9', 'C♯m7']
+  },
+  fx: { bloom: 0.45 },
+  tags: ['LEFT HAND = BASS', 'RIGHT HAND = LEADS', 'SIX CORES, SIX COLOURS', 'A LOOP IS A NOTE'],
+  desc: 'A field of fat parallel ridges — fingerprint, leopard, chemical clock, all the same maths — flowing slowly across the frame. At rest there are two focal points under the fabric, one warm on the left and one cool on the right, and the ridges close into loops around them. Raise a hand and a SECOND focus surfaces on that side, then a THIRD, each arriving with its own colour bleeding out into the ridges around it, until the frame holds six centres and six colours: coral, pink, cream on the left, blue, cyan, indigo on the right. Ridges far from every core keep almost no colour, so the picture is a map of where the light is coming from.',
+  interact: 'The two hands are two different musicians. L is the RHYTHM SECTION: its three warm cores are the bassline, and every one you surface makes that line busier and more melodic — one core is a root on the downbeat, two is a walking pair, three is a full syncopated figure whose notes are chosen by how many loops each core has closed. R is the FRONT LINE: its three cool cores are three different leads, and they arrive one at a time — first a long singing tone, then a running eighth-note arpeggio beside it, then a high answering bell on top. So the left hand decides how the floor moves and the right hand decides who is soloing over it, and both are readable in the picture: count the whorls on a side and you know what that side is playing. Bring both hands home and the frame drains back to two colours and a slow flow.',
+  sound: 'Split down the middle by hand. LEFT = bass (MIDI role: bass): one core gives a root on the downbeat, a second adds the walking pair, a third opens a syncopated sixteenth figure — and the notes are taken from each warm core\'s own loop count, so the bassline is literally written by the picture. RIGHT = leads (role: lead, plus bells): core one is a long bowed tone that re-sings whenever its loop count changes, core two is a running eighth arpeggio around its own loop count, core three is a sparse high bell answering off the beat. Every loop gained or lost is also an accent on its own side. When rings start enclosing more than one core the scene changes state: a bell and a sub bloom, and the lead voices converge toward one pitch, so a crowded frame resolves instead of clashing. Under it: a bowed loom bed whose brightness follows how much ridge is on screen, a quiet triangle glue pad, and a pedal on C♯ that never moves — no sawtooth, no horns. Ableton: bass ch3, lead ch1, bells ch5, pad ch2, texture ch6.',
+
+  init(P) {
+    const w = P.w, h = P.h;
+    // P.focused is false during init — size off the area. Wall tiles get a
+    // much coarser field; nobody counts ridges on a thumbnail.
+    const fine = areaScale(P) > 1.6 ? 1 : 0.38;
+    const CORES = [
+      { hx: 0.13, hy: 0.30, side: 0, slot: 0, col: [240, 112, 60], deg: 0 },   // coral
+      { hx: 0.22, hy: 0.80, side: 0, slot: 1, col: [238, 159, 180], deg: 2 },  // pink
+      { hx: 0.40, hy: 0.22, side: 0, slot: 2, col: [247, 201, 168], deg: 4 },  // cream
+      { hx: 0.87, hy: 0.30, side: 1, slot: 0, col: [62, 111, 176], deg: 1 },   // blue
+      { hx: 0.78, hy: 0.80, side: 1, slot: 1, col: [79, 168, 196], deg: 3 },   // cyan
+      { hx: 0.58, hy: 0.72, side: 1, slot: 2, col: [110, 107, 192], deg: 5 }   // indigo
+    ];
+    for (const c of CORES) {
+      c.x = c.hx * w; c.y = c.hy * h; c.w = 0; c.loops = 0; c.ph = P.rand() * TAU;
+    }
+    // finer grid + a smoothing pass = ridges that curve instead of faceting
+    const GX = Math.max(30, Math.round(112 * fine)), GY = Math.max(20, Math.round(70 * fine));
+    const N = (GX + 1) * (GY + 1);
+    P.state = {
+      GX, GY, cores: CORES, pres: 0, ph: 0,
+      f: new Float32Array(N), fs: new Float32Array(N),
+      own: new Uint8Array(N), ownV: new Float32Array(N),
+      sig: w * 0.075, lo: -0.95, step: 0.42, NL: 26, wMax: 5,
+      shared: 0, ridges: 0, live: 2, nL: 1, nR: 1, evq: [],
+      waves: [
+        { k: 3.1, a: 0.55, dir: 0.4, sp: 1 },
+        { k: 5.3, a: 0.33, dir: 2.1, sp: -0.62 },
+        { k: 8.7, a: 0.18, dir: 3.9, sp: 0.41 }
+      ],
+      seg: [], NB: 19
+    };
+    for (let i = 0; i < 19; i++) P.state.seg.push([]);
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const HV = [clamp(inp.L), clamp(inp.R)];
+    const TH = [[0, 0.28, 0.9], [0.32, 0.4, 0], [0.64, 0.36, 0]];
+    let liveN = 0, nL = 0, nR = 0;
+    for (const c of s.cores) {
+      const x = HV[c.side];
+      const th = TH[c.slot];
+      const want = (c.slot === 0 ? clamp(th[1] + x * th[2]) : clamp((x - th[0]) / th[1])) * s.wMax;
+      c.w += (want - c.w) * Math.min(1, dt * 4.5);
+      c.ph += dt * 0.3;
+      c.x = c.hx * w + Math.sin(c.ph) * w * 0.012;
+      c.y = c.hy * h + Math.cos(c.ph * 0.8) * h * 0.02;
+      if (c.w > 0.8) { liveN++; if (c.side) nR++; else nL++; }
+    }
+    s.live = liveN; s.nL = nL; s.nR = nR;
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.ph = beats * TAU;
+    const sig2 = 2 * s.sig * s.sig;
+
+    // ---- the field, and who owns each part of it -----------------------
+    const GX = s.GX, GY = s.GY, f = s.f, fs = s.fs, own = s.own, ownV = s.ownV;
+    const cw = w / GX, ch = h / GY, W = s.waves, C = s.cores;
+    for (let j = 0; j <= GY; j++) {
+      const y = j * ch;
+      for (let i = 0; i <= GX; i++) {
+        const x = i * cw;
+        let val = 0;
+        for (let q = 0; q < W.length; q++) {
+          const wv = W[q];
+          const u = (x * Math.cos(wv.dir) + y * Math.sin(wv.dir)) / Math.max(w, h);
+          val += wv.a * Math.sin(u * wv.k * TAU + s.ph * wv.sp * 0.25 + q);
+        }
+        let best = 0, bi = 0;
+        for (let q = 0; q < 6; q++) {
+          const c = C[q];
+          if (c.w < 0.05) continue;
+          const dx = x - c.x, dy = y - c.y;
+          const e = c.w * Math.exp(-(dx * dx + dy * dy) / sig2);
+          val += e;
+          if (e > best) { best = e; bi = q; }
+        }
+        const o = j * (GX + 1) + i;
+        f[o] = val; own[o] = bi; ownV[o] = best;
+      }
+    }
+    // one five-point smoothing pass — this is what takes the faceting off the
+    // contours without paying for a finer grid everywhere
+    const RW = GX + 1;
+    for (let j = 0; j <= GY; j++) {
+      for (let i = 0; i <= GX; i++) {
+        const o = j * RW + i;
+        const l = i > 0 ? f[o - 1] : f[o], r = i < GX ? f[o + 1] : f[o];
+        const u = j > 0 ? f[o - RW] : f[o], d = j < GY ? f[o + RW] : f[o];
+        fs[o] = f[o] * 0.44 + (l + r + u + d) * 0.14;
+      }
+    }
+
+    // ---- march it into ridges -------------------------------------------
+    const seg = s.seg, lo = s.lo, st = s.step, NL = s.NL;
+    for (let k = 0; k < s.NB; k++) seg[k].length = 0;
+    for (let j = 0; j < GY; j++) {
+      for (let i = 0; i < GX; i++) {
+        const o = j * RW + i;
+        const a = fs[o], b = fs[o + 1], c = fs[o + RW + 1], d = fs[o + RW];
+        let mn = a, mx = a;
+        if (b < mn) mn = b; else if (b > mx) mx = b;
+        if (c < mn) mn = c; else if (c > mx) mx = c;
+        if (d < mn) mn = d; else if (d > mx) mx = d;
+        let k0 = Math.ceil((mn - lo) / st), k1 = Math.floor((mx - lo) / st);
+        if (k0 < 0) k0 = 0;
+        if (k1 > NL - 1) k1 = NL - 1;
+        if (k1 < k0) continue;
+        const x0 = i * cw, y0 = j * ch;
+        const oi = own[o], ov = ownV[o];
+        const tier = ov > 2.2 ? 2 : ov > 0.8 ? 1 : ov > 0.22 ? 0 : -1;
+        const bucket = tier < 0 ? 18 : oi * 3 + tier;
+        for (let k = k0; k <= k1; k++) {
+          const lev = lo + k * st;
+          const m = (a > lev ? 1 : 0) | (b > lev ? 2 : 0) | (c > lev ? 4 : 0) | (d > lev ? 8 : 0);
+          if (m === 0 || m === 15) continue;
+          const out = seg[bucket];
+          const ax = x0 + cw * (lev - a) / (b - a), ay = y0;
+          const bx = x0 + cw, by = y0 + ch * (lev - b) / (c - b);
+          const cx2 = x0 + cw * (lev - d) / (c - d), cy2 = y0 + ch;
+          const dx2 = x0, dy2 = y0 + ch * (lev - a) / (d - a);
+          switch (m) {
+            case 1: case 14: out.push(dx2, dy2, ax, ay); break;
+            case 2: case 13: out.push(ax, ay, bx, by); break;
+            case 3: case 12: out.push(dx2, dy2, bx, by); break;
+            case 4: case 11: out.push(bx, by, cx2, cy2); break;
+            case 6: case 9: out.push(ax, ay, cx2, cy2); break;
+            case 7: case 8: out.push(dx2, dy2, cx2, cy2); break;
+            case 5: out.push(dx2, dy2, ax, ay, bx, by, cx2, cy2); break;
+            case 10: out.push(ax, ay, bx, by, cx2, cy2, dx2, dy2); break;
+          }
+        }
+      }
+    }
+
+    // ---- TOPOLOGY: whose loops are whose --------------------------------
+    const waveCeil = 0.72;
+    const cnt = (a, b) => Math.max(0, Math.min(s.NL,
+      Math.floor((Math.min(b, lo + (s.NL - 1) * st) - lo) / st) - Math.floor((Math.max(a, waveCeil) - lo) / st)));
+    let topSaddle = 0;
+    for (let i = 0; i < 6; i++) {
+      const ci = C[i];
+      if (ci.w < 0.8) { if (ci.loops !== 0) { s.evq.push({ core: i, n: 0, up: false }); ci.loops = 0; } continue; }
+      let sad = 0;
+      for (let j = 0; j < 6; j++) {
+        if (i === j) continue;
+        const cj = C[j];
+        if (cj.w < 0.8) continue;
+        const dx = cj.x - ci.x, dy = cj.y - ci.y;
+        const v2 = (ci.w + cj.w) * Math.exp(-((dx * dx + dy * dy) / 4) / sig2);
+        if (v2 > sad) sad = v2;
+        if (v2 > topSaddle) topSaddle = v2;
+      }
+      const n = cnt(sad, ci.w);
+      if (n !== ci.loops) { s.evq.push({ core: i, n, up: n > ci.loops }); ci.loops = n; }
+    }
+    const nB = cnt(waveCeil, topSaddle);
+    if (nB !== s.shared) { s.evq.push({ core: -1, n: nB, up: nB > s.shared }); s.shared = nB; }
+    if (s.evq.length > 14) s.evq.splice(0, s.evq.length - 14);
+    let ridges = 0;
+    for (let k = 0; k < s.NB; k++) ridges += seg[k].length;
+    s.ridges = ridges >> 2;
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#0d0a12';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const lw = Math.max(3.4 * ms, Math.min(w, h) * 0.011);
+    const BASE = [92, 74, 104];
+
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (let b = 18; b >= 0; b--) {
+      const seg = s.seg[b];
+      if (!seg || !seg.length) continue;
+      let col, a, wid;
+      if (b === 18) { col = BASE; a = 0.4 * bright; wid = lw * 0.8; }
+      else {
+        const c = s.cores[(b / 3) | 0], tier = b % 3;
+        const mix = [0.34, 0.68, 1][tier];
+        col = [
+          BASE[0] + (c.col[0] - BASE[0]) * mix,
+          BASE[1] + (c.col[1] - BASE[1]) * mix,
+          BASE[2] + (c.col[2] - BASE[2]) * mix
+        ];
+        a = (0.45 + tier * 0.22) * bright;
+        wid = lw * (0.85 + tier * 0.22);
+      }
+      g.strokeStyle = `rgba(${col[0] | 0},${col[1] | 0},${col[2] | 0},${a})`;
+      g.lineWidth = wid;
+      g.beginPath();
+      for (let i = 0; i < seg.length; i += 4) {
+        g.moveTo(seg[i], seg[i + 1]);
+        g.lineTo(seg[i + 2], seg[i + 3]);
+      }
+      g.stroke();
+    }
+
+    g.globalCompositeOperation = 'lighter';
+    for (const c of s.cores) {
+      if (c.w < 0.6) continue;
+      const R = s.sig * (0.5 + clamp(c.w / s.wMax) * 0.5);
+      const gr = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, R);
+      gr.addColorStop(0, `rgba(${c.col[0]},${c.col[1]},${c.col[2]},${0.16 * clamp(c.w / s.wMax) * bright})`);
+      gr.addColorStop(1, `rgba(${c.col[0]},${c.col[1]},${c.col[2]},0)`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(c.x, c.y, R, 0, TAU); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(247,201,168,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const BASSN = ['—', 'ROOT', 'WALKING', 'SYNCOPATED'];
+    const LEADN = ['—', 'TONE', 'TONE+ARP', 'TONE+ARP+BELL'];
+    g.fillText('BASS ' + BASSN[s.nL] + ' (' + s.nL + ')   LEAD ' + LEADN[s.nR] + ' (' + s.nR + ')' +
+      '   LOOPS ' + s.cores.map(c => c.loops).join('/') + '   SHARED ' + s.shared +
+      (s.pres < 0.3 ? '   · FLOWING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the loom: bowed air -------------------------------------------- */
+    const n = v.noise(), nf = v.filter('bandpass', 800, 1.6), ng = v.g(0.008);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- glue: triangle only. No sawtooth anywhere in this version ------ */
+    const bed = A.padVoices(v, 3, { type: 'triangle', gain: 0.008, cutoff: 300, q: 0.6 });
+    const place = glide => A.leadToChord(bed, -1, glide);
+    place(0.05);
+    H.onChord(() => place(0.2));
+    v.fadeIn(1, 1.4);
+
+    // THE PICTURE WRITES THE PARTS: a core's loop count is its note
+    const warmTone = (i, oct) => H.chordTone(P.state.cores[i].deg + P.state.cores[i].loops, oct);
+    const coolTone = (i, oct) => H.chordTone(P.state.cores[i].deg + P.state.cores[i].loops, oct);
+
+    // bass figures, indexed by how many warm cores are up. 1 = downbeat root,
+    // 2 = a walking pair, 3 = a syncopated sixteenth line. Values are which
+    // warm core supplies the note.
+    const BASS = [
+      [],
+      [[0, 0]],
+      [[0, 0], [8, 1], [14, 0]],
+      [[0, 0], [3, 2], [6, 1], [10, 0], [11, 2], [14, 1]]
+    ];
+
+    let nextT = T.next(0.25), lastLoops = [0, 0, 0, 0, 0, 0], arpI = 0;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const shared = s.shared || 0;
+        const conv = clamp(shared / 5);
+
+        A.set(ng.gain, (0.004 + clamp(s.ridges / 900) * 0.012) * gate, 0.3);
+        A.set(nf.frequency, 400 + clamp(s.ridges / 900) * 2000, 0.3);
+        bed.forEach(b => { b.level(0.006 + s.pres * 0.004, 0.5); b.bright(220 + clamp(s.ridges / 900) * 400, 0.4); });
+
+        /* ---- the grid: bass on the left, leads on the right ----------- */
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+
+          // LEFT HAND — the floor. More warm cores, busier line.
+          const fig = BASS[Math.min(3, s.nL)];
+          for (const [step, coreI] of fig) {
+            if (step !== st) continue;
+            const c = s.cores[coreI];
+            if (!c || c.w < 0.8) continue;
+            const dur = s.nL > 2 ? 0.5 : s.nL > 1 ? 0.9 : 2.4;
+            A.bassNote(warmTone(coreI, -1), { at: nextT, vol: (0.1 + clamp(c.w / 5) * 0.06) * gate, dur });
+          }
+
+          // RIGHT HAND — the front line. Each core is a different player.
+          const c4 = s.cores[4];
+          if (c4 && c4.w > 0.8 && st % 2 === 0) {
+            // the running arpeggio, around its own loop count
+            arpI++;
+            const off = [0, 2, 4, 2, 5, 3][arpI % 6];
+            A.pluck2(H.chordTone(c4.deg + c4.loops + off, 0), {
+              at: nextT, vol: (0.03 + clamp(c4.w / 5) * 0.02) * gate,
+              dur: 0.55, pan: 0.6, rev: 0.45, del: 0.2, role: 'lead'
+            });
+          }
+          const c5 = s.cores[5];
+          if (c5 && c5.w > 0.8 && (st === 6 || st === 13)) {
+            // the high answer, off the beat and sparse
+            A.bell(H.chordTone(c5.deg + c5.loops + 4, 1), {
+              at: nextT, vol: 0.028 * gate, dur: 2.4, pan: 0.25, rev: 0.75
+            });
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        /* ---- the long lead re-sings whenever its loops change ---------- */
+        const c3 = s.cores[3];
+        if (c3 && c3.w > 0.8 && c3.loops !== lastLoops[3]) {
+          lastLoops[3] = c3.loops;
+          const f = coolTone(3, 0);
+          const at = T.next(0.5);
+          A.tone(f * (1 - conv * 0.02), {
+            at, vol: 0.06 * gate, dur: 3.4, attack: 0.5, type: 'triangle',
+            pan: 0.5, rev: 0.6, del: 0.1, role: 'lead'
+          });
+          // the doubling is the same voice — it must not become its own note
+          const sp = MOut.suspend; MOut.suspend = true;
+          A.tone(f * 1.005, { at: at + 0.03, vol: 0.03 * gate, dur: 3, attack: 0.6, type: 'triangle', pan: 0.2, rev: 0.7 });
+          MOut.suspend = sp;
+        }
+
+        /* ---- accents: a loop gained or lost, on its own side ----------- */
+        let ev, k = 0;
+        while ((ev = s.evq.shift()) && k < 4) {
+          k++;
+          const at = T.next(0.25);
+          if (ev.core < 0) {
+            // rings that enclose more than one core
+            if (ev.up) {
+              A.bell(H.chordTone(ev.n + 2, 1), { at, vol: 0.045 * gate, dur: 3.2, pan: 0, rev: 0.78 });
+              A.bassNote(H.chordTone(0, -1), { at, vol: 0.07 * gate, dur: 2.2 });
+            } else {
+              A.pluck2(H.chordTone(ev.n, 0), { at, vol: 0.025 * gate, dur: 1.1, pan: 0, rev: 0.5, role: 'lead' });
+            }
+            continue;
+          }
+          const c = s.cores[ev.core];
+          if (c.side === 0) {
+            // the floor moved
+            A.bassNote(warmTone(ev.core, -1), { at, vol: (ev.up ? 0.09 : 0.05) * gate, dur: ev.up ? 1.4 : 0.7 });
+          } else if (ev.core !== 3) {
+            A.pluck2(coolTone(ev.core, 0), {
+              at, vol: (ev.up ? 0.045 : 0.026) * gate, dur: ev.up ? 1.1 : 0.6,
+              pan: (c.hx * 2 - 1) * 0.8, rev: 0.5, del: 0.18, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('bass', clamp(s.nL / 3));
+          MOut.expr('lead', clamp(s.nR / 3));
+          MOut.expr('pad', clamp(s.ridges / 900));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
 /* ============================================================
    HISTORY — earlier versions of explorations, excavated from
    the session record. Registered with family + ver so every
