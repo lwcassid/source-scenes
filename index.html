@@ -35964,6 +35964,946 @@ reg({
     };
   }
 });
+/* ---------- SRC-36.2 · FOAM BLOOM V2 (the ooze) ---------- */
+reg({
+  id: 'SRC-36.2', family: 'SRC-36', ver: 2, title: 'Foam Bloom V2', tech: 'OOZING POOLS / BUBBLED LIQUID',
+  music: {
+    bpm: 68, root: 45, mode: 'aeolian', chordBars: 4,
+    // Same pedal on A as V1, half the tempo and twice the bar length — this
+    // version is a slow room, not a machine.
+    chords: [
+      [0, 7, 15, 19, 26],   // Am9
+      [0, 8, 15, 20, 22],   // Fmaj9/A
+      [0, 5, 12, 17, 20],   // Dm11/A
+      [0, 7, 14, 17, 22]    // Am11
+    ],
+    chordNames: ['Am9', 'Fmaj9/A', 'Dm11/A', 'Am11']
+  },
+  fx: { bloom: 0.3 },
+  tags: ['LIQUID, NOT BUBBLES', 'IT OOZES IN FROM VENTS', 'SMALL BUBBLES, CLOSE PACKED', 'AMBIENT'],
+  desc: 'Something is seeping into the frame. It comes from a handful of vents, spreading as lobed pools of crimson liquid that meet and become one body, and the body is not still — it is full of small bubbles, packed against each other the way real foam packs, rising through the film and letting go. Nothing here is big and nothing here is fast. It is a pot on a low heat, seen from directly above.',
+  interact: 'R = THE OOZE. Draw in and there are two small pools in a black frame; reach out and more vents open, the pools swell, meet, and finally flood the whole frame with liquid. That is the slow hand — the shape of the picture. L = THE BOIL. It sets how hard the liquid is working: drawn in, a few bubbles drift up a minute and let go one at a time; reach out and the whole surface fizzes, every pool crowded edge to edge with small cells forming and bursting. The two are independent on purpose: a wide still flood and a small furious pool are both available, and both are worth sitting in.',
+  sound: 'Ambient by design — no drums anywhere in it. Each open vent holds one pad voice (MIDI role: pad), so the chord literally thickens as the liquid spreads: two vents is an open fifth, eight is the whole voicing, and a vent opening enters rolled from the bottom. The boil is two layers: a wet bandpassed fizz whose brightness and level follow how much is bursting, and the bursts themselves — only the bigger cells are given a note, a short glass bell (bells) at the top of the ladder, panned to where it popped, landing on the next sixteenth. Small ones are heard as fizz, not as notes, which is what keeps a full boil from turning into a hailstorm. Under everything, a sub pedal on A that never moves. Ableton: pad ch2 (CC74 = ooze), bells ch5, texture ch6 = fizz (CC74 = boil), bass ch3.',
+
+  init(P) {
+    const S = Math.min(P.w, P.h), w = P.w, h = P.h;
+    const big = areaScale(P) > 1.6;             // P.focused is false during init
+    const U = S * 0.024;                        // bubble unit — deliberately small
+    const vents = [];
+    const NV = 8;
+    for (let i = 0; i < NV; i++) {
+      // vents sit on a jittered ring-ish spread so the pools meet as they grow
+      const a = (i / NV) * TAU + P.rand() * 0.7;
+      const d = (i === 0 ? 0.05 : 0.2 + P.rand() * 0.3);
+      const lobes = [];
+      const nl = 4 + (P.rand() * 3 | 0);
+      for (let k = 0; k < nl; k++) {
+        lobes.push({
+          a: (k / nl) * TAU + P.rand() * 0.8, d: 0.25 + P.rand() * 0.45,
+          s: 0.5 + P.rand() * 0.34, ph: P.rand() * TAU, fr: 0.09 + P.rand() * 0.16
+        });
+      }
+      vents.push({
+        x: w * (0.5 + Math.cos(a) * d * 1.5), y: h * (0.5 + Math.sin(a) * d * 1.1),
+        R: 0, Rt: 0, lobes, seed: P.rand(),
+        // warm country on the left, violet on the right — the side law, in liquid
+        hue: 0, order: i === 0 ? 0 : P.rand()
+      });
+    }
+    for (const v of vents) {
+      v.x = clamp(v.x, w * 0.08, w * 0.92);
+      v.y = clamp(v.y, h * 0.1, h * 0.9);
+      v.hue = v.x < w / 2 ? 348 + P.rand() * 18 : 312 + P.rand() * 20;
+    }
+    vents.sort((a, b) => a.order - b.order);
+    P.state = {
+      vents, bub: [], flash: [], evq: [],
+      unit: U, maxB: big ? 900 : 240, base: S * 0.34,
+      pres: 0, ooze: 0, boil: 0, cover: 0, open: 2, popRate: 0, spawnAcc: 0, popCd: 0
+    };
+  },
+
+  _mkBub(P, v) {
+    const s = P.state, U = s.unit;
+    const a = P.rand() * TAU, d = Math.sqrt(P.rand()) * v.R * 0.82;
+    return {
+      x: v.x + Math.cos(a) * d, y: v.y + Math.sin(a) * d, v,
+      r: U * 0.14,
+      // most cells stay small; a few make it to the size that gets a note
+      cap: U * (0.45 + Math.pow(P.rand(), 2.2) * 2.4),
+      ph: P.rand() * TAU, wob: 0.4 + P.rand() * 0.8,
+      vx: (P.rand() - 0.5) * 4, vy: (P.rand() - 0.5) * 4,
+      hue: v.hue + (P.rand() - 0.5) * 14
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h, U = s.unit;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    s.boil += (clamp(inp.L) - s.boil) * Math.min(1, dt * 6);
+    s.ooze += (clamp(inp.R) - s.ooze) * Math.min(1, dt * 5);
+    s.popCd = Math.max(0, s.popCd - dt);
+
+    // ---- THE OOZE: vents open one at a time and their pools swell --------
+    const wantOpen = 2 + Math.round(s.ooze * (s.vents.length - 2));
+    if (wantOpen !== s.open) {
+      // a vent takes a moment to commit, so the count never chatters
+      s._openT = (s._openT || 0) + dt;
+      if (s._openT > 0.25) {
+        if (wantOpen > s.open) { s.open++; s.evq.push({ vent: 1 }); }
+        else s.open--;
+        s._openT = 0;
+      }
+    } else s._openT = 0;
+    let cover = 0;
+    for (let i = 0; i < s.vents.length; i++) {
+      const v = s.vents[i];
+      const on = i < s.open;
+      v.Rt = on ? s.base * (0.3 + s.ooze * 0.95) * (0.7 + v.seed * 0.6) : 0;
+      // liquid is slow: it arrives and leaves at the speed of syrup
+      v.R += (v.Rt - v.R) * Math.min(1, dt * (v.Rt > v.R ? 0.5 : 0.8));
+      for (const L of v.lobes) L.ph += dt * L.fr;
+      cover += Math.PI * v.R * v.R * 0.85;
+    }
+    s.cover += (clamp(cover / (w * h) / 1.15) - s.cover) * Math.min(1, dt * 2);
+
+    // ---- THE BOIL: cells form in the liquid, crowd, and let go ----------
+    const bub = s.bub;
+    // cells accumulate: they are born often and live for seconds, which is
+    // what packs the liquid instead of making it fizz
+    s.spawnAcc += dt * (2 + s.boil * 30) * s.cover * 3.4 * Math.sqrt(areaScale(P));
+    while (s.spawnAcc > 1) {
+      s.spawnAcc -= 1;
+      if (bub.length >= s.maxB) break;
+      // pick a pool, weighted by how much of it there is
+      let tot = 0;
+      for (let i = 0; i < s.open; i++) tot += s.vents[i].R * s.vents[i].R;
+      if (tot <= 0) break;
+      let pick = P.rand() * tot, v = s.vents[0];
+      for (let i = 0; i < s.open; i++) { pick -= s.vents[i].R * s.vents[i].R; if (pick <= 0) { v = s.vents[i]; break; } }
+      if (v.R < U) continue;
+      bub.push(this._mkBub(P, v));
+    }
+
+    const gr = (0.025 + s.boil * 0.16) * U;
+    let popped = 0;
+    for (let i = bub.length - 1; i >= 0; i--) {
+      const b = bub[i];
+      b.ph += dt * b.wob;
+      b.r += gr * dt / (0.35 + b.r / U);
+      // slow wander, and the pool holds its own cells in
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      b.vx += (Math.sin(b.ph * 1.3) * 5 - b.vx) * Math.min(1, dt * 2);
+      b.vy += (Math.cos(b.ph * 1.1) * 5 - b.vy) * Math.min(1, dt * 2);
+      const dx = b.x - b.v.x, dy = b.y - b.v.y, d = Math.hypot(dx, dy) || 1;
+      const lim = Math.max(0, b.v.R * 0.88 - b.r);
+      if (d > lim) {
+        // a cell that reaches the edge of the liquid has nothing to hold it
+        if (d > lim + b.r * 1.2 || b.v.R < U) { bub.splice(i, 1); continue; }
+        b.x = b.v.x + dx / d * lim; b.y = b.v.y + dy / d * lim;
+        b.vx *= -0.3; b.vy *= -0.3;
+      }
+      if (b.r >= b.cap) {
+        bub.splice(i, 1);
+        s.flash.push({ x: b.x, y: b.y, r: b.r, a: 1, hue: b.hue });
+        if (s.flash.length > 90) s.flash.shift();
+        popped++;
+        // only the bigger cells are worth a note; the rest are fizz
+        if (b.r > U * 0.95 && s.popCd <= 0) {
+          s.popCd = 0.13;
+          s.evq.push({ r: b.r / U, x: b.x / w, cap: b.cap / U });
+          if (s.evq.length > 10) s.evq.shift();
+        }
+        continue;
+      }
+    }
+    s.popRate += (popped / Math.max(dt, 1e-3) - s.popRate) * Math.min(1, dt * 2.5);
+
+    // ---- packing: cells press on their neighbours ------------------------
+    const cell = Math.max(6, U * 3.6);
+    const gw = Math.max(1, Math.ceil(w / cell)), gh = Math.max(1, Math.ceil(h / cell));
+    const gkey = gw + 'x' + gh;
+    const grid = s._gkey === gkey ? s._grid : (s._gkey = gkey, s._grid = new Array(gw * gh));
+    for (let i = 0; i < grid.length; i++) grid[i] = null;
+    for (const b of bub) {
+      const gx = clamp((b.x / cell) | 0, 0, gw - 1), gy = clamp((b.y / cell) | 0, 0, gh - 1);
+      const k = gy * gw + gx;
+      (grid[k] || (grid[k] = [])).push(b);
+    }
+    const relax = Math.min(0.5, dt * 26);
+    for (let gy = 0; gy < gh; gy++) {
+      for (let gx = 0; gx < gw; gx++) {
+        const here = grid[gy * gw + gx];
+        if (!here) continue;
+        for (let ny = gy; ny <= gy + 1; ny++) {
+          for (let nx = gx - 1; nx <= gx + 1; nx++) {
+            if (ny >= gh || nx < 0 || nx >= gw || (ny === gy && nx < gx)) continue;
+            const there = grid[ny * gw + nx];
+            if (!there) continue;
+            for (const a of here) {
+              for (const c of there) {
+                if (a === c) continue;
+                const dx = c.x - a.x, dy = c.y - a.y;
+                const rr = a.r + c.r, d2 = dx * dx + dy * dy;
+                if (d2 >= rr * rr || d2 < 1e-6) continue;
+                const d = Math.sqrt(d2), ov = (rr - d) * 0.5 * relax;
+                const ux = dx / d * ov, uy = dy / d * ov;
+                a.x -= ux; a.y -= uy; c.x += ux; c.y += uy;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (let i = s.flash.length - 1; i >= 0; i--) {
+      const f = s.flash[i];
+      f.a -= dt * 3.6; f.r += dt * f.r * 1.4;
+      if (f.a <= 0) s.flash.splice(i, 1);
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, U = s.unit;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#050104';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.55 + s.pres * 0.45;
+
+    // ---- THE LIQUID ------------------------------------------------------
+    // Every lobe's dark rim is laid down FIRST and the bodies painted over
+    // them, so where two pools touch the interior rims are covered and the
+    // whole spill reads as one body with one edge.
+    const lobesOf = v => {
+      const out = [];
+      for (const L of v.lobes) {
+        const a = L.a + Math.sin(L.ph) * 0.22;
+        const d = v.R * L.d * (1 + Math.sin(L.ph * 1.7) * 0.07);
+        out.push([v.x + Math.cos(a) * d, v.y + Math.sin(a) * d, v.R * L.s * (1 + Math.sin(L.ph * 0.9) * 0.05)]);
+      }
+      out.push([v.x, v.y, v.R * 0.62]);
+      return out;
+    };
+    const rim = Math.max(3.5 * ms, U * 1.1);
+    for (let i = 0; i < s.open; i++) {
+      const v = s.vents[i];
+      if (v.R < 2) continue;
+      // the crimson meniscus at the edge of the spill — deep, saturated, fat
+      g.strokeStyle = `hsla(${v.hue - 4},96%,32%,${0.95 * bright})`;
+      g.lineWidth = rim * 2;
+      g.lineJoin = 'round';
+      for (const [x, y, r] of lobesOf(v)) {
+        g.beginPath(); g.arc(x, y, Math.max(1, r - rim * 0.35), 0, TAU); g.stroke();
+      }
+    }
+    for (let i = 0; i < s.open; i++) {
+      const v = s.vents[i];
+      if (v.R < 2) continue;
+      // FLAT, not a gradient per lobe: a gradient inside every lobe is what
+      // makes a spill look like a bag of balloons instead of one liquid
+      g.fillStyle = `hsla(${v.hue},78%,37%,${0.98 * bright})`;
+      for (const [x, y, r] of lobesOf(v)) {
+        if (r < 1) continue;
+        g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+      }
+      // one soft shine for the whole spill, not one per lobe
+      const hg = g.createRadialGradient(v.x - v.R * 0.2, v.y - v.R * 0.25, v.R * 0.05, v.x, v.y, v.R);
+      hg.addColorStop(0, `hsla(${v.hue + 6},80%,60%,${0.5 * bright})`);
+      hg.addColorStop(1, `hsla(${v.hue},80%,60%,0)`);
+      g.fillStyle = hg;
+      g.beginPath(); g.arc(v.x, v.y, v.R, 0, TAU); g.fill();
+    }
+
+    // ---- THE CELLS IN IT -------------------------------------------------
+    for (const b of s.bub) {
+      const wob = 1 + Math.sin(b.ph * 2.2) * 0.04;
+      const r = b.r * wob;
+      if (r < 0.8) continue;
+      const near = clamp(b.r / b.cap);                 // about to let go
+      // pale film inside, deep crimson wall around it — the cell wall is the
+      // drawing, exactly as it is in the reference
+      const gr = g.createRadialGradient(b.x - r * 0.25, b.y - r * 0.3, r * 0.05, b.x, b.y, r);
+      gr.addColorStop(0, `hsla(${b.hue + 10},92%,${80 + near * 14}%,${0.96 * bright})`);
+      gr.addColorStop(0.72, `hsla(${b.hue + 4},90%,${72 + near * 14}%,${0.94 * bright})`);
+      gr.addColorStop(1, `hsla(${b.hue},90%,${60 + near * 12}%,${0.94 * bright})`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(b.x, b.y, r, 0, TAU); g.fill();
+      g.lineWidth = Math.max(2 * ms, r * 0.32);
+      g.strokeStyle = `hsla(${b.hue - 6},98%,${22 + near * 16}%,${0.97 * bright})`;
+      g.beginPath(); g.arc(b.x, b.y, r * 0.86, 0, TAU); g.stroke();
+    }
+
+    // ---- the craters they leave ------------------------------------------
+    g.globalCompositeOperation = 'lighter';
+    for (const f of s.flash) {
+      g.lineWidth = Math.max(1.2 * ms, f.r * 0.3 * f.a);
+      g.strokeStyle = `hsla(${f.hue + 6},96%,82%,${f.a * 0.5 * bright})`;
+      g.beginPath(); g.arc(f.x, f.y, f.r * (1 + (1 - f.a) * 0.7), 0, TAU); g.stroke();
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(255,175,205,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('VENTS ' + s.open + '/' + s.vents.length + '   OOZE ' + Math.round(s.ooze * 100) +
+      '   BOIL ' + Math.round(s.boil * 100) + '   CELLS ' + s.bub.length +
+      '   BURSTS/S ' + s.popRate.toFixed(1) + (s.pres < 0.3 ? '   · SETTLING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the wet fizz: what the small cells are, all together ----------- */
+    const n1 = v.noise(), f1 = v.filter('bandpass', 1400, 0.9), g1 = v.g(0.004);
+    const n2 = v.noise(), f2 = v.filter('highpass', 4200, 0.7), g2 = v.g(0.002);
+    n1.connect(f1); f1.connect(g1); g1.connect(v.group);
+    n2.connect(f2); f2.connect(g2); g2.connect(v.group);
+
+    /* --- ONE PAD VOICE PER OPEN VENT: the chord thickens as it spreads -- */
+    const NV = 8;
+    const pads = A.padVoices(v, NV, { type: 'triangle', gain: 0.0001, cutoff: 340, q: 0.6 });
+    const sub = A.padVoices(v, 1, { type: 'triangle', gain: 0.012, cutoff: 180, q: 0.5 });
+    const place = glide => {
+      sub[0].set(H.rootFreq(-2), glide);
+      for (let i = 0; i < NV; i++) pads[i].set(H.chordTone(i, i > 4 ? 0 : -1), glide + i * 0.01);
+    };
+    place(0.05);
+    H.onChord(() => place(0.2));
+    v.fadeIn(1, 2);
+
+    let lastOpen = 2;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const boil = s.boil || 0, cover = s.cover || 0;
+
+        // the fizz IS the small cells — it follows how much is bursting
+        const fz = clamp((s.popRate || 0) / 30);
+        A.set(g1.gain, (0.002 + fz * 0.016 + boil * cover * 0.006) * gate, 0.25);
+        A.set(f1.frequency, 700 + fz * 2200 + boil * 900, 0.3);
+        A.set(g2.gain, (0.0004 + fz * 0.005) * gate, 0.25);
+        sub[0].level(0.008 + cover * 0.01, 0.6);
+
+        /* ---- a voice for every open vent --------------------------------
+           Two vents is an open fifth in the frame; eight is the whole
+           voicing. The spread of the liquid IS the voicing.               */
+        for (let i = 0; i < NV; i++) {
+          const on = i < s.open;
+          pads[i].level(on ? (0.012 - i * 0.0008) * (0.4 + cover * 0.6) * gate : 0.0001, 0.9);
+          pads[i].bright(200 + cover * 300 + boil * 260, 0.5);
+        }
+        if (s.open > lastOpen) {
+          // a new vent arrives rolled from the bottom, never as a block
+          const at = T.next(0.5);
+          A.bassNote(H.chordTone(0, -1), { at, vol: 0.05 * gate, dur: 3 });
+          for (let k = 0; k < 3; k++) {
+            A.bell(H.chordTone(s.open + k * 2, 0), { at: at + k * 0.09, vol: 0.024 * gate, dur: 3.4, pan: (s.open % 2 ? 0.4 : -0.4), rev: 0.8 });
+          }
+        }
+        lastOpen = s.open;
+
+        /* ---- only the bigger cells get a note --------------------------- */
+        let ev, i2 = 0;
+        while ((ev = s.evq.shift()) && i2 < 3) {
+          i2++;
+          if (ev.vent) continue;
+          const at = T.next(0.25);
+          const pan = clamp(ev.x * 2 - 1, -1, 1) * 0.7;
+          const k = clamp((ev.r - 0.6) / 1.3);
+          const idx = Math.round(12 - k * 7);
+          A.bell(H.chordTone(idx, 1), { at, vol: (0.016 + (1 - k) * 0.016) * gate, dur: 1.6 + k * 1.4, pan, rev: 0.75 });
+          A.hit({ at, vol: 0.02 + k * 0.03, dur: 0.05, freq: 3200 - k * 1600, q: 1.4, pan });
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', cover);
+          MOut.expr('texture', boil);
+          MOut.expr('bells', fz);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-37.2 · IRIS ENGINE V2 (fig light, and it only wakes for movement) ---------- */
+reg({
+  id: 'SRC-37.2', family: 'SRC-37', ver: 2, title: 'Iris Engine V2', tech: 'RING TUNNEL / MORPH = CHORD',
+  music: {
+    bpm: 112, root: 40, mode: 'phrygian', chordBars: 8,
+    // SIX CHORDS FOR SIX SHAPES. The chord is not on a timer — it is chosen by
+    // the shape the right hand is making, so morphing the tunnel IS modulating.
+    chords: [
+      [0, 7, 15, 19, 22],   // 0 · circles      Em7
+      [0, 8, 15, 20, 24],   // 1 · three lobes  C/E
+      [0, 7, 14, 17, 22],   // 2 · four lobes   Em11
+      [0, 5, 12, 17, 22],   // 3 · five lobes   Am11/E
+      [0, 1, 8, 13, 20],    // 4 · six lobes    E♭9 phrygian
+      [0, 1, 8, 15, 18]     // 5 · seven lobes  E♭9♯11 — the sourest shape
+    ],
+    chordNames: ['Em7', 'C/E', 'Em11', 'Am11/E', 'E♭9 phryg', 'E♭9♯11']
+  },
+  fx: { bloom: 0.55 },
+  tags: ['FIG PALETTE', 'SHAPE CHOOSES THE CHORD', 'FADES OUT IF YOU STOP MOVING', 'DISSOLVES OUTWARD'],
+  desc: 'A tunnel of fat bands in fig colours — indigo, royal purple, amber, pale tan — boiling out of one eye. The bands only exist near the middle: the further they travel the more they give up, until they have dissolved entirely before they reach the frame. And the whole apparition is conditional. It answers MOVEMENT, not position: hold still, however far out your hands are, and over about ten seconds the light drains out of the frame and leaves black. Move again and it comes straight back. Nothing here is on a timer; the picture is a direct read of whether anybody is actually playing.',
+  interact: 'R = MORPH, and morph is harmony. Drawn in the rings are true circles; reach out and they grow lobes — three, four, five, six, seven — and lean off-axis, and each of those six shapes has its own chord, taken the moment the shape settles. So the right hand is a chord selector you can SEE: the picture tells you which harmony you are in before the ear does, and sweeping the hand walks Em7 → C/E → Em11 → Am11/E → E♭9 → E♭9♯11, from open to sour. L = INTENSITY. It steps the tunnel through a ladder of speeds — a band every two beats up to sixteenths — and opens everything else with it: brightness, the arpeggio, the octave sparkle, the kick. Left hand for how much is happening, right hand for what it is. Neither of them matters if you stop moving.',
+  sound: 'Everything is gated on two things: the shape (R) and the energy (L). The arpeggio walks the chord ladder one band per crossing (MIDI role: arp), with the grid step taken straight from the ring rate so the note and the band arrive together and nothing has to be quantised after the fact. Underneath, a sawtooth pedal filtered by two formants driven directly off the raw hands (CC1/CC2), so even between notes a moving hand changes the vowel of the drone, and a tremolo on it runs at exactly the ring rate — the flicker you see is the flicker you hear. When the shape settles into a new morph the harmony JUMPS to that chord rather than waiting for the bar. Bells double the arpeggio an octave up once the tunnel is both fast and lobed; the kick only appears at the top of the intensity ladder. Let the hands go still and the whole rig ducks to a bare pedal as the picture fades. Ableton: arp ch4, texture ch6 = the vowel drone, pad ch2, bells ch5, perc ch10.',
+
+  init(P) {
+    P.state = {
+      pres: 0, NR: 22, morph: 0, morphS: 0, lean: 0, leanS: 0, rate: 1, rateS: 1, rateIdx: 1,
+      phase: 0, pulse: 0, spin: 0, wake: 0, act: 0, exc: new Float32Array(16),
+      prevL: 0, prevR: 0, chordIdx: 0, candT: 0, cand: 0
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+
+    /* ---- IT ANSWERS MOVEMENT, NOT POSITION -----------------------------
+       Speed of the hands, not their height, is what keeps the light on.
+       Rises instantly, drains over about ten seconds of stillness.        */
+    const vel = (Math.abs(inp.L - s.prevL) + Math.abs(inp.R - s.prevR)) / Math.max(dt, 1e-3);
+    s.prevL = inp.L; s.prevR = inp.R;
+    s.act += (vel - s.act) * Math.min(1, dt * 12);
+    s.wake = Math.max(s.wake * Math.pow(0.5, dt / 3.4), Math.min(1, s.act * 2.6));
+
+    // ---- L: intensity. A ladder of speeds, so crossings stay on the grid.
+    const LAD = [0.5, 1, 2, 3, 4, 6];
+    const want = clamp(inp.L) * (LAD.length - 0.001) | 0;
+    if (want > s.rateIdx && inp.L > want / LAD.length + 0.03) s.rateIdx = want;
+    else if (want < s.rateIdx && inp.L < (want + 1) / LAD.length - 0.03) s.rateIdx = want;
+    s.rate = LAD[s.rateIdx];
+    s.rateS += (s.rate - s.rateS) * Math.min(1, dt * 4);
+
+    // ---- R: morph. Six shapes, and the shape IS the chord.
+    const m = clamp(inp.R) * 5.999 | 0;
+    if (m !== s.cand) { s.cand = m; s.candT = t; }
+    if (m !== s.morph && t - s.candT > 0.22) s.morph = m;
+    s.morphS += (s.morph - s.morphS) * Math.min(1, dt * 5);
+    s.warp = clamp(inp.R);
+    s.lean = clamp(inp.R) * 0.3;
+    s.leanS += (s.lean - s.leanS) * Math.min(1, dt * 4);
+
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.phase = beats * s.rate;
+    const fr = s.phase - Math.floor(s.phase);
+    s.pulse = Math.pow(1 - fr, 2.6);
+    s.spin += dt * (0.05 + s.warp * 0.2);
+
+    if (typeof AE !== 'undefined' && AE.SB && typeof H !== 'undefined' && H.chordSemis.length) {
+      for (let i = 0; i < 16; i++) {
+        const e = AE.SB.excite(H.chordTone(i, -1));
+        s.exc[i] += (e - s.exc[i]) * Math.min(1, dt * 8);
+      }
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#050308';
+    g.fillRect(0, 0, w, h);
+    const wake = smooth(clamp(s.wake));
+    if (wake < 0.008) {
+      g.fillStyle = 'rgba(235,199,154,0.35)';
+      g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+      g.fillText('· ASLEEP — MOVE A HAND ·', 10, h - 10);
+      return;
+    }
+    const cx = w / 2 - s.leanS * w * 0.12;
+    const cy = h / 2 + Math.sin(s.spin * 0.7) * h * 0.025;
+    const maxR = Math.hypot(w, h) * 0.62;
+    const NR = s.NR, bright = (0.45 + s.pres * 0.55) * wake;
+    const SEG = P.focused ? 96 : 40;
+    // the fig: amber and fig-flesh on the left, indigo and purple on the right,
+    // pale tan through the middle
+    // the fig, pushed up in luminance — these swatches are mid-tones on paper
+    // and mud on a black field until you open them up
+    const INK = [
+      [255, 178, 68], [176, 74, 205], [255, 226, 186], [255, 96, 46], [122, 86, 190]
+    ];
+    const warm = 0.3 + clamp(inp.L) * 0.7, cool = 0.3 + clamp(inp.R) * 0.7;
+
+    g.globalCompositeOperation = 'lighter';
+    for (let k = NR - 1; k >= 0; k--) {
+      const u = ((k + s.phase) % NR + NR) % NR / NR;
+      const r0 = Math.pow(u, 1.5) * maxR;
+      if (r0 < 2) continue;
+      // DISSOLVING OUTWARD: a band spends its light as it travels
+      const far = Math.pow(1 - Math.min(1, r0 / (maxR * 1.02)), 1.15);
+      if (far < 0.012) continue;
+      const near = 1 - Math.abs(u - 0.34) / 0.34;
+      const flare = Math.max(0, near) * s.pulse;
+      const tone = s.exc[(k * 3) % 16] || 0;
+      const lobes = 2 + Math.round(s.morphS);
+      const amp = r0 * (0.015 + s.warp * 0.15) * Math.pow(u, 0.7);
+      const off = s.leanS * r0 * 0.45;
+      const lw = Math.max(3 * ms, r0 * 0.05 + 3 * ms) * (1 + flare * 0.6 + tone * 0.4);
+      const a = (0.5 + flare * 0.5 + tone * 0.35) * bright * far;
+      const c0 = INK[k % 5], c1 = INK[(k + 2) % 5], c2 = INK[(k + 4) % 5];
+      const gr = g.createLinearGradient(cx - maxR, 0, cx + maxR, 0);
+      gr.addColorStop(0, `rgba(${c0[0]},${c0[1]},${c0[2]},${a * warm})`);
+      gr.addColorStop(0.5, `rgba(${c1[0]},${c1[1]},${c1[2]},${a})`);
+      gr.addColorStop(1, `rgba(${c2[0]},${c2[1]},${c2[2]},${a * cool})`);
+      g.strokeStyle = gr;
+      g.lineWidth = lw;
+      g.beginPath();
+      for (let i = 0; i <= SEG; i++) {
+        const an = i / SEG * TAU;
+        const rr = r0 + Math.sin(an * lobes + s.spin * 1.7 + k * 0.6) * amp
+          + Math.sin(an * (lobes + 2) - s.spin * 1.1 + k * 0.31) * amp * 0.4;
+        const x = cx + Math.cos(an) * rr + off, y = cy + Math.sin(an) * rr * 0.97;
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.closePath();
+      g.stroke();
+    }
+    // the eye: a warm amber breath, never a white disc
+    const rr = Math.pow(0.34, 1.5) * maxR;
+    const eg = g.createRadialGradient(cx, cy, 0, cx, cy, rr * 1.15);
+    eg.addColorStop(0, `rgba(235,199,154,${(0.1 + s.pulse * 0.22) * bright})`);
+    eg.addColorStop(0.5, `rgba(206,138,50,${(0.05 + s.pulse * 0.12) * bright})`);
+    eg.addColorStop(1, 'rgba(196,69,31,0)');
+    g.fillStyle = eg;
+    g.beginPath(); g.arc(cx, cy, rr * 1.15, 0, TAU); g.fill();
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(235,199,154,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const names = ['1 / 2 BEATS', '1 PER BEAT', '8ths', 'TRIPLETS', '16ths', 'SEXTUPLETS'];
+    g.fillText('SHAPE ' + (2 + s.morph) + '-LOBE · ' + (H.label || '') +
+      '   INTENSITY ' + names[s.rateIdx] +
+      '   WAKE ' + Math.round(wake * 100) + (wake < 0.25 ? '  · FADING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- THE VOWEL DRONE: the hands are two formants -------------------- */
+    const o1 = v.osc('sawtooth', 82), o2 = v.osc('sawtooth', 82);
+    o2.detune.value = 7;
+    const fA = v.filter('bandpass', 500, 4.5), fB = v.filter('bandpass', 1400, 5.5);
+    const gA = v.g(0.03), gB = v.g(0.02);
+    const trem = v.g(1);
+    const lfo = v.osc('sine', 2), lfoG = v.g(0.35);
+    lfo.connect(lfoG); lfoG.connect(trem.gain);
+    o1.connect(fA); o2.connect(fA); o1.connect(fB); o2.connect(fB);
+    fA.connect(gA); fB.connect(gB);
+    gA.connect(trem); gB.connect(trem); trem.connect(v.group);
+    if (AE.revIn) { const sd = A.ctx.createGain(); sd.gain.value = 0.4; trem.connect(sd); sd.connect(AE.revIn); }
+
+    const bed = A.padVoices(v, 3, { type: 'triangle', gain: 0.01, cutoff: 340, q: 0.7 });
+    const place = glide => {
+      A.leadToChord(bed, -1, glide);
+      const rf = H.rootFreq(-2);
+      A.set(o1.frequency, rf, 0.12); A.set(o2.frequency, rf, 0.12);
+      if (typeof MOut !== 'undefined') MOut.evNote('texture', rf, 0.12, 0, 4.2);
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.2);
+
+    let nextT = T.next(1), idx = 0, bar = -1, shape = -1;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const wake = smooth(clamp(s.wake));
+        // stillness ducks the whole rig back to a bare pedal
+        const gate = (0.3 + s.pres * 0.7) * (0.22 + wake * 0.78);
+        const L = inp ? inp.L : 0, R = inp ? inp.R : 0;
+
+        /* ---- THE SHAPE IS THE CHORD: jump the moment it settles ------- */
+        if (s.morph !== shape) {
+          shape = s.morph;
+          H.prog = [shape];
+          H.step = 0;
+          H.build();
+          place(0.28);
+          // push the timed change out of the way — the shape owns the harmony
+          if (typeof T !== 'undefined' && T.running) H.nextChangeBar = T.bar() + H.chordBars;
+        }
+
+        A.set(fA.frequency, 220 + L * 1500, 0.05);
+        A.set(fB.frequency, 700 + R * 3400, 0.05);
+        A.set(gA.gain, (0.016 + L * 0.03) * gate, 0.15);
+        A.set(gB.gain, (0.01 + R * 0.024) * gate, 0.15);
+        A.set(lfo.frequency, Math.max(0.2, s.rateS / Math.max(T.beat, 0.05)), 0.2);
+        A.set(lfoG.gain, 0.2 + clamp(s.rateS / 6) * 0.5, 0.3);
+        bed.forEach(b => { b.level((0.007 + s.pres * 0.005) * (0.3 + wake * 0.7), 0.5); b.bright(260 + R * 500, 0.4); });
+
+        /* ---- the arpeggio, one note per band --------------------------- */
+        const stepBeats = 1 / s.rate;
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          idx += 1 + s.morph;
+          const i = ((idx % 13) + 13) % 13;
+          const f = H.chordTone(i, 0);
+          const vol = (0.03 + clamp(inp ? inp.L : 0) * 0.05) * gate * (s.rate > 3 ? 0.75 : 1);
+          const pan = Math.sin(idx * 1.7) * 0.5;
+          if (wake > 0.06) {
+            A.pluck2(f, { at: nextT, vol, dur: Math.min(1.1, stepBeats * T.beat * 1.8), pan, rev: 0.4, del: 0.2, role: 'arp' });
+            if (s.morph >= 2 && s.rate >= 2 && (idx % 4) === 0) {
+              A.bell(H.chordTone(i + 3, 1), { at: nextT, vol: vol * 0.5, dur: 1.6, pan: -pan, rev: 0.66 });
+            }
+          }
+          nextT += T.beat * stepBeats;
+        }
+        if (nextT < now) nextT = T.next(1);
+
+        if (T.running && s.rateIdx >= 4 && wake > 0.4) {
+          const b = T.bar();
+          if (b !== bar) { bar = b; A.kick(T.next(4), 0.18 + clamp(s.warp) * 0.1); }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('arp', clamp(s.rateS / 6));
+          MOut.expr('texture', wake);
+          MOut.expr('pad', clamp(s.morph / 5));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-42.2 · RIDGE LOOM V2 (six focal points, six colours) ---------- */
+reg({
+  id: 'SRC-42.2', family: 'SRC-42', ver: 2, title: 'Ridge Loom V2', tech: 'SIX CORES / COLOUR OOZES OUT OF THEM',
+  music: {
+    bpm: 96, root: 49, mode: 'dorian', chordBars: 2,
+    chords: [
+      [0, 7, 15, 21, 26],   // C♯m13   — the dorian sixth
+      [0, 5, 12, 17, 21],   // F♯/C♯
+      [0, 7, 14, 19, 22],   // C♯m9
+      [0, 10, 15, 19, 24]   // C♯m7
+    ],
+    chordNames: ['C♯m13', 'F♯/C♯', 'C♯m9', 'C♯m7']
+  },
+  fx: { bloom: 0.45 },
+  tags: ['TWO CORES BECOME SIX', 'EACH CORE OOZES ITS OWN COLOUR', 'A LOOP IS A NOTE', 'CORAL / PINK / CREAM / BLUE'],
+  desc: 'A field of fat parallel ridges — fingerprint, leopard, chemical clock, all the same maths — flowing slowly across the frame. At rest there are two focal points under the fabric, one warm on the left and one cool on the right, and the ridges close into loops around them. Raise a hand and a SECOND focus surfaces on that side, then a THIRD, each arriving with its own colour bleeding out into the ridges around it, until the frame holds six centres and six colours: coral, pink, cream on the left, blue, cyan, indigo on the right. Ridges far from every core keep almost no colour at all, so the picture is literally a map of where the light is coming from.',
+  interact: 'L raises the warm side, R the cool side, and each hand does the same two things at once: it drives its cores harder and it brings out new ones. Drawn in, your side is one soft focus in one colour. A third of the way out a second core surfaces beside it; two thirds out a third arrives near the middle of the frame — and every core that appears takes ridges away from its neighbours and dyes them its own colour, so the frame gains structure and palette together. Every ridge that closes into a loop around a core is one note up that core\'s ladder, so the picture can be counted before it is heard, and when loops start enclosing more than one core at a time those voices converge onto a shared pitch. Bring both hands home and the frame drains back to two colours and a slow flow.',
+  sound: 'Up to six bowed voices, one per focus, panned across the frame in the order they appear (MIDI role: pad). A voice\'s note is the number of loops closed around its own core — so raising a hand walks its voices up their ladders and lets go walks them back down, and the harmony is a direct read of the picture. Every loop gained or lost is a harp pluck on the next sixteenth (lead), panned to the core that gained it. When rings start enclosing more than one core the scene changes state: a bell and a sub bloom for each shared ring (bells + bass), and the voices involved converge toward one pitch, so a crowded frame resolves instead of clashing. Under it: a bowed loom bed whose brightness follows how many ridges are on screen, and a pedal on C♯ that never moves. Ableton: pad ch2 (CC74 = ridge count), lead ch1, bells ch5, bass ch3, texture ch6.',
+
+  init(P) {
+    const w = P.w, h = P.h;
+    const fine = areaScale(P) > 1.6 ? 1 : 0.5;   // P.focused is false during init
+    // three cores per side; the first of each is the one you always see
+    // spread so that the ones that arrive last are not born on top of a
+    // neighbour — two cores closer than about 2σ can never hold private loops
+    const CORES = [
+      { hx: 0.13, hy: 0.30, side: 0, slot: 0, col: [240, 112, 60], deg: 0 },   // coral
+      { hx: 0.22, hy: 0.80, side: 0, slot: 1, col: [238, 159, 180], deg: 2 },  // pink
+      { hx: 0.40, hy: 0.22, side: 0, slot: 2, col: [247, 201, 168], deg: 4 },  // cream
+      { hx: 0.87, hy: 0.30, side: 1, slot: 0, col: [62, 111, 176], deg: 1 },   // blue
+      { hx: 0.78, hy: 0.80, side: 1, slot: 1, col: [79, 168, 196], deg: 3 },   // cyan
+      { hx: 0.58, hy: 0.72, side: 1, slot: 2, col: [110, 107, 192], deg: 5 }   // indigo
+    ];
+    for (const c of CORES) {
+      c.x = c.hx * w; c.y = c.hy * h; c.w = 0; c.loops = 0; c.ph = P.rand() * TAU;
+    }
+    const GX = Math.max(24, Math.round(76 * fine)), GY = Math.max(16, Math.round(48 * fine));
+    P.state = {
+      GX, GY, cores: CORES, pres: 0, ph: 0,
+      f: new Float32Array((GX + 1) * (GY + 1)),
+      own: new Uint8Array((GX + 1) * (GY + 1)),
+      ownV: new Float32Array((GX + 1) * (GY + 1)),
+      // σ small enough that six cores keep their own whorls, and enough
+      // levels that a pile-up in the middle still has ridges in it
+      sig: w * 0.075, lo: -0.95, step: 0.42, NL: 26, wMax: 5,
+      shared: 0, ridges: 0, live: 2, evq: [],
+      waves: [
+        { k: 3.1, a: 0.55, dir: 0.4, sp: 1 },
+        { k: 5.3, a: 0.33, dir: 2.1, sp: -0.62 },
+        { k: 8.7, a: 0.18, dir: 3.9, sp: 0.41 }
+      ],
+      // 6 cores × 3 colour tiers, plus one bucket for ridges nobody owns
+      seg: [], NB: 19
+    };
+    for (let i = 0; i < 19; i++) P.state.seg.push([]);
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const HV = [clamp(inp.L), clamp(inp.R)];
+    // slot 0 is always there; slots 1 and 2 surface as the hand climbs
+    const TH = [[0, 0.28, 0.9], [0.32, 0.4, 0], [0.64, 0.36, 0]];
+    let liveN = 0;
+    for (const c of s.cores) {
+      const x = HV[c.side];
+      const th = TH[c.slot];
+      const want = (c.slot === 0 ? clamp(th[1] + x * th[2]) : clamp((x - th[0]) / th[1])) * s.wMax;
+      c.w += (want - c.w) * Math.min(1, dt * 4.5);
+      c.ph += dt * 0.3;
+      c.x = c.hx * w + Math.sin(c.ph) * w * 0.012;
+      c.y = c.hy * h + Math.cos(c.ph * 0.8) * h * 0.02;
+      if (c.w > 0.8) liveN++;
+    }
+    s.live = liveN;
+    // THE FLOW IS ON THE GRID: one ridge-width per beat, always
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.ph = beats * TAU;
+    const sig2 = 2 * s.sig * s.sig;
+
+    // ---- the field, and who owns each part of it -----------------------
+    const GX = s.GX, GY = s.GY, f = s.f, own = s.own, ownV = s.ownV;
+    const cw = w / GX, ch = h / GY, W = s.waves, C = s.cores;
+    for (let j = 0; j <= GY; j++) {
+      const y = j * ch;
+      for (let i = 0; i <= GX; i++) {
+        const x = i * cw;
+        let val = 0;
+        for (let q = 0; q < W.length; q++) {
+          const wv = W[q];
+          const u = (x * Math.cos(wv.dir) + y * Math.sin(wv.dir)) / Math.max(w, h);
+          val += wv.a * Math.sin(u * wv.k * TAU + s.ph * wv.sp * 0.25 + q);
+        }
+        let best = 0, bi = 0;
+        for (let q = 0; q < 6; q++) {
+          const c = C[q];
+          if (c.w < 0.05) continue;
+          const dx = x - c.x, dy = y - c.y;
+          const e = c.w * Math.exp(-(dx * dx + dy * dy) / sig2);
+          val += e;
+          if (e > best) { best = e; bi = q; }
+        }
+        const o = j * (GX + 1) + i;
+        f[o] = val; own[o] = bi; ownV[o] = best;
+      }
+    }
+
+    // ---- march it into ridges -------------------------------------------
+    const seg = s.seg, lo = s.lo, st = s.step, NL = s.NL;
+    for (let k = 0; k < s.NB; k++) seg[k].length = 0;
+    for (let j = 0; j < GY; j++) {
+      for (let i = 0; i < GX; i++) {
+        const o = j * (GX + 1) + i;
+        const a = f[o], b = f[o + 1], c = f[o + GX + 2], d = f[o + GX + 1];
+        let mn = a, mx = a;
+        if (b < mn) mn = b; else if (b > mx) mx = b;
+        if (c < mn) mn = c; else if (c > mx) mx = c;
+        if (d < mn) mn = d; else if (d > mx) mx = d;
+        let k0 = Math.ceil((mn - lo) / st), k1 = Math.floor((mx - lo) / st);
+        if (k0 < 0) k0 = 0;
+        if (k1 > NL - 1) k1 = NL - 1;
+        if (k1 < k0) continue;
+        const x0 = i * cw, y0 = j * ch;
+        // WHOSE COLOUR is this piece of ridge wearing, and how strongly
+        const oi = own[o], ov = ownV[o];
+        const tier = ov > 2.2 ? 2 : ov > 0.8 ? 1 : ov > 0.22 ? 0 : -1;
+        const bucket = tier < 0 ? 18 : oi * 3 + tier;
+        for (let k = k0; k <= k1; k++) {
+          const lev = lo + k * st;
+          const m = (a > lev ? 1 : 0) | (b > lev ? 2 : 0) | (c > lev ? 4 : 0) | (d > lev ? 8 : 0);
+          if (m === 0 || m === 15) continue;
+          const out = seg[bucket];
+          const ax = x0 + cw * (lev - a) / (b - a), ay = y0;
+          const bx = x0 + cw, by = y0 + ch * (lev - b) / (c - b);
+          const cx2 = x0 + cw * (lev - d) / (c - d), cy2 = y0 + ch;
+          const dx2 = x0, dy2 = y0 + ch * (lev - a) / (d - a);
+          switch (m) {
+            case 1: case 14: out.push(dx2, dy2, ax, ay); break;
+            case 2: case 13: out.push(ax, ay, bx, by); break;
+            case 3: case 12: out.push(dx2, dy2, bx, by); break;
+            case 4: case 11: out.push(bx, by, cx2, cy2); break;
+            case 6: case 9: out.push(ax, ay, cx2, cy2); break;
+            case 7: case 8: out.push(dx2, dy2, cx2, cy2); break;
+            case 5: out.push(dx2, dy2, ax, ay, bx, by, cx2, cy2); break;
+            case 10: out.push(ax, ay, bx, by, cx2, cy2, dx2, dy2); break;
+          }
+        }
+      }
+    }
+
+    // ---- TOPOLOGY: whose loops are whose --------------------------------
+    // A level encloses one core alone only if it sits above every saddle
+    // that core shares with a living neighbour.
+    const waveCeil = 0.72;
+    const cnt = (a, b) => Math.max(0, Math.min(s.NL,
+      Math.floor((Math.min(b, lo + (s.NL - 1) * st) - lo) / st) - Math.floor((Math.max(a, waveCeil) - lo) / st)));
+    let topSaddle = 0;
+    for (let i = 0; i < 6; i++) {
+      const ci = C[i];
+      if (ci.w < 0.8) { if (ci.loops !== 0) { s.evq.push({ core: i, n: 0, up: false }); ci.loops = 0; } continue; }
+      let sad = 0;
+      for (let j = 0; j < 6; j++) {
+        if (i === j) continue;
+        const cj = C[j];
+        if (cj.w < 0.8) continue;
+        const dx = cj.x - ci.x, dy = cj.y - ci.y;
+        const v2 = (ci.w + cj.w) * Math.exp(-((dx * dx + dy * dy) / 4) / sig2);
+        if (v2 > sad) sad = v2;
+        if (v2 > topSaddle) topSaddle = v2;
+      }
+      const n = cnt(sad, ci.w);
+      if (n !== ci.loops) { s.evq.push({ core: i, n, up: n > ci.loops }); ci.loops = n; }
+    }
+    const nB = cnt(waveCeil, topSaddle);
+    if (nB !== s.shared) { s.evq.push({ core: -1, n: nB, up: nB > s.shared }); s.shared = nB; }
+    if (s.evq.length > 14) s.evq.splice(0, s.evq.length - 14);
+    let ridges = 0;
+    for (let k = 0; k < s.NB; k++) ridges += seg[k].length;
+    s.ridges = ridges >> 2;                       // how much ridge is on screen
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#0d0a12';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const lw = Math.max(3.4 * ms, Math.min(w, h) * 0.011);
+    const BASE = [92, 74, 104];       // ridges nobody owns — a dim plum
+
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (let b = 18; b >= 0; b--) {
+      const seg = s.seg[b];
+      if (!seg || !seg.length) continue;
+      let col, a, wid;
+      if (b === 18) { col = BASE; a = 0.4 * bright; wid = lw * 0.8; }
+      else {
+        const c = s.cores[(b / 3) | 0], tier = b % 3;
+        const mix = [0.34, 0.68, 1][tier];
+        col = [
+          BASE[0] + (c.col[0] - BASE[0]) * mix,
+          BASE[1] + (c.col[1] - BASE[1]) * mix,
+          BASE[2] + (c.col[2] - BASE[2]) * mix
+        ];
+        a = (0.45 + tier * 0.22) * bright;
+        wid = lw * (0.85 + tier * 0.22);
+      }
+      g.strokeStyle = `rgba(${col[0] | 0},${col[1] | 0},${col[2] | 0},${a})`;
+      g.lineWidth = wid;
+      g.beginPath();
+      for (let i = 0; i < seg.length; i += 4) {
+        g.moveTo(seg[i], seg[i + 1]);
+        g.lineTo(seg[i + 2], seg[i + 3]);
+      }
+      g.stroke();
+    }
+
+    // the glow each living core throws into its own colour
+    g.globalCompositeOperation = 'lighter';
+    for (const c of s.cores) {
+      if (c.w < 0.6) continue;
+      const R = s.sig * (0.5 + clamp(c.w / s.wMax) * 0.5);
+      const gr = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, R);
+      gr.addColorStop(0, `rgba(${c.col[0]},${c.col[1]},${c.col[2]},${0.16 * clamp(c.w / s.wMax) * bright})`);
+      gr.addColorStop(1, `rgba(${c.col[0]},${c.col[1]},${c.col[2]},0)`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(c.x, c.y, R, 0, TAU); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(247,201,168,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const loops = s.cores.map(c => c.loops).join('/');
+    g.fillText('CORES ' + s.live + '/6   LOOPS ' + loops + '   SHARED ' + s.shared +
+      '   RIDGES ' + s.ridges + (s.pres < 0.3 ? '   · FLOWING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the loom: bowed air -------------------------------------------- */
+    const n = v.noise(), nf = v.filter('bandpass', 800, 1.6), ng = v.g(0.008);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- one bowed voice per focus, panned where it sits ---------------- */
+    const NC = 6;
+    const voices = A.padVoices(v, NC, { type: 'sawtooth', gain: 0.0001, cutoff: 500, q: 2.2 });
+    const pans = voices.map(() => (A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : null));
+    voices.forEach((vc, i) => {
+      if (pans[i]) {
+        try { vc.g.disconnect(v.group); } catch (e) {}
+        vc.g.connect(pans[i]); pans[i].connect(v.group);
+        pans[i].pan.value = (P.state.cores[i].hx * 2 - 1) * 0.75;
+      }
+    });
+
+    const bed = A.padVoices(v, 2, { type: 'triangle', gain: 0.01, cutoff: 260, q: 0.6 });
+    const place = glide => { bed[0].set(H.rootFreq(-2), glide); bed[1].set(H.chordTone(2, -1), glide); };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.4);
+
+    // left cores speak low, right cores high; loops walk each one up its ladder
+    const pitchOf = (i, loops) => {
+      const c = P.state.cores[i];
+      return H.chordTone(c.deg + loops, c.side ? 0 : -1);
+    };
+    const last = new Array(NC).fill(0);
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const shared = s.shared || 0;
+        const conv = clamp(shared / 5);
+
+        A.set(ng.gain, (0.004 + clamp(s.ridges / 16) * 0.012) * gate, 0.3);
+        A.set(nf.frequency, 400 + clamp(s.ridges / 16) * 2200, 0.3);
+        bed.forEach(b => { b.level(0.008 + s.pres * 0.005, 0.5); b.bright(200 + clamp(s.ridges / 16) * 400, 0.4); });
+
+        /* ---- the voices ----------------------------------------------- */
+        // where rings enclose more than one core, those voices are singing
+        // the same ring — pull them toward one pitch
+        let mean = 0, liveN = 0;
+        const want = [];
+        for (let i = 0; i < NC; i++) {
+          const c = s.cores[i];
+          const f = pitchOf(i, c.loops);
+          want.push(f);
+          if (c.w > 0.8) { mean += Math.log(f); liveN++; }
+        }
+        mean = liveN ? Math.exp(mean / liveN) : 0;
+        for (let i = 0; i < NC; i++) {
+          const c = s.cores[i];
+          const on = c.w > 0.8;
+          const f = liveN ? want[i] * (1 - conv) + mean * conv : want[i];
+          if (on && Math.abs(f - last[i]) > 0.5) { last[i] = f; voices[i].set(f, 0.16); }
+          voices[i].level(on ? clamp(c.w / 5) * 0.026 * gate : 0.0001, 0.35);
+          voices[i].bright(240 + clamp(c.w / s.wMax) * 1300, 0.3);
+          A.set(voices[i].o2.detune, (i % 2 ? 6 : -6) + (1 - conv) * 14, 0.3);
+        }
+
+        /* ---- a loop gained or lost is a pluck on the next sixteenth ---- */
+        let ev, k = 0;
+        while ((ev = s.evq.shift()) && k < 4) {
+          k++;
+          const at = T.next(0.25);
+          if (ev.core < 0) {
+            if (ev.up) {
+              A.bell(H.chordTone(ev.n + 2, 1), { at, vol: 0.05 * gate, dur: 3.2, pan: 0, rev: 0.78 });
+              A.bassNote(H.chordTone(0, -1), { at, vol: 0.065 * gate, dur: 2.2 });
+            } else {
+              A.pluck2(H.chordTone(ev.n, 0), { at, vol: 0.028 * gate, dur: 1.1, pan: 0, rev: 0.5 });
+            }
+          } else {
+            const c = s.cores[ev.core];
+            const f = pitchOf(ev.core, ev.n);
+            A.pluck2(f * (c.side ? 1 : 2), {
+              at, vol: (ev.up ? 0.055 : 0.03) * gate, dur: ev.up ? 1.3 : 0.7,
+              pan: (c.hx * 2 - 1) * 0.8, rev: 0.5, del: 0.18
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', clamp(s.ridges / 16));
+          MOut.expr('texture', clamp(s.live / 6));
+          MOut.expr('lead', conv);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
 /* ============================================================
    HISTORY — earlier versions of explorations, excavated from
    the session record. Registered with family + ver so every
