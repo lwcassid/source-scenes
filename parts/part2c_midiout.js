@@ -275,27 +275,96 @@ const MOut = {
   }
 };
 
+/* ============================================================
+   SOUNDING BUS — what the board is ringing with, right now
+   ------------------------------------------------------------
+   Every musical event on the wall registers its fundamental
+   here. Any scene can then ask "is something out there in tune
+   with me?" and get a 0..1 excitation back — which is how a
+   resonator behaves in a room: it answers sound it agrees with,
+   whoever made it. Used by SONORA V3's dye blobs to shudder in
+   sympathy and by SONORA V4's stones to hold their heat, and
+   open for anything else that wants to listen.
+
+   NOTE: this lived only in the working index.html for a while,
+   so the built site shipped with `AE.SB` undefined — every
+   excite() returned 0 and the sympathetic swell was silently
+   dead. Keep it here, ahead of the wrappers that push to it.
+   ============================================================ */
+AE.SB = {
+  ev: [], MAX: 96,
+  push(freq, vol, at, dur) {
+    if (!AE.ctx || !isFinite(freq) || freq <= 20) return;
+    const v = vol !== undefined ? vol : 0.15;
+    if (v <= 0.0008) return;
+    const now = AE.t();
+    const t0 = Math.max(now, at || 0);
+    // prune the dead before adding — keeps the list short without a timer
+    if (this.ev.length > 8) this.ev = this.ev.filter(e => e.t1 > now);
+    this.ev.push({ f: freq, v, t0, t1: t0 + Math.max(0.05, dur !== undefined ? dur : 0.8) });
+    if (this.ev.length > this.MAX) this.ev.splice(0, this.ev.length - this.MAX);
+  },
+  /* How hard is the board driving a resonator tuned to `freq`?
+     Unison rings hardest; the octave and twelfth answer weakly;
+     anything off the series barely moves it at all. */
+  excite(freq) {
+    if (!AE.ctx || !isFinite(freq) || freq <= 0 || !this.ev.length) return 0;
+    const now = AE.t();
+    let e = 0;
+    for (let i = 0; i < this.ev.length; i++) {
+      const ev = this.ev[i];
+      if (now < ev.t0 || now > ev.t1) continue;
+      const amp = ev.v * (1 - (now - ev.t0) / (ev.t1 - ev.t0));
+      if (amp <= 0) continue;
+      const r = ev.f > freq ? ev.f / freq : freq / ev.f;
+      const n = Math.round(r);
+      if (n < 1 || n > 8) continue;
+      const detune = Math.abs(r - n) / n;              // relative mistune
+      const window = Math.exp(-detune * detune * 900); // narrow resonance peak
+      if (window < 0.02) continue;
+      const coupling = n === 1 ? 1 : n === 2 ? 0.5 : n === 3 ? 0.3 : 0.45 / n;
+      e += amp * window * coupling;
+    }
+    return Math.min(1, e * 3.4);
+  }
+};
+
 /* ---------- wrap the audio engine so every musical event emits MIDI ---------- */
 (function () {
+  /* Three things happen in every one of these wrappers, and all three matter:
+     1. the event goes out as MIDI;
+     2. the event is published to the SOUNDING BUS, which is what makes any
+        resonator scene able to hear the rest of the wall. Without this the
+        bus only ever contains whatever a scene pushed by hand, and every
+        sympathy mechanic on the site quietly reads zero;
+     3. MOut.suspend is SAVED and RESTORED rather than blind-cleared — bell
+        and pluck call back into tone, and clearing the flag inside a nested
+        call leaks the partials onto the wire as separate notes.
+     opts.role overrides the channel, so one scene can put different voices on
+     different instruments without leaving the engine. */
   const _tone = AE.tone.bind(AE);
   AE.tone = function (freq, opts = {}) {
-    MOut.evNote('lead', freq, opts.vol !== undefined ? opts.vol : 0.15, opts.at || 0, opts.dur !== undefined ? opts.dur : 0.8);
-    MOut.suspend = true; _tone(freq, opts); MOut.suspend = false;
+    MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.15, opts.at || 0, opts.dur !== undefined ? opts.dur : 0.8);
+    if (!MOut.suspend) AE.SB.push(freq, opts.vol, opts.at, opts.dur !== undefined ? opts.dur : 0.8);
+    const sp = MOut.suspend; MOut.suspend = true; _tone(freq, opts); MOut.suspend = sp;
   };
   const _bell = AE.bell.bind(AE);
   AE.bell = function (freq, opts = {}) {
-    MOut.evNote('bells', freq, opts.vol !== undefined ? opts.vol : 0.12, opts.at || 0, opts.dur !== undefined ? opts.dur : 2.2);
-    MOut.suspend = true; _bell(freq, opts); MOut.suspend = false;
+    MOut.evNote(opts.role || 'bells', freq, opts.vol !== undefined ? opts.vol : 0.12, opts.at || 0, opts.dur !== undefined ? opts.dur : 2.2);
+    if (!MOut.suspend) AE.SB.push(freq, opts.vol !== undefined ? opts.vol : 0.12, opts.at, opts.dur !== undefined ? opts.dur : 2.2);
+    const sp = MOut.suspend; MOut.suspend = true; _bell(freq, opts); MOut.suspend = sp;
   };
   const _pluck2 = AE.pluck2.bind(AE);
   AE.pluck2 = function (freq, opts = {}) {
-    MOut.evNote('lead', freq, opts.vol !== undefined ? opts.vol : 0.16, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.1);
-    MOut.suspend = true; _pluck2(freq, opts); MOut.suspend = false;
+    MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.16, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.1);
+    if (!MOut.suspend) AE.SB.push(freq, opts.vol !== undefined ? opts.vol : 0.16, opts.at, opts.dur !== undefined ? opts.dur : 1.1);
+    const sp = MOut.suspend; MOut.suspend = true; _pluck2(freq, opts); MOut.suspend = sp;
   };
   const _bassNote = AE.bassNote.bind(AE);
   AE.bassNote = function (freq, opts = {}) {
-    MOut.evNote('bass', freq, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.6);
-    MOut.suspend = true; _bassNote(freq, opts); MOut.suspend = false;
+    MOut.evNote(opts.role || 'bass', freq, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.6);
+    if (!MOut.suspend) AE.SB.push(freq, opts.vol !== undefined ? opts.vol : 0.2, opts.at, opts.dur !== undefined ? opts.dur : 1.6);
+    const sp = MOut.suspend; MOut.suspend = true; _bassNote(freq, opts); MOut.suspend = sp;
   };
   const _kick = AE.kick.bind(AE);
   AE.kick = function (at, vol) { MOut.evDrum(36, vol !== undefined ? vol : 0.32, at || 0); _kick(at, vol); };
