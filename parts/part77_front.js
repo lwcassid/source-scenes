@@ -97,10 +97,9 @@ const CF_FS = [
   '  vec3 c = C_EMBER;',
   '  c = mix(c, C_ORANG, smoothstep(0.02, 0.14, k));',
   '  c = mix(c, C_MARIG, smoothstep(0.15, 0.28, k));',
-  '  c = mix(c, C_GOLD,  smoothstep(0.29, 0.41, k));',
-  '  c = mix(c, C_CREAM, smoothstep(0.44, 0.50, k));',
-  '  c = mix(c, C_CYAN,  smoothstep(0.51, 0.57, k));',
-  '  c = mix(c, C_INDIG, smoothstep(0.59, 0.66, k));',
+  '  c = mix(c, C_GOLD,  smoothstep(0.29, 0.42, k));',
+  '  c = mix(c, C_CYAN,  smoothstep(0.45, 0.55, k));',
+  '  c = mix(c, C_INDIG, smoothstep(0.57, 0.65, k));',
   '  c = mix(c, C_VIOLT, smoothstep(0.66, 0.75, k));',
   '  c = mix(c, C_MAGEN, smoothstep(0.76, 0.86, k));',
   '  c = mix(c, C_CRIMS, smoothstep(0.88, 1.00, k));',
@@ -144,7 +143,7 @@ const CF_FS = [
   '  float wa = 0.010 + uHeat * 0.018;',
   '  vec2 pa = p + flowW(p * 2.3) * wa;',
   '  float acc = poolF(pa);',
-  '  if (acc < 0.14){ gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
+  '  if (acc < 0.11){ gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
   '  float thick = smoothstep(0.32, 1.20, acc);',
   '  pa += uU * 0.11 * vec2(sin(pa.y * 17.0 + uT * 0.10), cos(pa.x * 15.0 - uT * 0.08));',
   // cells run FINE at the front and coarse out in the deep banks — the seam is
@@ -153,16 +152,16 @@ const CF_FS = [
   '  float kk0 = bandK(pa);',
   '  float nf = exp(-pow((kk0 - 0.5) / 0.17, 2.0));',
   '  vec3 F = vec3(1e9), B = vec3(0.0, 0.0, uU * 0.4); vec2 SP = pa;',
-  '  lat(pa, uU * 1.90, 21.0, 0.44, 0.30, 0.42, 1.0 - nf * 0.45, 1.0,    0.0,     F, B, SP);',
-  '  lat(pa, uU,        1.0,  0.30, 0.30, 1.00, 0.9 + nf * 0.35, 0.9323, 0.3616,  F, B, SP);',
+  '  lat(pa, uU * 1.90, 21.0, 0.44, 0.30, 0.42, 1.0 - nf * 0.78, 1.0,    0.0,     F, B, SP);',
+  '  lat(pa, uU,        1.0,  0.30, 0.30, 1.00, 0.95 - nf * 0.40, 0.9323, 0.3616,  F, B, SP);',
   '  float gap = 1.0 - smoothstep(0.03, 0.30, F.y - F.x);',
   '  gap *= gap;',
-  '  float fine = max(gap, nf * 0.55);',
-  '  if (fine > 0.10) lat(pa, uU * 0.44, 11.0, 0.34, 0.40, 1.90, fine * (0.7 + 0.3 * uHeat), 0.6216, -0.7834, F, B, SP);',
+  '  float fine = max(gap, nf * 1.65);',
+  '  if (fine > 0.10) lat(pa, uU * 0.44, 11.0, 0.34, 0.40, 1.90, fine * (0.8 + 0.3 * uHeat), 0.6216, -0.7834, F, B, SP);',
   // ask the pool about the CELL, not the pixel: the paint's edge then runs
   // along walls instead of fading out through the middle of cells
   '  float accC = poolF(SP);',
-  '  float insideC = smoothstep(0.30, 0.52, accC);',
+  '  float insideC = smoothstep(0.26, 0.46, accC);',
   '  if (insideC < 0.002){ gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
   '  float hh = clamp(0.5 + 0.5 * (F.z - F.y) / 0.30, 0.0, 1.0);',
   '  float f23 = mix(F.z, F.y, hh) - 0.30 * hh * (1.0 - hh);',
@@ -179,16 +178,19 @@ const CF_FS = [
      pour never reads as a gradient. And cell brightness varies enormously —
      an amber cell blazing beside a near-black one is most of the texture. */
   '  float kSite = bandK(SP);',
-  '  float kk = clamp(kSite + (seed - 0.5) * (0.17 + 0.13 * thick), 0.0, 1.0);',
+  '  float nfS = exp(-pow((kSite - 0.5) / 0.17, 2.0));',
+  '  float kk = clamp(kSite + (seed - 0.5) * (0.15 + 0.13 * thick + 0.18 * nfS), 0.0, 1.0);',
+  '  float rg = step(0.945, fract(seed * 29.71 + kSite * 0.13));',
+  '  kk = mix(kk, mix(1.0 - kSite, 0.52, 0.30 + 0.45 * fract(seed * 7.31)), rg);',
   // cell brightness varies enormously — an amber cell blazing next to a
   // near-black one is most of what a pour's texture actually IS. The dark end
   // slides to graphite rather than to a dim version of its own hue.
-  '  float lum = 0.10 + 1.45 * pow(fract(seed * 11.37 + rel * 0.7), 1.7);',
+  '  float lum = 0.09 + 1.55 * pow(fract(seed * 11.37 + rel * 0.7), 1.35);',
   '  vec3 body = ramp(kk) * lum + vec3(0.030, 0.026, 0.042) * (1.0 - smoothstep(0.0, 0.55, lum));',
   '  vec3 wallC = body * 0.05 + vec3(0.010, 0.005, 0.013);',
   // the halo is the top film pushed aside by the cell: cream over the warm
   // bank, cyan over the cool one
-  '  vec3 halo = mix(C_CREAM, C_CYAN, smoothstep(0.44, 0.62, kSite)) * (0.40 + 0.80 * lum);',
+  '  vec3 halo = mix(C_CREAM, C_CYAN, smoothstep(0.44, 0.62, kSite)) * (0.26 + 0.52 * lum);',
   // wall → a THIN bright halo → the cell's own flat colour, which owns the
   // rest of it. Widen the halo and every cell turns to cream porridge.
   '  vec3 col = mix(wallC, halo, smoothstep(0.015, 0.085, Dn));',
@@ -201,12 +203,12 @@ const CF_FS = [
   '  col += halo * going * smoothstep(0.05, 0.45, Dn) * 0.5;',
   // LACING: at the front the walls themselves light up white — the filigree a
   // swipe leaves where the two paints tear apart
-  '  float lace = (1.0 - smoothstep(0.0, 0.11, Dn)) * exp(-pow((kSite - 0.5) / 0.085, 2.0));',
-  '  col += vec3(0.88, 0.96, 1.0) * lace * (0.30 + 0.75 * uHeat);',
+  '  float lace = (1.0 - smoothstep(0.0, 0.10, Dn)) * exp(-pow((kSite - 0.5) / 0.070, 2.0));',
+  '  col += vec3(0.88, 0.96, 1.0) * lace * (0.16 + 0.42 * uHeat);',
   // the meniscus: paint piles up where it stops running
-  '  float ee = (accC - 0.40) / 0.13; float edge = exp(-ee * ee);',
+  '  float ee = (accC - 0.35) / 0.12; float edge = exp(-ee * ee);',
   '  col = mix(col, wallC + body * 0.25, edge * 0.72);',
-  '  col *= insideC * (0.52 + 0.48 * uPres);',
+  '  col *= insideC * (0.58 + 0.42 * uPres);',
   /* ---- THE BLOOMS: the big cells you can hear -------------------------- */
   '  float bD = 1e9, bLife = 0.0, bR = 0.0; vec2 bC = vec2(0.0);',
   '  for (int i = 0; i < 8; i++){',
@@ -223,15 +225,17 @@ const CF_FS = [
   '  }',
   '  if (bD < 1.14){',
   '    float kb = clamp(bandK(bC) + (fract(bR * 137.3) - 0.5) * 0.12, 0.0, 1.0);',
-  '    float lb = 0.55 + 0.85 * bLife;',
-  '    vec3 bodyB = ramp(kb) * lb;',
-  '    vec3 wallB = bodyB * 0.06 + vec3(0.012, 0.006, 0.014);',
-  '    vec3 haloB = mix(C_CREAM, C_CYAN, smoothstep(0.44, 0.62, kb));',
+  '    float lb = (0.30 + 0.95 * bLife) * (0.55 + 0.9 * fract(bR * 53.1));',
+  '    vec3 bodyB = ramp(kb) * lb + vec3(0.030, 0.026, 0.042) * (1.0 - smoothstep(0.0, 0.55, lb));',
+  '    vec3 wallB = bodyB * 0.05 + vec3(0.010, 0.005, 0.013);',
+  '    vec3 haloB = mix(C_CREAM, C_CYAN, smoothstep(0.44, 0.62, kb)) * (0.26 + 0.52 * lb);',
   '    float Db = 1.0 - bD;',
-  '    vec3 cb = mix(wallB, haloB, smoothstep(0.0, 0.09, Db));',
-  '    cb = mix(cb, bodyB, smoothstep(0.06, 0.36, Db));',
-  '    cb += vec3(1.0, 0.95, 0.86) * smoothstep(0.80, 1.0, bLife) * smoothstep(0.25, 0.85, Db) * 0.55;',
-  '    col = mix(col, cb * insideC, smoothstep(1.14, 0.94, bD));',
+  '    vec3 cb = mix(wallB, haloB, smoothstep(0.0, 0.055, Db));',
+  '    cb = mix(cb, bodyB, smoothstep(0.04, 0.22, Db));',
+  '    cb += haloB * smoothstep(0.84, 1.0, bLife) * smoothstep(0.25, 0.85, Db) * 0.55;',
+  // the packing keeps showing through, so a bloom reads as a cell in the film
+  // rather than a balloon lying on top of it
+  '    col = mix(col, cb * insideC, smoothstep(1.14, 0.94, bD) * 0.80);',
   '  }',
   /* ---- and the craters they leave ------------------------------------- */
   '  for (int i = 0; i < 6; i++){',
@@ -242,7 +246,8 @@ const CF_FS = [
   '    vec3 fc = mix(C_GOLD, C_CYAN, smoothstep(0.44, 0.62, bandK(f.xy)));',
   '    col += fc * exp(-dd * dd) * f.w * 0.7 * insideC;',
   '  }',
-  '  col = col / (1.0 + col * 0.40);',
+  '  col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 1.16);',
+  '  col = max(col, vec3(0.0)) / (1.0 + max(col, vec3(0.0)) * 0.55);',
   '  gl_FragColor = vec4(col, 1.0);',
   '}'
 ].join('\n');
@@ -268,7 +273,7 @@ reg({
   init(P) {
     const s = {
       pres: 0, warm: 0, cool: 0, heat: 0, weld: 0, front: 0,
-      Rw: 0, Rc: 0, Rm: 0, offW: 0.1, offC: 0.1, ax: 0.8, ay: 0.5, U: 0.070,
+      Rw: 0, Rc: 0, Rm: 0, offW: 0.1, offC: 0.1, ax: 0.8, ay: 0.5, U: 0.050,
       blooms: [], flash: [], evq: [], life: 0, popped: 0, popRate: 0,
       cover: 0, spawnAcc: 0, welded: false,
       noGL: typeof THREE === 'undefined'
@@ -317,7 +322,7 @@ reg({
     // time arriving (the radii below are the slow part, not the reading)
     s.warm += (clamp(inp.L) - s.warm) * Math.min(1, dt * 6);
     s.cool += (clamp(inp.R) - s.cool) * Math.min(1, dt * 6);
-    const idle = 0.10 + 0.05 * Math.sin(s.life * 0.21);
+    const idle = 0.15 + 0.06 * Math.sin(s.life * 0.21);
     const W = Math.max(s.warm, idle * (1 - s.pres) + s.warm * s.pres);
     const C = Math.max(s.cool, idle * (1 - s.pres) + s.cool * s.pres);
     s.weld += (Math.min(W, C) - s.weld) * Math.min(1, dt * 5);
@@ -329,10 +334,10 @@ reg({
        they walk apart and swell until they cover the canvas — which is also
        what stops a wide frame from reading as three unrelated islands. */
     const axc = clamp(s.ax, 0.6, 1.7);
-    s.offW = (0.10 + 0.58 * W) * axc;
-    s.offC = (0.10 + 0.58 * C) * axc;
-    const Rwt = 0.14 + W * 0.46, Rct = 0.14 + C * 0.46;
-    const Rmt = 0.06 + s.weld * 0.48;
+    s.offW = (0.10 + 0.48 * W) * axc;
+    s.offC = (0.10 + 0.48 * C) * axc;
+    const Rwt = 0.07 + W * 0.52, Rct = 0.07 + C * 0.52;
+    const Rmt = 0.07 + s.weld * 0.60;
     s.Rw += (Rwt - s.Rw) * Math.min(1, dt * (Rwt > s.Rw ? 0.9 : 1.3));
     s.Rc += (Rct - s.Rc) * Math.min(1, dt * (Rct > s.Rc ? 0.9 : 1.3));
     s.Rm += (Rmt - s.Rm) * Math.min(1, dt * (Rmt > s.Rm ? 0.7 : 1.4));
@@ -370,7 +375,7 @@ reg({
       const big = P.rand();
       s.blooms.push({
         x: bx, y: by, r: 0.006,
-        Rt: s.U * (1.1 + big * big * 2.6),
+        Rt: s.U * (0.75 + big * big * 1.25),
         seed: P.rand()
       });
     }
@@ -391,7 +396,7 @@ reg({
         if (s.flash.length > 6) s.flash.shift();
         s.evq.push({
           k: CF_BAND(s, b.x, b.y),
-          size: clamp((b.Rt / s.U - 1.1) / 2.6),
+          size: clamp((b.Rt / s.U - 0.75) / 1.25),
           x: clamp(b.x / s.ax * 0.5 + 0.5)
         });
         if (s.evq.length > 8) s.evq.shift();

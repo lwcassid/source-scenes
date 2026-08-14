@@ -93,3 +93,29 @@ Pass one optimized for the surface; this pass optimizes for the *point* — but 
 | **SRC-42.2 Ridge Loom V2** | Two cores became **six**, three per hand, surfacing one at a time as that hand climbs — each arriving with its own colour bleeding into the ridges around it (coral · pink · cream · blue · cyan · indigo on near-black). Up to six bowed voices; loops per core still set pitch, shared rings still converge them. | EXP 5, SCR 5. The picture is now a legible map of six voices; two colours at rest, six at full reach. |
 
 *Both earlier versions stay in the dropdown — V1 of Foam Bloom is still the burst instrument, V1 of Iris is still the position-driven gearbox, V1 of Ridge is still the two-hand duet.*
+
+## SRC-43 Cell Front — the pour, done as colour instead of shape
+*Built after Foam Bloom's premise was called dead. Foam Bloom and Pour Cells both
+took the SHAPE from an acrylic pour (packed round cells) and left the colour behind —
+one is monochrome crimson, the other a tuned palette on discrete domes. The thing a
+real pour actually does, and neither of them does, is MIX AT CELL RESOLUTION: the
+heavy top film splits, each cell shows the colour that was under it, flat and walled
+off by a near-black contour, so two paints meeting make a mosaic and never a gradient.
+Palette sampled off the reference (an Etsy dutch pour, "Pegasus' Wing"): marigold
+#ffa71c · gold #fece1b · orange #fe7e22 · cyan #4bbefc · indigo #547af4 ·
+violet #822ba5 · magenta #fd1b7c · crimson #fa1b52 · cream #d8c0a4 over graphite.*
+
+| Scene | Own | IMM | EXP | JAM | SAT | SCR | Reading |
+|---|---|--|--|--|--|--|---|
+| SRC-43 Cell Front | N | **5** | **5** | 4 | 4 | 4 | One hand per bank of paint. The front between them only EXISTS when both hands are out — the middle pool's size is whichever hand is doing less — so this is the first scene in the set where the two hands are not two independent channels but one shared object. Colour is pitch: deep in a bank the ladder is low and woody, at the front it is the top of it and glass, so sweeping the seam sweeps the melody and you can see the note coming. |
+
+**Implementation note worth keeping.** The colour is looked up at the winning Voronoi
+SITE, not at the pixel — one line, and it is the whole difference between a pour and a
+gradient. Cell scale is driven off distance to the front (coarse in the deep banks,
+shattered at the seam), and ~5% of cells are ROGUE: they take the mirrored band's
+colour, which is what stops each territory reading as one flat hue.
+
+**Where it needs watching.** It shares the packed-cells frame with 36 and 41 — three
+scenes of round cells is too many for one rotation, pick one. The seam can blow out if
+the lacing term is ever pushed: it is currently the only white in the scene and it
+should stay a filigree, not a flare.
