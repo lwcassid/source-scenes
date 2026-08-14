@@ -75,6 +75,8 @@ cd "$(dirname "$0")/.."
   cat parts/part73_pour4.js
   cat parts/part74_pour5.js
   cat parts/part75_pour6.js
+  cat parts/part76_pour7.js
+  cat parts/part77_front.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
