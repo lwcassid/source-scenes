@@ -3,3 +3,6 @@ night-circuit-preview.html
 scratchshots/
 # harness deps for tools/shot*.mjs (install locally: npm i playwright-core)
 node_modules/
+
+# agent worktrees (transient, never part of the site)
+.claude/worktrees/
