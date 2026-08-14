@@ -68,6 +68,9 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
    2D canvas for line/sprite work. If using a wrapper group + `fitIn`-style
    centering, ANIMATE THE WRAPPER, never the centered child (position offsets
    bake into the child — overwriting them teleports geometry underground).
+   GOTCHA: `P.focused` is still FALSE while `init(P)` runs (focus mode sets it
+   after the instance is built), so `P.focused ? big : small` in init silently
+   gives every focused scene its TILE budget. Size off `areaScale(P)` instead.
 4. Interaction: map hands per the laws above. HUD line in draw() showing the
    scene's state (count/spread/etc.) — it's the debug strip's best friend.
 5. Sound: voices follow the visual state 1:1 (a bloom = a voice; its side =
