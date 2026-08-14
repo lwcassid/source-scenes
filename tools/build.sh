@@ -55,6 +55,13 @@ cd "$(dirname "$0")/.."
   cat parts/part53_av2.js
   cat parts/part54_sonora3.js
   cat parts/part55_sonora4.js
+  cat parts/part56_foam.js
+  cat parts/part57_iris.js
+  cat parts/part58_lumen.js
+  cat parts/part59_starling.js
+  cat parts/part60_vortex.js
+  cat parts/part61_pour.js
+  cat parts/part62_ridge.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'

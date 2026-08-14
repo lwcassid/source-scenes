@@ -65,3 +65,22 @@ The deliberate opposite of the other two: no events, no grid, just a choral wall
 
 ## Note on the criteria change
 Pass one optimized for the surface; this pass optimizes for the *point* — but notice the intersection is small. Only a handful of scenes are strong on BOTH axes (Storm Garden and the merged strum-harp are the standouts). That's the argument for the top-3 above: they're the rare scenes where the fabric and the instrument reinforce each other instead of trading off.
+
+---
+
+# ADDENDUM — the reference-wall set (SRC-36 … SRC-42)
+*Seven scenes built from a pass of reference images (soap foam, a ring tunnel, a backlit film, a Turing spot field, a red vortex, an acrylic pour, a fingerprint labyrinth). Same five criteria, same 1–5 scale.*
+
+| Scene | Own | IMM | EXP | JAM | SAT | SCR | Reading |
+|---|---|--|--|--|--|--|---|
+| SRC-36 Foam Bloom | N | 4 | 4 | 4 | **5** | 4 | Inflate-until-it-bursts, with the giant's pitch descending the whole way down and cutting off dead at the pop. The clearest cause→consequence in the set; the telegraph (shiver + whitening rim) is what makes it playable rather than random. |
+| SRC-37 Iris Engine | N | 4 | 4 | **5** | 4 | **5** | Speed is a gearbox and shape is the interval — you can SEE the rhythm and the leap before you hear them. Locked to the transport by construction, so it can never fall off the grid. The vowel drone answers CC1/CC2 between notes, which is the "VOX" gap this survey named, partly filled. |
+| SRC-38 Lumen Film | N | 3 | 3 | **5** | 3 | **5** | The SUSTAIN scene of the set: an aperture organ with no percussion at all, one held voice per hole. Fills no rhythmic space — the deliberate place to put a live player. Low immediacy by design. |
+| SRC-39 Starling Field | N | 4 | 4 | 4 | 4 | 4 | Steering the flock IS playing the line (seven lanes, seven degrees), and the groove is earned by actually locking the formation. The Turing lattice at rest and the murmuration at full reach are two different pictures from one hand. |
+| SRC-40 Vortex Choir | N | 3 | **5** | **5** | 4 | 4 | Five geared rings phasing against each other, each arm singing exactly as long as it is inside the light — wind (L) turns hocket into legato continuously. The PHASE COURT idea this survey asked for, with a choir instead of clicks. |
+| SRC-41 Pour Cells | N | 4 | 4 | 4 | **5** | 4 | Area is pitch, so growth is an audible sag and a merge is two voices resolving into one. The best "watch it run" scene here: the field always falls downhill toward fewer and larger, and the pour is the only thing stopping it. |
+| SRC-42 Ridge Loom | N | 4 | **5** | 4 | 4 | **5** | Topology as pitch: each loop closed around a core is one note up the ladder, and the whorls merging is the two voices converging. Two hands genuinely mean two different things, and the count is legible on screen before it is audible. |
+
+**Diversity check against the existing set list.** These add four verbs the library did not have: BURST (36), GEAR (37/40), OPEN (38), and MERGE (41/42). Sonically they spread across pops/bells, a stepped arp, a percussion-free organ, a lane melody with an earned groove, a phasing choir, converging glides, and a bowed loom — no two of them compete for the same hole in a mix. All seven are pedal-based (root never moves, colour shifts over it), so any of them can sit under a live player without a key change.
+
+**Where they need watching.** 36 and 41 both fill the frame with circles — do not put them back to back in a rotation. 38 is the quietest thing in the library and belongs in the ambient slot (after the spectacle, before the next build). 40's slowest gear is genuinely slow: it is a three-minute scene, not a ten-second one.

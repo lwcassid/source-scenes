@@ -33964,6 +33964,2006 @@ reg({
     };
   }
 });
+/* ---------- SRC-36 · FOAM BLOOM (breath in, skin out) ---------- */
+reg({
+  id: 'SRC-36', family: 'SRC-36', ver: 1, title: 'Foam Bloom', tech: 'PACKED FOAM / INFLATE + BURST',
+  music: {
+    bpm: 92, root: 45, mode: 'aeolian', chordBars: 2,
+    // A PEDAL ON A. The root never moves — only the colour of the film over it,
+    // so the foam can pop for ten minutes and never leave the key.
+    chords: [
+      [0, 7, 15, 19, 26],   // Am9        — open, breathing
+      [0, 5, 12, 17, 20],   // Dm11/A     — the film thickens
+      [0, 8, 15, 20, 22],   // Fmaj9/A    — the softest place on the pedal
+      [0, 7, 14, 17, 22]    // Am11       — back to air
+    ],
+    chordNames: ['Am9', 'Dm11/A', 'Fmaj9/A', 'Am11']
+  },
+  fx: { bloom: 0.4 },
+  tags: ['SOAP FOAM', 'BLOW IT UP UNTIL IT BURSTS', 'BIG = LOW', 'CRIMSON / VIOLET'],
+  desc: 'A crimson soap foam packed edge to edge, every cell pressing on its neighbours. It is one closed system: air you push in has to go somewhere, so the film swells, the small cells get squeezed into the seams, and the big ones climb until their skin gives out and throws a crown of children across the frame. The colony is never still and never the same twice, but it is always the same foam — you are only ever choosing how hard you blow and how thin the skin is.',
+  interact: 'L = BREATH — how hard you blow into the bed. Reach out and every cell inflates, the seams stretch, and the whole colony crowds toward the edges of the frame. R = SKIN — how thin the film is stretched. Drawn in, the skin is thick: one bubble can grow until it owns half the picture, and you can hear it descending the whole way. Reach out and the skin is gossamer: nothing survives past a couple of inches and the frame is a permanent shower of bursting cells. The two hands play against each other — hard breath into thin skin is a rolling boil, gentle breath into thick skin is a single enormous bubble you can nurse for half a minute. The cell about to go always announces itself: its rim goes white and it shivers for a beat before it bursts.',
+  sound: 'A bubble sounds at the pitch its size allows: big is low, small is high, exactly as the physics does it. The GROWING GIANT is the money voice — the largest cell in the frame is a sustained bowed note (MIDI role: texture) that glides DOWNWARD the whole time it inflates and cuts off dead the instant it bursts, so the drop is a real drop. Every burst lands on the next 16th: small cells ring as glass bells (bells) at the top of the ladder, mid cells as plucks (lead), and a big burst drops a soft sub thump (bass) plus the noise of the film tearing. The bed is the foam itself — bandpassed hiss that opens with how crowded the colony is — over a pedal A that never moves. Percussion is EARNED: hats only once the bed is genuinely crowded, and a kick only when something huge lets go. Ableton: texture ch6 = the giant (map CC74 to filter — it opens as the bubble grows), bells ch5, lead ch1, bass ch3, perc ch10.',
+
+  _pop(P, b, hard, popR) {
+    const s = P.state;
+    // the crown: a burst throws its film out as a ring of children
+    const n = hard ? 5 + (P.rand() * 3 | 0) : 3 + (P.rand() * 2 | 0);
+    const cr = b.r * (0.24 + P.rand() * 0.1);
+    for (let i = 0; i < n; i++) {
+      if (s.bub.length >= s.maxN) break;
+      const a = (i / n) * TAU + P.rand() * 0.5;
+      const d = b.r * (0.62 + P.rand() * 0.3);
+      const c = this._mk(P, b.x + Math.cos(a) * d, b.y + Math.sin(a) * d, cr * (0.6 + P.rand() * 0.8));
+      // a child is born WELL under its own limit — otherwise a burst
+      // detonates its own children and the frame chain-reacts. Most of them
+      // are under the critical radius too, so the crown mostly dissolves
+      // back into the film, exactly as the tiny clusters in real foam do.
+      c.r = Math.min(c.r, Math.max(s.unit * 0.34, popR * c.capF) * 0.28);
+      s.bub.push(c);
+    }
+    // and shoves its neighbours out of the hole it leaves
+    for (const o of s.bub) {
+      const dx = o.x - b.x, dy = o.y - b.y, d2 = dx * dx + dy * dy;
+      if (d2 < 1e-4 || d2 > b.r * b.r * 6) continue;
+      const d = Math.sqrt(d2), f = (1 - d / (b.r * 2.45)) * b.r * 0.5;
+      if (f > 0) { o.x += dx / d * f; o.y += dy / d * f; }
+    }
+    s.flash.push({ x: b.x, y: b.y, r: b.r, a: 1, hue: b.hue });
+    if (s.flash.length > 60) s.flash.shift();
+    s.evq.push({ r: b.r / s.unit, x: b.x / P.w, hard: !!hard });
+    if (s.evq.length > 14) s.evq.shift();
+  },
+  _mk(P, x, y, r) {
+    return {
+      x, y, r, ph: P.rand() * TAU, wob: 0.5 + P.rand() * 0.9,
+      hue: x < P.w / 2 ? 350 + P.rand() * 24 : 306 + P.rand() * 22,   // L warm crimson · R violet
+      // HOW BIG THIS ONE CAN EVER GET, as a fraction of what the skin allows.
+      // Heavy-tailed on purpose: most cells stay small, a few become the
+      // giants — that size spread IS what foam looks like.
+      capF: 0.2 + Math.pow(P.rand(), 2.2) * 1.05,
+      born: 0, shiver: 0
+    };
+  },
+
+  init(P) {
+    const S = Math.min(P.w, P.h);
+    // NOTE: P.focused is still false while init runs (focus mode sets it after
+    // the instance is built) — size off the actual area, never off the flag.
+    const big = areaScale(P) > 1.6;
+    P.state = {
+      bub: [], flash: [], evq: [],
+      unit: S * 0.05,
+      maxN: big ? 340 : 120,
+      pres: 0, feed: 0.2, frag: 0.3, dens: 0, spawnAcc: 0, popCd: 0,
+      bigR: 0, bigX: 0.5, bigLoad: 0, popRate: 0
+    };
+    const s = P.state;
+    for (let i = 0; i < (big ? 70 : 26); i++) {
+      const a = P.rand() * TAU, d = P.rand() * S * 0.42;
+      s.bub.push(this._mk(P, P.w / 2 + Math.cos(a) * d, P.h / 2 + Math.sin(a) * d * 0.8,
+        s.unit * (0.35 + P.rand() * 0.9)));
+    }
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h, U = s.unit;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    // hands couple straight through — nothing waits for the grid
+    s.feed += (inp.L - s.feed) * Math.min(1, dt * 7);
+    s.frag += (inp.R - s.frag) * Math.min(1, dt * 7);
+
+    // SKIN: fragile means a cell can barely get going before it lets go
+    const popR = U * (4.2 - s.frag * 3.0);
+    // OSTWALD RIPENING is what makes this look like foam and not like a
+    // bubble machine: above the critical radius a cell steals air from its
+    // neighbours and grows, below it, it gives its air up and disappears.
+    // Only a handful of cells are ever on their way to bursting.
+    const rc = U * (0.28 + s.feed * 0.6);
+    // a packed frame has nowhere to expand into: the foam finds an
+    // equilibrium instead of boiling forever
+    const gr = (0.5 + s.feed * 1.6) * U * (1 - s.dens * 0.62);
+    const bub = s.bub;
+    s.popCd = Math.max(0, s.popCd - dt);
+
+    // ---- grow, ripen, burst -------------------------------------------
+    let big = null, bigR = 0, popped = 0;
+    for (let i = bub.length - 1; i >= 0; i--) {
+      const b = bub[i];
+      b.born += dt;
+      b.r += gr * (1 - rc / Math.max(b.r, U * 0.02)) * dt / (0.5 + b.r / U);
+      if (b.r < U * 0.06) { bub.splice(i, 1); continue; }
+      const lim = Math.max(U * 0.34, popR * b.capF);
+      // A CELL TOO SMALL TO BURST just stops growing and stays in the film —
+      // curvature holds it together. That is what packs the frame: a bed of
+      // little stable cells with the few big ones bursting out of it.
+      const stable = lim < U * 0.62;
+      if (stable && b.r > lim) b.r = lim;
+      // TELEGRAPH: the last stretch before the skin gives is visible and
+      // audible — the cell shivers and its rim whitens for a beat first.
+      b.shiver = stable ? 0 : clamp((b.r / lim - 0.93) / 0.07);
+      const spont = stable ? 0 : s.frag * s.frag * 0.04 * (b.r / U) * dt;
+      if ((!stable && b.r > lim) || P.rand() < spont) {
+        if (s.popCd > 0) continue;
+        bub.splice(i, 1);
+        this._pop(P, b, b.r > U * 1.7, popR);
+        // bursts are events, not a texture: a rolling boil still tops out
+        // at something a drummer could play
+        // just enough spacing that two bursts never land on the same sample —
+        // any longer and cells QUEUE at their limit, and a frame full of
+        // cells frozen at white heat is not foam, it is a headlight
+        // …and a brake that leans in when the boil gets ahead of the music
+        s.popCd = 0.035 + clamp((s.popRate - 6) / 14) * 0.45;
+        popped++;
+        continue;
+      }
+      if (b.r > bigR) { bigR = b.r; big = b; }
+    }
+    s.bigR = bigR / U;
+    s.bigX = big ? big.x / w : 0.5;
+    s.bigLoad = big ? clamp(big.r / Math.max(U * 0.34, popR * big.capF)) : 0;
+    s.popRate += (popped / Math.max(dt, 1e-3) - s.popRate) * Math.min(1, dt * 3);
+
+    // ---- packing: everybody presses on everybody -----------------------
+    // uniform hash grid so a full frame of foam stays cheap
+    // cell ≥ the largest possible diameter, so ±1 neighbour reaches every contact
+    const cell = Math.max(10, popR * 2.4);
+    const gw = Math.max(1, Math.ceil(w / cell)), gh = Math.max(1, Math.ceil(h / cell));
+    const gkey = gw + 'x' + gh;
+    const grid = s._gkey === gkey ? s._grid : (s._gkey = gkey, s._grid = new Array(gw * gh));
+    for (let i = 0; i < grid.length; i++) grid[i] = null;
+    for (const b of bub) {
+      const gx = clamp((b.x / cell) | 0, 0, gw - 1), gy = clamp((b.y / cell) | 0, 0, gh - 1);
+      const k = gy * gw + gx;
+      (grid[k] || (grid[k] = [])).push(b);
+    }
+    const relax = Math.min(0.55, dt * 34);   // positional correction, not a force
+    for (let pass = 0; pass < 2; pass++) for (let gy = 0; gy < gh; gy++) {
+      for (let gx = 0; gx < gw; gx++) {
+        const here = grid[gy * gw + gx];
+        if (!here) continue;
+        for (let ny = gy; ny <= gy + 1; ny++) {
+          for (let nx = gx - 1; nx <= gx + 1; nx++) {
+            if (ny >= gh || nx < 0 || nx >= gw || (ny === gy && nx < gx)) continue;
+            const there = grid[ny * gw + nx];
+            if (!there) continue;
+            for (const a of here) {
+              for (const c of there) {
+                if (a === c) continue;
+                const dx = c.x - a.x, dy = c.y - a.y;
+                const rr = a.r + c.r, d2 = dx * dx + dy * dy;
+                if (d2 >= rr * rr || d2 < 1e-6) continue;
+                const d = Math.sqrt(d2), ov = (rr - d) * 0.5 * relax;
+                const ux = dx / d * ov, uy = dy / d * ov;
+                // heavy cells hold their ground, small ones get squeezed into the seams
+                const wa = c.r / rr, wc = a.r / rr;
+                a.x -= ux * wa * 2; a.y -= uy * wa * 2;
+                c.x += ux * wc * 2; c.y += uy * wc * 2;
+              }
+            }
+          }
+        }
+      }
+    }
+    // the frame is the dish — the foam presses against it
+    for (const b of bub) {
+      b.ph += dt * b.wob;
+      if (b.x < b.r * 0.55) b.x += (b.r * 0.55 - b.x) * Math.min(1, dt * 8);
+      if (b.x > w - b.r * 0.55) b.x -= (b.x - (w - b.r * 0.55)) * Math.min(1, dt * 8);
+      if (b.y < b.r * 0.55) b.y += (b.r * 0.55 - b.y) * Math.min(1, dt * 8);
+      if (b.y > h - b.r * 0.55) b.y -= (b.y - (h - b.r * 0.55)) * Math.min(1, dt * 8);
+    }
+
+    // ---- new film: breath makes cells, and the shower needs feeding -----
+    s.spawnAcc += dt * (1.2 + s.feed * 5 + s.frag * 4) * Math.sqrt(areaScale(P));
+    while (s.spawnAcc > 1) {
+      s.spawnAcc -= 1;
+      if (bub.length >= s.maxN) break;
+      // new film can only appear in a GAP — a full frame of foam refuses it.
+      // It is born just above the critical radius, or the ripening would eat
+      // it before it ever became a cell.
+      const nr = rc * (1.12 + P.rand() * 0.55);
+      for (let tries = 0; tries < 4; tries++) {
+        const x = P.rand() * w, y = P.rand() * h;
+        let free = true;
+        for (const b of bub) {
+          const dx = b.x - x, dy = b.y - y, rr = b.r + nr * 0.5;
+          if (dx * dx + dy * dy < rr * rr) { free = false; break; }
+        }
+        if (free) {
+          const b2 = this._mk(P, x, y, nr);
+          // whatever the skin allows, a new cell always gets room to grow
+          b2.capF = Math.max(b2.capF, nr * 1.9 / popR);
+          bub.push(b2);
+          break;
+        }
+      }
+    }
+
+    // how crowded is it — the number the bed listens to
+    let area = 0;
+    for (const b of bub) area += b.r * b.r;
+    s.dens += (clamp(area * Math.PI / (w * h) / 1.5) - s.dens) * Math.min(1, dt * 2.5);
+
+    for (let i = s.flash.length - 1; i >= 0; i--) {
+      const f = s.flash[i];
+      f.a -= dt * 3.4; f.r += dt * f.r * 1.9;
+      if (f.a <= 0) s.flash.splice(i, 1);
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, U = s.unit;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(5,1,7,0.62)';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+
+    for (const b of s.bub) {
+      const wob = 1 + Math.sin(b.ph * 2.1) * 0.02 + b.shiver * Math.sin(t * 42 + b.ph) * 0.035;
+      const r = b.r * wob;
+      if (r < 1) continue;
+      const heat = b.shiver;                       // about to go
+      const lum = 46 + heat * 36;
+      const sat = 90 - heat * 16;
+      // the wet body — pale film, brightest just inside the rim
+      const gr = g.createRadialGradient(b.x - r * 0.22, b.y - r * 0.26, r * 0.05, b.x, b.y, r);
+      gr.addColorStop(0, `hsla(${b.hue},${sat}%,${Math.min(96, lum + 30)}%,${(0.035 + heat * 0.13) * bright})`);
+      gr.addColorStop(0.62, `hsla(${b.hue},${sat}%,${lum}%,${(0.05 + heat * 0.11) * bright})`);
+      gr.addColorStop(1, `hsla(${b.hue},${sat}%,${lum + 14}%,${(0.24 + heat * 0.4) * bright})`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(b.x, b.y, r, 0, TAU); g.fill();
+      // the rim — fat, because mesh eats thin lines, but the frame gets
+      // washed out fast if every rim is a headlight
+      g.lineWidth = Math.max(1.6 * ms, Math.min(r * 0.15, 11 * ms));
+      g.strokeStyle = `hsla(${b.hue},${sat}%,${52 + heat * 40}%,${(0.4 + heat * 0.5) * bright})`;
+      g.beginPath(); g.arc(b.x, b.y, r * 0.985, 0, TAU); g.stroke();
+      // the catchlight — one white arc is what makes it read as a BUBBLE
+      if (r > U * 0.34) {
+        g.lineWidth = Math.max(1.2 * ms, Math.min(r * 0.08, 6 * ms));
+        g.strokeStyle = `rgba(255,244,250,${(0.18 + heat * 0.5) * bright})`;
+        g.beginPath(); g.arc(b.x, b.y, r * 0.74, TAU * 0.56, TAU * 0.78); g.stroke();
+      }
+    }
+
+    // bursts: the hole left behind, thrown outward
+    for (const f of s.flash) {
+      g.lineWidth = Math.max(1.6 * ms, f.r * 0.11 * f.a);
+      g.strokeStyle = `hsla(${f.hue},86%,${64 + f.a * 26}%,${f.a * 0.6 * bright})`;
+      g.beginPath(); g.arc(f.x, f.y, f.r * (1.05 + (1 - f.a) * 0.35), 0, TAU); g.stroke();
+      g.fillStyle = `rgba(255,236,246,${f.a * f.a * 0.3 * bright})`;
+      g.beginPath(); g.arc(f.x, f.y, f.r * 0.16 * f.a, 0, TAU); g.fill();
+    }
+
+    g.fillStyle = 'rgba(255,170,205,0.8)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('CELLS ' + s.bub.length + '   BREATH ' + Math.round(s.feed * 100) +
+      '   SKIN ' + Math.round(s.frag * 100) + '   BIGGEST ' + s.bigR.toFixed(1) +
+      '   BURSTS/S ' + s.popRate.toFixed(1) + (s.pres < 0.3 ? '   · RESTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the foam itself: film hiss, two bands ------------------------- */
+    const n1 = v.noise(), fb1 = v.filter('bandpass', 700, 1.1), hg1 = v.g(0.008);
+    const n2 = v.noise(), fb2 = v.filter('highpass', 3200, 0.7), hg2 = v.g(0.003);
+    n1.connect(fb1); fb1.connect(hg1); hg1.connect(v.group);
+    n2.connect(fb2); fb2.connect(hg2); hg2.connect(v.group);
+
+    /* --- put a section on its own MIDI channel ------------------------- */
+    const route = (voices, role, vel) => voices.forEach(vc => {
+      const base = vc.set.bind(vc);
+      vc.set = function (freq, glide) {
+        if (isFinite(freq) && freq > 20 && typeof MOut !== 'undefined') {
+          const note = MOut.f2n(freq);
+          if (vc._rNote !== note) {
+            const ch = MOut.chFor(role), p = performance.now();
+            if (vc._rNote !== undefined && MOut.wants() && MOut.port) {
+              try { MOut.port.send([0x80 | (ch - 1), vc._rNote, 0], p); } catch (e) {}
+            }
+            vc._rNote = note;
+            MOut.log.push({ p, role, ch, note, vel, durMs: 900 });
+            if (MOut.wants() && MOut.port) { try { MOut.port.send([0x90 | (ch - 1), note, vel], p); } catch (e) {} }
+          }
+          vc._mNote = note;
+        }
+        base(freq, glide);
+      };
+    });
+
+    /* --- THE GIANT: one voice for the largest cell in the frame --------
+       It glides DOWN the whole time the bubble inflates and is cut off the
+       instant the bubble bursts. Everything else in the scene is decoration
+       around this one gesture.                                            */
+    const giant = A.padVoices(v, 2, { type: 'triangle', gain: 0.0001, cutoff: 400, q: 1.6 });
+    route(giant, 'texture', 70);
+
+    /* --- the pedal: the room the foam sits in -------------------------- */
+    const bed = A.padVoices(v, 3, { type: 'triangle', gain: 0.008, cutoff: 300, q: 0.6 });
+    const place = glide => {
+      A.leadToChord(bed, -1, glide);
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));   // snap, never a 1.6s jet takeoff
+    v.fadeIn(1, 1.4);
+
+    let nextT = T.next(1), gFreq = 0, lastKick = -9;
+    return {
+      tick(inp, dt) {
+        const s = P.state;
+        const now = A.t();
+        const gate = s.pres;
+        const dens = s.dens || 0;
+
+        /* ---- film hiss: crowding opens it ---------------------------- */
+        A.set(hg1.gain, (0.004 + dens * 0.02 + (s.feed || 0) * 0.008) * (0.35 + gate * 0.65), 0.25);
+        A.set(fb1.frequency, 420 + dens * 900 + (s.frag || 0) * 700, 0.3);
+        A.set(hg2.gain, (0.0006 + (s.popRate || 0) * 0.0016) * (0.35 + gate * 0.65), 0.2);
+        bed.forEach(b => {
+          b.level(0.006 + dens * 0.008, 0.5);
+          b.bright(200 + dens * 380, 0.4);
+        });
+
+        /* ---- THE GIANT ------------------------------------------------
+           Size → pitch, the way a bubble actually works: the bigger the
+           cell the lower it speaks. The ladder keeps it in the chord, so
+           a descent through the whole frame is still music.              */
+        const bigR = s.bigR || 0;                        // in cell units
+        const k = clamp((bigR - 0.45) / 2.6);            // 0 = nothing, 1 = enormous
+        const idx = Math.round(9 - k * 9);
+        const f = H.chordTone(idx, k > 0.62 ? -1 : 0);
+        if (f !== gFreq) { gFreq = f; giant.forEach((vc, i) => vc.set(f * (i ? 1.005 : 1), 0.16)); }
+        const gv = k * k;
+        giant.forEach((vc, i) => {
+          vc.level(gv * (0.032 - i * 0.008) * (0.3 + gate * 0.7), 0.12);
+          vc.bright(240 + k * 900 + (s.bigLoad || 0) * 700, 0.2);
+        });
+
+        /* ---- BURSTS: every one lands on the next 16th ---------------- */
+        let ev, fired = 0;
+        while ((ev = s.evq.shift()) && fired < 3) {
+          fired++;
+          const at = T.next(0.25);
+          const pan = clamp(ev.x * 2 - 1, -1, 1) * 0.75;
+          const kk = clamp((ev.r - 0.35) / 2.4);          // how big it was
+          const i2 = Math.round(10 - kk * 10);
+          const vol = (0.03 + kk * 0.12) * (0.35 + gate * 0.65);
+          if (kk < 0.28) {
+            A.bell(H.chordTone(i2 + 4, 1), { at, vol: vol * 0.7, dur: 1.5, pan, rev: 0.6 });
+          } else if (kk < 0.62) {
+            A.pluck2(H.chordTone(i2, 0), { at, vol, dur: 0.9, pan, rev: 0.4, del: 0.16 });
+          } else {
+            A.bassNote(H.chordTone(0, -1), { at, vol: vol * 0.9, dur: 1.4 });
+            A.pluck2(H.chordTone(i2 + 2, 0), { at, vol: vol * 0.7, dur: 1.2, pan, rev: 0.5 });
+            if (dens > 0.42 && now - lastKick > 0.55) { lastKick = now; A.kick(at, 0.16 + kk * 0.12); }
+          }
+          // the film tearing
+          A.hit({ at, vol: 0.05 + kk * 0.1, dur: 0.05 + kk * 0.12, freq: 2600 - kk * 1800, q: 0.8, pan });
+        }
+
+        /* ---- QUANTIZED: hats are EARNED by a crowded bed -------------- */
+        const horizon = now + 0.15;
+        while (nextT < horizon) {
+          const st = Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16;
+          if (dens > 0.5 && gate > 0.25) {
+            if (st % 4 === 2) A.hat(nextT, { vol: 0.012 + dens * 0.02 });
+            if (dens > 0.72 && st % 4 === 0) A.hat(nextT, { vol: 0.008, open: st === 12 });
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(1);
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('texture', k);
+          MOut.expr('pad', dens);
+          MOut.expr('bells', clamp((s.popRate || 0) / 6));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-37 · IRIS ENGINE (the rings are the sequencer) ---------- */
+reg({
+  id: 'SRC-37', family: 'SRC-37', ver: 1, title: 'Iris Engine', tech: 'RING TUNNEL / OPTICAL SEQUENCER',
+  music: {
+    bpm: 112, root: 40, mode: 'phrygian', chordBars: 4,
+    // PEDAL ON E, phrygian colour. Four bars each — the tunnel is hypnotic,
+    // the harmony should move like weather, not like a chord chart.
+    chords: [
+      [0, 7, 15, 19, 22],   // Em7
+      [0, 8, 15, 20, 24],   // C/E      — the light lets in
+      [0, 7, 14, 17, 22],   // Em11
+      [0, 1, 8, 13, 20]     // E♭9      — phrygian bite, the tunnel narrows
+    ],
+    chordNames: ['Em7', 'C/E', 'Em11', 'E♭9 phryg']
+  },
+  fx: { bloom: 0.62 },
+  tags: ['CONCENTRIC TUNNEL', 'RINGS ARE THE CLOCK', 'LOBES ARE THE INTERVAL', 'RINGS FLARE AT WHAT THEY HEAR'],
+  desc: 'A tunnel of fat concentric bands boiling out of a single eye. The bands are not decoration — they are the machine. Each one that crosses the reading circle plays a note, so what you are watching IS the sequence: count the rings and you have counted the beat. The bands are locked to the transport, so the tunnel can never drift out of time with the room, and each band is tuned to one tone of the chord — when anything else on the wall rings that tone, that band flares on its own.',
+  interact: 'R = SPEED. It steps through a ladder of subdivisions — a ring every two beats, every beat, every half, every third, every sixteenth — so the tunnel visibly changes gear and the pulse changes with it, always on the grid. Reach out and the tunnel accelerates into a strobing drill; draw in and it becomes a single slow eye opening once every two bars. L = SHAPE, and shape is pitch: at rest the rings are perfect circles and the engine repeats one note; reach out and the rings grow lobes — three, five, seven — and the sequence leaps by exactly that many chord tones per ring. The picture tells you the interval before you hear it. L also leans the whole tunnel off-axis, so the eye slides away from the middle of the frame and the outer bands go lopsided.',
+  sound: 'An optical sequencer over a two-vowel drone. Each ring crossing fires a short reed tone (MIDI role: arp) whose pitch walks the chord ladder by the lobe count — so L is the interval and R is the rhythm, and both are visible before they are audible. Underneath, a sustained saw pedal on the root is filtered by TWO formants driven directly by the raw hand positions (CC1 and CC2): even between notes, moving a hand audibly changes the vowel of the drone. A tremolo on that drone runs at exactly the ring rate, so the flicker you see is the flicker you hear. Bells double the crossing an octave up once the tunnel is fast and wide; a kick lands on the downbeat only when the engine is genuinely spun up. Ableton: arp ch4, pad ch2, texture ch6 = the vowel drone (CC74 = speed), bells ch5, perc ch10.',
+
+  init(P) {
+    P.state = {
+      pres: 0, NR: 22, gear: 1, gearS: 1, rate: 1, rateS: 1, rateIdx: 2,
+      lean: 0, leanS: 0, phase: 0, pulse: 0, warp: 0,
+      exc: new Float32Array(16), spin: 0, idx: 0
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+
+    // ---- R: the gearbox. Speed is quantised so crossings can never fall
+    // off the grid — the tunnel changes gear the way a drummer does.
+    const LAD = [0.5, 1, 2, 3, 4, 6];          // rings per beat
+    const want = clamp(inp.R) * (LAD.length - 0.001) | 0;
+    // schmitt: needs a real move to change gear, so it never chatters
+    if (want > s.rateIdx && inp.R > (want / LAD.length) + 0.03) s.rateIdx = want;
+    else if (want < s.rateIdx && inp.R < ((want + 1) / LAD.length) - 0.03) s.rateIdx = want;
+    s.rate = LAD[s.rateIdx];
+    s.rateS += (s.rate - s.rateS) * Math.min(1, dt * 4);
+
+    // ---- L: lobes. The shape IS the interval.
+    s.gear = 1 + Math.round(clamp(inp.L) * 6);
+    s.gearS += (s.gear - s.gearS) * Math.min(1, dt * 6);
+    s.warp += (clamp(inp.L) - s.warp) * Math.min(1, dt * 6);
+    s.lean = clamp(inp.L) * 0.34;
+    s.leanS += (s.lean - s.leanS) * Math.min(1, dt * 4);
+
+    // ---- the tunnel runs off the TRANSPORT, not off wall-clock time, so
+    // what you see is exactly what the sequencer is doing.
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.phase = beats * s.rate;
+    const fr = s.phase - Math.floor(s.phase);
+    s.pulse = Math.pow(1 - fr, 2.6);          // the flash that rides every crossing
+    s.spin += dt * (0.06 + s.warp * 0.22);
+
+    // ---- each band is tuned to a chord tone; the SOUNDING BUS makes it
+    // answer anything on the wall that agrees with it.
+    if (typeof AE !== 'undefined' && AE.SB && typeof H !== 'undefined' && H.chordSemis.length) {
+      for (let i = 0; i < 16; i++) {
+        const e = AE.SB.excite(H.chordTone(i, -1));
+        s.exc[i] += (e - s.exc[i]) * Math.min(1, dt * 8);
+      }
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#040308';
+    g.fillRect(0, 0, w, h);
+    const cx = w / 2 - s.leanS * w * 0.13;
+    const cy = h / 2 + Math.sin(s.spin * 0.7) * h * 0.03;
+    const maxR = Math.hypot(w, h) * 0.62;
+    const NR = s.NR, bright = 0.45 + s.pres * 0.55;
+    const SEG = P.focused ? 96 : 40;
+
+    // the two hands own the two sides of the frame: warm country on the left,
+    // violet on the right, and the bands are painted across both.
+    const warm = 0.25 + clamp(inp.L) * 0.75, cool = 0.25 + clamp(inp.R) * 0.75;
+
+    g.globalCompositeOperation = 'lighter';
+    for (let k = NR - 1; k >= 0; k--) {
+      const u = ((k + s.phase) % NR + NR) % NR / NR;
+      const r0 = Math.pow(u, 1.75) * maxR;
+      if (r0 < 2) continue;
+      const near = 1 - Math.abs(u - 0.34) / 0.34;               // close to the reading circle
+      const flare = Math.max(0, near) * s.pulse;
+      const tone = s.exc[(k * 3) % 16] || 0;                     // what this band can hear
+      const lobes = 2 + Math.round(s.gearS);
+      const amp = r0 * (0.02 + s.warp * 0.16) * Math.pow(u, 0.7);
+      const off = s.leanS * r0 * 0.5;
+      const lw = Math.max(3 * ms, r0 * 0.055 + 3 * ms) * (1 + flare * 0.7 + tone * 0.5);
+
+      // three inks, the way the reference prints: cream, teal, magenta
+      const band = k % 3;
+      const gr = g.createLinearGradient(cx - maxR, 0, cx + maxR, 0);
+      const a = (0.3 + flare * 0.55 + tone * 0.4) * bright;
+      if (band === 0) {
+        gr.addColorStop(0, `rgba(255,150,60,${a * warm})`);
+        gr.addColorStop(0.5, `rgba(255,238,208,${a})`);
+        gr.addColorStop(1, `rgba(196,120,255,${a * cool})`);
+      } else if (band === 1) {
+        gr.addColorStop(0, `rgba(255,110,40,${a * 0.7 * warm})`);
+        gr.addColorStop(0.5, `rgba(48,232,214,${a})`);
+        gr.addColorStop(1, `rgba(150,110,255,${a * cool})`);
+      } else {
+        gr.addColorStop(0, `rgba(255,90,42,${a * warm})`);
+        gr.addColorStop(0.5, `rgba(255,79,154,${a})`);
+        gr.addColorStop(1, `rgba(178,86,255,${a * cool})`);
+      }
+      g.strokeStyle = gr;
+      g.lineWidth = lw;
+      g.beginPath();
+      for (let i = 0; i <= SEG; i++) {
+        const an = i / SEG * TAU;
+        const rr = r0 + Math.sin(an * lobes + s.spin * 1.7 + k * 0.6) * amp
+          + Math.sin(an * (lobes + 2) - s.spin * 1.1 + k * 0.31) * amp * 0.4;
+        const x = cx + Math.cos(an) * rr + off, y = cy + Math.sin(an) * rr * 0.97;
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.closePath();
+      g.stroke();
+    }
+
+    // the reading circle — where a band becomes a note
+    const rr = Math.pow(0.34, 1.75) * maxR;
+    g.strokeStyle = `rgba(255,255,255,${(0.1 + s.pulse * 0.35) * bright})`;
+    g.lineWidth = 1.6 * ms;
+    g.beginPath(); g.arc(cx, cy, rr, 0, TAU); g.stroke();
+    // the eye
+    const eg = g.createRadialGradient(cx, cy, 0, cx, cy, rr * 0.9);
+    eg.addColorStop(0, `rgba(255,246,236,${(0.28 + s.pulse * 0.5) * bright})`);
+    eg.addColorStop(1, 'rgba(255,120,180,0)');
+    g.fillStyle = eg;
+    g.beginPath(); g.arc(cx, cy, rr * 0.9, 0, TAU); g.fill();
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(120,240,225,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const names = ['1/2 BEAT', '1 PER BEAT', '8ths', 'TRIPLETS', '16ths', 'SEXTUPLETS'];
+    g.fillText('SPEED ' + names[s.rateIdx] + '   LOBES ' + (2 + s.gear) + '   STEP +' + s.gear +
+      '   LEAN ' + Math.round(s.leanS * 100) + (s.pres < 0.3 ? '   · IDLING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- THE VOWEL DRONE: the hands are two formants -------------------
+       This is the layer that answers CC1/CC2 with no notes involved — move
+       a hand between crossings and the drone still changes colour.        */
+    const o1 = v.osc('sawtooth', 82), o2 = v.osc('sawtooth', 82);
+    o2.detune.value = 7;
+    const fA = v.filter('bandpass', 500, 4.5), fB = v.filter('bandpass', 1400, 5.5);
+    const gA = v.g(0.03), gB = v.g(0.02);
+    const trem = v.g(1);                      // ring-rate tremolo on the whole drone
+    const lfo = v.osc('sine', 2), lfoG = v.g(0.35);
+    lfo.connect(lfoG); lfoG.connect(trem.gain);
+    o1.connect(fA); o2.connect(fA); o1.connect(fB); o2.connect(fB);
+    fA.connect(gA); fB.connect(gB);
+    gA.connect(trem); gB.connect(trem); trem.connect(v.group);
+    if (AE.revIn) { const sd = A.ctx.createGain(); sd.gain.value = 0.4; trem.connect(sd); sd.connect(AE.revIn); }
+
+    /* --- the pedal underneath ------------------------------------------ */
+    const bed = A.padVoices(v, 3, { type: 'triangle', gain: 0.01, cutoff: 340, q: 0.7 });
+    const place = glide => {
+      A.leadToChord(bed, -1, glide);
+      const rf = H.rootFreq(-2);
+      A.set(o1.frequency, rf, 0.12); A.set(o2.frequency, rf, 0.12);
+      if (typeof MOut !== 'undefined') MOut.evNote('texture', rf, 0.12, 0, 4.2);
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.2);
+
+    let nextT = T.next(1), idx = 0, bar = -1;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.3 + s.pres * 0.7;
+        const L = inp ? inp.L : 0, R = inp ? inp.R : 0;
+
+        // the vowels: straight off the raw hands, no quantising, no waiting
+        A.set(fA.frequency, 220 + L * 1500, 0.05);
+        A.set(fB.frequency, 700 + R * 3400, 0.05);
+        A.set(gA.gain, (0.02 + L * 0.03) * gate, 0.15);
+        A.set(gB.gain, (0.012 + R * 0.026) * gate, 0.15);
+        A.set(lfo.frequency, Math.max(0.2, s.rateS / Math.max(T.beat, 0.05)), 0.2);
+        A.set(lfoG.gain, 0.2 + clamp(s.rateS / 6) * 0.5, 0.3);
+        bed.forEach(b => { b.level(0.008 + s.pres * 0.006, 0.5); b.bright(260 + R * 500, 0.4); });
+
+        /* ---- crossings. The grid step IS the ring rate, so the note and
+           the band arrive together and nothing has to be quantised after
+           the fact.                                                       */
+        const stepBeats = 1 / s.rate;
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          idx += s.gear;
+          const i = ((idx % 13) + 13) % 13;
+          const spread = clamp(s.warp);
+          const f = H.chordTone(i, 0);
+          const vol = (0.055 + spread * 0.05) * gate * (s.rate > 3 ? 0.75 : 1);
+          const pan = Math.sin(idx * 1.7) * 0.5;
+          A.pluck2(f, { at: nextT, vol, dur: Math.min(1.1, stepBeats * T.beat * 1.8), pan, rev: 0.4, del: 0.2, role: 'arp' });
+          // wide + fast earns the octave sparkle
+          if (spread > 0.45 && s.rate >= 2 && (idx % 4) === 0) {
+            A.bell(H.chordTone(i + 3, 1), { at: nextT, vol: vol * 0.5, dur: 1.6, pan: -pan, rev: 0.66 });
+          }
+          nextT += T.beat * stepBeats;
+        }
+        if (nextT < now) nextT = T.next(1);
+
+        // the engine only gets a kick once it is genuinely spun up
+        if (T.running && s.rate >= 3 && s.pres > 0.3) {
+          const b = T.bar();
+          if (b !== bar) { bar = b; A.kick(T.next(4), 0.2 + clamp(s.warp) * 0.1); }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('arp', clamp(s.warp));
+          MOut.expr('texture', clamp(s.rateS / 6));
+          MOut.expr('pad', s.pres);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-38 · LUMEN FILM (light through the seams) ---------- */
+reg({
+  id: 'SRC-38', family: 'SRC-38', ver: 1, title: 'Lumen Film', tech: 'SOAP FILM / APERTURE ORGAN',
+  music: {
+    bpm: 66, root: 50, mode: 'dorian', chordBars: 4,
+    // PEDAL ON D. The film gets lighter as the progression walks — Dm9 is the
+    // closed frame, D6/9 is the frame full of holes.
+    chords: [
+      [0, 7, 15, 19, 26],   // Dm9
+      [0, 5, 12, 17, 22],   // Gsus/D
+      [0, 8, 15, 20, 24],   // B♭/D
+      [0, 9, 14, 16, 21]    // D6/9    — the light gets through
+    ],
+    chordNames: ['Dm9', 'Gsus/D', 'B♭/D', 'D6/9']
+  },
+  fx: { bloom: 0.5 },
+  tags: ['BACKLIT SOAP FILM', 'EVERY HOLE IS A VOICE', 'THIN FILM COLOUR', 'FILLS THE FRAME'],
+  desc: 'The whole frame is one sheet of soap film seen from behind, cell pressed against cell all the way to the edges. The film itself is nearly black — what you can see of it is the interference colour riding its seams, the same oil-slick spectrum a real bubble wall throws. There is a lamp behind it. Where the film thins to nothing, at the junctions where three cells meet, the lamp gets through, and every hole that opens is a sustained voice added to the chord. Filled with holes the sheet stops being a wall and becomes a lantern.',
+  interact: 'R = LIGHT PRESSURE — the lamp behind the sheet. Draw in and the film is closed and the frame is nearly dark, a faint iridescent lacework and nothing else. Reach out and the junctions blow open one at a time, from the middle of the sheet outward, each one adding its own held note to the chord: the frame fills with light and the chord fills with voices, and you can hold it anywhere on the way. A hole always tells you before it commits — it leaks a little glow half a beat early, then blooms with its note on the sixteenth. L = FILM THICKNESS. Thin film is violet-blue and glassy and moves the voices up into their high partials; thick film is gold and crimson and heavy. Both hands together: thin the film and open it wide for a huge glass chord, or leave it thick and open one hole for a single deep beam.',
+  sound: 'An aperture organ. Every open hole holds one voice — pitch by where it sits in the frame (high in the frame = high in the chord), stereo position by where it sits left to right — so the picture and the chord are literally the same object; count the holes and you have counted the voices. Voices enter rolled low-to-high like a harp and each entrance is doubled by a glass bell (MIDI role: bells) on the sixteenth it commits. Film thickness (L) opens every voice\'s filter together and detunes their partials, which is what turns a warm gold pad into a thin glass one. Underneath: a slow air bed and a root pedal that never moves. NO PERCUSSION — this is the scene that leaves the room quiet enough to talk in. Ableton: pad ch2 = the aperture voices (CC74 = film thickness), bells ch5, texture ch6 = air, bass ch3 = pedal.',
+
+  init(P) {
+    const S = Math.min(P.w, P.h), w = P.w, h = P.h;
+    // P.focused is still false during init — size off the area instead
+    const N = areaScale(P) > 1.6 ? 44 : 18;
+    const cells = [];
+    for (let i = 0; i < N; i++) {
+      cells.push({
+        x: P.rand() * w, y: P.rand() * h,
+        r: S * (0.13 + P.rand() * 0.11),
+        ph: P.rand() * TAU, sp: 0.1 + P.rand() * 0.22,
+        hue: P.rand() * 360, drift: (P.rand() - 0.5) * 0.5
+      });
+    }
+    // a few rounds of pushing apart — soap does this on its own in a second
+    for (let it = 0; it < 60; it++) {
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const a = cells[i], b = cells[j];
+          // 0.74 — the cells must OVERLAP, or the sheet has holes in it that
+          // are not apertures, just gaps, and it stops reading as one film
+          const dx = b.x - a.x, dy = b.y - a.y, rr = (a.r + b.r) * 0.74;
+          const d = Math.hypot(dx, dy) || 1;
+          if (d < rr) {
+            const f = (rr - d) * 0.5, ux = dx / d * f, uy = dy / d * f;
+            a.x -= ux; a.y -= uy; b.x += ux; b.y += uy;
+          }
+        }
+      }
+      for (const c of cells) {
+        c.x = clamp(c.x, -c.r * 0.3, w + c.r * 0.3);
+        c.y = clamp(c.y, -c.r * 0.3, h + c.r * 0.3);
+      }
+    }
+    // THE SEAMS: every place two cells press together is a junction, and a
+    // junction is where the film gets thin enough for the lamp to find it.
+    const ap = [];
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const a = cells[i], b = cells[j];
+        const d = Math.hypot(b.x - a.x, b.y - a.y);
+        if (d > (a.r + b.r) * 0.82) continue;
+        const k = a.r / (a.r + b.r);
+        ap.push({ a: i, b: j, x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, open: 0, lit: 0, on: false, arm: 0, size: Math.min(a.r, b.r) });
+      }
+    }
+    // thresholds rise with distance from the middle: the light spreads outward
+    const cx = w / 2, cy = h / 2, diag = Math.hypot(w, h) * 0.5;
+    for (const p of ap) p.th = clamp(Math.hypot(p.x - cx, p.y - cy) / diag * 0.85 + 0.06) * (0.75 + P.rand() * 0.45);
+    ap.sort((u, z) => u.th - z.th);
+    ap.forEach((p, i) => { p.i = i; p.voice = i < 8 ? i : -1; });
+    P.state = { cells, ap, pres: 0, lightP: 0, thick: 0, openN: 0, lamp: 0, evq: [] };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    s.lightP += (clamp(inp.R) - s.lightP) * Math.min(1, dt * 7);
+    s.thick += (clamp(inp.L) - s.thick) * Math.min(1, dt * 6);
+    // idle tease: the lamp behind the sheet breathes on its own
+    const idle = (1 - s.pres) * (0.12 + 0.1 * Math.sin(t * 0.31));
+    s.lamp = Math.max(s.lightP, idle);
+
+    for (const c of s.cells) {
+      c.ph += dt * c.sp;
+      c.x += Math.cos(c.ph * 0.7 + c.drift) * dt * 5;
+      c.y += Math.sin(c.ph) * dt * 4;
+    }
+    let open = 0;
+    for (const p of s.ap) {
+      const a = s.cells[p.a], b = s.cells[p.b];
+      const k = a.r / (a.r + b.r);
+      p.x = a.x + (b.x - a.x) * k; p.y = a.y + (b.y - a.y) * k;
+      const want = s.lamp > p.th;
+      // TELEGRAPH: light starts leaking through the seam before the hole
+      // commits, so the eye is warned half a beat before the ear.
+      const lead = clamp((s.lamp - p.th + 0.09) / 0.14);
+      p.lit += (lead - p.lit) * Math.min(1, dt * 9);
+      if (want !== p.on) {
+        p.arm += dt;
+        if (p.arm > 0.05) { p.on = want; p.arm = 0; s.evq.push({ p, on: want }); }
+      } else p.arm = 0;
+      p.open += ((p.on ? 1 : 0) - p.open) * Math.min(1, dt * (p.on ? 4 : 2.4));
+      if (p.on) open++;
+    }
+    s.openN = open;
+    if (s.evq.length > 20) s.evq.splice(0, s.evq.length - 20);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#010103';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const thin = 1 - s.thick;            // thin film → blue/violet, thick → gold
+
+    // ---- THE FILM: nearly black bodies, interference colour on the seams
+    for (const c of s.cells) {
+      const hue = (c.hue + s.thick * 210 + Math.sin(c.ph * 0.6) * 26) % 360;
+      const bg = g.createRadialGradient(c.x - c.r * 0.2, c.y - c.r * 0.25, c.r * 0.1, c.x, c.y, c.r);
+      bg.addColorStop(0, `hsla(${hue},60%,12%,0.9)`);
+      bg.addColorStop(0.7, `hsla(${(hue + 40) % 360},55%,8%,0.85)`);
+      bg.addColorStop(1, `hsla(${(hue + 80) % 360},70%,${16 + s.lamp * 16}%,0.9)`);
+      g.fillStyle = bg;
+      g.beginPath(); g.arc(c.x, c.y, c.r, 0, TAU); g.fill();
+    }
+    // the seams themselves — oil-slick rims, fattened for the mesh
+    g.globalCompositeOperation = 'lighter';
+    for (const c of s.cells) {
+      const hue = (c.hue + s.thick * 210 + 180) % 360;
+      g.lineWidth = Math.max(2.4 * ms, c.r * 0.045);
+      g.strokeStyle = `hsla(${hue},92%,${44 + s.lamp * 22}%,${(0.3 + s.lamp * 0.35) * bright})`;
+      g.beginPath(); g.arc(c.x, c.y, c.r * 0.995, 0, TAU); g.stroke();
+      g.lineWidth = Math.max(1.2 * ms, c.r * 0.018);
+      g.strokeStyle = `hsla(${(hue + 60) % 360},96%,72%,${(0.16 + s.lamp * 0.3) * bright})`;
+      g.beginPath(); g.arc(c.x, c.y, c.r * 0.96, 0, TAU); g.stroke();
+    }
+
+    // ---- THE LAMP: everything the film failed to stop
+    for (const p of s.ap) {
+      const a = Math.max(p.lit * 0.35, p.open);
+      if (a < 0.01) continue;
+      const R = p.size * (0.16 + a * 0.5);
+      const hue = 190 - thin * 26 + s.thick * 44;
+      const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, R);
+      // a small white-hot pinhole inside a wide coloured corona — a big white
+      // disc just blows the frame out and stops reading as light THROUGH
+      // something
+      gr.addColorStop(0, `rgba(255,255,255,${Math.min(0.92, a) * bright})`);
+      gr.addColorStop(0.12, `hsla(${hue},92%,90%,${a * 0.7 * bright})`);
+      gr.addColorStop(0.45, `hsla(${hue + 40},95%,64%,${a * 0.26 * bright})`);
+      gr.addColorStop(1, `hsla(${hue + 70},95%,50%,0)`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(p.x, p.y, R, 0, TAU); g.fill();
+      // the shaft: light through a thin place spreads along the seam
+      if (p.open > 0.2) {
+        const A = s.cells[p.a], B = s.cells[p.b];
+        const ang = Math.atan2(B.y - A.y, B.x - A.x) + Math.PI / 2;
+        const L = R * (1.3 + p.open * 2.2);
+        const lg = g.createLinearGradient(p.x - Math.cos(ang) * L, p.y - Math.sin(ang) * L,
+          p.x + Math.cos(ang) * L, p.y + Math.sin(ang) * L);
+        lg.addColorStop(0, 'rgba(255,255,255,0)');
+        lg.addColorStop(0.5, `hsla(${hue},96%,84%,${p.open * 0.34 * bright})`);
+        lg.addColorStop(1, 'rgba(255,255,255,0)');
+        g.strokeStyle = lg;
+        g.lineWidth = Math.max(2.5 * ms, R * 0.22 * p.open);
+        g.beginPath();
+        g.moveTo(p.x - Math.cos(ang) * L, p.y - Math.sin(ang) * L);
+        g.lineTo(p.x + Math.cos(ang) * L, p.y + Math.sin(ang) * L);
+        g.stroke();
+      }
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(190,225,255,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('HOLES ' + s.openN + '/' + s.ap.length + '   LAMP ' + Math.round(s.lamp * 100) +
+      '   FILM ' + (s.thick < 0.4 ? 'THIN' : s.thick < 0.7 ? 'MID' : 'THICK') +
+      (s.pres < 0.3 ? '   · CLOSED' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const s0 = P.state;
+
+    /* --- air behind the sheet ------------------------------------------ */
+    const n = v.noise(), nf = v.filter('bandpass', 500, 0.9), ng = v.g(0.006);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- ONE VOICE PER HOLE. Eight of them; the rest of the sheet is
+       light only. Pitch by height in the frame, pan by side — the chord
+       and the picture are the same object.                               */
+    const NV = 8;
+    const voices = [];
+    for (let i = 0; i < NV; i++) {
+      const o1 = v.osc('triangle', 220), o2 = v.osc('triangle', 220), o3 = v.osc('sine', 440);
+      o2.detune.value = 6;
+      const f = v.filter('lowpass', 700, 1.1);
+      const g = v.g(0.0001);
+      const pan = A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : null;
+      o1.connect(f); o2.connect(f); o3.connect(f); f.connect(g);
+      if (pan) { g.connect(pan); pan.connect(v.group); } else { g.connect(v.group); }
+      if (AE.revIn) { const sd = A.ctx.createGain(); sd.gain.value = 0.7; g.connect(sd); sd.connect(AE.revIn); }
+      voices.push({ o1, o2, o3, f, g, pan, freq: 220, note: -1, lvl: 0 });
+    }
+    const setV = (vc, freq, glide) => {
+      if (!isFinite(freq) || freq <= 20) return;
+      vc.freq = freq;
+      A.set(vc.o1.frequency, freq, glide);
+      A.set(vc.o2.frequency, freq, glide);
+      A.set(vc.o3.frequency, freq * 2.01, glide);
+      if (typeof MOut !== 'undefined') {
+        const note = MOut.f2n(freq);
+        if (note !== vc.note) {
+          const ch = MOut.chFor('pad'), p = performance.now();
+          if (vc.note >= 0 && MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0], p); } catch (e) {} }
+          vc.note = note;
+          MOut.log.push({ p, role: 'pad', ch, note, vel: 62, durMs: 2600 });
+          if (MOut.wants() && MOut.port) { try { MOut.port.send([0x90 | (ch - 1), note, 62], p); } catch (e) {} }
+        }
+      }
+    };
+
+    /* --- the pedal ------------------------------------------------------ */
+    const sub = A.padVoices(v, 1, { type: 'triangle', gain: 0.014, cutoff: 220, q: 0.5 });
+    const retune = glide => {
+      sub[0].set(H.rootFreq(-2), glide);
+      // every open hole re-voices into the new chord, rolled low to high
+      const ap = P.state.ap;
+      for (const p of ap) {
+        if (p.voice < 0 || !p.on) continue;
+        const vc = voices[p.voice];
+        setV(vc, H.chordTone(p.deg || 0, p.oct || 0), glide);
+      }
+    };
+    retune(0.05);
+    H.onChord(() => retune(0.2));
+    v.fadeIn(1, 1.6);
+
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const thick = s.thick || 0;
+
+        A.set(ng.gain, (0.003 + s.lamp * 0.012) * gate, 0.4);
+        A.set(nf.frequency, 360 + s.lamp * 1500 + thick * 400, 0.4);
+        sub[0].level(0.01 + s.lamp * 0.008, 0.5);
+
+        /* ---- holes committing: the entrance is rolled and quantised --- */
+        let ev, i = 0;
+        while ((ev = s.evq.shift()) && i < 6) {
+          i++;
+          const p = ev.p;
+          if (p.voice < 0) continue;
+          const vc = voices[p.voice];
+          if (ev.on) {
+            // HEIGHT IS PITCH: a hole near the top of the sheet sings high
+            const up = clamp(1 - p.y / P.h);
+            const deg = Math.round(up * 9);
+            const oct = up > 0.72 ? 1 : 0;
+            p.deg = deg; p.oct = oct;
+            setV(vc, H.chordTone(deg, oct), 0.08);
+            if (vc.pan) A.set(vc.pan.pan, clamp(p.x / P.w * 2 - 1, -1, 1) * 0.7, 0.2);
+            const at = T.next(0.25) + p.voice * 0.012;   // low-to-high harp stagger
+            A.set(vc.g.gain, 0.024 + thick * 0.012, 0.35);
+            A.bell(H.chordTone(deg + 3, oct + 1), { at, vol: 0.05 * gate, dur: 2.4, pan: clamp(p.x / P.w * 2 - 1, -1, 1) * 0.8, rev: 0.7 });
+          } else {
+            A.set(vc.g.gain, 0.0001, 0.5);
+            if (typeof MOut !== 'undefined' && vc.note >= 0) {
+              const ch = MOut.chFor('pad');
+              if (MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+              vc.note = -1;
+            }
+          }
+        }
+
+        /* ---- thickness opens every voice together --------------------- */
+        for (let k = 0; k < NV; k++) {
+          const vc = voices[k];
+          A.set(vc.f.frequency, 420 + (1 - thick) * 2600 + s.lamp * 700, 0.25);
+          A.set(vc.o2.detune, 4 + (1 - thick) * 16, 0.3);
+          A.set(vc.o3.detune, (1 - thick) * 9, 0.3);
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', 1 - thick);
+          MOut.expr('texture', s.lamp);
+          MOut.expr('bells', clamp(s.openN / 8));
+        }
+      },
+      stop() {
+        if (typeof MOut !== 'undefined' && MOut.wants() && MOut.port) {
+          const ch = MOut.chFor('pad');
+          for (const vc of voices) if (vc.note >= 0) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+        }
+        v.kill();
+      }
+    };
+  }
+});
+/* ---------- SRC-39 · STARLING FIELD (spots that fly) ---------- */
+reg({
+  id: 'SRC-39', family: 'SRC-39', ver: 1, title: 'Starling Field', tech: 'BOID LATTICE / TURING SPOTS',
+  music: {
+    bpm: 104, root: 41, mode: 'aeolian', chordBars: 2,
+    chords: [
+      [0, 7, 15, 19, 22],   // Fm7
+      [0, 5, 12, 17, 21],   // B♭/F      — the flock opens out
+      [0, 8, 15, 20, 23],   // D♭maj9/F
+      [0, 7, 14, 17, 22]    // Fm11
+    ],
+    chordNames: ['Fm7', 'B♭/F', 'D♭maj9/F', 'Fm11']
+  },
+  fx: { bloom: 0.5 },
+  tags: ['TURING SPOTS THAT FLOCK', 'FORMATION = GROOVE', 'WHERE THEY ARE IS WHAT YOU HEAR', 'MERGES INTO WORMS'],
+  desc: 'A field of fat spots that keep exactly as far apart as they can — which is what makes a leopard, a reef, a reaction between two chemicals. Then they fly. Push them together and the spacing rule fights the flocking rule: the spots stretch into worms, the worms into shoals, and a murmuration crosses the frame with the same lattice still visible inside it. Every beat sends a gust through the field so the whole thing breathes in time whether or not anybody is playing it.',
+  interact: 'L = HEADING. The flock banks: turn your hand and the whole field wheels, exactly like a murmuration deciding. And because the melody is read straight off where the birds ARE — the frame is divided into seven vertical lanes, and whichever lane holds the most birds sounds its note — steering the flock left and right IS playing the line, low on the left, high on the right. R = FLOCK. Drawn in, the spots ignore each other and drift as an even Turing lattice; reach out and cohesion and alignment climb until the field locks into one animal, spots melting into worms as they crowd. When the formation genuinely locks, the groove arrives — you have to fly them properly to earn the drums.',
+  sound: 'The picture is the score. Seven lanes, seven degrees of the chord ladder; the fullest lane fires on every eighth (MIDI role: lead), panned to where that lane sits, so the melody walks with the flock and holds still when the flock does. Coherence — how much the field agrees on a direction, measured live — is the arrangement: scattered is a bare wind bed and silence; half-locked adds a shaker and a soft bass on the downbeats; fully locked opens the kick and the flock is a groove. Every gust that crosses the frame is a filter sweep on the bed, on the beat. Ableton: lead ch1, bass ch3, perc ch10 (kick 36 / hats 42), texture ch6 = wind (CC74 = mean speed), pad ch2.',
+
+  init(P) {
+    const as = areaScale(P), w = P.w, h = P.h, S = Math.min(w, h);
+    const n = Math.min(420, Math.round(150 * as));
+    const b = [];
+    for (let i = 0; i < n; i++) {
+      const a = P.rand() * TAU;
+      b.push({
+        x: P.rand() * w, y: P.rand() * h,
+        vx: Math.cos(a) * 20, vy: Math.sin(a) * 20,
+        r: S * (0.016 + Math.pow(P.rand(), 1.7) * 0.026),
+        ph: P.rand() * TAU, lift: 0, wob: 0.6 + P.rand() * 0.9,
+        // its own mind — what it does when the flock isn't telling it anything
+        own: a, ownSp: (P.rand() - 0.5) * 0.7
+      });
+    }
+    P.state = {
+      b, pres: 0, head: 0, flock: 0, coh: 0, spd: 0, lanes: new Float32Array(7),
+      gust: 0, gustX: 0, lastBeat: -1, win: 3, unit: S * 0.02
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h, B = s.b;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const head = clamp(inp.L) * TAU;
+    s.head += Math.atan2(Math.sin(head - s.head), Math.cos(head - s.head)) * Math.min(1, dt * 4);
+    s.head = (s.head % TAU + TAU) % TAU;
+    s.flock += (clamp(inp.R) - s.flock) * Math.min(1, dt * 5);
+    const F = s.flock;
+
+    // ---- the gust: one pulse per beat, crossing the frame downwind ------
+    if (typeof T !== 'undefined' && T.running) {
+      const bt = Math.floor(T.beats());
+      if (bt !== s.lastBeat) { s.lastBeat = bt; s.gust = 1; }
+    }
+    s.gust = Math.max(0, s.gust - dt * 1.7);
+    s.gustX = 1 - s.gust;
+
+    const hx = Math.cos(s.head), hy = Math.sin(s.head);
+    const sep = s.unit * (2.5 - F * 0.9);     // the Turing spacing — this is the lattice
+    const cell = sep * 1.15;
+    const gw = Math.max(1, Math.ceil(w / cell)), gh = Math.max(1, Math.ceil(h / cell));
+    const gkey = gw + 'x' + gh;
+    const grid = s._gkey === gkey ? s._grid : (s._gkey = gkey, s._grid = new Array(gw * gh));
+    for (let i = 0; i < grid.length; i++) grid[i] = null;
+    for (const p of B) {
+      const gx = clamp((p.x / cell) | 0, 0, gw - 1), gy = clamp((p.y / cell) | 0, 0, gh - 1);
+      const k = gy * gw + gx;
+      (grid[k] || (grid[k] = [])).push(p);
+    }
+
+    let ox = 0, oy = 0, spd = 0;
+    const cruise = 26 + F * 120;
+    for (const p of B) {
+      let sx = 0, sy = 0, ax = 0, ay = 0, cxs = 0, cys = 0, cn = 0;
+      const gx = clamp((p.x / cell) | 0, 0, gw - 1), gy = clamp((p.y / cell) | 0, 0, gh - 1);
+      for (let ny = gy - 1; ny <= gy + 1; ny++) {
+        if (ny < 0 || ny >= gh) continue;
+        for (let nx = gx - 1; nx <= gx + 1; nx++) {
+          if (nx < 0 || nx >= gw) continue;
+          const list = grid[ny * gw + nx];
+          if (!list) continue;
+          for (const q of list) {
+            if (q === p) continue;
+            const dx = q.x - p.x, dy = q.y - p.y, d2 = dx * dx + dy * dy;
+            if (d2 > sep * sep || d2 < 1e-6) continue;
+            const d = Math.sqrt(d2);
+            const push = (1 - d / sep);
+            sx -= dx / d * push; sy -= dy / d * push;      // SEPARATION — the lattice
+            ax += q.vx; ay += q.vy;                        // ALIGNMENT
+            cxs += q.x; cys += q.y; cn++;                  // COHESION
+          }
+        }
+      }
+      // WHOSE HEADING? Scattered, each spot follows its own nose and the
+      // field has no opinion; flocked, they all take the shared one. This is
+      // what makes coherence a real measurement instead of a constant.
+      p.own += p.ownSp * dt;
+      const ox2 = Math.cos(p.own) * (1 - F) + hx * F, oy2 = Math.sin(p.own) * (1 - F) + hy * F;
+      const ol = Math.hypot(ox2, oy2) || 1;
+      let dvx = ox2 / ol * cruise, dvy = oy2 / ol * cruise;
+      dvx += sx * cruise * 1.5; dvy += sy * cruise * 1.5;
+      if (cn) {
+        const al = Math.hypot(ax, ay) || 1;
+        dvx += (ax / al) * cruise * F * 1.1; dvy += (ay / al) * cruise * F * 1.1;
+        const cxm = cxs / cn - p.x, cym = cys / cn - p.y;
+        dvx += cxm * F * 2.2; dvy += cym * F * 2.2;
+      }
+      // the gust lifts each bird as the line sweeps past it
+      const lane = p.x / w;
+      const near = 1 - Math.min(1, Math.abs(lane - s.gustX) * 5);
+      p.lift += (Math.max(0, near) * (0.4 + F * 0.6) - p.lift) * Math.min(1, dt * 9);
+      dvx += hx * p.lift * cruise * 0.9; dvy += hy * p.lift * cruise * 0.9;
+
+      p.vx += (dvx - p.vx) * Math.min(1, dt * (2.5 + F * 5));
+      p.vy += (dvy - p.vy) * Math.min(1, dt * (2.5 + F * 5));
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.ph += dt * p.wob;
+      if (p.x < -p.r * 2) p.x = w + p.r * 2; else if (p.x > w + p.r * 2) p.x = -p.r * 2;
+      if (p.y < -p.r * 2) p.y = h + p.r * 2; else if (p.y > h + p.r * 2) p.y = -p.r * 2;
+      const sp = Math.hypot(p.vx, p.vy) || 1;
+      ox += p.vx / sp; oy += p.vy / sp; spd += sp;
+    }
+    // COHERENCE — the order parameter, straight out of the flocking literature
+    const coh = Math.hypot(ox, oy) / B.length;
+    s.coh += (coh - s.coh) * Math.min(1, dt * 2.2);
+    s.spd += (spd / B.length / 180 - s.spd) * Math.min(1, dt * 2);
+
+    // ---- seven lanes: where the birds are IS the melody ----------------
+    const lanes = s.lanes;
+    for (let i = 0; i < 7; i++) lanes[i] *= 0.72;
+    for (const p of B) lanes[clamp((p.x / w * 7) | 0, 0, 6)] += 0.28;
+    let win = 0, best = -1;
+    for (let i = 0; i < 7; i++) if (lanes[i] > best) { best = lanes[i]; win = i; }
+    s.win = win;
+    s.laneStr = clamp(best / (B.length / 7) / 1.6);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, B = s.b;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#02040a';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const F = s.flock;
+
+    // (1) the atmosphere the field sits in — deep teal, the reference's ground
+    g.globalCompositeOperation = 'lighter';
+    for (const p of B) {
+      const R = p.r * (3.4 + p.lift * 2);
+      const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, R);
+      gr.addColorStop(0, `rgba(0,190,180,${(0.05 + p.lift * 0.08) * bright})`);
+      gr.addColorStop(1, 'rgba(0,120,140,0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(p.x, p.y, R, 0, TAU); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    // (2) HALOS FIRST, bodies second — where two spots touch, the body of one
+    // covers the other's halo, and the pair reads as a single worm with one
+    // continuous outline. This is the whole trick of the picture.
+    for (const p of B) {
+      const warm = clamp(1 - p.x / w);          // warm country on the left, violet on the right
+      // round the wheel the SHORT way (orange → red → magenta → violet); the
+      // long way runs the middle of the frame through green
+      const hue = (26 - (1 - warm) * 86 + 360) % 360;
+      const R = p.r * (1.42 + p.lift * 0.3);
+      g.fillStyle = `hsla(${hue},100%,${56 + p.lift * 16}%,${(0.8 + p.lift * 0.2) * bright})`;
+      g.beginPath(); g.arc(p.x, p.y, R, 0, TAU); g.fill();
+    }
+    for (const p of B) {
+      const warm = clamp(1 - p.x / w);
+      const hue = 330 - warm * 16;
+      const wob = 1 + Math.sin(p.ph * 2.3) * 0.05;
+      const R = p.r * wob * (1 + F * 0.1);
+      const gr = g.createRadialGradient(p.x - R * 0.2, p.y - R * 0.25, R * 0.1, p.x, p.y, R);
+      gr.addColorStop(0, `hsla(${hue},96%,${68 + p.lift * 22}%,1)`);
+      gr.addColorStop(1, `hsla(${hue - 8},94%,${46 + p.lift * 14}%,1)`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(p.x, p.y, R, 0, TAU); g.fill();
+    }
+
+    // (3) the lane that is currently sounding
+    const lw = w / 7;
+    g.fillStyle = `rgba(255,220,140,${(0.05 + s.laneStr * 0.07) * bright})`;
+    g.fillRect(s.win * lw, 0, lw, h);
+
+    g.fillStyle = 'rgba(255,190,120,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('HEADING ' + Math.round(s.head / TAU * 360) + '°   FLOCK ' + Math.round(s.flock * 100) +
+      '   COHERENCE ' + Math.round(s.coh * 100) + '   LANE ' + (s.win + 1) + '/7' +
+      (s.coh > 0.62 ? '   · LOCKED' : '') + (s.pres < 0.3 ? '   · DRIFTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the air the flock is flying through ---------------------------- */
+    const n = v.noise(), nf = v.filter('bandpass', 600, 0.8), ng = v.g(0.012);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- pad: quiet, only there to glue the lanes together -------------- */
+    const pad = A.padVoices(v, 3, { type: 'triangle', gain: 0.008, cutoff: 320, q: 0.6 });
+    const place = glide => A.leadToChord(pad, -1, glide);
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.2);
+
+    let nextT = T.next(0.5), lastWin = -1;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const coh = s.coh || 0, F = s.flock || 0;
+        const lock = clamp((coh - 0.34) / 0.4);          // 0 scattered · 1 locked
+
+        A.set(ng.gain, (0.006 + (s.spd || 0) * 0.03 + s.gust * 0.012) * gate, 0.2);
+        A.set(nf.frequency, 300 + (s.spd || 0) * 2200 + s.gust * 1400, 0.15);
+        pad.forEach(p => { p.level(0.006 + lock * 0.008, 0.5); p.bright(240 + lock * 600, 0.4); });
+
+        /* ---- the lane melody, on every eighth ------------------------- */
+        const horizon = now + 0.15;
+        while (nextT < horizon) {
+          const st = Math.round((nextT - T.t0) / (T.beat * 0.5)) % 8;
+          const win = s.win, str = s.laneStr || 0;
+          if (lock > 0.08 && gate > 0.3) {
+            const skip = (win === lastWin && st % 2 === 1 && lock < 0.55);   // holding still = leave space
+            if (!skip) {
+              const pan = (win / 6 * 2 - 1) * 0.8;
+              const vol = (0.03 + str * 0.06 + lock * 0.04) * gate;
+              A.pluck2(H.chordTone(win, win > 4 ? 1 : 0), { at: nextT, vol, dur: 0.7, pan, rev: 0.42, del: 0.2 });
+              if (lock > 0.7 && st === 0) {
+                A.bell(H.chordTone(win + 4, 1), { at: nextT, vol: vol * 0.5, dur: 2, pan: -pan, rev: 0.7 });
+              }
+            }
+            lastWin = win;
+          }
+          /* ---- the groove is EARNED by the formation ------------------ */
+          if (lock > 0.35 && gate > 0.3) {
+            if (st % 4 === 0) A.bassNote(H.chordTone(0, -1), { at: nextT, vol: 0.05 + lock * 0.07, dur: 0.9 });
+            A.hat(nextT, { vol: 0.008 + lock * 0.016, open: st === 6 });
+          }
+          if (lock > 0.72 && gate > 0.3 && (st === 0 || st === 5)) A.kick(nextT, 0.16 + lock * 0.14);
+          nextT += T.beat * 0.5;
+        }
+        if (nextT < now) nextT = T.next(0.5);
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('texture', clamp(s.spd || 0));
+          MOut.expr('lead', lock);
+          MOut.expr('pad', F);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-40 · VORTEX CHOIR (arms singing through the light) ---------- */
+reg({
+  id: 'SRC-40', family: 'SRC-40', ver: 1, title: 'Vortex Choir', tech: 'SHEARED SPIRAL / BEAM CHOIR',
+  music: {
+    bpm: 84, root: 46, mode: 'dorian', chordBars: 2,
+    chords: [
+      [0, 7, 15, 19, 22],   // B♭m7
+      [0, 7, 14, 15, 21],   // B♭m13     — the C and the D♭ rubbing
+      [0, 5, 12, 15, 22],   // E♭m11/B♭
+      [0, 8, 15, 20, 24]    // G♭/B♭     — the widest breath
+    ],
+    chordNames: ['B♭m7', 'B♭m13', 'E♭m11/B♭', 'G♭/B♭']
+  },
+  fx: { bloom: 0.66 },
+  tags: ['FIVE NESTED RINGS', 'ARMS SING WHEN THEY PASS THE LIGHT', 'RESONANT GEARS — ALWAYS ON THE GRID', 'RED HEAT'],
+  desc: 'A whirlpool of red brush strokes in five nested rings, each ring turning at its own speed. There is a shaft of light standing at the top of the frame, and an arm sings for exactly as long as it is inside that light — so the picture is a choir walking past a microphone, over and over, in five different meters at once. The rings are geared to each other the way moons are: whatever speed you choose, every arm arrives on the grid, and the five parts phase against each other forever without ever falling out of time.',
+  interact: 'R = SPIN, in four gears — a stately turn where the outer ring sings once every three bars, up to a full carousel with all five rings overlapping. The gears are locked to the transport, so the phasing is always musical and never a mess. L = WIND. Drawn in, the arms are short radial strokes that flick through the light and are gone: staccato, one voice at a time. Reach out and the whole vortex winds up — the arms stretch into long trailing flames that lie along the direction of travel and take much longer to cross the beam, so the same gear turns into a smeared, overlapping legato with four or five voices sounding at once. Wind and spin together are the whole instrument: tight and fast is a hocket, wide and slow is a chord that takes a minute to build.',
+  sound: 'A choir, not a sequencer. Each arm crossing the shaft of light gets a swelling three-oscillator voice (MIDI role: pad) whose LENGTH is exactly how long that arm stays lit — so winding the vortex out physically lengthens the notes and the texture goes from hocket to sustained chord in your hand. Pitch is by ring: the big slow outer ring is the bass end of the ladder, the small fast inner ring the top, so the fast parts are naturally the high ones. Each entrance is struck by a soft mallet (bells) at the moment the arm reaches the light. Underneath sits a bowed drone on the root and a wash of air that opens with spin. There is no drum kit here — the five rings ARE the polyrhythm. Ableton: pad ch2 (CC74 = wind), bells ch5, bass ch3, texture ch6.',
+
+  init(P) {
+    const bands = [];
+    const N = [6, 7, 8, 9, 10];         // arms per ring
+    const IV = [3, 2, 1.5, 1, 0.75];    // beats between crossings at gear 1
+    const RF = [0.94, 0.76, 0.58, 0.41, 0.25];
+    for (let k = 0; k < 5; k++) {
+      bands.push({ n: N[k], iv: IV[k], rf: RF[k], deg: (4 - k) * 2, ph: P.rand() * TAU });
+    }
+    for (const b of bands) { b.rot = P.rand() * TAU; b.arm = 0; b.lit = 0; b.dwell = 1; }
+    P.state = { bands, pres: 0, gear: 1, gearIdx: 1, wind: 0, lit: 0, beamW: 0.3, evq: [] };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+
+    // R: four gears, all rational — the phasing can never drift off the grid
+    const GEARS = [0.25, 0.5, 1, 1.5];
+    const want = clamp(inp.R) * (GEARS.length - 0.001) | 0;
+    if (want > s.gearIdx && inp.R > want / GEARS.length + 0.03) s.gearIdx = want;
+    else if (want < s.gearIdx && inp.R < (want + 1) / GEARS.length - 0.03) s.gearIdx = want;
+    s.gear = GEARS[s.gearIdx];
+
+    s.wind += (clamp(inp.L) - s.wind) * Math.min(1, dt * 6);
+    // WIND is dwell: a long trailing arm takes much longer to leave the light
+    s.beamW = 0.1 + s.wind * 0.42;
+    const beatSec = (typeof T !== 'undefined' && T.beat) ? T.beat : 0.7;
+
+    let lit = 0;
+    for (const b of s.bands) {
+      // one arm reaches the light every iv/gear beats, so the ring turns at
+      // exactly TAU / (n · iv / gear) per beat — the five rings are geared
+      const per = b.iv / Math.max(s.gear, 0.01) * beatSec;     // seconds between arms
+      b.per = per;
+      b.rot += dt / (per * b.n) * TAU;
+      if (b.rot > TAU * 1e6) b.rot -= TAU * 1e6;
+      b.dwell = 2 * s.beamW / TAU * b.n * per;                 // seconds inside the light
+      let best = 0;
+      const arm = (b.rot + Math.PI / 2) / (TAU / b.n);         // beam stands at 12 o'clock
+      if (Math.floor(arm) !== Math.floor(b.arm)) s.evq.push(b);
+      b.arm = arm;
+      for (let j = 0; j < b.n; j++) {
+        const a = b.rot + j * TAU / b.n + Math.PI / 2;
+        const d = Math.atan2(Math.sin(a), Math.cos(a));
+        const l = Math.exp(-(d * d) / (s.beamW * s.beamW));
+        if (l > best) best = l;
+      }
+      b.lit = best;
+      lit += best;
+    }
+    if (s.evq.length > 10) s.evq.splice(0, s.evq.length - 10);
+    s.lit = lit / s.bands.length;
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#050103';
+    g.fillRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.47;
+    const bright = 0.5 + s.pres * 0.5;
+
+    // the shaft of light the arms sing in
+    g.globalCompositeOperation = 'lighter';
+    const bg = g.createRadialGradient(cx, cy - R * 0.55, 0, cx, cy - R * 0.55, R * 0.9);
+    bg.addColorStop(0, `rgba(255,240,220,${(0.06 + s.lit * 0.1) * bright})`);
+    bg.addColorStop(1, 'rgba(255,120,60,0)');
+    g.fillStyle = bg;
+    g.beginPath(); g.arc(cx, cy - R * 0.55, R * 0.9, 0, TAU); g.fill();
+    // the arms are PAINT — they lie over each other, they do not add up
+    g.globalCompositeOperation = 'source-over';
+
+    const SEGN = P.focused ? 12 : 7;
+    const litAt = an => {
+      const d = Math.atan2(Math.sin(an + Math.PI / 2), Math.cos(an + Math.PI / 2));
+      return Math.exp(-(d * d) / (s.beamW * s.beamW));
+    };
+    for (let k = s.bands.length - 1; k >= 0; k--) {
+      const b = s.bands[k];
+      // each ring owns a radial zone; an arm is a spiral stroke that crosses
+      // its whole zone, which is what makes the picture a whirlpool instead
+      // of a flower
+      const rIn = R * Math.max(0.06, b.rf - 0.12), rOut = R * (b.rf + 0.12);
+      const wid = R * (0.03 + (1 - b.rf) * 0.022);
+      const span = (0.45 + s.wind * 2.1) * (1.2 - b.rf * 0.4);
+      for (let j = 0; j < b.n; j++) {
+        const a0 = b.rot + j * TAU / b.n;
+        const pts = [];
+        for (let i = 0; i <= SEGN; i++) {
+          const u = i / SEGN;
+          const rr = rIn + (rOut - rIn) * u;
+          const an = a0 + span * u;
+          pts.push([cx + Math.cos(an) * rr, cy + Math.sin(an) * rr,
+            Math.pow(Math.sin(Math.PI * u), 0.5), an]);
+        }
+        // the light only touches the part of the arm actually inside it
+        const l0 = litAt(a0), l1 = litAt(a0 + span * 0.5), l2 = litAt(a0 + span);
+        const gr = g.createLinearGradient(pts[0][0], pts[0][1], pts[SEGN][0], pts[SEGN][1]);
+        const col = l => {
+          const side = clamp((Math.cos(a0 + span * 0.5 + Math.PI / 2) + 1) / 2);
+          const hue = ((356 + side * 30) % 360);
+          return `hsla(${hue},${94 - l * 40}%,${34 + l * 54}%,${(0.45 + l * 0.5) * bright})`;
+        };
+        gr.addColorStop(0, col(l0));
+        gr.addColorStop(0.5, col(l1));
+        gr.addColorStop(1, col(l2));
+        g.beginPath();
+        for (let i = 0; i <= SEGN; i++) {
+          const [x, y, tp] = pts[i];
+          const i2 = Math.min(SEGN, i + 1), i0 = Math.max(0, i - 1);
+          const tx = pts[i2][0] - pts[i0][0], ty = pts[i2][1] - pts[i0][1];
+          const tl = Math.hypot(tx, ty) || 1;
+          const ox = -ty / tl * wid * tp, oy = tx / tl * wid * tp;
+          i ? g.lineTo(x + ox, y + oy) : g.moveTo(x + ox, y + oy);
+        }
+        for (let i = SEGN; i >= 0; i--) {
+          const [x, y, tp] = pts[i];
+          const i2 = Math.min(SEGN, i + 1), i0 = Math.max(0, i - 1);
+          const tx = pts[i2][0] - pts[i0][0], ty = pts[i2][1] - pts[i0][1];
+          const tl = Math.hypot(tx, ty) || 1;
+          g.lineTo(x + ty / tl * wid * tp, y - tx / tl * wid * tp);
+        }
+        g.closePath();
+        g.fillStyle = gr;
+        g.fill();
+      }
+    }
+    // the eye of the whirlpool
+    g.globalCompositeOperation = 'lighter';
+    const eg = g.createRadialGradient(cx, cy, 0, cx, cy, R * 0.24);
+    eg.addColorStop(0, `rgba(255,230,200,${(0.2 + s.lit * 0.3) * bright})`);
+    eg.addColorStop(1, 'rgba(255,60,30,0)');
+    g.fillStyle = eg;
+    g.beginPath(); g.arc(cx, cy, R * 0.24, 0, TAU); g.fill();
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(255,170,120,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const GN = ['×1/4 · SOLEMN', '×1/2', '×1 · CAROUSEL', '×1½ · DRILL'];
+    g.fillText('SPIN ' + GN[s.gearIdx] + '   WIND ' + Math.round(s.wind * 100) +
+      '   VOICES LIT ' + s.bands.filter(b => b.lit > 0.25).length + '/5' +
+      (s.pres < 0.3 ? '   · TURNING ALONE' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- air in the funnel ---------------------------------------------- */
+    const n = v.noise(), nf = v.filter('bandpass', 420, 1.1), ng = v.g(0.008);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- the bowed drone on the root ------------------------------------ */
+    const drone = A.padVoices(v, 2, { type: 'triangle', gain: 0.012, cutoff: 260, q: 0.8 });
+    const place = glide => { drone[0].set(H.rootFreq(-2), glide); drone[1].set(H.chordTone(1, -1), glide); };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.4);
+
+    // one singer: three detuned bodies with a slow swell, the length of the light
+    const sing = (freq, at, dur, pan, vol) => {
+      A.tone(freq, { at, vol: vol * 0.7, dur, attack: Math.min(0.9, dur * 0.4), type: 'triangle', pan, rev: 0.66, del: 0.1, role: 'pad' });
+      // the two supporting bodies are the same voice — they must not each
+      // become their own note on the wire
+      const sp = MOut.suspend; MOut.suspend = true;
+      A.tone(freq * 1.004, { at: at + 0.02, vol: vol * 0.4, dur: dur * 0.9, attack: Math.min(0.9, dur * 0.45), type: 'triangle', pan: pan * 0.4, rev: 0.7 });
+      A.tone(freq * 2.002, { at: at + 0.04, vol: vol * 0.12, dur: dur * 0.6, attack: Math.min(0.9, dur * 0.5), type: 'sine', pan: -pan * 0.5, rev: 0.7 });
+      MOut.suspend = sp;
+    };
+
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+
+        A.set(ng.gain, (0.004 + s.gear * 0.004 + s.lit * 0.01) * gate, 0.3);
+        A.set(nf.frequency, 300 + s.wind * 1200 + s.lit * 900, 0.3);
+        drone.forEach(d => { d.level(0.008 + s.pres * 0.006, 0.5); d.bright(200 + s.wind * 500 + s.lit * 300, 0.4); });
+
+        /* ---- an arm has reached the light: it sings for as long as it
+           stays there. The rings are geared to the beat, so the sixteenth
+           it lands on is the sixteenth it was always going to land on.   */
+        let b, i = 0;
+        while ((b = s.evq.shift()) && i < 4) {
+          i++;
+          const at = T.next(0.25);
+          const dur = Math.max(0.2, Math.min(7, b.dwell));
+          const k = s.bands.indexOf(b);
+          const pan = (k % 2 ? 0.55 : -0.55) * (0.4 + s.wind * 0.6);
+          const vol = (0.028 + s.wind * 0.022) * gate * (1 - k * 0.06);
+          sing(H.chordTone(b.deg, b.deg > 5 ? 0 : -1), at, dur, pan, vol);
+          // only the two big outer rings get a mallet — every ring struck
+          // turns the choir into a music box
+          if (k < 2) A.bell(H.chordTone(b.deg + 5, 1), { at, vol: vol * 0.42, dur: 1.8, pan: -pan, rev: 0.72 });
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', s.wind);
+          MOut.expr('texture', clamp(s.gear / 2));
+          MOut.expr('bells', s.lit);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-41 · POUR CELLS (two notes becoming one) ---------- */
+reg({
+  id: 'SRC-41', family: 'SRC-41', ver: 1, title: 'Pour Cells', tech: 'COALESCING CELLS / AREA = PITCH',
+  music: {
+    bpm: 72, root: 38, mode: 'aeolian', chordBars: 4,
+    chords: [
+      [0, 7, 15, 22, 26],   // Dm9
+      [0, 10, 15, 19, 24],  // Dm7
+      [0, 8, 15, 19, 24],   // B♭maj7/D
+      [0, 5, 12, 17, 22]    // Gsus/D
+    ],
+    chordNames: ['Dm9', 'Dm7', 'B♭maj7/D', 'Gsus/D']
+  },
+  fx: { bloom: 0.38 },
+  tags: ['ACRYLIC POUR', 'AREA IS PITCH — BIG IS LOW', 'MERGE = TWO VOICES BECOMING ONE', 'CORAL LACING'],
+  desc: 'Paint poured onto paint. Cells push up through the film, crowd each other, and where the lacing between two of them finally fails they coalesce — one bigger cell where two used to be, area exactly conserved. Big cells are dark deep lakes, small ones are bright and busy, and the coral lacing that separates them is the brightest thing in the frame, right up until it breaks. The picture is a system that always runs downhill toward fewer and larger, and you are the reason it never gets there.',
+  interact: 'L = POUR. New cells push up out of the film and everything already there swells. Reach out and the frame fills with bright small cells crowding at their seams; draw in and the pour stops and the field only coarsens. R = LACING. Drawn in, the lacing between cells is strong: they can press until they are hexagons and never merge, and the field stays a fine mosaic. Reach out and the lacing gives at the first touch — the field collapses into a handful of enormous slow lakes, and you hear the whole thing sag as it does. The two hands are a balance you can hold anywhere: heavy pour into weak lacing is a boiling, endlessly merging field; light pour into strong lacing is a still mosaic you can leave running.',
+  sound: 'Area is pitch: every cell is a voice and the bigger it is the lower it speaks, exactly the way a bubble does. The six largest cells in the frame hold sustained voices (MIDI role: pad); as a cell swells its voice glides down, so growth is audible as a slow sag. A MERGE is the event the whole scene is built on — two voices resolve into one, and the survivor is struck by a soft mallet (bells) with a sub bloom (bass) underneath, dropped a chord tone or two by the area it just swallowed. Small unvoiced cells that merge fire droplet plinks (lead) on the next sixteenth. Underneath, a wet bed: filtered noise for the film and a pedal on D. No drums — the merges make their own rhythm, and it is a good one. Ableton: pad ch2 (CC74 = pour), bells ch5, bass ch3, lead ch1, texture ch6.',
+
+  _mk(P, x, y, r) {
+    return {
+      x: x, y: y, r: r, ph: P.rand() * TAU, wob: 0.4 + P.rand() * 0.8, born: 0, flash: 0,
+      // how hard this cell pushes up through the film — heavy-tailed, so the
+      // frame gets a real range of sizes instead of a lattice of equals
+      gk: 0.3 + Math.pow(P.rand(), 1.7) * 1.7,
+      id: (P.state && P.state.nid !== undefined) ? P.state.nid++ : 0
+    };
+  },
+
+  init(P) {
+    const S = Math.min(P.w, P.h);
+    // P.focused is still false during init — size off the area instead
+    const big = areaScale(P) > 1.6;
+    P.state = {
+      cells: [], lace: [], evq: [], nid: 1,
+      unit: S * 0.05, maxN: big ? 105 : 45,
+      pres: 0, pour: 0, weak: 0, mergeCd: 0, big: 0, area: 0
+    };
+    const s = P.state;
+    for (let i = 0; i < (big ? 54 : 26); i++) {
+      s.cells.push(this._mk(P, P.rand() * P.w, P.rand() * P.h, s.unit * (0.25 + P.rand() * 0.55)));
+    }
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h, U = s.unit, C = s.cells;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    s.pour += (clamp(inp.L) - s.pour) * Math.min(1, dt * 6);
+    s.weak += (clamp(inp.R) - s.weak) * Math.min(1, dt * 6);
+    s.mergeCd = Math.max(0, s.mergeCd - dt);
+
+    // ---- swell -------------------------------------------------------
+    for (const c of C) {
+      c.born += dt; c.ph += dt * c.wob;
+      // a full frame has nowhere left to swell into
+      c.r += (0.04 + s.pour * 0.5) * c.gk * (1 - s.area * 0.7) * U * dt / (0.35 + c.r / U);
+      c.flash = Math.max(0, c.flash - dt * 2.4);
+      if (c.r > U * 5.5) c.r = U * 5.5;
+    }
+
+    // ---- press, and where the lacing fails, coalesce -------------------
+    const cell = Math.max(12, U * 12);
+    const gw = Math.max(1, Math.ceil(w / cell)), gh = Math.max(1, Math.ceil(h / cell));
+    const gkey = gw + 'x' + gh;
+    const grid = s._gkey === gkey ? s._grid : (s._gkey = gkey, s._grid = new Array(gw * gh));
+    for (let i = 0; i < grid.length; i++) grid[i] = null;
+    for (const c of C) {
+      const gx = clamp((c.x / cell) | 0, 0, gw - 1), gy = clamp((c.y / cell) | 0, 0, gh - 1);
+      const k = gy * gw + gx;
+      (grid[k] || (grid[k] = [])).push(c);
+    }
+    const relax = Math.min(0.5, dt * 30);
+    const dead = new Set();
+    s.lace.length = 0;
+    for (let gy = 0; gy < gh; gy++) {
+      for (let gx = 0; gx < gw; gx++) {
+        const here = grid[gy * gw + gx];
+        if (!here) continue;
+        for (let ny = gy; ny <= gy + 1; ny++) {
+          for (let nx = gx - 1; nx <= gx + 1; nx++) {
+            if (ny >= gh || nx < 0 || nx >= gw || (ny === gy && nx < gx)) continue;
+            const there = grid[ny * gw + nx];
+            if (!there) continue;
+            for (const a of here) {
+              if (dead.has(a)) continue;
+              for (const b of there) {
+                if (a === b || dead.has(b)) continue;
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const rr = a.r + b.r, d2 = dx * dx + dy * dy;
+                if (d2 >= rr * rr || d2 < 1e-6) continue;
+                const d = Math.sqrt(d2), ov = rr - d;
+                // the seam between them — this is the coral lacing
+                const k2 = a.r / rr;
+                s.lace.push([a.x + dx * k2, a.y + dy * k2, Math.min(a.r, b.r), Math.min(1, ov / (Math.min(a.r, b.r) + 1e-3))]);
+                // THE FILM FAILS. Weak lacing goes at first contact; strong
+                // lacing lets them press until they are hexagons.
+                const give = ov > Math.min(a.r, b.r) * (1.02 - s.weak);
+                if (give && s.mergeCd <= 0) {
+                  const big = a.r >= b.r ? a : b, small = a.r >= b.r ? b : a;
+                  const A1 = big.r * big.r, A2 = small.r * small.r;
+                  const nr = Math.sqrt(A1 + A2);
+                  big.x = (big.x * A1 + small.x * A2) / (A1 + A2);
+                  big.y = (big.y * A1 + small.y * A2) / (A1 + A2);
+                  big.r = nr; big.flash = 1;
+                  dead.add(small);
+                  // merges are EVENTS: even a collapsing field stays playable
+                  s.mergeCd = 0.22 + (1 - s.weak) * 0.6;
+                  s.evq.push({ r: nr / U, small: small.r / U, x: big.x / w, y: big.y / h });
+                  continue;
+                }
+                const push = ov * 0.5 * relax;
+                const ux = dx / d * push, uy = dy / d * push;
+                const wa = b.r / rr, wb = a.r / rr;
+                a.x -= ux * wa * 2; a.y -= uy * wa * 2;
+                b.x += ux * wb * 2; b.y += uy * wb * 2;
+              }
+            }
+          }
+        }
+      }
+    }
+    if (dead.size) {
+      for (let i = C.length - 1; i >= 0; i--) if (dead.has(C[i])) C.splice(i, 1);
+    }
+    if (s.evq.length > 12) s.evq.splice(0, s.evq.length - 12);
+    if (s.lace.length > 900) s.lace.length = 900;
+
+    // ---- the pour: new cells push up through the film ------------------
+    s.acc = (s.acc || 0) + dt * (0.4 + s.pour * 5.5 + (C.length < 12 ? 5 : 0)) * Math.sqrt(areaScale(P));
+    while (s.acc > 1) {
+      s.acc -= 1;
+      if (C.length >= s.maxN) break;
+      C.push(this._mk(P, P.rand() * w, P.rand() * h, U * (0.09 + P.rand() * 0.12)));
+    }
+    // the frame holds the paint in
+    let area = 0, big = 0;
+    for (const c of C) {
+      c.x = clamp(c.x, c.r * 0.4, w - c.r * 0.4);
+      c.y = clamp(c.y, c.r * 0.4, h - c.r * 0.4);
+      area += c.r * c.r;
+      if (c.r > big) big = c.r;
+    }
+    s.area = clamp(area * Math.PI / (w * h) / 1.35);
+    s.big = big / U;
+    // rank: the six biggest hold the voices
+    s.rank = C.slice().sort((a, b) => b.r - a.r).slice(0, 6);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, U = s.unit;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#01050c';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+
+    // ---- the cells: coral country on the left, deep blue on the right
+    for (const c of s.cells) {
+      const wob = 1 + Math.sin(c.ph * 1.7) * 0.03;
+      const r = c.r * wob;
+      const warm = clamp(1 - c.x / w);
+      // blue → violet → coral. Going the OTHER way round the wheel runs the
+      // middle of the frame through green, which is not a colour paint does.
+      const hue = (196 + warm * 172) % 360;
+      const small = clamp(1 - c.r / (U * 2.2));     // small cells are the bright ones
+      const gr = g.createRadialGradient(c.x - r * 0.25, c.y - r * 0.3, r * 0.05, c.x, c.y, r);
+      gr.addColorStop(0, `hsla(${hue + 12},${72 + small * 20}%,${20 + small * 20 + c.flash * 22}%,${0.97 * bright})`);
+      gr.addColorStop(0.72, `hsla(${hue},80%,${11 + small * 12 + c.flash * 14}%,${0.95 * bright})`);
+      gr.addColorStop(1, `hsla(${hue - 8},86%,${6 + small * 6}%,${0.95 * bright})`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(c.x, c.y, r, 0, TAU); g.fill();
+      // THE VEIN: the coral rim each cell carries. Drawn per cell, they meet
+      // at the seams and read as one continuous lacework — which is the whole
+      // look of a pour.
+      g.lineWidth = Math.max(1.6 * ms, Math.min(r * 0.07, 7 * ms));
+      g.strokeStyle = `hsla(${8 + small * 12},95%,${52 + c.flash * 30}%,${(0.5 + c.flash * 0.4) * bright})`;
+      g.beginPath(); g.arc(c.x, c.y, r * 0.99, 0, TAU); g.stroke();
+      // the pinprick of light every poured cell carries
+      if (r > U * 0.16) {
+        g.fillStyle = `hsla(${hue + 20},100%,${76 + c.flash * 24}%,${(0.2 + small * 0.3 + c.flash * 0.5) * bright})`;
+        g.beginPath(); g.arc(c.x - r * 0.1, c.y - r * 0.12, Math.max(1.2 * ms, r * (0.06 + c.flash * 0.08)), 0, TAU); g.fill();
+      }
+    }
+
+    // ---- THE LACING: the brightest thing in the frame, right up to the
+    // moment it fails
+    g.globalCompositeOperation = 'lighter';
+    for (const [x, y, r, press] of s.lace) {
+      if (press < 0.12) continue;                   // only real pressure glows
+      const R = r * (0.2 + press * 0.3);
+      const gr = g.createRadialGradient(x, y, 0, x, y, R);
+      gr.addColorStop(0, `rgba(255,238,214,${(0.1 + press * 0.32) * bright})`);
+      gr.addColorStop(0.35, `rgba(255,116,86,${(0.08 + press * 0.26) * bright})`);
+      gr.addColorStop(1, 'rgba(190,40,60,0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(x, y, R, 0, TAU); g.fill();
+    }
+    // a merge throws its lacing outward as a ring
+    for (const c of s.cells) {
+      if (c.flash <= 0.02) continue;
+      g.strokeStyle = `rgba(255,180,150,${c.flash * 0.8 * bright})`;
+      g.lineWidth = Math.max(2 * ms, c.r * 0.12 * c.flash);
+      g.beginPath(); g.arc(c.x, c.y, c.r * (1 + (1 - c.flash) * 0.5), 0, TAU); g.stroke();
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(150,215,255,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('CELLS ' + s.cells.length + '   POUR ' + Math.round(s.pour * 100) +
+      '   LACING ' + (s.weak > 0.66 ? 'FAILING' : s.weak > 0.33 ? 'THIN' : 'HOLDING') +
+      '   BIGGEST ' + s.big.toFixed(1) + (s.pres < 0.3 ? '   · SETTLED' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the wet film --------------------------------------------------- */
+    const n = v.noise(), nf = v.filter('lowpass', 700, 0.9), ng = v.g(0.008);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- six voices for the six largest cells --------------------------- */
+    const NV = 6;
+    const voices = A.padVoices(v, NV, { type: 'triangle', gain: 0.0001, cutoff: 420, q: 0.9 });
+    const pans = voices.map(() => (A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : null));
+    voices.forEach((vc, i) => {
+      // re-route the dry path through a panner WITHOUT killing padVoices'
+      // reverb send (a blanket disconnect() would take that with it)
+      if (pans[i]) { try { vc.g.disconnect(v.group); } catch (e) {} vc.g.connect(pans[i]); pans[i].connect(v.group); }
+    });
+
+    /* --- the pedal ------------------------------------------------------ */
+    const bed = A.padVoices(v, 2, { type: 'triangle', gain: 0.01, cutoff: 240, q: 0.6 });
+    const place = glide => { bed[0].set(H.rootFreq(-1), glide); bed[1].set(H.chordTone(2, -1), glide); };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.5);
+
+    // AREA IS PITCH — a cell three times the size speaks three chord tones lower
+    const pitchOf = rUnits => {
+      const k = clamp((rUnits - 0.18) / 3.4);
+      const i = Math.round(11 - k * 11);
+      return H.chordTone(i, k > 0.72 ? -1 : 0);
+    };
+
+    let nextT = T.next(0.25);
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const U = s.unit;
+
+        A.set(ng.gain, (0.004 + s.area * 0.012 + s.pour * 0.006) * gate, 0.3);
+        A.set(nf.frequency, 340 + s.pour * 1600 + s.weak * 600, 0.3);
+        bed.forEach(b => { b.level(0.007 + s.area * 0.006, 0.5); b.bright(180 + s.area * 300, 0.4); });
+
+        /* ---- the six voices follow the six biggest cells -------------- */
+        const rank = s.rank || [];
+        for (let i = 0; i < NV; i++) {
+          const c = rank[i];
+          const vc = voices[i];
+          if (!c) { vc.level(0.0001, 0.6); continue; }
+          vc.set(pitchOf(c.r / U), 0.25);          // growth is an audible sag
+          vc.level((0.02 - i * 0.002) * gate * clamp(c.r / (U * 0.4)), 0.4);
+          vc.bright(220 + clamp(1 - c.r / (U * 3)) * 1400, 0.4);
+          if (pans[i]) A.set(pans[i].pan, clamp(c.x / P.w * 2 - 1, -1, 1) * 0.7, 0.3);
+        }
+
+        /* ---- MERGES: two voices resolving into one -------------------- */
+        let ev, i2 = 0;
+        while ((ev = s.evq.shift()) && i2 < 4) {
+          i2++;
+          const at = T.next(0.25);
+          const pan = clamp(ev.x * 2 - 1, -1, 1) * 0.75;
+          const f = pitchOf(ev.r);
+          if (ev.r > 0.7) {
+            // a real coalescence: the survivor is struck, and the sub blooms
+            A.bell(f * 2, { at, vol: (0.035 + clamp(ev.small / 2) * 0.05) * gate, dur: 3, pan, rev: 0.72 });
+            // the sub only blooms for a real lake — otherwise the low end
+            // never gets a moment's rest
+            if (ev.r > 1.15) A.bassNote(H.chordTone(0, -1), { at, vol: (0.04 + clamp(ev.r / 4) * 0.07) * gate, dur: 1.8 });
+            A.hit({ at, vol: 0.04 * gate, dur: 0.3, freq: 260, q: 1.2, type: 'lowpass', pan });
+          } else {
+            // droplets
+            A.pluck2(f * 2, { at, vol: 0.03 * gate, dur: 0.5, pan, rev: 0.5, del: 0.2 });
+          }
+        }
+
+        // the film ticking over — one soft plink per bar when it is still
+        const horizon = now + 0.15;
+        while (nextT < horizon) {
+          const st = Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16;
+          if (st === 0 && s.pres > 0.2 && s.pour < 0.25) {
+            A.bell(H.chordTone(6, 1), { at: nextT, vol: 0.018 * gate, dur: 2.6, pan: 0, rev: 0.8 });
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', s.pour);
+          MOut.expr('texture', s.area);
+          MOut.expr('bass', clamp(s.big / 4));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-42 · RIDGE LOOM (two whorls, one seam) ---------- */
+reg({
+  id: 'SRC-42', family: 'SRC-42', ver: 1, title: 'Ridge Loom', tech: 'ISO-CONTOUR RIDGES / TOPOLOGY = PITCH',
+  music: {
+    bpm: 96, root: 49, mode: 'dorian', chordBars: 2,
+    chords: [
+      [0, 7, 15, 21, 26],   // C♯m13   — the dorian sixth, bright for a minor
+      [0, 5, 12, 17, 21],   // F♯/C♯
+      [0, 7, 14, 19, 22],   // C♯m9
+      [0, 10, 15, 19, 24]   // C♯m7
+    ],
+    chordNames: ['C♯m13', 'F♯/C♯', 'C♯m9', 'C♯m7']
+  },
+  fx: { bloom: 0.5 },
+  tags: ['FINGERPRINT RIDGES', 'A NEW LOOP IS A NEW NOTE', 'WHORLS THAT MERGE', 'ORANGE / CYAN'],
+  desc: 'A field of fat parallel ridges — a fingerprint, a leopard, a chemical clock, all the same maths — flowing slowly across the frame. Two cores sit under the fabric, one under each hand. Push a core up and the ridges nearest it stop running with the field and close into loops around it, one loop at a time, and the loops it steals bend every other ridge in the picture. Push both cores up together and the two whorls stop being neighbours: their loops merge, one line at a time, into shared rings that go round the pair. That merge is the event the whole scene is for.',
+  interact: 'L raises the warm core on the left, R the cool core on the right, and each new ridge that closes into a loop around a core is one note up its ladder — so the hands are two harps and you can count the notes on screen before you hear them. Raise one alone and you climb a line; raise both and the two whorls first fight over the ridges between them (the seam between them crackles and the two voices beat against each other) and then MERGE, their loops joining into shared rings that enclose the pair, with the two voices resolving onto one pitch as they do. Let a hand go and the loops peel off again, note by note, down the same ladder. The ridges never stop flowing, and they flow one ridge-width per beat, so the whole field breathes on the grid whether or not anyone is playing.',
+  sound: 'Topology is pitch. Each hand holds a sustained bowed voice (MIDI role: pad) whose note is the number of loops closed around its core — warm hand low and left, cool hand high and right — so the picture and the interval are the same fact. Every loop gained or lost is a harp pluck on the next sixteenth (lead), panned to its side, rising as you push and falling as you let go. When loops start to enclose BOTH cores the scene changes state: a bell and a sub bloom mark each shared ring (bells + bass), the two voices converge toward a unison, and the beating between them — which is what the crackling seam sounds like — resolves. Under it all: a loom bed of bowed noise whose brightness is the number of ridges on screen, and a pedal that never moves. Ableton: pad ch2 (CC74 = total ridges), lead ch1, bells ch5, bass ch3, texture ch6.',
+
+  init(P) {
+    const S = Math.min(P.w, P.h);
+    const fine = areaScale(P) > 1.6 ? 1 : 0.5;   // P.focused is false during init
+    P.state = {
+      GX: Math.max(24, Math.round(72 * fine)), GY: Math.max(16, Math.round(46 * fine)),
+      f: null, pres: 0, wL: 0, wR: 0, ph: 0,
+      sig: S * 0.23, lo: -0.95, step: 0.42, NL: 17, sigK: 0.3,
+      onlyL: 0, onlyR: 0, both: 0, ridges: 0, seam: 0,
+      evq: [], waves: [
+        { k: 3.1, a: 0.55, dir: 0.4, sp: 1 },
+        { k: 5.3, a: 0.33, dir: 2.1, sp: -0.62 },
+        { k: 8.7, a: 0.18, dir: 3.9, sp: 0.41 }
+      ]
+    };
+    P.state.f = new Float32Array((P.state.GX + 1) * (P.state.GY + 1));
+    P.state.segs = [];
+    for (let i = 0; i < P.state.NL; i++) P.state.segs.push([]);
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    s.wL += (clamp(inp.L) * 6.2 - s.wL) * Math.min(1, dt * 6);
+    s.wR += (clamp(inp.R) * 6.2 - s.wR) * Math.min(1, dt * 6);
+    // THE FLOW IS ON THE GRID: one ridge-width per beat, always
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.ph = beats * TAU;
+
+    const cxL = w * 0.29, cyL = h * (0.5 + Math.sin(t * 0.21) * 0.05);
+    const cxR = w * 0.71, cyR = h * (0.5 + Math.sin(t * 0.17 + 2) * 0.05);
+    s.cL = [cxL, cyL]; s.cR = [cxR, cyR];
+    // the reach of a core is set by how far apart the two cores are: any other
+    // choice and the pair either never shares a ridge or shares all of them
+    s.sig = s.sigK * Math.hypot(cxR - cxL, cyR - cyL);
+    const sig2 = 2 * s.sig * s.sig;
+
+    // ---- the field ----------------------------------------------------
+    const GX = s.GX, GY = s.GY, f = s.f;
+    const cw = w / GX, ch = h / GY;
+    const W = s.waves;
+    for (let j = 0; j <= GY; j++) {
+      const y = j * ch;
+      for (let i = 0; i <= GX; i++) {
+        const x = i * cw;
+        let val = 0;
+        for (let q = 0; q < W.length; q++) {
+          const wv = W[q];
+          const u = (x * Math.cos(wv.dir) + y * Math.sin(wv.dir)) / Math.max(w, h);
+          val += wv.a * Math.sin(u * wv.k * TAU + s.ph * wv.sp * 0.25 + q);
+        }
+        const dxl = x - cxL, dyl = y - cyL, dxr = x - cxR, dyr = y - cyR;
+        val += s.wL * Math.exp(-(dxl * dxl + dyl * dyl) / sig2);
+        val += s.wR * Math.exp(-(dxr * dxr + dyr * dyr) / sig2);
+        f[j * (GX + 1) + i] = val;
+      }
+    }
+
+    // ---- march it into ridges -----------------------------------------
+    const segs = s.segs, lo = s.lo, st = s.step, NL = s.NL;
+    for (let k = 0; k < NL; k++) segs[k].length = 0;
+    for (let j = 0; j < GY; j++) {
+      for (let i = 0; i < GX; i++) {
+        const o = j * (GX + 1) + i;
+        const a = f[o], b = f[o + 1], c = f[o + GX + 2], d = f[o + GX + 1];
+        let mn = a, mx = a;
+        if (b < mn) mn = b; else if (b > mx) mx = b;
+        if (c < mn) mn = c; else if (c > mx) mx = c;
+        if (d < mn) mn = d; else if (d > mx) mx = d;
+        let k0 = Math.ceil((mn - lo) / st), k1 = Math.floor((mx - lo) / st);
+        if (k0 < 0) k0 = 0;
+        if (k1 > NL - 1) k1 = NL - 1;
+        if (k1 < k0) continue;
+        const x0 = i * cw, y0 = j * ch;
+        for (let k = k0; k <= k1; k++) {
+          const lev = lo + k * st;
+          const m = (a > lev ? 1 : 0) | (b > lev ? 2 : 0) | (c > lev ? 4 : 0) | (d > lev ? 8 : 0);
+          if (m === 0 || m === 15) continue;
+          const out = segs[k];
+          // edge crossings: A top · B right · C bottom · D left
+          const ax = x0 + cw * (lev - a) / (b - a), ay = y0;
+          const bx = x0 + cw, by = y0 + ch * (lev - b) / (c - b);
+          const cx2 = x0 + cw * (lev - d) / (c - d), cy2 = y0 + ch;
+          const dx2 = x0, dy2 = y0 + ch * (lev - a) / (d - a);
+          switch (m) {
+            case 1: case 14: out.push(dx2, dy2, ax, ay); break;
+            case 2: case 13: out.push(ax, ay, bx, by); break;
+            case 3: case 12: out.push(dx2, dy2, bx, by); break;
+            case 4: case 11: out.push(bx, by, cx2, cy2); break;
+            case 6: case 9: out.push(ax, ay, cx2, cy2); break;
+            case 7: case 8: out.push(dx2, dy2, cx2, cy2); break;
+            case 5: out.push(dx2, dy2, ax, ay, bx, by, cx2, cy2); break;
+            case 10: out.push(ax, ay, bx, by, cx2, cy2, dx2, dy2); break;
+          }
+        }
+      }
+    }
+
+    // ---- TOPOLOGY: how many loops belong to whom -----------------------
+    // The saddle between the two cores decides it: a level below the saddle
+    // encloses BOTH cores, a level above it belongs to one core alone.
+    const dxc = cxR - cxL, dyc = cyR - cyL, d2 = dxc * dxc + dyc * dyc;
+    const mid = (s.wL + s.wR) * Math.exp(-(d2 / 4) / sig2);
+    const waveCeil = 0.72;
+    const cnt = (a, b) => Math.max(0, Math.floor((b - lo) / st) - Math.floor((Math.max(a, waveCeil) - lo) / st));
+    const nL = cnt(mid, s.wL), nR = cnt(mid, s.wR), nB = cnt(waveCeil, Math.min(mid, Math.min(s.wL, s.wR)));
+    if (nL !== s.onlyL) { s.evq.push({ side: 'L', n: nL, up: nL > s.onlyL }); s.onlyL = nL; }
+    if (nR !== s.onlyR) { s.evq.push({ side: 'R', n: nR, up: nR > s.onlyR }); s.onlyR = nR; }
+    if (nB !== s.both) { s.evq.push({ side: 'B', n: nB, up: nB > s.both }); s.both = nB; }
+    if (s.evq.length > 12) s.evq.splice(0, s.evq.length - 12);
+    let ridges = 0;
+    for (let k = 0; k < NL; k++) ridges += segs[k].length > 0 ? 1 : 0;
+    s.ridges = ridges;
+    // the seam: how hard the two whorls are fighting over the ridges between
+    s.seam = clamp(Math.min(s.wL, s.wR) / 4.5) * (1 - clamp(s.both / 5));
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#03060a';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const lw = Math.max(3.4 * ms, Math.min(w, h) * 0.011);
+
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (let k = 0; k < s.NL; k++) {
+      const seg = s.segs[k];
+      if (!seg.length) continue;
+      const lev = s.lo + k * s.step;
+      // levels that have climbed above the seam belong to a core — they get
+      // that core's colour and burn brighter
+      const own = clamp((lev - 0.72) / 1.4);
+      const gr = g.createLinearGradient(0, 0, w, 0);
+      const a = (0.5 + own * 0.4) * bright;
+      gr.addColorStop(0, `rgba(255,${118 - own * 40},${34},${a})`);
+      gr.addColorStop(0.44, `rgba(255,${168 - own * 30},70,${a * 0.95})`);
+      gr.addColorStop(0.62, `rgba(80,${210 + own * 20},${230},${a * 0.95})`);
+      gr.addColorStop(1, `rgba(38,${168 + own * 40},255,${a})`);
+      g.strokeStyle = gr;
+      g.lineWidth = lw * (0.8 + own * 0.5);
+      g.beginPath();
+      for (let i = 0; i < seg.length; i += 4) {
+        g.moveTo(seg[i], seg[i + 1]);
+        g.lineTo(seg[i + 2], seg[i + 3]);
+      }
+      g.stroke();
+    }
+
+    // the seam between the whorls, while they are still fighting over it
+    if (s.seam > 0.05 && s.cL && s.cR) {
+      const mx = (s.cL[0] + s.cR[0]) / 2, my = (s.cL[1] + s.cR[1]) / 2;
+      const R = Math.min(w, h) * 0.2 * s.seam;
+      g.globalCompositeOperation = 'lighter';
+      const sg = g.createRadialGradient(mx, my, 0, mx, my, R);
+      sg.addColorStop(0, `rgba(255,255,240,${s.seam * 0.3 * bright})`);
+      sg.addColorStop(1, 'rgba(255,200,120,0)');
+      g.fillStyle = sg;
+      g.beginPath(); g.arc(mx, my, R, 0, TAU); g.fill();
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    g.fillStyle = 'rgba(255,190,120,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('LOOPS L ' + s.onlyL + '   R ' + s.onlyR + '   SHARED ' + s.both +
+      '   RIDGES ' + s.ridges + (s.both > 0 ? '   · MERGED' : s.seam > 0.4 ? '   · SEAM' : '') +
+      (s.pres < 0.3 ? '   · FLOWING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the loom: bowed air -------------------------------------------- */
+    const n = v.noise(), nf = v.filter('bandpass', 800, 1.6), ng = v.g(0.008);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- one bowed voice per hand, panned to its side ------------------- */
+    const hands = A.padVoices(v, 2, { type: 'sawtooth', gain: 0.0001, cutoff: 500, q: 2.2 });
+    const pans = hands.map(() => (A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : null));
+    hands.forEach((vc, i) => {
+      if (pans[i]) { try { vc.g.disconnect(v.group); } catch (e) {} vc.g.connect(pans[i]); pans[i].connect(v.group); }
+      if (pans[i]) pans[i].pan.value = i ? 0.6 : -0.6;
+    });
+
+    /* --- the pedal ------------------------------------------------------ */
+    const bed = A.padVoices(v, 2, { type: 'triangle', gain: 0.01, cutoff: 260, q: 0.6 });
+    const place = glide => { bed[0].set(H.rootFreq(-2), glide); bed[1].set(H.chordTone(2, -1), glide); };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 1.4);
+
+    const pitchL = n2 => H.chordTone(n2, -1);
+    const pitchR = n2 => H.chordTone(n2 + 3, 0);
+    let lf = 0, rf = 0;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const both = s.both || 0;
+
+        A.set(ng.gain, (0.004 + clamp(s.ridges / 14) * 0.012 + s.seam * 0.01) * gate, 0.3);
+        A.set(nf.frequency, 400 + clamp(s.ridges / 14) * 2200 + s.seam * 900, 0.3);
+        bed.forEach(b => { b.level(0.008 + s.pres * 0.005, 0.5); b.bright(200 + clamp(s.ridges / 14) * 400, 0.4); });
+
+        /* ---- the two bowed voices ------------------------------------ */
+        // once loops are shared, the two hands are singing the same ring:
+        // the voices converge, and the beating between them stops
+        const conv = clamp(both / 4);
+        const fL = pitchL(s.onlyL || 0), fR = pitchR(s.onlyR || 0);
+        const tL = fL * (1 - conv) + Math.sqrt(fL * fR) * conv;
+        const tR = fR * (1 - conv) + Math.sqrt(fL * fR) * conv;
+        if (tL !== lf) { lf = tL; hands[0].set(tL, 0.14); }
+        if (tR !== rf) { rf = tR; hands[1].set(tR, 0.14); }
+        hands[0].level(clamp(s.wL / 5) * 0.03 * gate, 0.3);
+        hands[1].level(clamp(s.wR / 5) * 0.03 * gate, 0.3);
+        hands[0].bright(260 + clamp(s.wL / 6) * 1100, 0.3);
+        hands[1].bright(320 + clamp(s.wR / 6) * 1500, 0.3);
+        // the seam IS the beating: detune the two voices apart while they fight
+        A.set(hands[0].o2.detune, 5 + s.seam * 26, 0.3);
+        A.set(hands[1].o2.detune, -5 - s.seam * 26, 0.3);
+
+        /* ---- a loop gained or lost is a pluck on the next sixteenth --- */
+        let ev, i = 0;
+        while ((ev = s.evq.shift()) && i < 4) {
+          i++;
+          const at = T.next(0.25);
+          if (ev.side === 'B') {
+            // THE MERGE: a ring that goes round both cores
+            if (ev.up) {
+              A.bell(H.chordTone(ev.n + 2, 1), { at, vol: 0.055 * gate, dur: 3.2, pan: 0, rev: 0.78 });
+              A.bassNote(H.chordTone(0, -1), { at, vol: 0.07 * gate, dur: 2.2 });
+            } else {
+              A.pluck2(H.chordTone(ev.n, 0), { at, vol: 0.03 * gate, dur: 1.1, pan: 0, rev: 0.5 });
+            }
+          } else {
+            const left = ev.side === 'L';
+            const f = left ? pitchL(ev.n) : pitchR(ev.n);
+            A.pluck2(f * (left ? 2 : 1), {
+              at, vol: (ev.up ? 0.06 : 0.032) * gate, dur: ev.up ? 1.3 : 0.7,
+              pan: left ? -0.7 : 0.7, rev: 0.5, del: 0.18
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', clamp(s.ridges / 14));
+          MOut.expr('texture', s.seam);
+          MOut.expr('lead', clamp((s.onlyL + s.onlyR) / 8));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
 /* ============================================================
    HISTORY — earlier versions of explorations, excavated from
    the session record. Registered with family + ver so every

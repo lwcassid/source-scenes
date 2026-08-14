@@ -1,6 +1,6 @@
 # SOURCE // Interaction Library — The Cave, Burning Man 2026
 
-An interactive audiovisual instrument wall: 35 scenes driven by two theremin
+An interactive audiovisual instrument wall: 42 scene families driven by two theremin
 hands (L/R), WebAudio sound + MIDI OUT to Ableton, projected onto hanging
 mosquito-net scrim inside the camp structure by two Panasonic PT-VMZ50
 projectors (1920×1200, fed identically off one HDMI splitter).
@@ -11,7 +11,10 @@ the site. That's the whole pipeline.
 
 ## Owners
 Kasia: Ferro Bloom (SRC-15), Weather Station (SRC-10), Epicycle Court (SRC-01)
-Nima: White Study (SRC-34), Stones/Sonora (SRC-32), Attractor Vespers (SRC-09)
+Nima: White Study (SRC-34), Stones/Sonora (SRC-32), Attractor Vespers (SRC-09),
+  the reference-wall set (SRC-36 Foam Bloom · SRC-37 Iris Engine · SRC-38 Lumen
+  Film · SRC-39 Starling Field · SRC-40 Vortex Choir · SRC-41 Pour Cells ·
+  SRC-42 Ridge Loom) — scored in `docs/INSTRUMENT-SURVEY.md` §ADDENDUM
 Lance: Night Circuit (SRC-18), Storm Garden (SRC-30), Bubble Field (SRC-04)
 Don't rework someone else's scene without coordinating; adopting an UNCLAIMED
 scene is fair game.
