@@ -4,10 +4,10 @@ reg({
   music: { bpm: 120, root: 45, mode: 'aeolian', prog: [0], chordBars: 8 },
   tags: ['SEVERE', 'BLACK & WHITE', 'ETCHED PLATES', 'TIME DIVISION', 'SINE + CLICK'],
   desc: 'No color. No softness added — but no longer emptiness either. The flat white bars are gone; in their place, cropped fragments of three etched plates (a hatched portrait, a sea-cave engraving, an asteroid-storm woodcut), chopped into the same rhythmic geometry that used to hold plain light. Sine tones, clicks, and the mathematics of a bar of time being divided in front of you — now the divisions carve up scavenged prints instead of blank rectangles. The left hand adds structure — from one lone bar to a dense lattice, each a different window onto the plates. The right hand divides time — whole notes splitting to eighths, the geometry re-cutting itself and re-sampling the plates on every subdivision. Through the nets it becomes a data-cathedral built out of stolen engravings.',
-  interact: 'L = structural density (1 bar → 48), each a fresh crop of one of three etched plates, AND tone brightness — the lowpass on every sine hit opens with L, so a sparse scene sounds muted and dark and a dense lattice rings out full and bright. Thin hairline bars stay flat white; the plates only reveal themselves once a bar is wide enough to read. R = time division (1/1 → 1/8) — the old top-end intensity, which used to live at 60% reach, now arrives exactly at full extension, so the whole slider throw does something instead of the last 40% going nowhere. Every tick of the current division re-cuts the lattice and re-samples the plates. Both low: a single dark etched sliver and a slow, muted pulse. Both high: a strobing wall of inverted engravings ringing bright. Precision is still the aesthetic — the imagery is raw material for the geometry, not a picture to look at.',
-  sound: 'Ikeda rules, with some velvet: every tone hit is a pair of detuned sines through a lowpass filter (rounder than a bare sine, no longer clinical) with a short slap-back echo baked in — one quiet repeat, no wash, no feedback tail. L opens the filter: closed and muted at rest, full and bright at max density. The click stays exactly as before — one dry 6ms noise burst per tick, no color, no echo — it is still the precision instrument; the tone is now the one with some body. A sub pulse lands on the beat, and a 30-second sweep sine rises almost imperceptibly underneath. Division rate = tick rate, capped at 1/8. In Ableton: route lead to a filtered dual-osc sine patch with a touch of slap delay (no reverb, no long tail), perc clicks stay dry and tight. (Contains brief strobe flashes.)',
+  interact: 'L = structural density (1 bar → 48), each a fresh crop of one of three etched plates, AND tone brightness — the lowpass on every sine hit opens with L, so a sparse scene sounds muted and dark and a dense lattice rings out full and bright. Thin hairline bars stay flat white; the plates only reveal themselves once a bar is wide enough to read. R = time division (1/1 → 1/8) — the old top-end intensity, which used to live at 60% reach, now arrives exactly at full extension, so the whole slider throw does something instead of the last 40% going nowhere. Every tick of the current division re-cuts the lattice and re-samples the plates. Both low: a single dark etched sliver and a slow, muted pulse. Both high: a dense, bright-ringing wall of engravings. Underneath both hands, every 10 seconds the whole scene quietly inverts — black ground to white, white ground to black, plates flipping to their negative — holds, then reverts; a slow breathing swap, not a strobe, running on its own clock. Precision is still the aesthetic — the imagery is raw material for the geometry, not a picture to look at.',
+  sound: 'Ikeda rules, with some velvet: every tone hit is a pair of detuned sines through a lowpass filter (rounder than a bare sine, no longer clinical) with a short slap-back echo baked in — one quiet repeat, no wash, no feedback tail. L opens the filter: closed and muted at rest, full and bright at max density. The click stays exactly as before — one dry 6ms noise burst per tick, no color, no echo — it is still the precision instrument; the tone is now the one with some body. A sub pulse lands on the beat, and a 30-second sweep sine rises almost imperceptibly underneath. Division rate = tick rate, capped at 1/8. In Ableton: route lead to a filtered dual-osc sine patch with a touch of slap delay (no reverb, no long tail), perc clicks stay dry and tight.',
   init(P) {
-    P.state = { bars: [], lastTick: -1, flash: 0, seed: P.seed, imgs: [], imgsReady: false };
+    P.state = { bars: [], lastTick: -1, seed: P.seed, imgs: [], imgsReady: false };
     this._loadImages(P);
     this._recut(P, 6);
   },
@@ -87,7 +87,6 @@ reg({
     if (tick !== s.lastTick) {
       s.lastTick = tick;
       this._recut(P, density);
-      s.flash = (tick % (4 * s.div) === 0) ? 1 : 0.25;
       const isBeat = tick % s.div === 0;
       // L = brightness: dark/muted lowpass at rest, opens up toward a full bright tone as the lattice fills in
       const cutoff = 450 * Math.pow(13, inp.L);
@@ -98,12 +97,12 @@ reg({
         if (isBeat) this._playTone(A, H.rootFreq(-2), { vol: 0.16, dur: 0.1, cutoff: cutoff * 0.5 });
       });
     }
-    s.flash *= Math.pow(0.0005, dt);
   },
   draw(P, g, w, h, t, inp) {
     const s = P.state;
     g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
-    const flashing = s.flash > 0.65;
+    // slow autonomous invert/revert, independent of hands or tick rate — no strobe, just a held 10s swap
+    const flashing = Math.floor(t / 10) % 2 === 1;
     if (flashing) { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); }
     const solidFill = flashing ? '#000' : '#fff';
     const texMinPx = Math.max(6, w * 0.006);
