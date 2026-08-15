@@ -33,6 +33,13 @@ for name, fn in models.items():
     b64 = base64.b64encode(open('models/' + fn, 'rb').read()).decode()
     consts.append(f"const {name} = 'data:model/gltf-binary;base64,{b64}';")
     src = src.replace(f"'models/{fn}'", name)
+# bitmap assets referenced by scenes (e.g. assets/white-study/*.jpg) — inline any
+# quoted 'assets/...' path found in the source so the preview stays offline-only
+mime = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp'}
+for relpath in sorted(set(re.findall(r"'(assets/[^']+)'", src))):
+    ext = os.path.splitext(relpath)[1].lower()
+    b64 = base64.b64encode(open(relpath, 'rb').read()).decode()
+    src = src.replace(f"'{relpath}'", f"'data:{mime.get(ext, 'application/octet-stream')};base64,{b64}'")
 src = src.replace('</head>', '<script>' + '\n'.join(consts) + '</script>\n</head>', 1)
 open('night-circuit-preview.html', 'w').write(src)
 print('preview MB:', round(os.path.getsize('night-circuit-preview.html') / 1e6, 2))

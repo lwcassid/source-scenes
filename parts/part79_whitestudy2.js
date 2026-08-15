@@ -13,9 +13,13 @@ reg({
   },
   _loadImages(P) {
     const s = P.state;
-    const files = ['portrait-etching.jpg', 'cave-etching.jpg', 'asteroid-woodcut.jpg'];
+    const files = [
+      'assets/white-study/portrait-etching.jpg',
+      'assets/white-study/cave-etching.jpg',
+      'assets/white-study/asteroid-woodcut.jpg'
+    ];
     let remaining = files.length;
-    files.forEach(fn => {
+    files.forEach(fp => {
       const img = new Image();
       const done = () => { if (--remaining === 0) s.imgsReady = s.imgs.length > 0; };
       img.onload = () => {
@@ -36,7 +40,7 @@ reg({
         done();
       };
       img.onerror = done;
-      img.src = 'assets/white-study/' + fn;
+      img.src = fp;
     });
   },
   _recut(P, n) {
