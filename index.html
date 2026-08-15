@@ -44184,17 +44184,13 @@ reg({
     s.bars = [];
     const nImgs = (s.imgs && s.imgs.length) || 1;
     for (let i = 0; i < n; i++) {
-      const cw = 0.12 + P.rand() * 0.28;
-      const ch = 0.12 + P.rand() * 0.28;
-      const cx = P.rand() * (1 - cw);
-      const cy = P.rand() * (1 - ch);
       s.bars.push({
         x: P.rand(), w2: 0.002 + P.rand() * P.rand() * 0.05,
         y0: P.rand() < 0.75 ? 0 : P.rand() * 0.5,
         y1: 1 - (P.rand() < 0.75 ? 0 : P.rand() * 0.5),
         neg: P.rand() < 0.12,
         img: Math.floor(P.rand() * nImgs),
-        cw, ch, cx, cy
+        samp: 0.18 + P.rand() * 0.35, ax: P.rand(), ay: P.rand()
       });
     }
   },
@@ -44234,7 +44230,13 @@ reg({
       const img = s.imgsReady ? s.imgs[b.img % s.imgs.length] : null;
       if (img && bw >= texMinPx && bh >= texMinPx) {
         const src = flashing ? img.ci : img.c;
-        g.drawImage(src, b.cx * img.w, b.cy * img.h, b.cw * img.w, b.ch * img.h, bx, by, bw, bh);
+        // crop aspect always matches the bar's aspect — thin bars pull a thin sliver, never a stretched square
+        const ar = bw / bh;
+        let cropH = b.samp * img.h, cropW = cropH * ar;
+        const fit = Math.min(1, img.w / cropW, img.h / cropH);
+        cropW *= fit; cropH *= fit;
+        const sx = b.ax * (img.w - cropW), sy = b.ay * (img.h - cropH);
+        g.drawImage(src, sx, sy, cropW, cropH, bx, by, bw, bh);
       } else {
         g.fillStyle = solidFill;
         g.fillRect(bx, by, bw, bh);
