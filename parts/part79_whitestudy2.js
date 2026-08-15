@@ -7,7 +7,7 @@ reg({
   interact: 'L = structural density (1 bar → 48), each a fresh crop of one of three etched plates; thin hairline bars stay flat white, the plates only reveal themselves once a bar is wide enough to read. R = time division (1/1 → 1/8) — the old top-end intensity, which used to live at 60% reach, now arrives exactly at full extension, so the whole slider throw does something instead of the last 40% going nowhere. Every tick of the current division re-cuts the lattice and re-samples the plates. Both low: a single etched sliver and a slow pulse. Both high: a strobing wall of inverted engravings. Precision is still the aesthetic — the imagery is raw material for the geometry, not a picture to look at.',
   sound: 'Ikeda rules: sine tones only (root octaves — severity, but still coherent with the wall), one click per tick (short 6ms noise burst), a sub pulse on the beat, and a 30-second sweep sine rising almost imperceptibly. Division rate = tick rate, now capped at 1/8 (the old 1/16–1/32 range is retired along with the top 40% of the R slider that used to reach it). In Ableton: route lead to a pure sine patch with NO reverb — bone dry — and perc clicks to a tight click sample. The dryness IS the sound design. (Contains brief strobe flashes.)',
   init(P) {
-    P.state = { bars: [], lastTick: -1, flash: 0, scan: 0, seed: P.seed, imgs: [], imgsReady: false };
+    P.state = { bars: [], lastTick: -1, flash: 0, seed: P.seed, imgs: [], imgsReady: false };
     this._loadImages(P);
     this._recut(P, 6);
   },
@@ -79,7 +79,6 @@ reg({
       });
     }
     s.flash *= Math.pow(0.0005, dt);
-    s.scan = (s.scan + dt * 0.13) % 1;
   },
   draw(P, g, w, h, t, inp) {
     const s = P.state;
@@ -106,9 +105,8 @@ reg({
         g.fillRect(bx, by, bw, bh);
       }
     }
-    // scan line + data strip
+    // data strip
     g.fillStyle = flashing ? '#000' : 'rgba(255,255,255,0.8)';
-    g.fillRect(0, s.scan * h, w, 1);
     g.font = '9px ui-monospace,monospace';
     let str = '';
     const rr = mulberry32(s.lastTick * 7 + 3);
