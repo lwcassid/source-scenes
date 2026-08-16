@@ -40,6 +40,7 @@ cd "$(dirname "$0")/.."
   cat parts/part32_fb10.js
   cat parts/part33_fb11.js
   cat parts/part34_fb12.js
+  cat parts/part35_fb13.js
   cat parts/part35_sg3.js
   cat parts/part36_sg4.js
   cat parts/part37_sg5.js
