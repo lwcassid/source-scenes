@@ -450,8 +450,8 @@ try {
 function setView(mode) {
   if (mode === 'scrim3d') mode = 'scrim';
   if (!VIEW.MODES.includes(mode)) return;
-  if (mode === 'scrim' && (typeof THREE === 'undefined' || window.IS_MOBILE)) {
-    console.warn('the scrim view needs three.js and a desktop'); mode = 'flat';
+  if (mode === 'scrim' && typeof THREE === 'undefined') {
+    console.warn('the scrim view needs three.js'); mode = 'flat';
   }
   VIEW.mode = mode;
   try { localStorage.setItem('srcView', mode); } catch (e) {}
@@ -491,7 +491,19 @@ function syncStage(force) {
   const m = stageMetrics();
   applyStageBox(m);
   if (!focus.P || m.pw <= 0 || m.ph <= 0) return;
-  if (!force && m.pw === focus.P.w && m.ph === focus.P.h) return;
+  if (m.pw === focus.P.w && m.ph === focus.P.h) return;
+  if (!force) {
+    // resizing the backing store means reinit (scenes cache geometry), and
+    // reinit reads as the scene RESTARTING. Small viewport shifts — the
+    // mobile URL bar collapsing on scroll, the console reflowing — are not
+    // worth that jump: let CSS stretch a few percent and keep playing.
+    // A real change (rotation, big window resize) still re-inits.
+    const ar = (m.pw / m.ph) / (focus.P.w / focus.P.h);
+    const area = (m.pw * m.ph) / (focus.P.w * focus.P.h);
+    // mobile bars + console reflow can move the stage ~30%; rotation flips
+    // the aspect ~3-4x and still lands outside this window
+    if (ar > 0.68 && ar < 1.47 && area > 0.45 && area < 2.2) return;
+  }
   focusCanvas.width = m.pw; focusCanvas.height = m.ph;
   focus.P.w = focus.P.canvas.width = m.pw;
   focus.P.h = focus.P.canvas.height = m.ph;
@@ -572,7 +584,7 @@ window.addEventListener('keydown', e => {
 const activePtrs = new Map();
 function hideHint() { document.getElementById('useHint').classList.add('gone'); }
 focusCanvas.addEventListener('pointerdown', e => {
-  focusCanvas.setPointerCapture(e.pointerId);
+  try { focusCanvas.setPointerCapture(e.pointerId); } catch (err) {}
   activePtrs.set(e.pointerId, true);
   ptrDrive(e); hideHint();
 });

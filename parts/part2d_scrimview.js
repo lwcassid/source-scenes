@@ -26,7 +26,8 @@
    floor spill. One simplification: every panel scatters uniformly
    (no panel-behind-panel shadowing).
 
-   Needs three.js; the scrim mode is skipped on mobile.
+   Needs three.js. Works on touch too: one finger orbits, two-finger
+   pinch zooms (the phone canvas is small, so the 3D view is cheap).
    ============================================================ */
 const SCRIMRIG = {
   // 12 fabric panels, verbatim from the planner export (sim x = planner x - 4)
@@ -338,31 +339,38 @@ window.SCRIMVIEW = {
 };
 
 /* orbit input — in scrim mode the stage pointer belongs to the CAMERA
-   (part2_core's ptrDrive stands down); keys keep driving the hands */
+   (part2_core's ptrDrive stands down); keys keep driving the hands.
+   One pointer orbits; two pointers (touch) pinch-zoom; wheel/trackpad zooms. */
 (() => {
   const inScrim = () => typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' &&
     typeof focus !== 'undefined' && focus.idx >= 0;
-  let drag = null;
-  SCRIMVIEW._camSync(SCRIMVIEW.preset); // build the vantage menu up front
-  const camSel = document.getElementById('camSel');
-  if (camSel) camSel.addEventListener('change', () => {
-    if (camSel.value !== 'free') SCRIMVIEW.applyPreset(+camSel.value);
-    camSel.blur();
-  });
+  const ptrs = new Map();
+  let pinchDist = 0;
+  const dist = () => {
+    const [a, b] = [...ptrs.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
   focusCanvas.addEventListener('pointerdown', e => {
     if (!inScrim()) return;
-    drag = { x: e.clientX, y: e.clientY };
-    focusCanvas.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { focusCanvas.setPointerCapture(e.pointerId); } catch (err) {} // finger may already be gone
+    if (ptrs.size === 2) pinchDist = dist();
   });
   focusCanvas.addEventListener('pointermove', e => {
-    if (!inScrim() || !drag) return;
-    const o = SCRIMVIEW.orb;
-    o.th -= (e.clientX - drag.x) * 0.009;
-    o.ph = clamp(o.ph - (e.clientY - drag.y) * 0.007, 0.25, 2.0);
-    drag = { x: e.clientX, y: e.clientY };
+    if (!inScrim() || !ptrs.has(e.pointerId)) return;
+    const o = SCRIMVIEW.orb, prev = ptrs.get(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 2) {                       // touch pinch → zoom
+      const d = dist();
+      if (pinchDist > 0 && d > 0) o.r = clamp(o.r * (pinchDist / d), 3, 70);
+      pinchDist = d;
+    } else if (ptrs.size === 1) {                // drag → orbit
+      o.th -= (e.clientX - prev.x) * 0.009;
+      o.ph = clamp(o.ph - (e.clientY - prev.y) * 0.007, 0.25, 2.0);
+    }
     SCRIMVIEW._camSync(-1); // free orbit — no preset is "current" anymore
   });
-  const end = () => { drag = null; };
+  const end = e => { ptrs.delete(e.pointerId); pinchDist = 0; };
   focusCanvas.addEventListener('pointerup', end);
   focusCanvas.addEventListener('pointercancel', end);
   focusCanvas.addEventListener('wheel', e => {
@@ -372,6 +380,12 @@ window.SCRIMVIEW = {
     const k = e.ctrlKey ? 0.014 : 0.0022;
     SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * k), 3, 70);
   }, { passive: false });
+  SCRIMVIEW._camSync(SCRIMVIEW.preset); // build the vantage menu up front
+  const camSel = document.getElementById('camSel');
+  if (camSel) camSel.addEventListener('change', () => {
+    if (camSel.value !== 'free') SCRIMVIEW.applyPreset(+camSel.value);
+    camSel.blur();
+  });
 })();
 // V cycles the view modes; C cycles vantages inside the scrim view
 window.addEventListener('keydown', e => {

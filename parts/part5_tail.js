@@ -606,7 +606,6 @@ FAV.boot();
 (() => {
   const vs = document.getElementById('viewSel');
   if (!vs) return;
-  if (window.IS_MOBILE) { vs.style.display = 'none'; return; } // scrim sims are desktop-only
   setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
                       // scrimmode class that reveals the vantage chips
   vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
@@ -689,7 +688,7 @@ function frame(ts) {
       const fg = focus.fctx;
       if (fg) {
         const vm = (typeof VIEW !== 'undefined') ? VIEW.mode : 'flat';
-        const scrimOK = window.SCRIMVIEW && typeof THREE !== 'undefined' && !window.IS_MOBILE;
+        const scrimOK = window.SCRIMVIEW && typeof THREE !== 'undefined';
         if ((vm === 'scrim' || vm === 'scrim3d') && scrimOK) {
           SCRIMVIEW.render(fg, P, t);   // the frame thrown into The Cave
         } else {
