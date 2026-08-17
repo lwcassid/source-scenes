@@ -116,4 +116,6 @@ past ~200 units.
 - Is there a reason to stay 3 minutes (a build, a discovery, a rare event)?
 - Did this revision REMOVE at least as much as it added?
 - Does it read at 20% brightness on a black background with fat marks?
+- Press `V` (scrim view): does it survive slicing into 18″ strips, the
+  two-projector double image, and the mesh eating half the light?
 - Is the MIDI mirror complete (every audible event has an evNote/evDrum)?

@@ -418,8 +418,23 @@ const focusCanvas = document.getElementById('focusCanvas');
 const PROJ = (() => {
   const q = location.search;
   const force = /[?&]proj\b/i.test(q), off = /[?&]win\b/i.test(q);
-  return { w: 1920, h: 1200, on: force || (!off && !window.IS_MOBILE) };
+  const P = { w: 1920, h: 1200, on: force || (!off && !window.IS_MOBILE) };
+  // ?frame=… picks a different projector class and cascades through every
+  // scene (they all read P.w/P.h + areaScale). Named or literal WxH:
+  //   ?frame=fhd   ?frame=wxga   ?frame=1400x1050
+  const NAMED = { wuxga: [1920, 1200], fhd: [1920, 1080], '1080p': [1920, 1080],
+                  wxga: [1280, 800], xga: [1024, 768], uhd: [3840, 2160], '4k': [3840, 2160] };
+  const fm = q.match(/[?&]frame=([a-z0-9]+x[0-9]+|[a-z0-9]+)/i);
+  if (fm) {
+    const v = fm[1].toLowerCase();
+    const wh = NAMED[v] || (v.match(/^(\d{3,4})x(\d{3,4})$/) || []).slice(1).map(Number);
+    if (wh && wh.length === 2 && wh[0] > 0) { P.w = wh[0]; P.h = wh[1]; if (!off) P.on = true; }
+  }
+  return P;
 })();
+// live re-frame (console / future RIG dropdown): setFrame(1920,1080) cascades
+// through the open scene immediately — everything reads PROJ.w/h
+function setFrame(w, h) { PROJ.w = w | 0; PROJ.h = h | 0; PROJ.on = true; if (typeof syncStage === 'function') syncStage(true); }
 function stageMetrics() {
   const stage = focusCanvas.parentElement;
   const cw = stage.clientWidth, ch = stage.clientHeight;

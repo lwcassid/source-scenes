@@ -573,7 +573,8 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
       // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
       (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
-        (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') : '');
+        (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') +
+        (window.SCRIMVIEW && SCRIMVIEW.on ? ' · SCRIM' : '') : '');
   }, 500);
 })();
 // live indicators: act chip highlight + now-playing role dots
@@ -656,11 +657,15 @@ function frame(ts) {
       // composite scene → display with non-destructive post-FX
       const fg = focus.fctx;
       if (fg) {
-        fg.drawImage(P.canvas, 0, 0);
-        const fx = P.def.fx;
-        if (fx) {
-          if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
-          if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+        if (window.SCRIMVIEW && SCRIMVIEW.on) {
+          SCRIMVIEW.render(fg, P, t);   // V on the stage: the frame thrown into The Cave
+        } else {
+          fg.drawImage(P.canvas, 0, 0);
+          const fx = P.def.fx;
+          if (fx) {
+            if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
+            if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+          }
         }
       }
     } catch (e) { console.error(P.def.id, e); }

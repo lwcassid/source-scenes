@@ -61,6 +61,12 @@ the show frame even there). `tools/shot.mjs`, `tools/shotcam.mjs`,
 `tools/shotevt.mjs` and `tools/playtest.js` shoot the show frame (`PROJ=0`
 opts out), and the DBG strip's `FRAME` line reports what the scene is
 actually getting — `1920×1200 · 1.60 · PROJ` is the show.
+Other projector classes: **`?frame=fhd|wxga|xga|uhd|1400x1050`** (or
+`setFrame(w,h)` live) re-pins the frame and cascades through every scene.
+**`V`** on the stage = SCRIM VIEW: the frame thrown into The Cave in 3D — two
+converged projectors, staggered 18″ drape strips, mesh optics, double-image
+parallax (`C` cycles viewpoints; rig numbers in `parts/part2d_scrimview.js`,
+placeholders pending Elyse's planner layout).
 
 ### Verify BEFORE you ship (sighted iteration)
 Never ship a scene you haven't SEEN. In a cloud sandbox:

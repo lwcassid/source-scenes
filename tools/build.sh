@@ -10,6 +10,7 @@ cd "$(dirname "$0")/.."
   cat parts/part2_core.js
   cat parts/part2b_music.js
   cat parts/part2c_midiout.js
+  cat parts/part2d_scrimview.js
   cat parts/part3_pieces_a.js
   cat parts/part4_pieces_b.js
   cat parts/part6_pieces_c.js

@@ -133,6 +133,32 @@ pointers to look, not verdicts; thin-line scenes read low on `hfill`.
 No scene was reworked here — that's owner territory and every change owes a new
 version file. This is the map of what to look at.
 
+## Frame presets
+
+The default frame is the confirmed rig: **two Panasonic PT-VMZ50, native WUXGA
+1920×1200 (16:10), one cloned render**. If the projector class ever changes,
+one setting cascades everywhere (stage, thumbnails keep 16:10 as-designed,
+areaScale, harness shots): `?frame=fhd` · `?frame=wxga` · `?frame=xga` ·
+`?frame=uhd` · `?frame=1400x1050`, or `setFrame(w,h)` in the console while a
+scene is open. Bogus values fall back to WUXGA.
+
+## Scrim view (V) — how it lands in The Cave
+
+`V` on the focus stage swaps the flat frame for a 3D throw into the room:
+two converged projectors → three staggered layers of 18″ mesh strips (from
+the camp-planner catalog: "Hanging fabric", 18″ × 8 ft, ceiling mount) with
+air gaps, additive gauze optics (each layer scatters ~55% and passes ~60%),
+double-image parallax off the middle registration layer, floor spill, sway.
+`C` cycles AUDIENCE / OBLIQUE / OVERVIEW.
+
+All rig numbers live in `SCRIMRIG` (`parts/part2d_scrimview.js`, feet). Strip
+size is real; **layer depths, projector separation (6 ft), mount height
+(9 ft), throw (18 ft @ 1.2:1) and wall span (16 ft) are placeholders** pending
+the real layout from Elyse's planner (`portal/planner/13`). To make it
+truthful we need, in feet: number of drape layers and their depth spacing,
+lit wall span, ceiling height, projector positions (separation, height,
+distance to the wall), and which layer the projectors are converged on.
+
 ## Re-running the audit
 
 `tools/frameaudit.mjs` renders the latest version of every family in both frames

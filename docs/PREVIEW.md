@@ -58,6 +58,19 @@ are exactly 16:10. What you judge is what the camp sees.
 - The DBG strip (bottom of fullscreen) prints a `FRAME` line — `1920×1200 ·
   1.60 · PROJ` is the show; anything else is a window.
 - In fullscreen (⛶ SHOWTIME) on a 1920×1200 output it's pixel-for-pixel.
+- Trying a different projector class? `?frame=fhd` / `?frame=wxga` /
+  `?frame=1400x1050` re-pins the frame and every scene follows.
+
+## Scrim view — the frame thrown into The Cave
+
+Press **`V`** while a scene is open: instead of the flat frame you see it
+PROJECTED — two projectors behind the source, converged on the middle drape
+layer, painting three staggered rows of 18″ mesh strips in 3D. Slicing, layer
+offsets, the two-projector double image, mesh dimming, floor spill, sway.
+**`C`** cycles viewpoints (AUDIENCE / OBLIQUE / OVERVIEW); `V` again exits.
+The rig dimensions are honest placeholders in `parts/part2d_scrimview.js`
+(`SCRIMRIG`, in feet) — when the real layout lands from the camp planner,
+drop the numbers in and the view is truthful.
 
 ## Local preview (for offline / sandbox iteration)
 
