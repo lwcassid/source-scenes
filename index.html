@@ -1892,72 +1892,88 @@ AE.SB = {
      flat   — the plain 1920x1200 frame, one projector
      double — same frame with the second projector's ghost overlaid
      scrim  — the throw in The Cave in 3D, and YOU drive the camera:
-              drag orbits, wheel zooms, C jumps between vantage
-              presets (AUDIENCE / HEAD-ON / OBLIQUE / OVERVIEW).
-              While orbiting, the mouse belongs to the camera — the
-              hands still play from the keyboard (W/S and arrows).
-   What the scrim mode models that the flat frame can't:
-     · segmentation — cable-mounted fabric panels with air gaps slice
-       every image; panels sway a little
-     · layer offset — panels hang on cables at three depths, 6ft apart
-     · double image — the projectors register on the MIDDLE cable row;
-       panels nearer/farther catch the two throws laterally separated.
-       With the lenses ~22ft apart that separation is BIG — that's the
-       real geometry, not a bug in the sim
-     · gauze optics — each layer scatters ~half and passes the rest;
-       light adds across layers; spill lands on the floor
+              drag orbits, wheel/pinch zooms, and the CAM menu (or C)
+              jumps between vantages. AT THE SOURCE is the default —
+              it's who we design for. Keys still play the hands.
 
-   RIG GEOMETRY — derived from Elyse's Cave Layout 2026 (duxel = 8ft):
-   interior ~3 duxels wide x 5 deep (24 x 40 ft), 1-story (8ft) duxel
-   walls, 16ft towers flanking the entrance; fabric cables strung high
-   (~16ft) with 8-16ft drops, panel widths 18/27/54in. Projectors: on
-   top of the duxels at the entrance's innermost corners — ~22ft
-   apart, 8ft up, behind the user at the source. Still approximate:
-   exact per-panel positions along each cable, and which row the
-   projectors converge on. All numbers live in SCRIMRIG (feet) — edit
-   and everything follows. Needs three.js; skipped on mobile.
+   THE LAYOUT IS REAL: panels, cables, source, lights and structure
+   come from Elyse's "Cave Layout 2026" planner export
+   (docs/cave-layout-2026.json; regenerate with tools/cave2rig.py).
+   Interior 24 x 32 ft between cable anchors, 8 ft duxel walls, cables
+   at 16 ft. TWELVE fabric panels on four cross-cables plus the two
+   diagonals: a main wall of 54" x 16 ft panels at z -5.6 and -10.3
+   (BEHIND the source), narrow 18" accents at z +2.3 and +8.1 and on
+   the diagonals (in front of and around the player). The source
+   obelisk stands INSIDE the drape field at (0.2, -1.5). Projectors:
+   2x PT-VMZ50 on the entrance-corner duxel tops (+/-12, 8 ft up,
+   z +16), converged on the main wall row (z -5.63) — so the throw
+   passes through the front accents, past the player, onto the wall.
+   What that shows honestly: slicing, per-panel depth offsets, the
+   two-throw double image off the registration row, gauze dimming,
+   floor spill. One simplification: every panel scatters uniformly
+   (no panel-behind-panel shadowing).
+
+   Needs three.js; the scrim mode is skipped on mobile.
    ============================================================ */
 const SCRIMRIG = {
-  // drape rows: fabric panels hang from cables spanning the interior
-  layers: [                        // z: + toward the entrance/projectors
-    { z: 6, stagger: 0.0 },
-    { z: 0, stagger: 0.5 },     // middle row — projectors registered here
-    { z: -6, stagger: 0.25 },
+  // 12 fabric panels, verbatim from the planner export (sim x = planner x - 4)
+  PANELS: [
+    { x: -6.92, z: -10.32, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: 0.22, z: -10.32, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: 7.38, z: -10.32, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: -2.86, z: -5.63, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: 3.36, z: -5.63, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: -8.24, z: 2.3, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: 6.12, z: 2.3, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: -4.92, z: 8.15, w: 1.5, drop: 10, rot: 0, top: 16 },
+    { x: 0.28, z: 8.15, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: 4.79, z: 8.15, w: 1.5, drop: 10.5, rot: 0, top: 16 },
+    { x: 8.56, z: 11.41, w: 1.5, drop: 10, rot: -53.13, top: 16 },
+    { x: -8.64, z: 11.52, w: 1.5, drop: 10.5, rot: 53.13, top: 16 },
   ],
-  wallW: 22,                       // lit span across the room
-  stripW: 4.5, stripGap: 1.0,      // 54in "Full" panels + air gap
-  ceilH: 16, drop: 16,             // cables high off the tower line, drop to floor
-  // projectors — 2x PT-VMZ50 on top of the entrance-corner duxels
-  projSep: 22, projH: 8, projZ: 19,
+  CABLES: [
+    [[-12, 16, -16], [-12, 16, 16]],
+    [[12, 16, -16], [12, 16, 16]],
+    [[-12, 16, 16], [12, 16, -16]],
+    [[-12, 16, -16], [12, 16, 16]],
+    [[-12, 16, 8.15], [12, 16, 8.15]],
+    [[-12, 16, -5.63], [12, 16, -5.63]],
+    [[-12, 16, -10.32], [12, 16, -10.32]],
+    [[-12, 16, 2.3], [12, 16, 2.3]],
+    [[-4, 16, 16], [4, 16, 16]],
+  ],
+  // projectors — 2x PT-VMZ50 on the entrance-corner duxel tops
+  projSep: 24, projH: 8, projZ: 16,
   throwRatio: 1.1,                 // wide end of the 1.09-1.77:1 zoom
-  aimH: 8,                         // converged at drape-band center, middle row
+  aimH: 8, aimZ: -5.63,            // converged on the main-wall row
   // gauze optics — scrim survey: mesh eats ~half the light
-  scatter: 0.55, transmit: 0.6,
-  // context + dusk mood (moodLight: 0 kills the mood entirely).
-  // NO string/fairy lights — the camp doesn't have them; the mood is
-  // warm pools on the wood from the point lights.
-  sourceZ: 9, bgC: 0x05050a,
-  structW: 24, structD: 40, wallH: 8,
+  scatter: 0.55,
+  // real prop positions from the export
+  sourceX: 0.23, sourceZ: -1.55,
+  personX: -1.52, personZ: 20,     // export has them at z 34.8; kept closer for scale
+  floods: [[-12, -24], [-12, 24], [12, -24], [12, 24]],
+  // context + dusk mood (moodLight: 0 kills the mood entirely)
+  bgC: 0x05050a, structW: 24, structD: 32, wallH: 8, ceilH: 16,
   moodLight: 0.30,
 };
 
 window.SCRIMVIEW = {
-  // orbit state — camera on a sphere around the room center. The default is
-  // AT THE SOURCE: standing at the pedestal, eye height, looking onward at
-  // the drapes — that's who we're designing for.
-  orb: { th: 0, ph: 1.736, r: 9.1, ty: 7 },
+  // orbit state: camera on a sphere around a per-vantage target. Default is
+  // AT THE SOURCE — standing at the obelisk, eye height, facing the main wall.
+  orb: { th: 0.035, ph: 1.93, r: 7.1, tx: 0, ty: 8, tz: -8 },
   PRESETS: [
-    { n: 'AT THE SOURCE', s: 'SOURCE', th: 0, ph: 1.736, r: 9.1 },
-    { n: 'AUDIENCE', s: 'AUDIENCE', th: 0, ph: 1.633, r: 16 },
-    { n: 'HEAD-ON', s: 'HEAD-ON', th: 0, ph: 1.515, r: 18 },
-    { n: 'OBLIQUE', s: 'OBLIQUE', th: -0.918, ph: 1.571, r: 21.5 },
-    { n: 'OVERVIEW', s: 'OVERVIEW', th: 0.567, ph: 1.469, r: 39 },
+    { n: 'AT THE SOURCE', th: 0.035, ph: 1.93, r: 7.1, tgt: [0, 8, -8] },
+    { n: 'AUDIENCE', th: 0, ph: 1.695, r: 16.1, tgt: [0, 8, -4] },
+    { n: 'HEAD-ON', th: 0, ph: 1.571, r: 19.6, tgt: [0, 8, -5.63] },
+    { n: 'OBLIQUE', th: -1.012, ph: 1.624, r: 18.9, tgt: [0, 8, -2] },
+    { n: 'OVERVIEW', th: 0.656, ph: 1.39, r: 33.3, tgt: [0, 6, 0] },
   ],
   preset: 0,
   applyPreset(i) {
     this.preset = ((i % this.PRESETS.length) + this.PRESETS.length) % this.PRESETS.length;
     const p = this.PRESETS[this.preset];
     this.orb.th = p.th; this.orb.ph = p.ph; this.orb.r = p.r;
+    this.orb.tx = p.tgt[0]; this.orb.ty = p.tgt[1]; this.orb.tz = p.tgt[2];
     this._camSync(this.preset);
   },
   _camSync(active) {
@@ -2016,26 +2032,21 @@ window.SCRIMVIEW = {
       }`;
 
     this.strips = [];
-    const pitch = R.stripW + R.stripGap;
-    const n = Math.floor(R.wallW / pitch);
-    R.layers.forEach((L, li) => {
-      const gain = R.scatter * Math.pow(R.transmit, li); // deeper = pre-shadowed
-      for (let i = 0; i < n; i++) {
-        const x = (i - (n - 1) / 2) * pitch + L.stagger * pitch;
-        const g = new THREE.PlaneGeometry(R.stripW, R.drop, 1, 8);
-        const m = new THREE.ShaderMaterial({
-          vertexShader: vert, fragmentShader: frag,
-          uniforms: {
-            uMap: { value: this.tex }, uPL: { value: this.mats[0] }, uPR: { value: this.mats[1] },
-            uGain: { value: gain }, uTime: { value: 0 },
-            uPhase: { value: (li * 37 + i * 2.39) % 6.28 }, uDrop: { value: R.drop },
-          },
-          blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide,
-        });
-        const s = new THREE.Mesh(g, m);
-        s.position.set(x, R.ceilH - R.drop / 2, L.z);
-        this.scene.add(s); this.strips.push(s);
-      }
+    R.PANELS.forEach((Q, i) => {
+      const g = new THREE.PlaneGeometry(Q.w, Q.drop, 1, 8);
+      const m = new THREE.ShaderMaterial({
+        vertexShader: vert, fragmentShader: frag,
+        uniforms: {
+          uMap: { value: this.tex }, uPL: { value: this.mats[0] }, uPR: { value: this.mats[1] },
+          uGain: { value: R.scatter }, uTime: { value: 0 },
+          uPhase: { value: (i * 2.39) % 6.28 }, uDrop: { value: Q.drop },
+        },
+        blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      });
+      const s = new THREE.Mesh(g, m);
+      s.position.set(Q.x, Q.top - Q.drop / 2, Q.z);
+      s.rotation.y = Q.rot * Math.PI / 180;   // diagonal-cable panels
+      this.scene.add(s); this.strips.push(s);
     });
 
     // floor catches the throw's spill — grounds the wall like real dust
@@ -2050,11 +2061,9 @@ window.SCRIMVIEW = {
     floor.rotation.x = -Math.PI / 2; this.scene.add(floor);
 
     // the two projectors + cone guides — a faint edge, a whisper of haze
-    // near the lens, and a glow at the lens itself so anyone orbiting can see
-    // where the light comes from. PURELY a guide: separate geometry, additive
-    // and dim; the throw on the fabric is untouched.
+    // near the lens, and a glow at the lens itself. PURELY a guide: separate
+    // geometry, additive and dim; the throw on the fabric is untouched.
     const lineM = new THREE.LineBasicMaterial({ color: 0x3c3c50, transparent: true, opacity: 0.55 });
-    const mid = R.layers[1].z;
     const glowTex = (() => {
       const c = document.createElement('canvas'); c.width = c.height = 64;
       const g = c.getContext('2d');
@@ -2082,15 +2091,13 @@ window.SCRIMVIEW = {
         new THREE.MeshBasicMaterial({ color: 0x23232b }));
       box.position.set(side * R.projSep / 2, R.projH + 0.3, R.projZ); this.scene.add(box);
       const o = box.position;
-      const dist = Math.hypot(o.x, o.y - R.aimH, o.z - mid);
+      const dist = Math.hypot(o.x, o.y - R.aimH, o.z - R.aimZ);
       const tw = dist / R.throwRatio, th = tw / (PROJ.w / PROJ.h);
       const corners = [[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([cx, cy]) =>
-        new THREE.Vector3(cx * tw / 2, R.aimH + cy * th / 2, mid));
-      // edge lines: lens → corners + the registered rectangle
+        new THREE.Vector3(cx * tw / 2, R.aimH + cy * th / 2, R.aimZ));
       const pts = [];
       corners.forEach((c, i2) => { pts.push(o, c, c, corners[(i2 + 1) % 4]); });
       this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lineM));
-      // haze cone: four translucent sides, apex-weighted
       const verts = [], aT = [];
       corners.forEach((c, i2) => {
         const c2 = corners[(i2 + 1) % 4];
@@ -2101,7 +2108,6 @@ window.SCRIMVIEW = {
       cg.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
       cg.setAttribute('aT', new THREE.Float32BufferAttribute(aT, 1));
       this.scene.add(new THREE.Mesh(cg, coneM));
-      // the lens itself glows
       const spr = new THREE.Sprite(new THREE.SpriteMaterial({
         map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.9 }));
       spr.scale.set(2.6, 2.6, 1);
@@ -2109,19 +2115,19 @@ window.SCRIMVIEW = {
       this.scene.add(spr);
     });
 
-    // the source + a person for scale
+    // the source obelisk (real position) + a person for scale
     const src = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 8),
       new THREE.MeshBasicMaterial({ color: 0x8fb4c8 }));
-    src.position.set(0, 3.6, R.sourceZ); this.scene.add(src);
-    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 3.3, 8),
+    src.position.set(R.sourceX, 4.0, R.sourceZ); this.scene.add(src);
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 3.7, 8),
       new THREE.MeshBasicMaterial({ color: 0x1a1a20 }));
-    ped.position.set(0, 1.65, R.sourceZ); this.scene.add(ped);
+    ped.position.set(R.sourceX, 1.85, R.sourceZ); this.scene.add(ped);
     const person = new THREE.Mesh(
       THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 4.5, 3, 8) : new THREE.CylinderGeometry(0.45, 0.45, 5.4, 8),
       new THREE.MeshBasicMaterial({ color: 0x0d0d11 }));
-    person.position.set(-6, 2.7, R.sourceZ + 2); this.scene.add(person);
+    person.position.set(R.personX, 2.7, R.personZ); this.scene.add(person);
 
-    // ---- dusk mood: sky, duxel-frame pavilion, warm pools on the wood
+    // ---- dusk mood: sky, duxel-frame structure, real cables, warm pools
     if (R.moodLight > 0) {
       const sky = new THREE.Mesh(new THREE.SphereGeometry(180, 24, 12),
         new THREE.ShaderMaterial({
@@ -2139,7 +2145,7 @@ window.SCRIMVIEW = {
             }`,
         }));
       this.scene.add(sky);
-      // duxel walls as posts + header beams (24 x 40 interior, 8ft high)
+      // duxel walls as posts + header beams (24 x 32 interior, 8 ft high)
       const woodM = new THREE.MeshLambertMaterial({ color: 0x8a6544 });
       const hw = R.structW / 2, zf = R.structD / 2, zb = -R.structD / 2;
       const addBox = (w2, h2, d2, x, y, z) => {
@@ -2151,19 +2157,20 @@ window.SCRIMVIEW = {
       addBox(R.structW + 0.6, 0.5, 0.6, 0, R.wallH + 0.25, zf);
       addBox(R.structW + 0.6, 0.5, 0.6, 0, R.wallH + 0.25, zb);
       [[-hw], [hw]].forEach(([x]) => addBox(0.6, 0.5, R.structD, x, R.wallH + 0.25, 0));
-      // the 16ft tower line: masts flank the entrance opening (front + back),
-      // carrying the cables the fabric hangs from
+      // 16 ft towers flank the entrance (front + back), carrying the cables
       [[-4, zf], [4, zf], [-4, zb], [4, zb]].forEach(([x, z]) => addBox(0.6, R.ceilH, 0.6, x, R.ceilH / 2, z));
+      // the REAL cable runs from the planner (including the diagonals)
       const cableM = new THREE.LineBasicMaterial({ color: 0x3a3a46, transparent: true, opacity: 0.7 });
-      R.layers.forEach(L => {
-        const pts = [new THREE.Vector3(-hw, R.ceilH, L.z), new THREE.Vector3(hw, R.ceilH, L.z)];
-        this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), cableM));
+      R.CABLES.forEach(seg => {
+        const pts = seg.map(a => new THREE.Vector3(a[0], a[1], a[2]));
+        this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(
+          pts.length === 2 ? pts : [pts[0], pts[1], pts[1], pts[2]]), cableM));
       });
-      // what lights the wood: dim warm pools + a whisper of ambient
+      // what lights the wood: the camp's four flood positions, dim + warm
       this.scene.add(new THREE.AmbientLight(0x2a2233, 0.9));
-      [[0, zf - 2], [-hw * 0.7, -8], [hw * 0.7, -8]].forEach(([x, z]) => {
-        const pl = new THREE.PointLight(0xffa050, R.moodLight, 30);
-        pl.position.set(x, R.wallH - 0.5, z); this.scene.add(pl);
+      R.floods.forEach(([x, z]) => {
+        const pl = new THREE.PointLight(0xffa050, R.moodLight, 34);
+        pl.position.set(x, R.ceilH, z); this.scene.add(pl);
       });
     }
   },
@@ -2183,16 +2190,16 @@ window.SCRIMVIEW = {
     if (this.renderer.domElement.width !== P.w || this.renderer.domElement.height !== P.h) {
       this.renderer.setSize(P.w, P.h, false);
     }
-    const R = SCRIMRIG, mid = R.layers[1].z;
-    // rebuild the two throw matrices (registered on the middle cable row)
+    const R = SCRIMRIG;
+    // rebuild the two throw matrices (registered on the main-wall row)
     [-1, 1].forEach((side, i) => {
       const pc = this.projCams[i];
       pc.position.set(side * R.projSep / 2, R.projH, R.projZ);
-      const dist = Math.hypot(pc.position.x, pc.position.y - R.aimH, pc.position.z - mid);
+      const dist = Math.hypot(pc.position.x, pc.position.y - R.aimH, pc.position.z - R.aimZ);
       const tw = dist / R.throwRatio;
       pc.fov = 2 * Math.atan((tw / (PROJ.w / PROJ.h)) / 2 / dist) * 180 / Math.PI;
       pc.aspect = PROJ.w / PROJ.h; pc.near = 0.5; pc.far = 120;
-      pc.lookAt(0, R.aimH, mid);
+      pc.lookAt(0, R.aimH, R.aimZ);
       pc.updateProjectionMatrix(); pc.updateMatrixWorld();
       this.mats[i].multiplyMatrices(pc.projectionMatrix, pc.matrixWorldInverse);
     });
@@ -2201,10 +2208,10 @@ window.SCRIMVIEW = {
     this.camera.fov = 50;
     this.camera.aspect = P.w / P.h; this.camera.updateProjectionMatrix();
     this.camera.position.set(
-      o.r * Math.sin(o.ph) * Math.sin(o.th),
+      o.tx + o.r * Math.sin(o.ph) * Math.sin(o.th),
       o.ty + o.r * Math.cos(o.ph),
-      o.r * Math.sin(o.ph) * Math.cos(o.th));
-    this.camera.lookAt(0, o.ty, 0);
+      o.tz + o.r * Math.sin(o.ph) * Math.cos(o.th));
+    this.camera.lookAt(o.tx, o.ty, o.tz);
     this.tex.needsUpdate = true;
     this.strips.forEach(s => { s.material.uniforms.uTime.value = t; });
     this.renderer.render(this.scene, this.camera);
@@ -2212,8 +2219,8 @@ window.SCRIMVIEW = {
     fg.drawImage(this.renderer.domElement, 0, 0);
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
-    fg.fillText('SCRIM · The Cave 24×40 ft · rows 6 ft apart · projectors 22 ft apart · ' +
-      'drag ORBIT · wheel/pinch ZOOM · CAM menu in the bar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+    fg.fillText('SCRIM · Cave Layout 2026 (planner export) · 24×32 ft · 12 panels · ' +
+      'drag ORBIT · wheel/pinch ZOOM · CAM menu (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
 
@@ -2238,7 +2245,7 @@ window.SCRIMVIEW = {
     if (!inScrim() || !drag) return;
     const o = SCRIMVIEW.orb;
     o.th -= (e.clientX - drag.x) * 0.009;
-    o.ph = clamp(o.ph - (e.clientY - drag.y) * 0.007, 0.25, 1.78);
+    o.ph = clamp(o.ph - (e.clientY - drag.y) * 0.007, 0.25, 2.0);
     drag = { x: e.clientX, y: e.clientY };
     SCRIMVIEW._camSync(-1); // free orbit — no preset is "current" anymore
   });
@@ -2250,10 +2257,10 @@ window.SCRIMVIEW = {
     e.preventDefault();
     // trackpad pinch arrives as ctrl+wheel with tiny deltas — give it real gain
     const k = e.ctrlKey ? 0.014 : 0.0022;
-    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * k), 8, 70);
+    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * k), 3, 70);
   }, { passive: false });
 })();
-// V cycles the view modes; C jumps between orbit vantages in scrim mode
+// V cycles the view modes; C cycles vantages inside the scrim view
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
