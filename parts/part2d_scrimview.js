@@ -96,8 +96,8 @@ window.SCRIMVIEW = {
     const sel = document.getElementById('camSel');
     if (!sel) return;
     if (!sel.options.length)
-      sel.innerHTML = this.PRESETS.map((p, i) => `<option value="${i}">CAM: ${p.n}</option>`).join('') +
-        '<option value="free" disabled>CAM: FREE ORBIT</option>';
+      sel.innerHTML = this.PRESETS.map((p, i) => `<option value="${i}">CAM · ${p.n}</option>`).join('') +
+        '<option value="free" disabled>CAM · FREE ORBIT</option>';
     sel.value = active >= 0 ? String(active) : 'free';
   },
   _init(P) {
@@ -378,7 +378,7 @@ window.SCRIMVIEW = {
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · Cave Layout 2026 (planner export) · 24×32 ft · 12 panels · ' +
-      'drag ORBIT · wheel/pinch ZOOM · CAM menu (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel/pinch ZOOM · CAM in the sidebar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
 
