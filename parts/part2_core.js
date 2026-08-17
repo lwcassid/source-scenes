@@ -457,6 +457,8 @@ function setView(mode) {
   try { localStorage.setItem('srcView', mode); } catch (e) {}
   const sel = document.getElementById('viewSel');
   if (sel && sel.value !== mode) sel.value = mode;
+  const ov = document.getElementById('overlay');
+  if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
 }
 function stageMetrics() {
   const stage = focusCanvas.parentElement;

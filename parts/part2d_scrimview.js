@@ -71,6 +71,14 @@ window.SCRIMVIEW = {
     this.preset = ((i % this.PRESETS.length) + this.PRESETS.length) % this.PRESETS.length;
     const p = this.PRESETS[this.preset];
     this.orb.th = p.th; this.orb.ph = p.ph; this.orb.r = p.r;
+    this._chipSync(this.preset);
+  },
+  _chipSync(active) {
+    const row = document.getElementById('scrimCams');
+    if (!row) return;
+    if (!row.children.length)
+      row.innerHTML = this.PRESETS.map((p, i) => `<button data-i="${i}">${p.n}</button>`).join('');
+    [...row.children].forEach((b, i) => b.classList.toggle('on', i === active));
   },
   _init(P) {
     const R = SCRIMRIG;
@@ -153,9 +161,34 @@ window.SCRIMVIEW = {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), this.floorMat);
     floor.rotation.x = -Math.PI / 2; this.scene.add(floor);
 
-    // the two projectors + frustum edges to the registered image rectangle
-    const lineM = new THREE.LineBasicMaterial({ color: 0x2a2a38, transparent: true, opacity: 0.5 });
+    // the two projectors + cone guides — a faint edge, a whisper of haze
+    // near the lens, and a glow at the lens itself so anyone orbiting can see
+    // where the light comes from. PURELY a guide: separate geometry, additive
+    // and dim; the throw on the fabric is untouched.
+    const lineM = new THREE.LineBasicMaterial({ color: 0x3c3c50, transparent: true, opacity: 0.55 });
     const mid = R.layers[1].z;
+    const glowTex = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      const grd = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+      grd.addColorStop(0, 'rgba(255,245,225,1)');
+      grd.addColorStop(0.35, 'rgba(200,205,235,0.5)');
+      grd.addColorStop(1, 'rgba(160,170,220,0)');
+      g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+      return new THREE.CanvasTexture(c);
+    })();
+    const coneM = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      side: THREE.DoubleSide, fog: false,
+      vertexShader: `attribute float aT; varying float vT;
+        void main(){ vT = aT;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader: `varying float vT;
+        void main(){
+          float a = (1.0 - vT); a *= a;                 // bright at the lens, gone by the wall
+          gl_FragColor = vec4(vec3(0.33, 0.38, 0.55) * a * 0.16, 1.0);
+        }`,
+    });
     [-1, 1].forEach(side => {
       const box = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.5, 1.1),
         new THREE.MeshBasicMaterial({ color: 0x23232b }));
@@ -163,14 +196,29 @@ window.SCRIMVIEW = {
       const o = box.position;
       const dist = Math.hypot(o.x, o.y - R.aimH, o.z - mid);
       const tw = dist / R.throwRatio, th = tw / (PROJ.w / PROJ.h);
+      const corners = [[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([cx, cy]) =>
+        new THREE.Vector3(cx * tw / 2, R.aimH + cy * th / 2, mid));
+      // edge lines: lens → corners + the registered rectangle
       const pts = [];
-      [[-1, -1], [-1, 1], [1, 1], [1, -1]].forEach(([cx, cy], i2, arr) => {
-        const c = new THREE.Vector3(cx * tw / 2, R.aimH + cy * th / 2, mid);
-        const c2v = arr[(i2 + 1) % 4],
-          c2 = new THREE.Vector3(c2v[0] * tw / 2, R.aimH + c2v[1] * th / 2, mid);
-        pts.push(o, c, c, c2);
-      });
+      corners.forEach((c, i2) => { pts.push(o, c, c, corners[(i2 + 1) % 4]); });
       this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lineM));
+      // haze cone: four translucent sides, apex-weighted
+      const verts = [], aT = [];
+      corners.forEach((c, i2) => {
+        const c2 = corners[(i2 + 1) % 4];
+        verts.push(o.x, o.y, o.z, c.x, c.y, c.z, c2.x, c2.y, c2.z);
+        aT.push(0, 1, 1);
+      });
+      const cg = new THREE.BufferGeometry();
+      cg.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      cg.setAttribute('aT', new THREE.Float32BufferAttribute(aT, 1));
+      this.scene.add(new THREE.Mesh(cg, coneM));
+      // the lens itself glows
+      const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.9 }));
+      spr.scale.set(2.6, 2.6, 1);
+      spr.position.set(o.x, o.y, o.z - 0.7);
+      this.scene.add(spr);
     });
 
     // the source + a person for scale
@@ -242,7 +290,7 @@ window.SCRIMVIEW = {
     if (this.floorMat) this.floorMat.uniforms.uMap.value = this.tex;
   },
   render(fg, P, t) {
-    if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); if (typeof setView === 'function') setView('flat'); return; } }
+    if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); if (typeof setView === 'function') setView('flat'); return; } this._chipSync(this.preset); }
     this._bindTex(P);
     if (this.renderer.domElement.width !== P.w || this.renderer.domElement.height !== P.h) {
       this.renderer.setSize(P.w, P.h, false);
@@ -277,7 +325,7 @@ window.SCRIMVIEW = {
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · The Cave 24×40 ft · rows 6 ft apart · projectors 22 ft apart · ' +
-      'drag ORBIT · wheel ZOOM · C vantages · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel ZOOM · vantage chips top-left (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
 
@@ -287,6 +335,11 @@ window.SCRIMVIEW = {
   const inScrim = () => typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' &&
     typeof focus !== 'undefined' && focus.idx >= 0;
   let drag = null;
+  const row = document.getElementById('scrimCams');
+  if (row) row.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (b) SCRIMVIEW.applyPreset(+b.dataset.i);
+  });
   focusCanvas.addEventListener('pointerdown', e => {
     if (!inScrim()) return;
     drag = { x: e.clientX, y: e.clientY };
@@ -295,9 +348,10 @@ window.SCRIMVIEW = {
   focusCanvas.addEventListener('pointermove', e => {
     if (!inScrim() || !drag) return;
     const o = SCRIMVIEW.orb;
-    o.th -= (e.clientX - drag.x) * 0.005;
-    o.ph = clamp(o.ph + (e.clientY - drag.y) * 0.004, 0.25, 1.78);
+    o.th -= (e.clientX - drag.x) * 0.009;
+    o.ph = clamp(o.ph - (e.clientY - drag.y) * 0.007, 0.25, 1.78);
     drag = { x: e.clientX, y: e.clientY };
+    SCRIMVIEW._chipSync(-1); // free orbit — no preset is "current" anymore
   });
   const end = () => { drag = null; };
   focusCanvas.addEventListener('pointerup', end);

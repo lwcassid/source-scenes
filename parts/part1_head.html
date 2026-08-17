@@ -171,6 +171,13 @@
   #overlay.fs:not(.perf) #panelTab{color:var(--acc);opacity:.7}
   #overlay.zen.perf #panelTab{opacity:0}
   #overlay.zen.perf #panelTab:hover{opacity:1}
+  /* scrim vantage chips — one click to each default view of The Cave */
+  #scrimCams{display:none;position:absolute;top:14px;left:14px;z-index:8;gap:6px;flex-wrap:wrap}
+  #overlay.scrimmode #scrimCams{display:flex}
+  #scrimCams button{font-size:9px;padding:5px 10px;letter-spacing:.12em;border-radius:999px;
+    background:rgba(10,10,14,.55);border:1px solid rgba(255,255,255,.18);color:#cfd6e4;opacity:.75}
+  #scrimCams button:hover{opacity:1}
+  #scrimCams button.on{background:var(--acc);border-color:var(--acc);color:#fff;opacity:1}
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
   /* laser sliders */
@@ -419,6 +426,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   <div class="ostage">
     <canvas id="focusCanvas"></canvas>
     <button id="stageFS" title="Showtime — take the whole display">⛶</button>
+    <div id="scrimCams" title="Vantage points — or drag to orbit, wheel to zoom"></div>
     <div id="edgeL" class="edgeNav"><span>‹</span></div>
     <div id="edgeR" class="edgeNav"><span>›</span></div>
     <div id="dbg"><div id="dbgTab">DBG</div><div id="dbgBody"></div></div>
