@@ -71,14 +71,15 @@ window.SCRIMVIEW = {
     this.preset = ((i % this.PRESETS.length) + this.PRESETS.length) % this.PRESETS.length;
     const p = this.PRESETS[this.preset];
     this.orb.th = p.th; this.orb.ph = p.ph; this.orb.r = p.r;
-    this._chipSync(this.preset);
+    this._camSync(this.preset);
   },
-  _chipSync(active) {
-    const row = document.getElementById('scrimCams');
-    if (!row) return;
-    if (!row.children.length)
-      row.innerHTML = this.PRESETS.map((p, i) => `<button data-i="${i}" title="${p.n}">${p.s}</button>`).join('');
-    [...row.children].forEach((b, i) => b.classList.toggle('on', i === active));
+  _camSync(active) {
+    const sel = document.getElementById('camSel');
+    if (!sel) return;
+    if (!sel.options.length)
+      sel.innerHTML = this.PRESETS.map((p, i) => `<option value="${i}">CAM: ${p.n}</option>`).join('') +
+        '<option value="free" disabled>CAM: FREE ORBIT</option>';
+    sel.value = active >= 0 ? String(active) : 'free';
   },
   _init(P) {
     const R = SCRIMRIG;
@@ -290,7 +291,7 @@ window.SCRIMVIEW = {
     if (this.floorMat) this.floorMat.uniforms.uMap.value = this.tex;
   },
   render(fg, P, t) {
-    if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); if (typeof setView === 'function') setView('flat'); return; } this._chipSync(this.preset); }
+    if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); if (typeof setView === 'function') setView('flat'); return; } this._camSync(this.preset); }
     this._bindTex(P);
     if (this.renderer.domElement.width !== P.w || this.renderer.domElement.height !== P.h) {
       this.renderer.setSize(P.w, P.h, false);
@@ -325,7 +326,7 @@ window.SCRIMVIEW = {
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · The Cave 24×40 ft · rows 6 ft apart · projectors 22 ft apart · ' +
-      'drag ORBIT · wheel/pinch ZOOM · vantages in the bar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel/pinch ZOOM · CAM menu in the bar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
 
@@ -335,11 +336,11 @@ window.SCRIMVIEW = {
   const inScrim = () => typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' &&
     typeof focus !== 'undefined' && focus.idx >= 0;
   let drag = null;
-  SCRIMVIEW._chipSync(SCRIMVIEW.preset); // build the vantage chips up front
-  const row = document.getElementById('scrimCams');
-  if (row) row.addEventListener('click', e => {
-    const b = e.target.closest('button');
-    if (b) SCRIMVIEW.applyPreset(+b.dataset.i);
+  SCRIMVIEW._camSync(SCRIMVIEW.preset); // build the vantage menu up front
+  const camSel = document.getElementById('camSel');
+  if (camSel) camSel.addEventListener('change', () => {
+    if (camSel.value !== 'free') SCRIMVIEW.applyPreset(+camSel.value);
+    camSel.blur();
   });
   focusCanvas.addEventListener('pointerdown', e => {
     if (!inScrim()) return;
@@ -352,7 +353,7 @@ window.SCRIMVIEW = {
     o.th -= (e.clientX - drag.x) * 0.009;
     o.ph = clamp(o.ph - (e.clientY - drag.y) * 0.007, 0.25, 1.78);
     drag = { x: e.clientX, y: e.clientY };
-    SCRIMVIEW._chipSync(-1); // free orbit — no preset is "current" anymore
+    SCRIMVIEW._camSync(-1); // free orbit — no preset is "current" anymore
   });
   const end = () => { drag = null; };
   focusCanvas.addEventListener('pointerup', end);
