@@ -66,9 +66,11 @@ const SCRIMRIG = {
   sourceX: 0.23, sourceZ: -1.55,
   personX: -1.52, personZ: 20,     // export has them at z 34.8; kept closer for scale
   floods: [[-12, -24], [-12, 24], [12, -24], [12, 24]],
-  // context + dusk mood (moodLight: 0 kills the mood entirely)
-  bgC: 0x05050a, structW: 24, structD: 32, wallH: 8, ceilH: 16,
-  moodLight: 0.30,
+  // context + camp mood: ambient pastel purple/pink wash (the camp runs
+  // colored LEDs so people can see), playa-sand floor, duxel structure
+  bgC: 0x0a070d, structW: 24, structD: 32, wallH: 8, ceilH: 16,
+  moodLight: 0.5,
+  moodColors: [0xf2a6d8, 0xb593f0, 0xf2a6d8, 0xb593f0], // pink / lavender floods
 };
 
 window.SCRIMVIEW = {
@@ -141,7 +143,7 @@ window.SCRIMVIEW = {
       }
       void main() {
         vec3 col = throwFrom(uPL) + throwFrom(uPR);       // light adds on gauze
-        col = col * uGain + vec3(0.016, 0.012, 0.011);    // dusk-lit fabric
+        col = col * uGain + vec3(0.028, 0.019, 0.030);    // pastel-washed fabric
         gl_FragColor = vec4(col, 1.0);
       }`;
 
@@ -163,12 +165,35 @@ window.SCRIMVIEW = {
       this.scene.add(s); this.strips.push(s);
     });
 
-    // floor catches the throw's spill — grounds the wall like real dust
+    // floor: playa sand under the pastel camp wash, plus the throw's spill.
+    // Brighter than true night — the camp's ambient LEDs are the reference.
     this.floorMat = new THREE.ShaderMaterial({
       vertexShader: `varying vec3 vWorld;
         void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vWorld = wp.xyz;
           gl_Position = projectionMatrix * viewMatrix * wp; }`,
-      fragmentShader: frag.replace('vec3(0.016, 0.012, 0.011)', 'vec3(0.013, 0.010, 0.008)'),
+      fragmentShader: `
+        uniform sampler2D uMap;
+        uniform mat4 uPL, uPR;
+        uniform float uGain;
+        varying vec3 vWorld;
+        vec3 throwFrom(mat4 m) {
+          vec4 q = m * vec4(vWorld, 1.0);
+          if (q.w <= 0.0) return vec3(0.0);
+          vec2 uv = q.xy / q.w * 0.5 + 0.5;
+          if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return vec3(0.0);
+          return texture2D(uMap, uv).rgb;
+        }
+        float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        void main() {
+          // fine grain + broad drifts read as packed playa dust
+          float g = hash(floor(vWorld.xz * 3.0)) * 0.5 + hash(floor(vWorld.xz * 0.7)) * 0.5;
+          float drift = 0.5 + 0.5 * sin(vWorld.x * 0.31) * sin(vWorld.z * 0.23);
+          vec3 sand = mix(vec3(0.135, 0.105, 0.115), vec3(0.205, 0.165, 0.175), g * 0.6 + drift * 0.4);
+          sand *= vec3(1.02, 0.90, 1.06);                    // the pastel wash tints it
+          float fade = exp(-length(vWorld.xz) * 0.022);      // open playa falls off into night
+          sand *= mix(0.3, 1.0, fade);
+          gl_FragColor = vec4(throwFrom(uPL) * uGain + throwFrom(uPR) * uGain + sand, 1.0);
+        }`,
       uniforms: { uMap: { value: this.tex }, uPL: { value: this.mats[0] }, uPR: { value: this.mats[1] }, uGain: { value: 0.10 } },
     });
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), this.floorMat);
@@ -251,28 +276,46 @@ window.SCRIMVIEW = {
           fragmentShader: `varying vec3 vP;
             void main(){
               float h = clamp(normalize(vP).y, -0.1, 1.0);
-              vec3 zen = vec3(0.016, 0.018, 0.040);
-              vec3 hor = vec3(0.085, 0.042, 0.055);        // dusty rose band
+              vec3 zen = vec3(0.020, 0.020, 0.048);
+              vec3 hor = vec3(0.110, 0.058, 0.095);        // dusty rose-violet band
               vec3 c = mix(hor, zen, smoothstep(0.0, 0.45, h));
               if (h < 0.0) c = mix(hor, vec3(0.02,0.015,0.02), -h * 8.0);
               gl_FragColor = vec4(c, 1.0);
             }`,
         }));
       this.scene.add(sky);
-      // duxel walls as posts + header beams (24 x 32 interior, 8 ft high)
-      const woodM = new THREE.MeshLambertMaterial({ color: 0x8a6544 });
-      const hw = R.structW / 2, zf = R.structD / 2, zb = -R.structD / 2;
-      const addBox = (w2, h2, d2, x, y, z) => {
-        const b = new THREE.Mesh(new THREE.BoxGeometry(w2, h2, d2), woodM);
-        b.position.set(x, y, z); this.scene.add(b); return b;
+      // THE DUXELS — the camp's 8 ft cube frames, laid out like the planner:
+      // 1-story rows down both sides, 2-story back wall, 2-story entrance
+      // towers with an open arch between them, corner cubes. Toggle with the
+      // DUXELS button (or D) when the frames get in the way of judging a look.
+      this.duxels = new THREE.Group();
+      const woodM = new THREE.MeshLambertMaterial({ color: 0x9a7047 });
+      const beamG = new THREE.BoxGeometry(1, 1, 1);
+      const beam = (x1, y1, z1, x2, y2, z2) => {
+        const t = 0.32;
+        const b = new THREE.Mesh(beamG, woodM);
+        b.scale.set(Math.abs(x2 - x1) + t, Math.abs(y2 - y1) + t, Math.abs(z2 - z1) + t);
+        b.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+        this.duxels.add(b);
       };
-      [[-hw, zf], [hw, zf], [-hw, zb], [hw, zb],
-       [-hw, 0], [hw, 0]].forEach(([x, z]) => addBox(0.6, R.wallH, 0.6, x, R.wallH / 2, z));
-      addBox(R.structW + 0.6, 0.5, 0.6, 0, R.wallH + 0.25, zf);
-      addBox(R.structW + 0.6, 0.5, 0.6, 0, R.wallH + 0.25, zb);
-      [[-hw], [hw]].forEach(([x]) => addBox(0.6, 0.5, R.structD, x, R.wallH + 0.25, 0));
-      // 16 ft towers flank the entrance (front + back), carrying the cables
-      [[-4, zf], [4, zf], [-4, zb], [4, zb]].forEach(([x, z]) => addBox(0.6, R.ceilH, 0.6, x, R.ceilH / 2, z));
+      const cube = (x0, z0, y0) => {         // one 8 ft duxel frame, base corner (x0, y0, z0)
+        const x1 = x0 + 8, z1 = z0 + 8, y1 = y0 + 8;
+        beam(x0, y0, z0, x0, y1, z0); beam(x1, y0, z0, x1, y1, z0);
+        beam(x0, y0, z1, x0, y1, z1); beam(x1, y0, z1, x1, y1, z1);
+        for (const y of [y0, y1]) {
+          beam(x0, y, z0, x1, y, z0); beam(x0, y, z1, x1, y, z1);
+          beam(x0, y, z0, x0, y, z1); beam(x1, y, z0, x1, y, z1);
+        }
+      };
+      for (const zc of [-16, -8, 0, 8]) { cube(-20, zc, 0); cube(12, zc, 0); }   // side rows
+      for (const xc of [-12, -4, 4]) { cube(xc, -24, 0); cube(xc, -24, 8); }     // back wall, 2-story
+      for (const xc of [-12, 4]) { cube(xc, 16, 0); cube(xc, 16, 8); }           // entrance towers
+      cube(-4, 16, 8);                                                            // the arch over the opening
+      cube(-20, 16, 0); cube(12, 16, 0); cube(-20, -24, 0); cube(12, -24, 0);    // corners
+      this.duxels.visible = (() => { try { return localStorage.getItem('srcDuxels') !== '0'; } catch (e) { return true; } })();
+      this.scene.add(this.duxels);
+      const bd = document.getElementById('btnDux');
+      if (bd) bd.classList.toggle('off', !this.duxels.visible);
       // the REAL cable runs from the planner (including the diagonals)
       const cableM = new THREE.LineBasicMaterial({ color: 0x3a3a46, transparent: true, opacity: 0.7 });
       R.CABLES.forEach(seg => {
@@ -280,10 +323,11 @@ window.SCRIMVIEW = {
         this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(
           pts.length === 2 ? pts : [pts[0], pts[1], pts[1], pts[2]]), cableM));
       });
-      // what lights the wood: the camp's four flood positions, dim + warm
-      this.scene.add(new THREE.AmbientLight(0x2a2233, 0.9));
-      R.floods.forEach(([x, z]) => {
-        const pl = new THREE.PointLight(0xffa050, R.moodLight, 34);
+      // the camp's four floods at their real positions — pastel pink/lavender,
+      // bright enough that people can see, still far below the throw
+      this.scene.add(new THREE.AmbientLight(0x584a66, 1.0));
+      R.floods.forEach(([x, z], i) => {
+        const pl = new THREE.PointLight(R.moodColors[i % R.moodColors.length], R.moodLight, 40);
         pl.position.set(x, R.ceilH, z); this.scene.add(pl);
       });
     }
@@ -380,6 +424,20 @@ window.SCRIMVIEW = {
     const k = e.ctrlKey ? 0.014 : 0.0022;
     SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * k), 3, 70);
   }, { passive: false });
+  const duxFlip = () => {
+    if (!SCRIMVIEW.duxels) return;
+    SCRIMVIEW.duxels.visible = !SCRIMVIEW.duxels.visible;
+    try { localStorage.setItem('srcDuxels', SCRIMVIEW.duxels.visible ? '1' : '0'); } catch (err) {}
+    const bd = document.getElementById('btnDux');
+    if (bd) bd.classList.toggle('off', !SCRIMVIEW.duxels.visible);
+  };
+  const btnDux = document.getElementById('btnDux');
+  if (btnDux) btnDux.addEventListener('click', duxFlip);
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if ((e.key === 'd' || e.key === 'D') && inScrim()) duxFlip();
+  });
   SCRIMVIEW._camSync(SCRIMVIEW.preset); // build the vantage menu up front
   const camSel = document.getElementById('camSel');
   if (camSel) camSel.addEventListener('change', () => {
