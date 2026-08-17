@@ -27,12 +27,26 @@ const { chromium } = require(PW);
   await page.waitForTimeout(2500);
   if (PROJ) await page.evaluate(() => document.getElementById('overlay').classList.add('fs', 'zen'));
 
-  // SCENE=ALL → smoke every registered scene: open, drive hands, count errors.
-  // Run this after ANY structural/core change before pushing.
-  if (sceneId === 'ALL') {
-    const n = await page.evaluate(() => PIECES.length);
+  // SCENE=QA → smoke 10 deliberately different scenes (2D radial, fixed sim
+  // grid, shader+bloom fx, WebGL+GLB, typed-array grains, bitmap assets,
+  // bright film, contour field — every stack the codebase uses, all owners).
+  // Run after ANY structural/core change before pushing. SCENE=ALL is the
+  // full 141-scene sweep — slower; use for release-sized changes.
+  const QA_FAMS = ['SRC-01', 'SRC-07', 'SRC-15', 'SRC-18', 'SRC-28',
+    'SRC-30', 'SRC-32', 'SRC-34', 'SRC-38', 'SRC-42'];
+  if (sceneId === 'ALL' || sceneId === 'QA') {
+    const idxs = await page.evaluate((fams) => {
+      if (!fams) return PIECES.map((p, i) => i);
+      return fams.map(f => {           // newest version of each QA family
+        let best = -1;
+        PIECES.forEach((p, j) => {
+          if ((p.family || p.id) === f && (best < 0 || (p.ver || 1) >= (PIECES[best].ver || 1))) best = j;
+        });
+        return best;
+      }).filter(i => i >= 0);
+    }, sceneId === 'QA' ? QA_FAMS : null);
     let bad = 0;
-    for (let i = 0; i < n; i++) {
+    for (const i of idxs) {
       const before = errs.length;
       const id = await page.evaluate(i => { openFocus(i); return PIECES[i].id; }, i);
       await page.waitForTimeout(800);
@@ -42,7 +56,7 @@ const { chromium } = require(PW);
       if (nw) { bad++; console.log(`FAIL ${id}  +${nw} error(s): ${errs[errs.length - 1]}`); }
       else console.log(`ok   ${id}`);
     }
-    console.log(`smoke done: ${n} scenes, ${bad} failing, ${errs.length} total errors`);
+    console.log(`smoke done: ${idxs.length} scenes, ${bad} failing, ${errs.length} total errors`);
     await browser.close();
     process.exit(bad ? 2 : 0);
   }

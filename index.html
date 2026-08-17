@@ -1876,8 +1876,12 @@ const SCRIMRIG = {
   // mesh optics — scrim survey: mesh eats ~half the light
   scatter: 0.55,                   // fraction a layer catches (what you see)
   transmit: 0.6,                   // fraction passed through to deeper layers
-  // context
-  sourceZ: 10, floorC: 0x08080a, bgC: 0x040406,
+  // context + dusk mood — the camp at dusk: warm string lights on the wood
+  // structure, faint sky glow at the horizon. All of it stays far below the
+  // throw so the projector remains the brightest thing in the room.
+  sourceZ: 10, floorC: 0x08080a, bgC: 0x05050a,
+  structW: 18, structD: 20,        // wood pavilion footprint around the rig
+  moodLight: 0.30,                 // string/point light intensity (0 = off)
 };
 
 window.SCRIMVIEW = {
@@ -1937,7 +1941,7 @@ window.SCRIMVIEW = {
         vec3 col = throwFrom(uPL) + throwFrom(uPR);      // light adds on gauze
         // woven-mesh shimmer so the fabric reads as material, not a screen
         float weave = 0.82 + 0.18 * sin(vWorld.x * 34.0) * sin(vWorld.y * 34.0);
-        col = col * uGain * weave + vec3(0.010);          // faint unlit fabric
+        col = col * uGain * weave + vec3(0.016, 0.012, 0.011); // dusk-lit fabric
         gl_FragColor = vec4(col, 1.0);
       }`;
 
@@ -1970,7 +1974,7 @@ window.SCRIMVIEW = {
         vertexShader: `varying vec3 vWorld;
           void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vWorld = wp.xyz;
             gl_Position = projectionMatrix * viewMatrix * wp; }`,
-        fragmentShader: frag,
+        fragmentShader: frag.replace('vec3(0.016, 0.012, 0.011)', 'vec3(0.013, 0.010, 0.008)'),
         uniforms: { uMap: { value: this.tex }, uPL: { value: this.mats[0] }, uPR: { value: this.mats[1] }, uGain: { value: 0.10 } },
       }));
     floor.rotation.x = -Math.PI / 2; this.scene.add(floor);
@@ -2000,6 +2004,58 @@ window.SCRIMVIEW = {
       THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 4.5, 3, 8) : new THREE.CylinderGeometry(0.45, 0.45, 5.4, 8),
       new THREE.MeshBasicMaterial({ color: 0x0d0d11 }));
     person.position.set(-5, 2.7, R.sourceZ + 2); this.scene.add(person);
+
+    // ---- dusk mood: sky, wood pavilion, string lights (R.moodLight = 0 kills it)
+    if (R.moodLight > 0) {
+      // playa sky just after sunset — deep indigo up top, warm mauve horizon
+      const sky = new THREE.Mesh(new THREE.SphereGeometry(140, 24, 12),
+        new THREE.ShaderMaterial({
+          side: THREE.BackSide, depthWrite: false, fog: false,
+          vertexShader: `varying vec3 vP; void main(){ vP = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+          fragmentShader: `varying vec3 vP;
+            void main(){
+              float h = clamp(normalize(vP).y, -0.1, 1.0);
+              vec3 zen = vec3(0.016, 0.018, 0.040);
+              vec3 hor = vec3(0.085, 0.042, 0.055);          // dusty rose band
+              vec3 c = mix(hor, zen, smoothstep(0.0, 0.45, h));
+              if (h < 0.0) c = mix(hor, vec3(0.02,0.015,0.02), -h * 8.0);
+              gl_FragColor = vec4(c, 1.0);
+            }`,
+        }));
+      this.scene.add(sky);
+      // wood pavilion: corner posts + perimeter beams, warm-lit
+      const woodM = new THREE.MeshLambertMaterial({ color: 0x8a6544 });
+      const hw = R.structW / 2, zf = -1, zb = zf + R.structD; // wall side → behind projectors
+      const addBox = (w2, h2, d2, x, y, z) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(w2, h2, d2), woodM);
+        b.position.set(x, y, z); this.scene.add(b); return b;
+      };
+      [[-hw, zf], [hw, zf], [-hw, zb], [hw, zb]].forEach(([x, z]) => addBox(0.5, R.ceilH, 0.5, x, R.ceilH / 2, z));
+      addBox(R.structW + 0.5, 0.45, 0.5, 0, R.ceilH + 0.2, zf);   // front header (over the drapes)
+      addBox(R.structW + 0.5, 0.45, 0.5, 0, R.ceilH + 0.2, zb);
+      [[-hw], [hw]].forEach(([x]) => addBox(0.5, 0.45, R.structD, x, R.ceilH + 0.2, (zf + zb) / 2));
+      // string lights: warm bulbs sagging between posts, three spans
+      const bulbM = new THREE.MeshBasicMaterial({ color: 0xffb469 });
+      const bulbG = new THREE.SphereGeometry(0.07, 6, 5);
+      const stringAt = (ax, az, bx, bz) => {
+        const len = Math.hypot(bx - ax, bz - az), nB = Math.max(8, Math.round(len / 0.9));
+        for (let i = 0; i <= nB; i++) {
+          const t2 = i / nB, sag = Math.sin(t2 * Math.PI) * 0.55;
+          const b = new THREE.Mesh(bulbG, bulbM);
+          b.position.set(ax + (bx - ax) * t2, R.ceilH - 0.15 - sag, az + (bz - az) * t2);
+          this.scene.add(b);
+        }
+      };
+      stringAt(-hw, zf, hw, zf);
+      stringAt(-hw, zf, -hw, zb); stringAt(hw, zf, hw, zb);
+      // what actually lights the wood: dim warm points + a whisper of ambient
+      this.scene.add(new THREE.AmbientLight(0x2a2233, 0.9));
+      [[0, zf + 1], [-hw * 0.6, zb - 6], [hw * 0.6, zb - 6]].forEach(([x, z]) => {
+        const pl = new THREE.PointLight(0xffa050, R.moodLight, 26);
+        pl.position.set(x, R.ceilH - 0.6, z); this.scene.add(pl);
+      });
+    }
   },
   render(fg, P, t) {
     if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); this.on = false; return; } }

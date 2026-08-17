@@ -128,5 +128,6 @@ conflict (one file per version), but a stale clone that rebuilds and pushes
 - Lance handles structural work (harmony engine, UI/library chrome, tools).
   Structural changes must be ADDITIVE/OPT-IN where possible (existing scenes
   keep working untouched), and after ANY core change run
-  `SCENE=<id> node tools/playtest.js` against at least 2–3 scenes —
-  including someone else's — before pushing.
+  `SCENE=QA node tools/playtest.js` before pushing — 10 deliberately
+  different scenes (every rendering stack, all owners), minutes not tens of
+  minutes. `SCENE=ALL` is the full sweep for release-sized changes.
