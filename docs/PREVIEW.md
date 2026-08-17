@@ -42,19 +42,22 @@ mouse left/right across the scene** to drive the two theremin hands (left half =
 L hand, right half = R hand; toward the edges = reach outward). Keyboard works
 too: `W`/`S` for the left hand, `↑`/`↓` for the right.
 
-## See the REAL frame (do this before judging a look)
+## You are seeing the REAL frame (by default)
 
-The projectors give one 1920×1200 render, 16:10, fullscreen. A browser window
-does not: windowed, the stage is a wide ~1280×400 strip, so what you're looking
-at is about twice as wide-to-tall as the wall and half as dense (scenes size
-their element counts off the canvas area). Two ways to see the truth:
+The projectors give one 1920×1200 render, 16:10, fullscreen. The site now
+shows you exactly that everywhere: the focus stage renders a true 1920×1200
+canvas letterboxed into your window (same composition, same density as the
+wall — the black bars are invisible on scrim anyway), and the tile thumbnails
+are exactly 16:10. What you judge is what the camp sees.
 
-- Add **`?proj`** to the URL, or press **`P`** while a scene is open. The canvas
-  becomes exactly 1920×1200 whatever your window is, drawn letterboxed and
-  centered — same composition, same density as the show. Press `P` again to go
-  back. In fullscreen (⛶ SHOWTIME) with `?proj` on you get it pixel-for-pixel.
+- Press **`P`** while a scene is open (or add **`?win`** to the URL) if you
+  ever want the old behavior — the canvas stretched to your window's own
+  shape. Press `P` again to come back.
+- Phones default to their native canvas for framerate; `?proj` forces the
+  show frame there too.
 - The DBG strip (bottom of fullscreen) prints a `FRAME` line — `1920×1200 ·
   1.60 · PROJ` is the show; anything else is a window.
+- In fullscreen (⛶ SHOWTIME) on a 1920×1200 output it's pixel-for-pixel.
 
 ## Local preview (for offline / sandbox iteration)
 

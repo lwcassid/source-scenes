@@ -48,16 +48,19 @@ python3 tools/build_preview.py  # self-contained preview for sighted testing
 git add -A && git commit -m "..." && git push   # Netlify does the rest
 ```
 
-### The frame: 1920×1200, 16:10 — design in it, not in a window
-The show is one WUXGA render fullscreen, cloned to both projectors, so a scene
-gets `P.w=1920, P.h=1200` (aspect 1.60, `areaScale` 4.56). A browser window
-gives it a ~1280×400 letterbox strip instead (aspect 3.2, `areaScale` 2.1) —
-double the width-to-height and half the density. Load the site or the preview
-with **`?proj`** (or press **`P`** on the stage) to pin the canvas to exactly
-1920×1200 in any window, letterboxed — black bars are invisible on scrim.
-`tools/shot.mjs`, `tools/shotcam.mjs`, `tools/shotevt.mjs` and
-`tools/playtest.js` all shoot that frame by default (`PROJ=0` opts out), and
-the DBG strip's `FRAME` line reports what the scene is actually getting.
+### The frame: 1920×1200, 16:10 — the DEFAULT everywhere
+The show is one WUXGA render fullscreen, cloned to both projectors (Panasonic
+PT-VMZ50, native 1920×1200), so a scene gets `P.w=1920, P.h=1200` (aspect
+1.60, `areaScale` 4.56). The focus stage now renders exactly that frame BY
+DEFAULT, letterboxed and centered in whatever window you have — black bars are
+invisible on scrim — and tile thumbnails are exactly 16:10 too. So what you
+see is what the wall gets; there is nothing to remember to turn on.
+Opt-outs: **`?win`** in the URL (or press **`P`** on the stage) gives the old
+native-window canvas; phones default to native for framerate (`?proj` forces
+the show frame even there). `tools/shot.mjs`, `tools/shotcam.mjs`,
+`tools/shotevt.mjs` and `tools/playtest.js` shoot the show frame (`PROJ=0`
+opts out), and the DBG strip's `FRAME` line reports what the scene is
+actually getting — `1920×1200 · 1.60 · PROJ` is the show.
 
 ### Verify BEFORE you ship (sighted iteration)
 Never ship a scene you haven't SEEN. In a cloud sandbox:

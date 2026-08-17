@@ -15,7 +15,7 @@ const pieceId = process.argv[2] || 'SRC-18.16';
 const outPrefix = process.argv[3] || 'v16';
 const spec = (process.argv[4] || 'full:0:0:1:0:3500').split(',');
 const PROJ = process.env.PROJ !== '0';
-const fileUrl = 'file://' + path.resolve('night-circuit-preview.html') + (PROJ ? '?proj' : '');
+const fileUrl = 'file://' + path.resolve('night-circuit-preview.html') + (PROJ ? '?proj' : '?win');
 
 const browser = await chromium.launch({
   executablePath: EXE,

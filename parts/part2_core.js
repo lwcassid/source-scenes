@@ -403,7 +403,7 @@ const focus = { P: null, voice: null, idx: -1 };
 const overlay = document.getElementById('overlay');
 const focusCanvas = document.getElementById('focusCanvas');
 
-/* ---------- PROJECTOR FRAME (opt-in) ----------
+/* ---------- PROJECTOR FRAME (the default) ----------
    The show is ONE WUXGA render — 1920x1200, 16:10 — fullscreen, cloned to both
    PT-VMZ50s off the splitter. A browser window is never that shape: windowed,
    the stage is a ~3:1 letterbox strip, so scenes get composed in a frame they
@@ -411,9 +411,15 @@ const focusCanvas = document.getElementById('focusCanvas');
    live. PROJ pins the render to the real thing: canvas is exactly 1920x1200
    whatever the window is, drawn into the largest 16:10 box that fits and
    centered — the surrounding black is invisible on scrim anyway.
-   Turn on with ?proj in the URL, or press P on the stage. Off by default: the
-   normal window behaviour is untouched.                                       */
-const PROJ = { on: /[?&]proj\b/i.test(location.search), w: 1920, h: 1200 };
+   ON BY DEFAULT everywhere we design (desktop site + preview). Opt out with
+   ?win (or press P on the stage) for a native-window canvas. Phones default
+   to native — a 2.3MP canvas is ~8x the pixel work a phone screen needs and
+   the framerate pays for it — but ?proj forces the show frame even there.    */
+const PROJ = (() => {
+  const q = location.search;
+  const force = /[?&]proj\b/i.test(q), off = /[?&]win\b/i.test(q);
+  return { w: 1920, h: 1200, on: force || (!off && !window.IS_MOBILE) };
+})();
 function stageMetrics() {
   const stage = focusCanvas.parentElement;
   const cw = stage.clientWidth, ch = stage.clientHeight;
@@ -429,11 +435,14 @@ function stageMetrics() {
 }
 function applyStageBox(m) {
   const s = focusCanvas.style;
+  const stage = focusCanvas.parentElement;
   if (PROJ.on) {
     s.inset = 'auto'; s.left = m.left + 'px'; s.top = m.top + 'px';
     s.width = m.cssW + 'px'; s.height = m.cssH + 'px';
+    stage.style.background = '#000'; // letterbox bars are LIGHT on a projector unless truly black
   } else {
     s.inset = '0'; s.left = ''; s.top = ''; s.width = '100%'; s.height = '100%';
+    stage.style.background = '';
   }
 }
 // re-measure the stage and hand the piece the frame it should have. CSS is

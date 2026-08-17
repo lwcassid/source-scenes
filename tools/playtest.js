@@ -23,7 +23,7 @@ const { chromium } = require(PW);
   const page = await browser.newPage({ viewport: PROJ ? { width: 1920, height: 1200 } : { width: 1280, height: 800 } });
   const errs = [];
   page.on('pageerror', e => { errs.push(e.message); console.log('PAGEERR', e.message); });
-  await page.goto('file://' + require('path').resolve(preview) + (PROJ ? '?proj' : ''));
+  await page.goto('file://' + require('path').resolve(preview) + (PROJ ? '?proj' : '?win'));
   await page.waitForTimeout(2500);
   if (PROJ) await page.evaluate(() => document.getElementById('overlay').classList.add('fs', 'zen'));
 

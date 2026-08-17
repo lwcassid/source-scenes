@@ -36,19 +36,24 @@ windowed render was vertically squashed ~7%.
 
 ## What now matches
 
-- **`?proj` (or press `P` on the stage)** pins the canvas to exactly 1920×1200 in
-  any window, drawn as a centered 16:10 letterbox. Black bars are invisible on
-  scrim, and the scene gets the show's shape *and* the show's density even in a
-  small window. Off by default — normal window behaviour is untouched.
+- **The projector frame is the DEFAULT.** The focus stage renders a true
+  1920×1200 canvas in any window, drawn as a centered 16:10 letterbox (black
+  bars are invisible on scrim), so every scene gets the show's shape *and* the
+  show's density wherever it's opened. Opt out with `?win` in the URL or `P`
+  on the stage; phones default to their native canvas for framerate (`?proj`
+  forces the show frame there too).
+- **Tile thumbnails are exactly 16:10** (416×260 — the old 420×264 was 1.59,
+  close but not the wall's shape), so the library wall previews the same frame
+  the stage renders.
 - **`tools/shot.mjs`, `tools/shotcam.mjs`, `tools/shotevt.mjs`,
-  `tools/playtest.js`** now run at viewport 1920×1200 with `?proj` and
-  `fs`+`zen` (SHOWTIME layout, chrome hidden), so screenshots are 1920×1200
-  pixel-for-pixel with the projector output. `PROJ=0` in the env restores the
-  old window if you ever want the comparison.
+  `tools/playtest.js`** run at viewport 1920×1200 with `fs`+`zen` (SHOWTIME
+  layout, chrome hidden), so screenshots are 1920×1200 pixel-for-pixel with
+  the projector output. `PROJ=0` in the env restores the old window if you
+  ever want the comparison.
 - **The DBG strip** prints a `FRAME` line — `1920×1200 · 1.60 · PROJ` is the
-  show; anything else means you're looking at a window.
-- **On-playa**: open the offline build with `?proj` so the render doesn't follow
-  whatever display Chrome happens to be on (see `docs/SHOW-KIT.md`).
+  show; anything else means someone opted out.
+- **On-playa**: the default already pins the render; just confirm the FRAME
+  line before showtime (see `docs/SHOW-KIT.md`).
 
 ## Per-scene reading
 

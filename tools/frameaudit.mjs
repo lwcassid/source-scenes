@@ -28,7 +28,7 @@ const WANT = process.argv.slice(2);
 fs.mkdirSync(OUT, { recursive: true });
 
 const GEOS = [
-  { key: 'wide', vw: 1280, vh: 760, proj: false },   // what a browser window shows
+  { key: 'wide', vw: 1280, vh: 760, proj: false },   // a native browser window (?win — proj is the default now)
   { key: 'proj', vw: 1920, vh: 1200, proj: true },   // what the projectors show
 ];
 const results = {};
@@ -53,7 +53,7 @@ for (const geo of GEOS) {
     if (page) await page.close();                    // scenes; recycle the page
     page = await browser.newPage({ viewport: { width: geo.vw, height: geo.vh }, deviceScaleFactor: 1 });
     page.on('pageerror', e => console.log('PAGEERR', e.message.slice(0, 120)));
-    await page.goto(URL + (geo.proj ? '?proj' : ''), { waitUntil: 'load', timeout: 180000 });
+    await page.goto(URL + (geo.proj ? '?proj' : '?win'), { waitUntil: 'load', timeout: 180000 });
     await page.waitForTimeout(3000);
     if (geo.proj) await page.evaluate(() => document.getElementById('overlay').classList.add('fs', 'zen'));
     opened = 0;

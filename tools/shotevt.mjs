@@ -9,7 +9,7 @@ const b = await chromium.launch({ executablePath: EXE, headless: true, args: ['-
 const PROJ = process.env.PROJ !== '0'; // shoot the real 1920x1200 show frame
 const p = await b.newPage({ viewport: PROJ ? { width: 1920, height: 1200 } : { width: 1280, height: 760 } });
 p.on('pageerror', e => console.log('PAGEERR:', e.message));
-await p.goto('file://' + path.resolve('night-circuit-preview.html') + (PROJ ? '?proj' : ''), { waitUntil: 'load', timeout: 60000 });
+await p.goto('file://' + path.resolve('night-circuit-preview.html') + (PROJ ? '?proj' : '?win'), { waitUntil: 'load', timeout: 60000 });
 await p.waitForTimeout(2500);
 await p.evaluate(() => { document.getElementById('overlay').classList.add('fs', 'zen'); const i = PIECES.findIndex(x => x.id === 'SRC-18.16'); openFocus(i); });
 await p.waitForTimeout(3500); // let GLBs (manta/crab/bear) load

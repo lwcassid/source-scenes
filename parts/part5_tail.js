@@ -102,6 +102,9 @@ const grid = document.getElementById('grid');
 const ACTIVE_ORDER = ['SRC-18', 'SRC-30', 'SRC-04', 'SRC-15', 'SRC-10', 'SRC-01', 'SRC-34', 'SRC-32', 'SRC-09'];
 const famRank = f => { const i = ACTIVE_ORDER.indexOf(f); return i < 0 ? 999 : i; };
 const insts = [];
+// tile thumbnails render in the projector frame's exact shape (16:10, like
+// 1920x1200) at thumbnail density — 420x264 was 1.59, close but a lie
+const TILE_W = 416, TILE_H = 260;
 const ioMap = new Map();
 const io = ('IntersectionObserver' in window) ? new IntersectionObserver(entries => {
   for (const en of entries) {
@@ -146,7 +149,7 @@ FAMS.forEach(F => {
   grid.appendChild(tile);
   const cv = tile.querySelector('canvas');
   tile.cur = F.entries[F.entries.length - 1]; // latest version selected by default
-  let P = makeInstance(tile.cur.def, cv, 420, 264);
+  let P = makeInstance(tile.cur.def, cv, TILE_W, TILE_H);
   const ti = insts.length;
   insts.push(P);
   if (io) { ioMap.set(cv, P); io.observe(cv); }
@@ -171,7 +174,7 @@ FAMS.forEach(F => {
     const en = F.entries.find(x => (x.def.ver || 1) === +e.target.value);
     if (!en || en === tile.cur) return;
     tile.cur = en;
-    P = makeInstance(en.def, cv, 420, 264);
+    P = makeInstance(en.def, cv, TILE_W, TILE_H);
     insts[ti] = P;
     if (io) ioMap.set(cv, P);
     setText(en);

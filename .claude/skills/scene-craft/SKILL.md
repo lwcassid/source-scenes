@@ -45,10 +45,12 @@ splitter: the scene is handed `P.w=1920, P.h=1200`, aspect **1.60**, and
 stage is a ~1280×400 letterbox strip (aspect 3.2, areaScale 2.1), so a scene
 tuned there is composed in a frame it will never play in and at HALF the
 density it gets live. Two consequences:
-- **Always design in the projector frame.** `?proj` in the URL (or press `P`
-  on the stage) pins the canvas to exactly 1920×1200 in any window, centered
-  and letterboxed; the harnesses (`tools/shot.mjs`, `tools/playtest.js`) do
-  this by default. The DBG strip's `FRAME` line tells you what you've got.
+- **The projector frame is the default.** The focus stage and the tile
+  thumbnails render 16:10 everywhere (stage = exactly 1920×1200, letterboxed
+  into the window); the harnesses (`tools/shot.mjs`, `tools/playtest.js`)
+  shoot that frame. `?win` or `P` on the stage opts out when you want a
+  native-window canvas. The DBG strip's `FRAME` line tells you what you've
+  got — `1920×1200 · 1.60 · PROJ` is the show.
 - **Write geometry that reflows**: fractions of `w`/`h`, `Math.min(w,h)` for
   radii, `areaScale(P)` for counts. Never hardcode pixel sizes or element
   counts tuned to one window, and never let a composition depend on a wide
