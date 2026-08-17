@@ -19,7 +19,13 @@ the URL — is what the projectors play.
    edge → STAGE), confirm scenes render, sound plays, MIDI OUT reaches
    Ableton, theremins bind via MAP (bindings persist in the browser — bind
    them on the SHOW laptop, not yours).
-5. Chrome flags for the show machine: autoplay may need one click to start
+5. **Pin the frame**: open the file with `?proj` appended (or press `P` on the
+   stage) so every scene renders at exactly 1920×1200 / 16:10 — the frame they
+   were designed in. Without it the render follows the laptop's own display: a
+   HiDPI screen hands scenes ~2268×1417 (same shape, ~20% denser than tuned),
+   and a windowed Chrome hands them a wide strip. The DBG strip's `FRAME` line
+   must read `1920×1200 · 1.60 · PROJ` before you hand the wall to the camp.
+6. Chrome flags for the show machine: autoplay may need one click to start
    audio — click before handing it to strangers.
 
 ## The rig (from the projector plan)

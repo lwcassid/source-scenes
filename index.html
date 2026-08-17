@@ -876,6 +876,57 @@ const focus = { P: null, voice: null, idx: -1 };
 const overlay = document.getElementById('overlay');
 const focusCanvas = document.getElementById('focusCanvas');
 
+/* ---------- PROJECTOR FRAME (opt-in) ----------
+   The show is ONE WUXGA render — 1920x1200, 16:10 — fullscreen, cloned to both
+   PT-VMZ50s off the splitter. A browser window is never that shape: windowed,
+   the stage is a ~3:1 letterbox strip, so scenes get composed in a frame they
+   will never actually play in, at half the pixel density areaScale() will see
+   live. PROJ pins the render to the real thing: canvas is exactly 1920x1200
+   whatever the window is, drawn into the largest 16:10 box that fits and
+   centered — the surrounding black is invisible on scrim anyway.
+   Turn on with ?proj in the URL, or press P on the stage. Off by default: the
+   normal window behaviour is untouched.                                       */
+const PROJ = { on: /[?&]proj\b/i.test(location.search), w: 1920, h: 1200 };
+function stageMetrics() {
+  const stage = focusCanvas.parentElement;
+  const cw = stage.clientWidth, ch = stage.clientHeight;
+  if (PROJ.on) {
+    let bw = cw, bh = Math.round(cw * PROJ.h / PROJ.w);
+    if (bh > ch) { bh = ch; bw = Math.round(ch * PROJ.w / PROJ.h); }
+    return { cssW: bw, cssH: bh, left: Math.round((cw - bw) / 2), top: Math.round((ch - bh) / 2),
+             pw: PROJ.w, ph: PROJ.h };
+  }
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  return { cssW: cw, cssH: ch, left: 0, top: 0,
+           pw: Math.floor(cw * dpr) || 1280, ph: Math.floor(ch * dpr) || 720 };
+}
+function applyStageBox(m) {
+  const s = focusCanvas.style;
+  if (PROJ.on) {
+    s.inset = 'auto'; s.left = m.left + 'px'; s.top = m.top + 'px';
+    s.width = m.cssW + 'px'; s.height = m.cssH + 'px';
+  } else {
+    s.inset = '0'; s.left = ''; s.top = ''; s.width = '100%'; s.height = '100%';
+  }
+}
+// re-measure the stage and hand the piece the frame it should have. CSS is
+// always refit; the backing store (and the piece's init) only when it changed.
+function syncStage(force) {
+  const m = stageMetrics();
+  applyStageBox(m);
+  if (!focus.P || m.pw <= 0 || m.ph <= 0) return;
+  if (!force && m.pw === focus.P.w && m.ph === focus.P.h) return;
+  focusCanvas.width = m.pw; focusCanvas.height = m.ph;
+  focus.P.w = focus.P.canvas.width = m.pw;
+  focus.P.h = focus.P.canvas.height = m.ph;
+  focus.P.reinit(focus.P.seed); // scenes cache geometry in init()
+}
+function setProj(on) { PROJ.on = !!on; syncStage(true); }
+// the console/bar can reflow after the overlay opens (wrapping hint text), which
+// used to leave the canvas sized to a stage that no longer existed
+if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); })
+  .observe(focusCanvas.parentElement);
+
 function openFocus(i) {
   AE.ensure();
   const def = PIECES[i];
@@ -884,12 +935,10 @@ function openFocus(i) {
     H.setup(def.music, (Math.random() * 1e9) | 0);
   }
   focus.idx = i;
-  const stage = focusCanvas.parentElement;
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  const w = Math.floor(stage.clientWidth * dpr) || 1280;
-  const h = Math.floor(stage.clientHeight * dpr) || 720;
-  overlay.classList.add('open');
-  const w2 = Math.floor(stage.clientWidth * dpr) || w, h2 = Math.floor(stage.clientHeight * dpr) || h;
+  overlay.classList.add('open'); // measure the stage only once it is laid out
+  const m = stageMetrics();
+  applyStageBox(m);
+  const w2 = m.pw, h2 = m.ph;
   // pieces render to an offscreen scene; post-FX composites onto the visible canvas
   const scene = document.createElement('canvas');
   focusCanvas.width = w2; focusCanvas.height = h2;
@@ -913,6 +962,8 @@ function openFocus(i) {
     if (fm) MOut.bedOn(20 + +fm[1]);
   }
   startVoice();
+  // the bars settle a frame later; take the frame that actually survives
+  requestAnimationFrame(() => { if (focus.P) syncStage(); });
 }
 function startVoice() {
   if (focus.voice) { focus.voice.stop(); focus.voice = null; }
@@ -929,17 +980,14 @@ function closeFocus() {
   overlay.classList.remove('open');
   document.getElementById('infoPanel').classList.remove('open');
 }
-window.addEventListener('resize', () => {
-  if (!focus.P) return;
-  const stage = focusCanvas.parentElement;
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  const w = Math.floor(stage.clientWidth * dpr), h = Math.floor(stage.clientHeight * dpr);
-  if (w > 0 && h > 0) {
-    focusCanvas.width = w; focusCanvas.height = h;
-    focus.P.w = focus.P.canvas.width = w;
-    focus.P.h = focus.P.canvas.height = h;
-    focus.P.reinit(focus.P.seed);
-  }
+window.addEventListener('resize', () => { if (focus.P) syncStage(); });
+// P toggles the projector frame live — see the same scene in a window and in the show
+window.addEventListener('keydown', e => {
+  if (e.key !== 'p' && e.key !== 'P') return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (focus.idx < 0) return;
+  setProj(!PROJ.on);
 });
 
 /* ============================================================
@@ -57398,7 +57446,10 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
       '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
-      '\nNEXT SCENE ' + mmss + '   FPS ' + fps;
+      '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
+      // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
+      (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
+        (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') : '');
   }, 500);
 })();
 // live indicators: act chip highlight + now-playing role dots

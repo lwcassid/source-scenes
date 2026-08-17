@@ -48,10 +48,22 @@ python3 tools/build_preview.py  # self-contained preview for sighted testing
 git add -A && git commit -m "..." && git push   # Netlify does the rest
 ```
 
+### The frame: 1920×1200, 16:10 — design in it, not in a window
+The show is one WUXGA render fullscreen, cloned to both projectors, so a scene
+gets `P.w=1920, P.h=1200` (aspect 1.60, `areaScale` 4.56). A browser window
+gives it a ~1280×400 letterbox strip instead (aspect 3.2, `areaScale` 2.1) —
+double the width-to-height and half the density. Load the site or the preview
+with **`?proj`** (or press **`P`** on the stage) to pin the canvas to exactly
+1920×1200 in any window, letterboxed — black bars are invisible on scrim.
+`tools/shot.mjs`, `tools/shotcam.mjs`, `tools/shotevt.mjs` and
+`tools/playtest.js` all shoot that frame by default (`PROJ=0` opts out), and
+the DBG strip's `FRAME` line reports what the scene is actually getting.
+
 ### Verify BEFORE you ship (sighted iteration)
 Never ship a scene you haven't SEEN. In a cloud sandbox:
 - build the preview, open it in headless Chromium with
-  `--enable-unsafe-swiftshader --autoplay-policy=no-user-gesture-required`
+  `--enable-unsafe-swiftshader --autoplay-policy=no-user-gesture-required`,
+  at viewport 1920×1200 with `?proj` (that's what the harnesses do)
 - `openFocus(PIECES.findIndex(p => p.id === 'SRC-XX.N'))`
 - drive hands with `setChan('L', v); setChan('R', v); focus.P.state.pres = 1`
   (re-issue every ~2s — live mode decays)

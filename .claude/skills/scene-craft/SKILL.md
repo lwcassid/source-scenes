@@ -38,6 +38,22 @@ the fabric punishes velocity. Two projectors overlap → bright elements get
 depth-echoed: fields, swarms, rings benefit; text and frames die. Saturated
 hues; mesh eats ~half the light.
 
+## The frame is 1920×1200 (16:10) — compose for THAT
+The show is ONE WUXGA render, fullscreen, cloned to both PT-VMZ50s off the
+splitter: the scene is handed `P.w=1920, P.h=1200`, aspect **1.60**, and
+`areaScale(P) = 4.56`. A browser window is nothing like it — windowed, the
+stage is a ~1280×400 letterbox strip (aspect 3.2, areaScale 2.1), so a scene
+tuned there is composed in a frame it will never play in and at HALF the
+density it gets live. Two consequences:
+- **Always design in the projector frame.** `?proj` in the URL (or press `P`
+  on the stage) pins the canvas to exactly 1920×1200 in any window, centered
+  and letterboxed; the harnesses (`tools/shot.mjs`, `tools/playtest.js`) do
+  this by default. The DBG strip's `FRAME` line tells you what you've got.
+- **Write geometry that reflows**: fractions of `w`/`h`, `Math.min(w,h)` for
+  radii, `areaScale(P)` for counts. Never hardcode pixel sizes or element
+  counts tuned to one window, and never let a composition depend on a wide
+  strip (a horizon band 400px tall reads as a stripe at 1200).
+
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
 different things; pitch/density/timbre to command) · JAM jam-ability (in key,
@@ -76,7 +92,8 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
 5. Sound: voices follow the visual state 1:1 (a bloom = a voice; its side =
    its pan). If a thing lights up, it should sound; if it sounds, light it up.
 6. Assemble (`bash tools/build.sh`), then SIGHTED VERIFICATION (see CLAUDE.md):
-   screenshot idle / tight / one-sided / full states and READ them. Iterate
+   screenshot idle / tight / one-sided / full states — in the 1920×1200
+   projector frame, which is what the harnesses shoot — and READ them. Iterate
    until the stills match the intent — assumptions about rendered output are
    wrong about half the time (fog, tonemapping, scale, and pivot bugs hide).
 7. Capture a short GIF of the money interaction for the group chat.

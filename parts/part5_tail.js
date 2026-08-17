@@ -567,7 +567,10 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
       '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
-      '\nNEXT SCENE ' + mmss + '   FPS ' + fps;
+      '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
+      // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
+      (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
+        (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') : '');
   }, 500);
 })();
 // live indicators: act chip highlight + now-playing role dots

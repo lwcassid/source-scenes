@@ -42,6 +42,20 @@ mouse left/right across the scene** to drive the two theremin hands (left half =
 L hand, right half = R hand; toward the edges = reach outward). Keyboard works
 too: `W`/`S` for the left hand, `↑`/`↓` for the right.
 
+## See the REAL frame (do this before judging a look)
+
+The projectors give one 1920×1200 render, 16:10, fullscreen. A browser window
+does not: windowed, the stage is a wide ~1280×400 strip, so what you're looking
+at is about twice as wide-to-tall as the wall and half as dense (scenes size
+their element counts off the canvas area). Two ways to see the truth:
+
+- Add **`?proj`** to the URL, or press **`P`** while a scene is open. The canvas
+  becomes exactly 1920×1200 whatever your window is, drawn letterboxed and
+  centered — same composition, same density as the show. Press `P` again to go
+  back. In fullscreen (⛶ SHOWTIME) with `?proj` on you get it pixel-for-pixel.
+- The DBG strip (bottom of fullscreen) prints a `FRAME` line — `1920×1200 ·
+  1.60 · PROJ` is the show; anything else is a window.
+
 ## Local preview (for offline / sandbox iteration)
 
 `python3 tools/build_preview.py` bakes a single self-contained

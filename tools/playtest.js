@@ -16,12 +16,16 @@ const { chromium } = require(PW);
     args: ['--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--no-sandbox']
   };
   if (process.env.CHROMIUM) launch.executablePath = process.env.CHROMIUM;
+  // PROJ (default on): drive the real show frame — 1920x1200 / 16:10, the WUXGA
+  // render the projectors get. PROJ=0 for a plain letterboxed browser window.
+  const PROJ = process.env.PROJ !== '0';
   const browser = await chromium.launch(launch);
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const page = await browser.newPage({ viewport: PROJ ? { width: 1920, height: 1200 } : { width: 1280, height: 800 } });
   const errs = [];
   page.on('pageerror', e => { errs.push(e.message); console.log('PAGEERR', e.message); });
-  await page.goto('file://' + require('path').resolve(preview));
+  await page.goto('file://' + require('path').resolve(preview) + (PROJ ? '?proj' : ''));
   await page.waitForTimeout(2500);
+  if (PROJ) await page.evaluate(() => document.getElementById('overlay').classList.add('fs', 'zen'));
 
   // SCENE=ALL → smoke every registered scene: open, drive hands, count errors.
   // Run this after ANY structural/core change before pushing.
