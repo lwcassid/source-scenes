@@ -607,7 +607,8 @@ FAV.boot();
   const vs = document.getElementById('viewSel');
   if (!vs) return;
   if (window.IS_MOBILE) { vs.style.display = 'none'; return; } // scrim sims are desktop-only
-  vs.value = VIEW.mode;
+  setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
+                      // scrimmode class that reveals the vantage chips
   vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
 })();
 // PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the

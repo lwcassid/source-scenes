@@ -172,12 +172,12 @@
   #overlay.zen.perf #panelTab{opacity:0}
   #overlay.zen.perf #panelTab:hover{opacity:1}
   /* scrim vantage chips — one click to each default view of The Cave */
-  #scrimCams{display:none;position:absolute;top:14px;left:14px;z-index:8;gap:6px;flex-wrap:wrap}
+  #scrimCams{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:8;gap:7px;flex-wrap:wrap;justify-content:center}
   #overlay.scrimmode #scrimCams{display:flex}
-  #scrimCams button{font-size:9px;padding:5px 10px;letter-spacing:.12em;border-radius:999px;
-    background:rgba(10,10,14,.55);border:1px solid rgba(255,255,255,.18);color:#cfd6e4;opacity:.75}
-  #scrimCams button:hover{opacity:1}
-  #scrimCams button.on{background:var(--acc);border-color:var(--acc);color:#fff;opacity:1}
+  #scrimCams button{font-size:10px;padding:7px 14px;letter-spacing:.14em;border-radius:999px;font-weight:600;
+    background:rgba(10,10,16,.78);border:1px solid rgba(255,255,255,.3);color:#e6ebf5}
+  #scrimCams button:hover{border-color:#fff}
+  #scrimCams button.on{background:var(--acc);border-color:var(--acc);color:#fff}
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
   /* laser sliders */

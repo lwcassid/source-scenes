@@ -335,6 +335,7 @@ window.SCRIMVIEW = {
   const inScrim = () => typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' &&
     typeof focus !== 'undefined' && focus.idx >= 0;
   let drag = null;
+  SCRIMVIEW._chipSync(SCRIMVIEW.preset); // build the vantage chips up front
   const row = document.getElementById('scrimCams');
   if (row) row.addEventListener('click', e => {
     const b = e.target.closest('button');
@@ -359,7 +360,9 @@ window.SCRIMVIEW = {
   focusCanvas.addEventListener('wheel', e => {
     if (!inScrim()) return;
     e.preventDefault();
-    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * 0.001), 8, 70);
+    // trackpad pinch arrives as ctrl+wheel with tiny deltas — give it real gain
+    const k = e.ctrlKey ? 0.014 : 0.0022;
+    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * k), 8, 70);
   }, { passive: false });
 })();
 // V cycles the view modes; C jumps between orbit vantages in scrim mode

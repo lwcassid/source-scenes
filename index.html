@@ -172,12 +172,12 @@
   #overlay.zen.perf #panelTab{opacity:0}
   #overlay.zen.perf #panelTab:hover{opacity:1}
   /* scrim vantage chips — one click to each default view of The Cave */
-  #scrimCams{display:none;position:absolute;top:14px;left:14px;z-index:8;gap:6px;flex-wrap:wrap}
+  #scrimCams{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:8;gap:7px;flex-wrap:wrap;justify-content:center}
   #overlay.scrimmode #scrimCams{display:flex}
-  #scrimCams button{font-size:9px;padding:5px 10px;letter-spacing:.12em;border-radius:999px;
-    background:rgba(10,10,14,.55);border:1px solid rgba(255,255,255,.18);color:#cfd6e4;opacity:.75}
-  #scrimCams button:hover{opacity:1}
-  #scrimCams button.on{background:var(--acc);border-color:var(--acc);color:#fff;opacity:1}
+  #scrimCams button{font-size:10px;padding:7px 14px;letter-spacing:.14em;border-radius:999px;font-weight:600;
+    background:rgba(10,10,16,.78);border:1px solid rgba(255,255,255,.3);color:#e6ebf5}
+  #scrimCams button:hover{border-color:#fff}
+  #scrimCams button.on{background:var(--acc);border-color:var(--acc);color:#fff}
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
   /* laser sliders */
@@ -2226,6 +2226,7 @@ window.SCRIMVIEW = {
   const inScrim = () => typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' &&
     typeof focus !== 'undefined' && focus.idx >= 0;
   let drag = null;
+  SCRIMVIEW._chipSync(SCRIMVIEW.preset); // build the vantage chips up front
   const row = document.getElementById('scrimCams');
   if (row) row.addEventListener('click', e => {
     const b = e.target.closest('button');
@@ -2250,7 +2251,9 @@ window.SCRIMVIEW = {
   focusCanvas.addEventListener('wheel', e => {
     if (!inScrim()) return;
     e.preventDefault();
-    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * 0.001), 8, 70);
+    // trackpad pinch arrives as ctrl+wheel with tiny deltas — give it real gain
+    const k = e.ctrlKey ? 0.014 : 0.0022;
+    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * k), 8, 70);
   }, { passive: false });
 })();
 // V cycles the view modes; C jumps between orbit vantages in scrim mode
@@ -57944,7 +57947,8 @@ FAV.boot();
   const vs = document.getElementById('viewSel');
   if (!vs) return;
   if (window.IS_MOBILE) { vs.style.display = 'none'; return; } // scrim sims are desktop-only
-  vs.value = VIEW.mode;
+  setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
+                      // scrimmode class that reveals the vantage chips
   vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
 })();
 // PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the
