@@ -435,6 +435,24 @@ const PROJ = (() => {
 // live re-frame (console / future RIG dropdown): setFrame(1920,1080) cascades
 // through the open scene immediately — everything reads PROJ.w/h
 function setFrame(w, h) { PROJ.w = w | 0; PROJ.h = h | 0; PROJ.on = true; if (typeof syncStage === 'function') syncStage(true); }
+
+/* ---------- VIEW MODES ----------
+   What the stage shows: the flat frame, the two-projector ghost, or the
+   throw into The Cave (head-on / room 3D). Picked from the VIEW dropdown
+   on the stage or cycled with V; the choice persists across scenes and
+   visits. Scrim modes need three.js and are skipped on mobile.          */
+const VIEW = { mode: 'flat', MODES: ['flat', 'double', 'scrim', 'scrim3d'] };
+try { const v = localStorage.getItem('srcView'); if (VIEW.MODES.includes(v)) VIEW.mode = v; } catch (e) {}
+function setView(mode) {
+  if (!VIEW.MODES.includes(mode)) return;
+  if ((mode === 'scrim' || mode === 'scrim3d') && (typeof THREE === 'undefined' || window.IS_MOBILE)) {
+    console.warn('scrim views need three.js and a desktop'); mode = 'flat';
+  }
+  VIEW.mode = mode;
+  try { localStorage.setItem('srcView', mode); } catch (e) {}
+  const sel = document.getElementById('viewSel');
+  if (sel && sel.value !== mode) sel.value = mode;
+}
 function stageMetrics() {
   const stage = focusCanvas.parentElement;
   const cw = stage.clientWidth, ch = stage.clientHeight;
@@ -449,15 +467,15 @@ function stageMetrics() {
            pw: Math.floor(cw * dpr) || 1280, ph: Math.floor(ch * dpr) || 720 };
 }
 function applyStageBox(m) {
+  // letterbox color comes from CSS: --letterbox (white in the light theme so
+  // the frame boundary is visible; black in dark). Fullscreen forces black —
+  // on the projector the bars must be invisible.
   const s = focusCanvas.style;
-  const stage = focusCanvas.parentElement;
   if (PROJ.on) {
     s.inset = 'auto'; s.left = m.left + 'px'; s.top = m.top + 'px';
     s.width = m.cssW + 'px'; s.height = m.cssH + 'px';
-    stage.style.background = '#000'; // letterbox bars are LIGHT on a projector unless truly black
   } else {
     s.inset = '0'; s.left = ''; s.top = ''; s.width = '100%'; s.height = '100%';
-    stage.style.background = '';
   }
 }
 // re-measure the stage and hand the piece the frame it should have. CSS is
@@ -598,7 +616,9 @@ function applyKeys(dt) {
 /* ============================================================
    UI WIRING
    ============================================================ */
-document.getElementById('btnClose').addEventListener('click', closeFocus);
+// late-bound: part5_tail wraps closeFocus for deep-link cleanup — a direct
+// reference here would skip the wrapper and leave #scene= stuck in the URL
+document.getElementById('btnClose').addEventListener('click', () => closeFocus());
 document.getElementById('btnInfo').addEventListener('click', () =>
   document.getElementById('infoPanel').classList.toggle('open'));
 document.getElementById('btnRegen').addEventListener('click', () => {

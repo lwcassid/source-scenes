@@ -7,6 +7,7 @@
 <style>
   :root{
     --bg:#070708; --panel:#111114; --panel2:#0c0c0f; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.05);
+    --letterbox:#000;
     --txt:#f2f2ef; --txt-dim:#98988f; --txt-faint:#5c5c56;
     --acc:#ff9a5e; --acc-dim:#b06a41; --acc-faint:rgba(255,154,94,.16);
     --sans:-apple-system,'Inter','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
@@ -19,6 +20,7 @@
   /* LIGHT — matches the camper portal: white, black tracked type, warm red accent */
   body.light{
     --bg:#f4f4f1; --panel:#ffffff; --panel2:#fafaf8; --line:rgba(0,0,0,.13); --line2:rgba(0,0,0,.07);
+    --letterbox:#fff;
     --txt:#151513; --txt-dim:#6d6d65; --txt-faint:#a3a39a;
     --acc:#d4542c; --acc-dim:#a8431f; --acc-faint:rgba(212,84,44,.1);
     --btn-bg:rgba(0,0,0,.04); --btn-hov-bg:#111; --btn-hov-txt:#fff;
@@ -156,7 +158,14 @@
   #overlay .obar,#overlay .oconsole{transition:opacity .4s}
   #overlay.zen .obar,#overlay.zen .oconsole{opacity:0;pointer-events:none}
   .obtns{display:flex;gap:6px;flex-wrap:wrap}
-  .ostage{position:relative;flex:1;overflow:hidden}
+  .ostage{position:relative;flex:1;overflow:hidden;background:var(--letterbox)}
+  #overlay.fs .ostage{background:#000} /* on the projector the bars must be invisible */
+  /* TUCK — hide the control bars so the picture owns the stage; the tab brings them back */
+  #overlay.tuck .obar,#overlay.tuck .oconsole{display:none}
+  #tuckTab{display:none;position:absolute;right:14px;bottom:14px;z-index:9;padding:7px 12px;border-radius:999px;
+    font-size:9px;letter-spacing:.16em;background:rgba(10,10,14,.65);border:1px solid rgba(255,255,255,.22);color:#cfd6e4;opacity:.7}
+  #tuckTab:hover{opacity:1}
+  #overlay.tuck #tuckTab{display:block}
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
   /* laser sliders */
@@ -392,6 +401,13 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <button id="btnRegen">REGEN</button>
       <button id="btnPng">PNG</button>
       <button id="fShare" title="Copy this scene's shareable link">LINK</button>
+      <select id="viewSel" title="What the stage shows — the flat projector frame, the two-projector ghost, or the throw onto the scrims in The Cave (V cycles, C moves the room camera)">
+        <option value="flat">VIEW: FLAT · 1 PROJECTOR</option>
+        <option value="double">VIEW: GHOST · 2 PROJECTORS</option>
+        <option value="scrim">VIEW: SCRIM · HEAD-ON</option>
+        <option value="scrim3d">VIEW: SCRIM · THE CAVE 3D</option>
+      </select>
+      <button id="btnTuck" title="Tuck the control bars away (H) — the picture gets the whole stage">▼ UI</button>
       <button id="fFull" class="icon" title="Fullscreen">⛶</button>
       <button id="btnThemeF" class="icon" title="Theme">◐</button>
       <button id="btnClose">CLOSE ✕</button>
@@ -400,6 +416,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   <div class="ostage">
     <canvas id="focusCanvas"></canvas>
     <button id="stageFS" title="Showtime — take the whole display">⛶</button>
+    <button id="tuckTab" title="Bring the control bars back (H)">▲ UI</button>
     <div id="edgeL" class="edgeNav"><span>‹</span></div>
     <div id="edgeR" class="edgeNav"><span>›</span></div>
     <div id="dbg"><div id="dbgTab">DBG</div><div id="dbgBody"></div></div>

@@ -63,10 +63,14 @@ opts out), and the DBG strip's `FRAME` line reports what the scene is
 actually getting — `1920×1200 · 1.60 · PROJ` is the show.
 Other projector classes: **`?frame=fhd|wxga|xga|uhd|1400x1050`** (or
 `setFrame(w,h)` live) re-pins the frame and cascades through every scene.
-**`V`** on the stage = SCRIM VIEW: the frame thrown into The Cave in 3D — two
-converged projectors, staggered 18″ drape strips, mesh optics, double-image
-parallax (`C` cycles viewpoints; rig numbers in `parts/part2d_scrimview.js`,
-placeholders pending Elyse's planner layout).
+**VIEW dropdown on the stage** (or `V` cycles): FLAT (one projector) ·
+GHOST (two-projector misregistration) · SCRIM HEAD-ON · SCRIM THE CAVE 3D
+(`C` cycles room cameras). The scrim rig is derived from Elyse's planner
+(duxel = 8 ft): 24×40 ft interior, cable-hung 54″ fabric panels on three
+rows, projectors atop the entrance-corner duxels ~22 ft apart — numbers in
+`SCRIMRIG` (`parts/part2d_scrimview.js`). **`H`** tucks the control bars
+away (the ▲ UI pill brings them back). View mode and tuck persist across
+scenes and visits.
 
 ### Verify BEFORE you ship (sighted iteration)
 Never ship a scene you haven't SEEN. In a cloud sandbox:

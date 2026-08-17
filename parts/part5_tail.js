@@ -574,7 +574,7 @@ document.getElementById('oActs').addEventListener('click', e => {
       // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
       (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
         (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') +
-        (window.SCRIMVIEW && SCRIMVIEW.on ? ' · SCRIM' : '') : '');
+        (typeof VIEW !== 'undefined' ? ' · ' + VIEW.mode.toUpperCase() : '') : '');
   }, 500);
 })();
 // live indicators: act chip highlight + now-playing role dots
@@ -602,6 +602,35 @@ setInterval(() => {
 }, 300);
 
 FAV.boot();
+// VIEW dropdown — the discoverable face of the view modes (V still cycles)
+(() => {
+  const vs = document.getElementById('viewSel');
+  if (!vs) return;
+  if (window.IS_MOBILE) { vs.style.display = 'none'; return; } // scrim sims are desktop-only
+  vs.value = VIEW.mode;
+  vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
+})();
+// TUCK — hide/restore the control bars; the choice persists across scenes and visits
+(() => {
+  let tucked = false;
+  try { tucked = localStorage.getItem('srcTuck') === '1'; } catch (e) {}
+  const apply = () => overlay.classList.toggle('tuck', tucked);
+  const flip = () => {
+    tucked = !tucked;
+    try { localStorage.setItem('srcTuck', tucked ? '1' : '0'); } catch (e) {}
+    apply();
+  };
+  const bt = document.getElementById('btnTuck'), tt = document.getElementById('tuckTab');
+  if (bt) bt.addEventListener('click', flip);
+  if (tt) tt.addEventListener('click', flip);
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (focus.idx < 0) return;
+    if (e.key === 'h' || e.key === 'H') flip();
+  });
+  apply();
+})();
 // theme — light matches the camper portal (default); dark is stage mode
 (() => {
   let th = 'light';
@@ -654,13 +683,23 @@ function frame(ts) {
     try {
       P.def.step(P, dt, t, inp);
       P.def.draw(P, P.g, P.w, P.h, t, inp);
-      // composite scene → display with non-destructive post-FX
+      // composite scene → display per the VIEW mode (dropdown / V key)
       const fg = focus.fctx;
       if (fg) {
-        if (window.SCRIMVIEW && SCRIMVIEW.on) {
-          SCRIMVIEW.render(fg, P, t);   // V on the stage: the frame thrown into The Cave
+        const vm = (typeof VIEW !== 'undefined') ? VIEW.mode : 'flat';
+        const scrimOK = window.SCRIMVIEW && typeof THREE !== 'undefined' && !window.IS_MOBILE;
+        if ((vm === 'scrim' || vm === 'scrim3d') && scrimOK) {
+          SCRIMVIEW.render(fg, P, t);   // the frame thrown into The Cave
         } else {
           fg.drawImage(P.canvas, 0, 0);
+          if (vm === 'double') {
+            // the second projector's ghost — cloned signal, worst-case
+            // misregistration of ~0.8% of the frame width
+            fg.save();
+            fg.globalCompositeOperation = 'lighter'; fg.globalAlpha = 0.45;
+            fg.drawImage(P.canvas, Math.max(2, Math.round(P.w * 0.008)), 0);
+            fg.restore();
+          }
           const fx = P.def.fx;
           if (fx) {
             if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);

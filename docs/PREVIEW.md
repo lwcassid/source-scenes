@@ -61,16 +61,27 @@ are exactly 16:10. What you judge is what the camp sees.
 - Trying a different projector class? `?frame=fhd` / `?frame=wxga` /
   `?frame=1400x1050` re-pins the frame and every scene follows.
 
-## Scrim view — the frame thrown into The Cave
+## View modes — from flat frame to The Cave
 
-Press **`V`** while a scene is open: instead of the flat frame you see it
-PROJECTED — two projectors behind the source, converged on the middle drape
-layer, painting three staggered rows of 18″ mesh strips in 3D. Slicing, layer
-offsets, the two-projector double image, mesh dimming, floor spill, sway.
-**`C`** cycles viewpoints (AUDIENCE / OBLIQUE / OVERVIEW); `V` again exits.
-The rig dimensions are honest placeholders in `parts/part2d_scrimview.js`
-(`SCRIMRIG`, in feet) — when the real layout lands from the camp planner,
-drop the numbers in and the view is truthful.
+The **VIEW dropdown** on the stage bar (or `V` to cycle) picks what the
+stage shows; the choice sticks across scenes and visits:
+
+- **FLAT · 1 PROJECTOR** — the plain 1920×1200 frame (the default)
+- **GHOST · 2 PROJECTORS** — the second projector's ghost overlaid
+  (~0.8% misregistration, additive)
+- **SCRIM · HEAD-ON** — the throw on the drape wall, viewed straight on
+  from the projector line
+- **SCRIM · THE CAVE 3D** — the whole room at dusk; **`C`** cycles
+  AUDIENCE / OBLIQUE / OVERVIEW cameras
+
+The rig is derived from the camp planner (duxel = 8 ft): 24×40 ft interior,
+54″ cable-hung fabric panels on three rows, 16 ft drops, projectors on top
+of the entrance-corner duxels ~22 ft apart, converged on the middle row.
+Still approximate: per-panel positions along each cable and the convergence
+choice — all numbers in `SCRIMRIG` (`parts/part2d_scrimview.js`, feet).
+
+**`H`** (or the ▼ UI button) tucks the control bars away so the picture owns
+the stage; the ▲ UI pill bottom-right brings them back. Also persistent.
 
 ## Local preview (for offline / sandbox iteration)
 

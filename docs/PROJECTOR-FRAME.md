@@ -142,22 +142,32 @@ areaScale, harness shots): `?frame=fhd` · `?frame=wxga` · `?frame=xga` ·
 `?frame=uhd` · `?frame=1400x1050`, or `setFrame(w,h)` in the console while a
 scene is open. Bogus values fall back to WUXGA.
 
-## Scrim view (V) — how it lands in The Cave
+## View modes — flat, ghost, and The Cave
 
-`V` on the focus stage swaps the flat frame for a 3D throw into the room:
-two converged projectors → three staggered layers of 18″ mesh strips (from
-the camp-planner catalog: "Hanging fabric", 18″ × 8 ft, ceiling mount) with
-air gaps, additive gauze optics (each layer scatters ~55% and passes ~60%),
-double-image parallax off the middle registration layer, floor spill, sway.
-`C` cycles AUDIENCE / OBLIQUE / OVERVIEW.
+The VIEW dropdown on the stage (or `V` to cycle; persists everywhere):
+FLAT · GHOST (two-projector misregistration overlay) · SCRIM HEAD-ON ·
+SCRIM THE CAVE 3D (`C` cycles cameras). `H` tucks the control bars.
 
-All rig numbers live in `SCRIMRIG` (`parts/part2d_scrimview.js`, feet). Strip
-size is real; **layer depths, projector separation (6 ft), mount height
-(9 ft), throw (18 ft @ 1.2:1) and wall span (16 ft) are placeholders** pending
-the real layout from Elyse's planner (`portal/planner/13`). To make it
-truthful we need, in feet: number of drape layers and their depth spacing,
-lit wall span, ceiling height, projector positions (separation, height,
-distance to the wall), and which layer the projectors are converged on.
+### The rig, derived from Elyse's planner (duxel = 8 ft)
+
+From the Cave Layout 2026 screenshots: interior ≈ 3 duxels wide × 5 deep
+(**24 × 40 ft**), 8 ft duxel walls with 16 ft towers flanking the entrance;
+fabric panels are **cable-mounted** (18″/27″/54″ widths, 8–16 ft drops) on
+cables strung across the interior; projectors sit **on top of the duxels at
+the entrance's innermost corners — ~22 ft apart, 8 ft up**, behind the user
+at the source. Modeled in `SCRIMRIG`: 54″ panels with 1 ft gaps on three
+rows 6 ft apart, 16 ft drops, converged on the middle row at 1.1:1.
+
+**The geometry has a real consequence:** with the lenses ~22 ft apart and
+registered on one row, panels one row nearer or farther catch the two
+throws **several feet apart laterally** — a much stronger double image than
+a close-mounted pair would give. The sim shows it honestly; if it's too
+much on the wall, the fixes are physical (converge on the front row, narrow
+the projector spacing, or give each projector its own half of the room).
+
+Still approximate: per-panel positions along each cable, panel count, and
+the convergence choice. All numbers are in `SCRIMRIG`
+(`parts/part2d_scrimview.js`, feet) — edit and everything follows.
 
 ## Re-running the audit
 
