@@ -101,6 +101,7 @@ cd "$(dirname "$0")/.."
   cat parts/part96_fb15.js
   cat parts/part97_fb16.js
   cat parts/part98_fb17.js
+  cat parts/part99_fb18.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
