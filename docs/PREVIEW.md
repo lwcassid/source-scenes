@@ -69,10 +69,11 @@ stage shows; the choice sticks across scenes and visits:
 - **FLAT · 1 PROJECTOR** — the plain 1920×1200 frame (the default)
 - **GHOST · 2 PROJECTORS** — the second projector's ghost overlaid
   (~0.8% misregistration, additive)
-- **SCRIM · HEAD-ON** — the throw on the drape wall, viewed straight on
-  from the projector line
-- **SCRIM · THE CAVE 3D** — the whole room at dusk; **`C`** cycles
-  AUDIENCE / OBLIQUE / OVERVIEW cameras
+- **SCRIM · THE CAVE 3D** — the room at dusk, and you drive the camera:
+  **drag orbits, wheel zooms**, **`C`** jumps vantages (AT THE SOURCE —
+  the default; it's who we design for — / AUDIENCE / HEAD-ON / OBLIQUE /
+  OVERVIEW). The mouse belongs to the camera here; `W/S` and `↑/↓` still
+  play the hands.
 
 The rig is derived from the camp planner (duxel = 8 ft): 24×40 ft interior,
 54″ cable-hung fabric panels on three rows, 16 ft drops, projectors on top
@@ -80,8 +81,9 @@ of the entrance-corner duxels ~22 ft apart, converged on the middle row.
 Still approximate: per-panel positions along each cable and the convergence
 choice — all numbers in `SCRIMRIG` (`parts/part2d_scrimview.js`, feet).
 
-**`H`** (or the ▼ UI button) tucks the control bars away so the picture owns
-the stage; the ▲ UI pill bottom-right brings them back. Also persistent.
+**Fullscreen is performance mode**: the picture gets every pixel by default.
+The **PANELS** pill (bottom-left, next to DBG) or **`H`** brings the
+MIDI/hands/console panels in for debugging; the choice persists.
 
 ## Local preview (for offline / sandbox iteration)
 

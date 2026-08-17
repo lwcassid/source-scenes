@@ -2,30 +2,33 @@
    SCRIM VIEW — how the frame actually lands in The Cave
    ------------------------------------------------------------
    Part of the VIEW system (dropdown on the stage, or V to cycle):
-     flat    — the plain 1920x1200 frame, one projector
-     double  — same frame with the second projector's ghost overlaid
-     scrim   — the throw on the drape wall, viewed head-on
-     scrim3d — the whole room: C cycles AUDIENCE / OBLIQUE / OVERVIEW
-   What the scrim modes model that the flat frame can't:
+     flat   — the plain 1920x1200 frame, one projector
+     double — same frame with the second projector's ghost overlaid
+     scrim  — the throw in The Cave in 3D, and YOU drive the camera:
+              drag orbits, wheel zooms, C jumps between vantage
+              presets (AUDIENCE / HEAD-ON / OBLIQUE / OVERVIEW).
+              While orbiting, the mouse belongs to the camera — the
+              hands still play from the keyboard (W/S and arrows).
+   What the scrim mode models that the flat frame can't:
      · segmentation — cable-mounted fabric panels with air gaps slice
        every image; panels sway a little
-     · layer offset — panels hang on cables at three depths
+     · layer offset — panels hang on cables at three depths, 6ft apart
      · double image — the projectors register on the MIDDLE cable row;
        panels nearer/farther catch the two throws laterally separated.
-       With the projectors ~22ft apart this separation is BIG — that's
-       the real geometry, not a bug in the sim
+       With the lenses ~22ft apart that separation is BIG — that's the
+       real geometry, not a bug in the sim
      · gauze optics — each layer scatters ~half and passes the rest;
        light adds across layers; spill lands on the floor
 
    RIG GEOMETRY — derived from Elyse's Cave Layout 2026 (duxel = 8ft):
    interior ~3 duxels wide x 5 deep (24 x 40 ft), 1-story (8ft) duxel
-   walls, fabric cables strung high (~16ft, off the tower line) with
-   8-16ft drops, panel widths 18/27/54in. Projectors: on top of the
-   duxels at the entrance's innermost corners — ~22ft apart, 8ft up,
-   behind the user at the source. Still approximate: exact per-panel
-   positions along each cable, and which row the projectors converge
-   on. All numbers live in SCRIMRIG (feet) — edit and everything
-   follows. Needs three.js; scrim modes are skipped on mobile.
+   walls, 16ft towers flanking the entrance; fabric cables strung high
+   (~16ft) with 8-16ft drops, panel widths 18/27/54in. Projectors: on
+   top of the duxels at the entrance's innermost corners — ~22ft
+   apart, 8ft up, behind the user at the source. Still approximate:
+   exact per-panel positions along each cable, and which row the
+   projectors converge on. All numbers live in SCRIMRIG (feet) — edit
+   and everything follows. Needs three.js; skipped on mobile.
    ============================================================ */
 const SCRIMRIG = {
   // drape rows: fabric panels hang from cables spanning the interior
@@ -43,20 +46,32 @@ const SCRIMRIG = {
   aimH: 8,                         // converged at drape-band center, middle row
   // gauze optics — scrim survey: mesh eats ~half the light
   scatter: 0.55, transmit: 0.6,
-  // context + dusk mood (moodLight: 0 kills the mood entirely)
+  // context + dusk mood (moodLight: 0 kills the mood entirely).
+  // NO string/fairy lights — the camp doesn't have them; the mood is
+  // warm pools on the wood from the point lights.
   sourceZ: 9, bgC: 0x05050a,
   structW: 24, structD: 40, wallH: 8,
   moodLight: 0.30,
 };
 
 window.SCRIMVIEW = {
-  cam: 0,
-  CAMS: [
-    { n: 'AUDIENCE', pos: [0, 5.8, 16.5], look: [0, 8, -2] },
-    { n: 'OBLIQUE', pos: [-17, 7, 13], look: [0, 8, 0] },
-    { n: 'OVERVIEW', pos: [21, 11, 33], look: [0, 7, 0] },
+  // orbit state — camera on a sphere around the room center. The default is
+  // AT THE SOURCE: standing at the pedestal, eye height, looking onward at
+  // the drapes — that's who we're designing for.
+  orb: { th: 0, ph: 1.736, r: 9.1, ty: 7 },
+  PRESETS: [
+    { n: 'AT THE SOURCE', th: 0, ph: 1.736, r: 9.1 },
+    { n: 'AUDIENCE', th: 0, ph: 1.633, r: 16 },
+    { n: 'HEAD-ON', th: 0, ph: 1.515, r: 18 },
+    { n: 'OBLIQUE', th: -0.918, ph: 1.571, r: 21.5 },
+    { n: 'OVERVIEW', th: 0.567, ph: 1.469, r: 39 },
   ],
-  STRAIGHT: { n: 'HEAD-ON', pos: [0, 8, 18], look: [0, 8, 0], fov: 44 }, // inside, at the projector line
+  preset: 0,
+  applyPreset(i) {
+    this.preset = ((i % this.PRESETS.length) + this.PRESETS.length) % this.PRESETS.length;
+    const p = this.PRESETS[this.preset];
+    this.orb.th = p.th; this.orb.ph = p.ph; this.orb.r = p.r;
+  },
   _init(P) {
     const R = SCRIMRIG;
     this.renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -170,7 +185,7 @@ window.SCRIMVIEW = {
       new THREE.MeshBasicMaterial({ color: 0x0d0d11 }));
     person.position.set(-6, 2.7, R.sourceZ + 2); this.scene.add(person);
 
-    // ---- dusk mood: sky, duxel-frame pavilion, string lights
+    // ---- dusk mood: sky, duxel-frame pavilion, warm pools on the wood
     if (R.moodLight > 0) {
       const sky = new THREE.Mesh(new THREE.SphereGeometry(180, 24, 12),
         new THREE.ShaderMaterial({
@@ -208,20 +223,7 @@ window.SCRIMVIEW = {
         const pts = [new THREE.Vector3(-hw, R.ceilH, L.z), new THREE.Vector3(hw, R.ceilH, L.z)];
         this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), cableM));
       });
-      // string lights sagging along the perimeter beams
-      const bulbM = new THREE.MeshBasicMaterial({ color: 0xffb469 });
-      const bulbG = new THREE.SphereGeometry(0.07, 6, 5);
-      const stringAt = (ax, az, bx, bz) => {
-        const len = Math.hypot(bx - ax, bz - az), nB = Math.max(8, Math.round(len / 0.9));
-        for (let i = 0; i <= nB; i++) {
-          const t2 = i / nB, sag = Math.sin(t2 * Math.PI) * 0.55;
-          const b = new THREE.Mesh(bulbG, bulbM);
-          b.position.set(ax + (bx - ax) * t2, R.wallH - 0.1 - sag, az + (bz - az) * t2);
-          this.scene.add(b);
-        }
-      };
-      stringAt(-hw, zf, hw, zf);
-      stringAt(-hw, zf, -hw, zb); stringAt(hw, zf, hw, zb);
+      // what lights the wood: dim warm pools + a whisper of ambient
       this.scene.add(new THREE.AmbientLight(0x2a2233, 0.9));
       [[0, zf - 2], [-hw * 0.7, -8], [hw * 0.7, -8]].forEach(([x, z]) => {
         const pl = new THREE.PointLight(0xffa050, R.moodLight, 30);
@@ -258,13 +260,15 @@ window.SCRIMVIEW = {
       pc.updateProjectionMatrix(); pc.updateMatrixWorld();
       this.mats[i].multiplyMatrices(pc.projectionMatrix, pc.matrixWorldInverse);
     });
-    const headOn = (typeof VIEW !== 'undefined' && VIEW.mode === 'scrim');
-    const C = headOn ? this.STRAIGHT : this.CAMS[this.cam % this.CAMS.length];
-    const drift = headOn ? 0 : Math.sin(t * 0.13) * 0.7;    // gentle parallax cue
-    this.camera.fov = C.fov || 50;
+    // camera from the orbit state — the user's hands are on this
+    const o = this.orb;
+    this.camera.fov = 50;
     this.camera.aspect = P.w / P.h; this.camera.updateProjectionMatrix();
-    this.camera.position.set(C.pos[0] + drift, C.pos[1], C.pos[2]);
-    this.camera.lookAt(C.look[0], C.look[1], C.look[2]);
+    this.camera.position.set(
+      o.r * Math.sin(o.ph) * Math.sin(o.th),
+      o.ty + o.r * Math.cos(o.ph),
+      o.r * Math.sin(o.ph) * Math.cos(o.th));
+    this.camera.lookAt(0, o.ty, 0);
     this.tex.needsUpdate = true;
     this.strips.forEach(s => { s.material.uniforms.uTime.value = t; });
     this.renderer.render(this.scene, this.camera);
@@ -272,20 +276,48 @@ window.SCRIMVIEW = {
     fg.drawImage(this.renderer.domElement, 0, 0);
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
-    fg.fillText('SCRIM · The Cave rig (duxel-derived, see SCRIMRIG) · ' + C.n +
-      (headOn ? '' : ' · C camera') + ' · V or the VIEW menu to switch', 14, P.h - 14);
+    fg.fillText('SCRIM · The Cave 24×40 ft · rows 6 ft apart · projectors 22 ft apart · ' +
+      'drag ORBIT · wheel ZOOM · C vantages · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
-// V cycles the view modes; C cycles cameras inside the 3D room view
+
+/* orbit input — in scrim mode the stage pointer belongs to the CAMERA
+   (part2_core's ptrDrive stands down); keys keep driving the hands */
+(() => {
+  const inScrim = () => typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' &&
+    typeof focus !== 'undefined' && focus.idx >= 0;
+  let drag = null;
+  focusCanvas.addEventListener('pointerdown', e => {
+    if (!inScrim()) return;
+    drag = { x: e.clientX, y: e.clientY };
+    focusCanvas.setPointerCapture(e.pointerId);
+  });
+  focusCanvas.addEventListener('pointermove', e => {
+    if (!inScrim() || !drag) return;
+    const o = SCRIMVIEW.orb;
+    o.th -= (e.clientX - drag.x) * 0.005;
+    o.ph = clamp(o.ph + (e.clientY - drag.y) * 0.004, 0.25, 1.78);
+    drag = { x: e.clientX, y: e.clientY };
+  });
+  const end = () => { drag = null; };
+  focusCanvas.addEventListener('pointerup', end);
+  focusCanvas.addEventListener('pointercancel', end);
+  focusCanvas.addEventListener('wheel', e => {
+    if (!inScrim()) return;
+    e.preventDefault();
+    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * 0.001), 8, 70);
+  }, { passive: false });
+})();
+// V cycles the view modes; C jumps between orbit vantages in scrim mode
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
   if (typeof focus === 'undefined' || focus.idx < 0) return;
   const k = e.key.toLowerCase();
   if (k === 'v' && typeof setView === 'function') {
-    const order = ['flat', 'double', 'scrim', 'scrim3d'];
+    const order = VIEW.MODES;
     setView(order[(order.indexOf(VIEW.mode) + 1) % order.length]);
   }
-  if (k === 'c' && typeof VIEW !== 'undefined' && VIEW.mode === 'scrim3d')
-    SCRIMVIEW.cam = (SCRIMVIEW.cam + 1) % SCRIMVIEW.CAMS.length;
+  if (k === 'c' && typeof VIEW !== 'undefined' && VIEW.mode === 'scrim')
+    SCRIMVIEW.applyPreset(SCRIMVIEW.preset + 1);
 });

@@ -441,12 +441,17 @@ function setFrame(w, h) { PROJ.w = w | 0; PROJ.h = h | 0; PROJ.on = true; if (ty
    throw into The Cave (head-on / room 3D). Picked from the VIEW dropdown
    on the stage or cycled with V; the choice persists across scenes and
    visits. Scrim modes need three.js and are skipped on mobile.          */
-const VIEW = { mode: 'flat', MODES: ['flat', 'double', 'scrim', 'scrim3d'] };
-try { const v = localStorage.getItem('srcView'); if (VIEW.MODES.includes(v)) VIEW.mode = v; } catch (e) {}
+const VIEW = { mode: 'flat', MODES: ['flat', 'double', 'scrim'] };
+try {
+  let v = localStorage.getItem('srcView');
+  if (v === 'scrim3d') v = 'scrim'; // pre-orbit builds had two scrim modes
+  if (VIEW.MODES.includes(v)) VIEW.mode = v;
+} catch (e) {}
 function setView(mode) {
+  if (mode === 'scrim3d') mode = 'scrim';
   if (!VIEW.MODES.includes(mode)) return;
-  if ((mode === 'scrim' || mode === 'scrim3d') && (typeof THREE === 'undefined' || window.IS_MOBILE)) {
-    console.warn('scrim views need three.js and a desktop'); mode = 'flat';
+  if (mode === 'scrim' && (typeof THREE === 'undefined' || window.IS_MOBILE)) {
+    console.warn('the scrim view needs three.js and a desktop'); mode = 'flat';
   }
   VIEW.mode = mode;
   try { localStorage.setItem('srcView', mode); } catch (e) {}
@@ -573,6 +578,8 @@ focusCanvas.addEventListener('pointermove', e => { if (activePtrs.has(e.pointerI
 focusCanvas.addEventListener('pointerup', e => activePtrs.delete(e.pointerId));
 focusCanvas.addEventListener('pointercancel', e => activePtrs.delete(e.pointerId));
 function ptrDrive(e) {
+  // in the scrim view the pointer belongs to the CAMERA (orbit lives in part2d)
+  if (typeof VIEW !== 'undefined' && VIEW.mode === 'scrim') return;
   // REVERSED like the room: the source rests at center — reach OUTWARD = more
   const r = focusCanvas.getBoundingClientRect();
   const x = (e.clientX - r.left) / r.width;

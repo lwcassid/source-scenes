@@ -610,23 +610,24 @@ FAV.boot();
   vs.value = VIEW.mode;
   vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
 })();
-// TUCK — hide/restore the control bars; the choice persists across scenes and visits
+// PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the
+// PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
+// for debugging. The choice persists across scenes and visits.
 (() => {
-  let tucked = false;
-  try { tucked = localStorage.getItem('srcTuck') === '1'; } catch (e) {}
-  const apply = () => overlay.classList.toggle('tuck', tucked);
+  let panels = false;
+  try { panels = localStorage.getItem('srcPanels') === '1'; } catch (e) {}
+  const apply = () => overlay.classList.toggle('perf', !panels); // .perf only bites under .fs
   const flip = () => {
-    tucked = !tucked;
-    try { localStorage.setItem('srcTuck', tucked ? '1' : '0'); } catch (e) {}
+    panels = !panels;
+    try { localStorage.setItem('srcPanels', panels ? '1' : '0'); } catch (e) {}
     apply();
   };
-  const bt = document.getElementById('btnTuck'), tt = document.getElementById('tuckTab');
-  if (bt) bt.addEventListener('click', flip);
-  if (tt) tt.addEventListener('click', flip);
+  const pt = document.getElementById('panelTab');
+  if (pt) pt.addEventListener('click', flip);
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
-    if (focus.idx < 0) return;
+    if (focus.idx < 0 || !overlay.classList.contains('fs')) return;
     if (e.key === 'h' || e.key === 'H') flip();
   });
   apply();

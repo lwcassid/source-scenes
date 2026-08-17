@@ -64,13 +64,16 @@ actually getting — `1920×1200 · 1.60 · PROJ` is the show.
 Other projector classes: **`?frame=fhd|wxga|xga|uhd|1400x1050`** (or
 `setFrame(w,h)` live) re-pins the frame and cascades through every scene.
 **VIEW dropdown on the stage** (or `V` cycles): FLAT (one projector) ·
-GHOST (two-projector misregistration) · SCRIM HEAD-ON · SCRIM THE CAVE 3D
-(`C` cycles room cameras). The scrim rig is derived from Elyse's planner
-(duxel = 8 ft): 24×40 ft interior, cable-hung 54″ fabric panels on three
-rows, projectors atop the entrance-corner duxels ~22 ft apart — numbers in
-`SCRIMRIG` (`parts/part2d_scrimview.js`). **`H`** tucks the control bars
-away (the ▲ UI pill brings them back). View mode and tuck persist across
-scenes and visits.
+GHOST (two-projector misregistration) · SCRIM THE CAVE 3D. In the scrim
+view YOU drive the camera — drag orbits, wheel zooms, `C` jumps vantages
+(AT THE SOURCE — the default and the design target — / AUDIENCE / HEAD-ON /
+OBLIQUE / OVERVIEW); the mouse belongs to the camera there, keys still play
+the hands. Rig derived from Elyse's planner (duxel = 8 ft): 24×40 ft
+interior, cable-hung 54″ panels on three rows 6 ft apart, projectors atop
+the entrance-corner duxels ~22 ft apart — numbers in `SCRIMRIG`
+(`parts/part2d_scrimview.js`). FULLSCREEN = performance mode: picture only;
+the PANELS pill (or `H`) brings the MIDI/hands/console panels in for
+debugging. View mode and panels choice persist across scenes and visits.
 
 ### Verify BEFORE you ship (sighted iteration)
 Never ship a scene you haven't SEEN. In a cloud sandbox:
