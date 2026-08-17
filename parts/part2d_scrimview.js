@@ -60,11 +60,11 @@ window.SCRIMVIEW = {
   // the drapes — that's who we're designing for.
   orb: { th: 0, ph: 1.736, r: 9.1, ty: 7 },
   PRESETS: [
-    { n: 'AT THE SOURCE', th: 0, ph: 1.736, r: 9.1 },
-    { n: 'AUDIENCE', th: 0, ph: 1.633, r: 16 },
-    { n: 'HEAD-ON', th: 0, ph: 1.515, r: 18 },
-    { n: 'OBLIQUE', th: -0.918, ph: 1.571, r: 21.5 },
-    { n: 'OVERVIEW', th: 0.567, ph: 1.469, r: 39 },
+    { n: 'AT THE SOURCE', s: 'SOURCE', th: 0, ph: 1.736, r: 9.1 },
+    { n: 'AUDIENCE', s: 'AUDIENCE', th: 0, ph: 1.633, r: 16 },
+    { n: 'HEAD-ON', s: 'HEAD-ON', th: 0, ph: 1.515, r: 18 },
+    { n: 'OBLIQUE', s: 'OBLIQUE', th: -0.918, ph: 1.571, r: 21.5 },
+    { n: 'OVERVIEW', s: 'OVERVIEW', th: 0.567, ph: 1.469, r: 39 },
   ],
   preset: 0,
   applyPreset(i) {
@@ -77,7 +77,7 @@ window.SCRIMVIEW = {
     const row = document.getElementById('scrimCams');
     if (!row) return;
     if (!row.children.length)
-      row.innerHTML = this.PRESETS.map((p, i) => `<button data-i="${i}">${p.n}</button>`).join('');
+      row.innerHTML = this.PRESETS.map((p, i) => `<button data-i="${i}" title="${p.n}">${p.s}</button>`).join('');
     [...row.children].forEach((b, i) => b.classList.toggle('on', i === active));
   },
   _init(P) {
@@ -325,7 +325,7 @@ window.SCRIMVIEW = {
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · The Cave 24×40 ft · rows 6 ft apart · projectors 22 ft apart · ' +
-      'drag ORBIT · wheel ZOOM · vantage chips top-left (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel/pinch ZOOM · vantages in the bar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
 

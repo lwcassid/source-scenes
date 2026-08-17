@@ -171,12 +171,11 @@
   #overlay.fs:not(.perf) #panelTab{color:var(--acc);opacity:.7}
   #overlay.zen.perf #panelTab{opacity:0}
   #overlay.zen.perf #panelTab:hover{opacity:1}
-  /* scrim vantage chips — one click to each default view of The Cave */
-  #scrimCams{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:8;gap:7px;flex-wrap:wrap;justify-content:center}
-  #overlay.scrimmode #scrimCams{display:flex}
-  #scrimCams button{font-size:10px;padding:7px 14px;letter-spacing:.14em;border-radius:999px;font-weight:600;
-    background:rgba(10,10,16,.78);border:1px solid rgba(255,255,255,.3);color:#e6ebf5}
-  #scrimCams button:hover{border-color:#fff}
+  /* scrim vantage chips — in the bar next to the VIEW dropdown; nothing
+     floats over the picture */
+  #scrimCams{display:none;gap:4px;align-items:center}
+  #overlay.scrimmode #scrimCams{display:inline-flex}
+  #scrimCams button{font-size:9px;letter-spacing:.1em}
   #scrimCams button.on{background:var(--acc);border-color:var(--acc);color:#fff}
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
@@ -418,6 +417,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
         <option value="double">VIEW: GHOST · 2 PROJECTORS</option>
         <option value="scrim">VIEW: SCRIM · THE CAVE 3D</option>
       </select>
+      <span id="scrimCams" title="Vantage points — or drag the 3D view to orbit, wheel/pinch to zoom"></span>
       <button id="fFull" class="icon" title="Fullscreen">⛶</button>
       <button id="btnThemeF" class="icon" title="Theme">◐</button>
       <button id="btnClose">CLOSE ✕</button>
@@ -426,7 +426,6 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   <div class="ostage">
     <canvas id="focusCanvas"></canvas>
     <button id="stageFS" title="Showtime — take the whole display">⛶</button>
-    <div id="scrimCams" title="Vantage points — or drag to orbit, wheel to zoom"></div>
     <div id="edgeL" class="edgeNav"><span>‹</span></div>
     <div id="edgeR" class="edgeNav"><span>›</span></div>
     <div id="dbg"><div id="dbgTab">DBG</div><div id="dbgBody"></div></div>
@@ -1951,11 +1950,11 @@ window.SCRIMVIEW = {
   // the drapes — that's who we're designing for.
   orb: { th: 0, ph: 1.736, r: 9.1, ty: 7 },
   PRESETS: [
-    { n: 'AT THE SOURCE', th: 0, ph: 1.736, r: 9.1 },
-    { n: 'AUDIENCE', th: 0, ph: 1.633, r: 16 },
-    { n: 'HEAD-ON', th: 0, ph: 1.515, r: 18 },
-    { n: 'OBLIQUE', th: -0.918, ph: 1.571, r: 21.5 },
-    { n: 'OVERVIEW', th: 0.567, ph: 1.469, r: 39 },
+    { n: 'AT THE SOURCE', s: 'SOURCE', th: 0, ph: 1.736, r: 9.1 },
+    { n: 'AUDIENCE', s: 'AUDIENCE', th: 0, ph: 1.633, r: 16 },
+    { n: 'HEAD-ON', s: 'HEAD-ON', th: 0, ph: 1.515, r: 18 },
+    { n: 'OBLIQUE', s: 'OBLIQUE', th: -0.918, ph: 1.571, r: 21.5 },
+    { n: 'OVERVIEW', s: 'OVERVIEW', th: 0.567, ph: 1.469, r: 39 },
   ],
   preset: 0,
   applyPreset(i) {
@@ -1968,7 +1967,7 @@ window.SCRIMVIEW = {
     const row = document.getElementById('scrimCams');
     if (!row) return;
     if (!row.children.length)
-      row.innerHTML = this.PRESETS.map((p, i) => `<button data-i="${i}">${p.n}</button>`).join('');
+      row.innerHTML = this.PRESETS.map((p, i) => `<button data-i="${i}" title="${p.n}">${p.s}</button>`).join('');
     [...row.children].forEach((b, i) => b.classList.toggle('on', i === active));
   },
   _init(P) {
@@ -2216,7 +2215,7 @@ window.SCRIMVIEW = {
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · The Cave 24×40 ft · rows 6 ft apart · projectors 22 ft apart · ' +
-      'drag ORBIT · wheel ZOOM · vantage chips top-left (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel/pinch ZOOM · vantages in the bar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
 
