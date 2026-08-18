@@ -522,7 +522,15 @@ AE.SB = {
     const voices = _padVoices(v, n, opts);
     for (const vc of voices) {
       const _set = vc.set.bind(vc);
-      vc.set = function (freq, glide) { MOut.padSet(vc, freq); _set(freq, glide); };
+      // velocity from the voice's ACTUAL gain, not a constant — measured
+      // across the library, every pad note was leaving at vel 58, which is
+      // exactly the machine-flat sound a velocity-sensitive patch exposes.
+      // Scenes that swell a pad voice's gain now speak at that loudness.
+      vc.set = function (freq, glide) {
+        let g = 0.045; try { g = vc.g.gain.value; } catch (e) {}
+        MOut.padSet(vc, freq, Math.round(Math.max(25, Math.min(105, 25 + (g / 0.05) * 45))));
+        _set(freq, glide);
+      };
     }
     return voices;
   };

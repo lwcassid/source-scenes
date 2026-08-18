@@ -107,6 +107,26 @@ the actual Live set** — read it before designing a scene's sound so you
 write for the rack that exists, and tell the user to update it when the
 Live set changes.
 
+## Velocity — where "professional" lives or dies
+
+Velocity is PER-NOTE and mirrors the browser-side `vol` of every event
+(`v2v`: vol 0→28, 0.25→123). So dynamics are already yours to write — but a
+constant `vol` produces machine-flat velocity, and a velocity-sensitive patch
+in Live exposes it instantly. The law:
+
+- **Derive `vol` from the gesture**, not a literal: intensity, approach
+  speed, distance from center, charge time. Storm Garden (vel 29–61 with
+  hand intensity) is the reference; a bell line at `vol: 0.05` forever is a
+  doorbell.
+- **Accents on the grid**: downbeats and pattern heads get a vol bump
+  (~×1.3), off-beats sit lower. Cheap, transforms a flat arp.
+- **Flat-on-purpose is a choice, not a default** — White Study's Ikeda
+  clicks are MEANT to be machine-identical; say so in the scene notes.
+- The mirror already varies what it owns: texture holds scale velocity with
+  voice gain, pad notes with each pad voice's gain. What's left is per-scene
+  `vol` writing — check your scene with the DBG monitor: if every bar of a
+  role draws the same brightness, it is flat.
+
 ## Music-revision checklist
 
 1. New feedback round = NEW VERSION part file (the versioning law applies
