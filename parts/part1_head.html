@@ -28,12 +28,7 @@
     --hdr-bg:rgba(244,244,241,.88);
   }
   /* light-mode legibility: the glow colors need ink versions on white */
-  body.light .owner.t12{color:#8a6a00;border-color:rgba(138,106,0,.5);text-shadow:none}
-  body.light .owner.kasia{color:#8a3fc2;border-color:rgba(138,63,194,.45)}
-  body.light .owner.nima{color:#0e7fb5;border-color:rgba(14,127,181,.45)}
-  body.light .owner.lance{color:#a86a10;border-color:rgba(168,106,16,.45)}
-  body.light .star{color:#b9b9b0}
-  body.light .star.on{color:#c79400;text-shadow:none}
+  body.light .qbox{color:#b9b9b0}
   body.light #favBanner{color:#7a5f00;border-color:rgba(138,106,0,.4);background:rgba(199,148,0,.07)}
   /* the focus overlay follows the shell theme — the STAGE (canvas) stays whatever the scene paints */
   *{box-sizing:border-box;margin:0;padding:0}
@@ -104,14 +99,34 @@
   .vpills button{border:1px solid var(--line);background:transparent;color:var(--txt-dim);font-size:9px;letter-spacing:.08em;padding:2px 8px;border-radius:999px}
   .vpills button:hover{border-color:rgba(255,255,255,.4);color:var(--txt);background:transparent}
   .vpills button.on{border-color:var(--acc);color:var(--acc);background:var(--acc-faint)}
-  .owner{font-size:8px;letter-spacing:.14em;padding:2.5px 8px;border:1px solid;border-radius:999px;white-space:nowrap;font-weight:700}
-  .owner.t12{color:#ffd977;border-color:rgba(255,217,119,.45)}
-  .owner.kasia{color:#e2a6ff;border-color:rgba(226,166,255,.45)}
-  .owner.nima{color:#7fd8ff;border-color:rgba(127,216,255,.45)}
-  .owner.lance{color:#ffc46b;border-color:rgba(255,196,107,.45)}
-  .star{border:none;background:none;padding:2px 4px;font-size:14px;color:var(--txt-faint);cursor:pointer;line-height:1}
-  .star:hover{background:none;color:#ffd977;border:none}
-  .star.on{color:#ffd977;text-shadow:0 0 8px rgba(255,217,119,.7)}
+  /* the queue checkbox — shows its POSITION once queued, so the running
+     order is readable straight off the wall without opening the drawer */
+  .qbox{border:1px solid var(--line);background:none;padding:0;width:19px;height:19px;flex:none;
+    border-radius:5px;font-size:9px;font-weight:800;color:var(--txt-faint);cursor:pointer;line-height:1;
+    display:flex;align-items:center;justify-content:center}
+  .qbox:hover{border-color:var(--acc);color:var(--acc);background:none}
+  .qbox.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .qbox.on:hover{background:var(--acc);border-color:var(--acc);color:#fff}
+
+  /* ---------- performance queue drawer ---------- */
+  #queuePop{display:none;position:fixed;top:54px;right:14px;z-index:60;width:360px;max-height:78vh;overflow-y:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  #queuePop.open{display:block}
+  #queuePop h4{font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--txt);margin-bottom:8px}
+  #queuePop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
+  #queuePop b{color:var(--txt)}
+  #queuePop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
+  #queueList{list-style:none;margin:10px 0;padding:0}
+  #queueList li{display:flex;align-items:center;gap:6px;padding:5px 6px;border:1px solid var(--line);
+    border-radius:6px;margin-bottom:4px;background:rgba(0,0,0,.12)}
+  #queueList .qn{font:9px ui-monospace,monospace;color:var(--acc);width:14px;flex:none;font-weight:800}
+  #queueList .qid{font:9px ui-monospace,monospace;color:var(--txt-faint);width:52px;flex:none}
+  #queueList .qt{font-size:10.5px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #queueList button{padding:2px 6px;font-size:10px;line-height:1.1}
+  #queueList button:disabled{opacity:.28;cursor:default}
+  #queueEmpty{display:none}
+  #queuePop.empty #queueEmpty{display:block}
   #favBanner{display:none;margin:16px 24px 0;padding:12px 16px;border:1px solid rgba(255,217,119,.4);background:rgba(255,217,119,.06);
     border-radius:var(--r);font-size:10px;letter-spacing:.12em;color:#ffd977;align-items:center;gap:12px;flex-wrap:wrap;text-transform:uppercase}
   #favBanner.open{display:flex}
@@ -387,8 +402,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <button id="btnClock" class="off" title="Send MIDI clock so Ableton follows the scene's tempo (Live: enable Sync on this port, then press EXT)">CLOCK: ON</button>
       <button id="btnRig" title="Role → MIDI channel routing for your DAW">RIG</button>
     </div>
-    <button id="btnFav" class="off" title="Your starred shortlist">★ 0</button>
-    <button id="btnFavLink" style="display:none">COPY LINK</button>
+    <button id="btnQueue" class="off" title="The performance queue — the scenes you play, in the order you play them">QUEUE 0</button>
     <button id="btnTheme" class="icon" title="Theme — light matches the camper portal; dark is stage mode">◐</button>
     <button id="btnHelp" class="icon">?</button>
   </div>
@@ -423,27 +437,36 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
 
 <div id="favBanner">
   <span id="favBannerText"></span>
-  <button id="favMerge">MERGE INTO MINE</button>
+  <button id="favMerge">LOAD THIS QUEUE</button>
   <button id="favDismiss">DISMISS</button>
+</div>
+
+<!-- ================= PERFORMANCE QUEUE ================= -->
+<div id="queuePop">
+  <h4>Performance queue</h4>
+  <p>Tick a scene on the wall to add it. This list <b>is</b> the set — membership and running order both. SHOWTIME walks it in this order, and the screen edges step through it.</p>
+  <ol id="queueList"></ol>
+  <p id="queueEmpty">Nothing queued yet. With an empty queue the show falls back to playing the whole wall in library order — which is how you end up performing 43 scenes sorted by number.</p>
+  <div class="row">
+    <button id="btnQueuePlay">▶ PLAY</button>
+    <button id="btnQueueLink">COPY LINK</button>
+    <button id="btnQueueClear">CLEAR</button>
+    <button id="btnQueueClose">CLOSE</button>
+  </div>
 </div>
 <main>
   <div class="libbar">
     <h2>Library</h2><span class="scount" id="libCount"></span>
     <input id="searchBox" type="search" placeholder="search scenes…" autocomplete="off">
-    <select id="sortSel" title="Sort">
-      <option value="active">active first</option>
+    <select id="sortSel" title="Sort — MOST WORKED ON weighs how recently a scene was touched against how many versions it has">
+      <option value="love">most worked on</option>
       <option value="id">SRC number</option>
       <option value="title">title A–Z</option>
-      <option value="ver">most iterated</option>
+      <option value="ver">most versions</option>
     </select>
     <div class="fchips">
       <button class="fchip on" data-f="all">ALL</button>
-      <button class="fchip" data-f="active">ACTIVE</button>
-      <button class="fchip" data-f="fav">★ MINE</button>
-      <button class="fchip" data-f="top12">TOP 12</button>
-      <button class="fchip" data-f="KASIA">KASIA</button>
-      <button class="fchip" data-f="NIMA">NIMA</button>
-      <button class="fchip" data-f="LANCE">LANCE</button>
+      <button class="fchip" data-f="queue">IN QUEUE</button>
     </div>
   </div>
   <div class="grid" id="grid"></div>
@@ -459,7 +482,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   <div class="obar">
     <div class="otitle"><span class="tid" id="oTid"></span><h2 id="oTitle"></h2><span class="ttag" id="oTag"></span><span id="oVers"></span><span id="oActs"></span></div>
     <div class="obtns">
-      <button id="btnStarFocus" class="star" style="font-size:16px">☆</button>
+      <button id="btnQueueFocus" title="Add this scene to the performance queue">+ QUEUE</button>
       <button id="btnInfo">INFO</button>
       <button id="btnRegen">REGEN</button>
       <button id="btnPng">PNG</button>

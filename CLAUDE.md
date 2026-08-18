@@ -9,7 +9,18 @@ Live site: https://source-interaction-library.netlify.app
 Deploys: push to `main` → Netlify auto-deploys the repo root. `index.html` is
 the site. That's the whole pipeline.
 
-## Owners
+## The performance queue (what's in the show)
+One mechanism, not four. Tick a scene's checkbox on the wall and it joins the
+QUEUE; the queue's ORDER is the running order; SHOWTIME walks exactly that.
+The old stars / TOP-12 badge / per-owner tags are gone — they were three
+competing answers to "what do we play", and the one the show actually read
+was the empty one. Queue persists per-browser (`srcQueue`) and shares as a
+`#set=a,b,c` link. Default library sort is MOST WORKED ON: recency (highest
+PIECES index in a family — new versions append to the build) weighted 0.55
+against version count on a log curve at 0.45, so scenes people are actively
+loving float and never-revised v1s sink.
+
+## Owners (coordination only — no longer shown in the UI)
 Kasia: Ferro Bloom (SRC-15), Weather Station (SRC-10), Epicycle Court (SRC-01)
 Nima: White Study (SRC-34), Stones/Sonora (SRC-32), Attractor Vespers (SRC-09),
   the reference-wall set (SRC-36 Foam Bloom · SRC-37 Iris Engine · SRC-38 Lumen
@@ -33,7 +44,7 @@ The site is ONE html file assembled by concatenating `parts/` in a fixed order
 - `part3..part14` — scene registrations (`reg({...})`), one per scene
 - `partNN_vNN.js` — Night Circuit versions (one FILE per version)
 - `part15_history.js` + `part5_tail.js` — version pills, library bar,
-  favorites/set-list, SHOWTIME mode, debug strip. Tail ALWAYS concatenates last.
+  performance queue, SHOWTIME mode, debug strip. Tail ALWAYS concatenates last.
 
 ### The versioning law (non-negotiable)
 Every feedback round on a scene = a NEW VERSION as a NEW PART FILE

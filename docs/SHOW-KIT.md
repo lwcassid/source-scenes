@@ -10,8 +10,13 @@ the URL — is what the projectors play.
 
 ## Before leaving for the burn (the checklist)
 
-1. Freeze the set: final versions pushed, set list starred in the library
-   (SHOWTIME mode plays starred scenes; 10-min auto-advance).
+1. Freeze the set: final versions pushed, then build the PERFORMANCE QUEUE —
+   tick each scene's checkbox on the wall, open the QUEUE drawer in the header
+   and drag the order into the shape you want the night to have. That list is
+   the show: SHOWTIME walks it in queue order, screen edges step it, 10-min
+   auto-advance. Empty queue = the wall plays all 43 in library order, which
+   is not a set. COPY LINK shares the queue as a `#set=` URL — that is how you
+   get the same running order onto the show laptop.
 2. From a fresh `git pull`:
    `bash tools/build.sh && python3 tools/build_preview.py`
 3. Copy the offline file to: the show laptop, TWO usb sticks, and a phone.
@@ -95,7 +100,7 @@ the same on its `MIDI IN` line. `NO-REST` there means step 3 hasn't been done.
   WHOLE range. Backwards → INVERT. Scenes never resting → SET REST.
 - Wall acting played-with when nobody's there → SET REST (a drifting sensor
   moved off its old rest point).
-- Everything dead → reopen the HTML file; state (favorites, bindings)
+- Everything dead → reopen the HTML file; state (queue, calibration, bindings)
   persists per-browser. Worst case: second USB stick, second laptop.
 - FPS sagging in dust/heat → close other apps; the wall alone must own the
   GPU. Mobile-class fallback: any phone can open the same file for a tiny

@@ -1,73 +1,128 @@
 /* ============================================================
    TEAM — locked top-12 shortlist and owners (Wed deadline)
    ============================================================ */
-const OWNERS = {
-  'SRC-15': 'KASIA', 'SRC-10': 'KASIA', 'SRC-01': 'KASIA',
-  'SRC-34': 'NIMA', 'SRC-32': 'NIMA', 'SRC-09': 'NIMA',
-  'SRC-18': 'LANCE', 'SRC-30': 'LANCE', 'SRC-04': 'LANCE'
-};
-const TOP12 = new Set(['SRC-01', 'SRC-04', 'SRC-05', 'SRC-07', 'SRC-09', 'SRC-10',
-  'SRC-15', 'SRC-18', 'SRC-28', 'SRC-30', 'SRC-32', 'SRC-34']);
+/* ============================================================
+   THE PERFORMANCE QUEUE
+   ------------------------------------------------------------
+   There used to be three competing answers to "what is in the
+   show": a hardcoded TOP-12 badge, per-owner tags, and starred
+   favourites — and the one SHOWTIME actually read was the empty
+   one, so a fresh laptop performed all 43 scenes sorted by SRC
+   number. There is one answer now. Tick a scene, it joins the
+   queue; the queue's ORDER is the running order; SHOWTIME walks
+   it. Nothing else votes.
+   ============================================================ */
 let libFilter = 'all';
 function syncChips() {
   document.querySelectorAll('.fchip').forEach(c => c.classList.toggle('on', c.dataset.f === libFilter));
-  const bf = document.getElementById('btnFav');
-  if (bf) bf.classList.toggle('off', libFilter !== 'fav');
 }
 const famOf = def => def.family || def.id;
 
-/* ============================================================
-   FAVORITES / SHORTLIST — star pieces, share picks by link
-   Storage is guarded: persists on the hosted site, falls back
-   to in-memory anywhere storage is unavailable.
-   ============================================================ */
-const FAV = {
-  set: new Set(), filterOn: false, shared: null,
-  load() { try { const s = window.localStorage && localStorage.getItem('srcFavs'); if (s) this.set = new Set(JSON.parse(s)); } catch (e) {} },
-  save() { try { window.localStorage && localStorage.setItem('srcFavs', JSON.stringify([...this.set])); } catch (e) {} },
+const QUEUE = {
+  list: [], shared: null,
+  load() {
+    try {
+      const s = window.localStorage && localStorage.getItem('srcQueue');
+      if (s) { this.list = JSON.parse(s).filter(Boolean); return; }
+      // one-time migration: whatever was starred becomes the first queue
+      const old = window.localStorage && localStorage.getItem('srcFavs');
+      if (old) { this.list = JSON.parse(old).filter(Boolean); this.save(); }
+    } catch (e) {}
+  },
+  save() { try { window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list)); } catch (e) {} },
+  has(id) { return this.list.indexOf(id) >= 0; },
+  pos(id) { return this.list.indexOf(id) + 1; },   // 1-based, 0 = not queued
   toggle(id) {
-    this.set.has(id) ? this.set.delete(id) : this.set.add(id);
+    const i = this.list.indexOf(id);
+    if (i >= 0) this.list.splice(i, 1); else this.list.push(id);
     this.save(); this.refresh();
   },
+  move(id, dir) {
+    const i = this.list.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= this.list.length) return;
+    this.list.splice(j, 0, this.list.splice(i, 1)[0]);
+    this.save(); this.refresh();
+  },
+  clear() { this.list = []; this.save(); this.refresh(); },
   link() {
-    const url = location.origin + location.pathname + '#fav=' + [...this.set].join(',');
+    const url = location.origin + location.pathname + '#set=' + this.list.join(',');
     const done = () => {
-      const b = document.getElementById('btnFavLink');
+      const b = document.getElementById('btnQueueLink');
       b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'COPY LINK', 1500);
     };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy your shortlist link:', url));
-    else prompt('Copy your shortlist link:', url);
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy your queue link:', url));
+    else prompt('Copy your queue link:', url);
+  },
+  // the tile a family lives on — the queue stores family ids, not versions
+  tileFor(id) { return [...grid.children].find(t => t.dataset.pid === id) || null; },
+  titleOf(id) {
+    const t = this.tileFor(id);
+    return t ? (t.querySelector('h3').textContent || id) : id + ' (not on this build)';
+  },
+  play() {
+    const first = this.list.find(id => this.tileFor(id));
+    const tile = first ? this.tileFor(first) : null;
+    if (tile && tile.cur) { closeFocus(); openFocus(tile.cur.idx); }
+    else if (focus.idx < 0) openFocus(0);
+    document.getElementById('queuePop').classList.remove('open');
+    const ov = document.getElementById('overlay');
+    if (!document.fullscreenElement && ov.requestFullscreen) ov.requestFullscreen().catch(() => {});
   },
   refresh() {
-    document.getElementById('btnFav').textContent = '★ ' + this.set.size;
-    document.getElementById('btnFavLink').style.display = (libFilter === 'fav' && this.set.size) ? '' : 'none';
+    const btn = document.getElementById('btnQueue');
+    if (btn) { btn.textContent = 'QUEUE ' + this.list.length; btn.classList.toggle('off', !this.list.length); }
     document.querySelectorAll('.tile').forEach(tile => {
-      const id = tile.dataset.pid;
-      const star = tile.querySelector('.star');
-      if (star) { star.textContent = this.set.has(id) ? '★' : '☆'; star.classList.toggle('on', this.set.has(id)); }
+      const id = tile.dataset.pid, box = tile.querySelector('.qbox');
+      if (!box) return;
+      const n = this.pos(id);
+      box.textContent = n || '';
+      box.classList.toggle('on', !!n);
+      box.title = n ? 'Queued #' + n + ' — click to remove' : 'Add to the performance queue';
     });
-    const fs = document.getElementById('btnStarFocus');
-    if (fs && focus.idx >= 0) {
-      const id = famOf(PIECES[focus.idx]);
-      fs.textContent = this.set.has(id) ? '★' : '☆';
-      fs.classList.toggle('on', this.set.has(id));
+    const fq = document.getElementById('btnQueueFocus');
+    if (fq && focus.idx >= 0) {
+      const n = this.pos(famOf(PIECES[focus.idx]));
+      fq.textContent = n ? '✓ QUEUED ' + n : '+ QUEUE';
+      fq.classList.toggle('on', !!n);
     }
+    this.renderList();
     if (typeof applyLibrary === 'function') applyLibrary();
+  },
+  renderList() {
+    const ol = document.getElementById('queueList');
+    if (!ol) return;
+    document.getElementById('queuePop').classList.toggle('empty', !this.list.length);
+    ol.innerHTML = this.list.map((id, i) => `<li data-qid="${id}">
+      <span class="qn">${i + 1}</span><span class="qid">${id}</span>
+      <span class="qt">${this.titleOf(id)}</span>
+      <button data-q="up" title="earlier in the set"${i === 0 ? ' disabled' : ''}>↑</button>
+      <button data-q="dn" title="later in the set"${i === this.list.length - 1 ? ' disabled' : ''}>↓</button>
+      <button data-q="rm" title="drop from the set">✕</button>
+    </li>`).join('');
+    ol.querySelectorAll('button').forEach(b => b.addEventListener('click', e => {
+      const id = e.target.closest('li').dataset.qid, act = e.target.dataset.q;
+      if (act === 'up') this.move(id, -1);
+      else if (act === 'dn') this.move(id, 1);
+      else this.toggle(id);
+    }));
   },
   boot() {
     this.load();
-    if (location.hash.startsWith('#fav=')) {
-      const ids = location.hash.slice(5).split(',').filter(Boolean);
+    // a shared set arrives as an ordered list; #fav= links from the star era
+    // still open, they just land as a proposed queue instead of a shortlist
+    const h = location.hash;
+    const m = h.startsWith('#set=') ? h.slice(5) : h.startsWith('#fav=') ? h.slice(5) : null;
+    if (m) {
+      const ids = m.split(',').filter(Boolean);
       if (ids.length) {
-        this.shared = new Set(ids);
-        libFilter = 'fav'; syncChips();
+        this.shared = ids;
+        libFilter = 'queue'; syncChips();
         const bn = document.getElementById('favBanner');
         bn.classList.add('open');
         document.getElementById('favBannerText').textContent =
-          'VIEWING A SHARED SHORTLIST · ' + ids.length + ' PIECES';
+          'SOMEONE SHARED A SET · ' + ids.length + ' SCENES, IN THEIR ORDER';
         document.getElementById('favMerge').addEventListener('click', () => {
-          ids.forEach(id => this.set.add(id));
-          this.save(); this.shared = null;
+          this.list = ids.slice(); this.save(); this.shared = null;
           bn.classList.remove('open');
           history.replaceState(null, '', location.pathname);
           this.refresh();
@@ -80,27 +135,51 @@ const FAV = {
         });
       }
     }
-    document.getElementById('btnFav').addEventListener('click', () => {
-      libFilter = libFilter === 'fav' ? 'all' : 'fav';
-      if (libFilter !== 'fav') this.shared = null;
-      syncChips();
-      this.refresh();
-    });
-    document.getElementById('btnFavLink').addEventListener('click', () => this.link());
-    document.getElementById('btnStarFocus').addEventListener('click', () => {
+    const pop = document.getElementById('queuePop');
+    document.getElementById('btnQueue').addEventListener('click', () => pop.classList.toggle('open'));
+    document.getElementById('btnQueueClose').addEventListener('click', () => pop.classList.remove('open'));
+    document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
+    document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
+    document.getElementById('btnQueuePlay').addEventListener('click', () => this.play());
+    document.getElementById('btnQueueFocus').addEventListener('click', () => {
       if (focus.idx >= 0) this.toggle(famOf(PIECES[focus.idx]));
     });
     this.refresh();
   }
 };
+// part2_core calls FAV.refresh() on focus open; keep that name pointing here
+const FAV = QUEUE;
 
 /* ============================================================
    BOOT — build the wall, run the loop
    ============================================================ */
 const grid = document.getElementById('grid');
-// "active" = the owned shortlist (OWNERS) — drives the default sort + ACTIVE filter
-const ACTIVE_ORDER = ['SRC-18', 'SRC-30', 'SRC-04', 'SRC-15', 'SRC-10', 'SRC-01', 'SRC-34', 'SRC-32', 'SRC-09'];
-const famRank = f => { const i = ACTIVE_ORDER.indexOf(f); return i < 0 ? 999 : i; };
+/* WHERE THE LOVE WENT — the default library order.
+   A hand-maintained "active" list went stale the moment nobody updated it, so
+   the wall now derives its own answer from two things it already knows:
+     RECENCY — a new version is a new part file appended to the build, so the
+       highest PIECES index in a family tracks how recently it was touched.
+       (Proxy, not a timestamp: parts carry no dates. Close enough that the
+       scenes people are actually working on float, which is the point.)
+     DEPTH  — how many versions the family has, on a log curve so an 18-version
+       obsession doesn't bury a 6-version scene that got real attention.
+   Recency leads, because a scene worked on last week matters more to the set
+   than one that was iterated hard a year ago and dropped. */
+const LOVE = new Map();
+function computeLove() {
+  let maxIdx = 1, maxVer = 1;
+  FAMS.forEach(F => {
+    const idx = Math.max(...F.entries.map(e => e.idx));
+    maxIdx = Math.max(maxIdx, idx);
+    maxVer = Math.max(maxVer, F.entries.length);
+  });
+  FAMS.forEach(F => {
+    const recency = Math.max(...F.entries.map(e => e.idx)) / maxIdx;
+    const depth = Math.log(F.entries.length) / Math.log(maxVer);
+    LOVE.set(F.fam, 0.55 * recency + 0.45 * depth);
+  });
+}
+const loveRank = f => 1000 - Math.round((LOVE.get(f) || 0) * 1000);   // low = most loved
 const insts = [];
 // tile thumbnails render in the projector frame's exact shape (16:10, like
 // 1920x1200) at thumbnail density — 420x264 was 1.59, close but a lie
@@ -123,16 +202,16 @@ const FAMS = [];
     FAMS[fi.get(f)].entries.push({ def, idx: i });
   });
   FAMS.forEach(F => F.entries.sort((a, b) => (a.def.ver || 1) - (b.def.ver || 1)));
-  FAMS.sort((a, b) => famRank(a.fam) - famRank(b.fam)); // stable: library keeps its order
+  computeLove();
+  FAMS.sort((a, b) => loveRank(a.fam) - loveRank(b.fam)); // most worked on first
 }
 
 FAMS.forEach(F => {
   const tile = document.createElement('div');
   tile.className = 'tile';
   tile.dataset.pid = F.fam;
-  const own = OWNERS[F.fam];
   tile.innerHTML = `
-    <div class="tile-head"><span class="tid">${F.fam}</span><span class="ttag"></span>${TOP12.has(F.fam) ? '<span class="owner t12">★ TOP 12</span>' : ''}${own ? `<span class="owner ${own.toLowerCase()}">${own}</span>` : ''}<select class="vsel" style="display:none" title="version history"></select><button class="star" title="add to shortlist">☆</button></div>
+    <div class="tile-head"><span class="tid">${F.fam}</span><span class="ttag"></span><select class="vsel" style="display:none" title="version history"></select><button class="qbox" title="add to the performance queue"></button></div>
     <div class="cwrap"><canvas></canvas><span class="hoverhint">FOCUS ▸</span></div>
     <div class="tbody">
       <h3></h3>
@@ -166,7 +245,7 @@ FAMS.forEach(F => {
       vs.innerHTML = F.entries.map(e => `<option value="${e.def.ver || 1}"${e === tile.cur ? ' selected' : ''}>V${e.def.ver || 1}</option>`).join('');
     } else vs.style.display = 'none';
     // searchable text for the library bar
-    tile.dataset.search = (F.fam + ' ' + en.def.title + ' ' + en.def.tech + ' ' + (en.def.tags || []).join(' ') + ' ' + (OWNERS[F.fam] || '') + ' ' + en.def.desc).toLowerCase();
+    tile.dataset.search = (F.fam + ' ' + en.def.title + ' ' + en.def.tech + ' ' + (en.def.tags || []).join(' ') + ' ' + en.def.desc).toLowerCase();
   };
   setText(tile.cur);
   tile.querySelector('.vsel').addEventListener('click', e => e.stopPropagation());
@@ -178,14 +257,14 @@ FAMS.forEach(F => {
     insts[ti] = P;
     if (io) ioMap.set(cv, P);
     setText(en);
-    FAV.refresh();
+    QUEUE.refresh();
   });
   tile.querySelector('.morelink').addEventListener('click', e => {
     e.stopPropagation();
     const on = tile.classList.toggle('exp');
     e.target.textContent = on ? 'less' : 'more';
   });
-  tile.querySelector('.star').addEventListener('click', e => { e.stopPropagation(); FAV.toggle(F.fam); });
+  tile.querySelector('.qbox').addEventListener('click', e => { e.stopPropagation(); QUEUE.toggle(F.fam); });
   tile.querySelector('.cwrap').addEventListener('click', () => openFocus(tile.cur.idx));
   tile.querySelector('[data-act=focus]').addEventListener('click', () => openFocus(tile.cur.idx));
   tile.querySelector('[data-act=regen]').addEventListener('click', () => insts[ti].reinit((Math.random() * 1e9) | 0));
@@ -323,7 +402,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
 function applyLibrary() {
   const q = (document.getElementById('searchBox').value || '').trim().toLowerCase();
   const sort = document.getElementById('sortSel').value;
-  const activeShort = FAV.shared || FAV.set;
+  const inSet = QUEUE.shared || QUEUE.list;
   const tiles = [...grid.children];
   const titleSorted = tiles.slice().sort((a, b) =>
     a.querySelector('h3').textContent.localeCompare(b.querySelector('h3').textContent));
@@ -333,20 +412,21 @@ function applyLibrary() {
     const id = tile.dataset.pid;
     let show = !q || (tile.dataset.search || '').includes(q);
     if (show) {
-      if (libFilter === 'fav') show = activeShort.has(id);
-      else if (libFilter === 'top12') show = TOP12.has(id);
-      else if (libFilter === 'active') show = !!OWNERS[id];
-      else if (libFilter === 'KASIA' || libFilter === 'NIMA' || libFilter === 'LANCE') show = OWNERS[id] === libFilter;
+      if (libFilter === 'queue') show = inSet.indexOf(id) >= 0;
     }
     tile.style.display = show ? '' : 'none';
     if (show) shown++;
     const src = +((id.match(/\d+/) || [999])[0]);
     const vers = (tile.querySelector('.vsel').options.length) || 1;
     let ord;
-    if (sort === 'id') ord = src;
+    // queued scenes always sort by their running order first, whatever the
+    // sort is — once you have a set, the set is what you want to look at
+    const qp = QUEUE.pos(id);
+    if (qp) ord = -100000 + qp;
+    else if (sort === 'id') ord = src;
     else if (sort === 'title') ord = tRank.get(tile);
     else if (sort === 'ver') ord = -vers * 100 + src;
-    else ord = famRank(id) * 1000 + (FAV.set.has(id) ? 0 : 500) + src; // active first, your stars float
+    else ord = loveRank(id) * 10 + src;   // most worked on first
     tile.style.order = Math.round(ord);
   });
   document.getElementById('libCount').textContent = shown + ' scenes';
@@ -355,9 +435,9 @@ document.getElementById('searchBox').addEventListener('input', applyLibrary);
 document.getElementById('sortSel').addEventListener('change', applyLibrary);
 document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => {
   libFilter = c.dataset.f === libFilter ? 'all' : c.dataset.f;
-  if (libFilter !== 'fav') FAV.shared = null;
+  if (libFilter !== 'queue') QUEUE.shared = null;
   syncChips();
-  FAV.refresh();
+  QUEUE.refresh();
 }));
 
 // MAP popover — the source's hardware bindings live here (library AND scene view)
@@ -513,12 +593,15 @@ document.getElementById('oActs').addEventListener('click', e => {
     resetRotation();
   });
   // THE SET LIST — starring a card on the wall is how a scene makes the show
+  // The queue, in queue order — not wall order. This is the whole point of it:
+  // a set list is dramaturgy, and the old one was sorted by SRC number.
+  // Empty queue still falls back to the wall so the app is never dead-ended.
   const showList = () => {
-    const tiles = [...grid.children]
+    const queued = QUEUE.list.map(id => QUEUE.tileFor(id)).filter(Boolean);
+    if (queued.length) return queued;
+    return [...grid.children]
       .filter(t2 => t2.style.display !== 'none')
       .sort((a2, b2) => (+a2.style.order || 0) - (+b2.style.order || 0));
-    const starred = tiles.filter(t2 => FAV.set.has(t2.dataset.pid));
-    return starred.length ? starred : tiles;
   };
   const step = (dir) => {
     if (focus.idx < 0) return;
@@ -616,7 +699,7 @@ setInterval(() => {
   }
 }, 300);
 
-FAV.boot();
+QUEUE.boot();
 // VIEW dropdown — the discoverable face of the view modes (V still cycles)
 (() => {
   const vs = document.getElementById('viewSel');
