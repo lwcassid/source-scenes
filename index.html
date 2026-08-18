@@ -136,9 +136,34 @@
   .btns button:hover{background:var(--btn-hov-bg);color:var(--btn-hov-txt);border-color:var(--btn-hov-bg)}
 
   /* ---------- focus overlay ---------- */
-  #overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;flex-direction:column}
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;
+    grid-template-columns:248px 1fr;grid-template-rows:auto 1fr auto}
   #mapPop{z-index:300} /* reachable from the scene view too */
-  #overlay.open{display:flex}
+  #overlay.open{display:grid}
+  .obar{grid-column:1/-1}
+  /* ---------- SIDEBAR — controls grouped by function ---------- */
+  #sidebar{grid-row:2/4;grid-column:1;border-right:1px solid var(--line);overflow-y:auto;
+    padding:16px 14px;display:flex;flex-direction:column;gap:22px;background:var(--panel2)}
+  .sgroup h5{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);
+    font-weight:700;margin:0 0 9px}
+  .sgroup .srow{display:flex;gap:8px;align-items:center;margin:0 0 7px}
+  .sgroup .srow > select{flex:1;width:100%;max-width:none;padding:7px 8px}
+  .sgroup .srow > button{flex:1;text-align:center}
+  .sgroup .srow > input[type=range]{flex:1;min-width:0}
+  .sgroup .sinfo{font-size:9.5px;line-height:1.6;letter-spacing:.04em;color:var(--txt-faint);margin:6px 0 0}
+  .sgroup .sinfo b{color:var(--txt-dim)}
+  #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
+  #sidebar .scrimonly{display:none}
+  #overlay.scrimmode #sidebar .scrimonly{display:flex}
+  .ostage,.oconsole{grid-column:2}
+  .conTitle{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--acc);
+    font-weight:700;margin:0 0 6px}
+  .monHead .conTitle{margin:0 10px 0 0}
+  /* fullscreen: the stage owns the whole grid; the sidebar leaves entirely */
+  #overlay.fs{grid-template-columns:1fr}
+  #overlay.fs #sidebar{display:none}
+  #overlay.fs .ostage{grid-column:1/-1;grid-row:1/4}
+  #overlay.fs .oconsole{grid-column:1/-1}
   .obar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;
     border-bottom:1px solid var(--line);flex-wrap:wrap}
   .obar .otitle{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
@@ -171,10 +196,7 @@
   #overlay.fs:not(.perf) #panelTab{color:var(--acc);opacity:.7}
   #overlay.zen.perf #panelTab{opacity:0}
   #overlay.zen.perf #panelTab:hover{opacity:1}
-  /* scrim vantage picker + duxel toggle — next to VIEW, scrim mode only */
-  #camSel,#btnDux{display:none}
-  #overlay.scrimmode #camSel{display:inline-block}
-  #overlay.scrimmode #btnDux{display:inline-block}
+  /* (scrim-only rows live in the sidebar via .scrimonly) */
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
   /* laser sliders */
@@ -297,6 +319,28 @@
     #infoPanel{width:100vw}
     #useHint{top:10px;font-size:9px;padding:7px 12px;white-space:nowrap}
   }
+  /* phone cockpit: one column — stage first, monitors stacked, then the
+     sidebar groups. Lives AFTER the base .oconsole + 760px rules so these
+     same-specificity declarations win the cascade. */
+  @media (max-width:820px){
+    /* grid squashes over-full auto rows to min-content in a definite-height
+       container; a scrolling flex column sizes every panel honestly */
+    #overlay.open{display:flex;flex-direction:column;overflow-y:auto}
+    #overlay > *{flex:0 0 auto}
+    .obar{order:1}
+    .ostage{order:2;height:54vh;flex:0 0 54vh}
+    .oconsole{order:3;flex-direction:column;flex-wrap:nowrap;align-items:stretch;
+      justify-content:flex-start;gap:14px;padding:14px 16px}
+    #sidebar{order:4;border-right:none;border-top:1px solid var(--line)}
+    #overlay.fs .ostage{height:auto;flex:1 1 auto} /* fullscreen: stage takes it all */
+    .conBox{width:100%}
+    .conBox.grow{flex:none}
+    .oconsole .monHead{flex-wrap:wrap;row-gap:4px}
+    #widgetFocus{width:100%;max-width:340px;height:96px}
+    #midiMon{width:100%;height:78px}
+    .whint{max-width:none}
+    #sidebar select{max-width:none}
+  }
   /* phones held sideways — the natural way to ride: give everything to the stage */
   @media (max-width:1000px) and (max-height:500px){
     .oconsole{display:none}
@@ -401,26 +445,46 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <div class="otitle"><span class="tid" id="oTid"></span><h2 id="oTitle"></h2><span class="ttag" id="oTag"></span><span id="oVers"></span><span id="oActs"></span></div>
     <div class="obtns">
       <button id="btnStarFocus" class="star" style="font-size:16px">☆</button>
-      <button id="fSound">SOUND: ON</button>
-      <input type="range" id="fVol" min="0" max="100" value="85" title="Master volume">
-      <button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button>
-      <button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">RIG</button>
-      <button id="fMap" title="Bind your hardware controller — works from here too">MAP</button>
       <button id="btnInfo">INFO</button>
       <button id="btnRegen">REGEN</button>
       <button id="btnPng">PNG</button>
       <button id="fShare" title="Copy this scene's shareable link">LINK</button>
-      <select id="viewSel" title="What the stage shows — the flat projector frame, the two-projector ghost, or the throw in The Cave in 3D (drag orbits, wheel zooms, C jumps vantages, V cycles modes)">
-        <option value="flat">VIEW: FLAT · 1 PROJECTOR</option>
-        <option value="double">VIEW: GHOST · 2 PROJECTORS</option>
-        <option value="scrim">VIEW: SCRIM · THE CAVE 3D</option>
-      </select>
-      <select id="camSel" title="Vantage point — or drag the 3D view to orbit, wheel/pinch to zoom (C cycles)"></select>
-      <button id="btnDux" title="Show/hide the duxel structure in the 3D view (D)">DUXELS</button>
       <button id="fFull" class="icon" title="Fullscreen">⛶</button>
       <button id="btnThemeF" class="icon" title="Theme">◐</button>
       <button id="btnClose">CLOSE ✕</button>
     </div>
+  </div>
+  <div id="sidebar">
+    <section class="sgroup">
+      <h5>View</h5>
+      <div class="srow">
+        <select id="viewSel" title="What the stage shows — the flat projector frame, the two-projector ghost, or the throw in The Cave in 3D (V cycles)">
+          <option value="flat">FLAT · 1 PROJECTOR</option>
+          <option value="double">GHOST · 2 PROJECTORS</option>
+          <option value="scrim">SCRIM · THE CAVE 3D</option>
+        </select>
+      </div>
+      <div class="srow scrimonly">
+        <select id="camSel" title="Vantage point — or drag the 3D view to orbit, wheel/pinch to zoom (C cycles)"></select>
+      </div>
+      <div class="srow scrimonly">
+        <button id="btnDux" title="Show/hide the duxel structure in the 3D view (D)">DUXELS</button>
+      </div>
+      <p class="sinfo" id="frameInfo">1920×1200 · 16:10</p>
+      <p class="sinfo">one WUXGA render, cloned to both projectors</p>
+    </section>
+    <section class="sgroup">
+      <h5>Source input</h5>
+      <div class="srow"><button id="fMap" title="Bind your hardware controller — range-based learn">MAP CONTROLLER</button></div>
+      <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · reach outward = more</p>
+    </section>
+    <section class="sgroup">
+      <h5>Music</h5>
+      <div class="srow"><button id="fSound">SOUND: ON</button><input type="range" id="fVol" min="0" max="100" value="85" title="Master volume"></div>
+      <div class="srow"><button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button></div>
+      <div class="srow"><button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">MIDI RIG</button></div>
+      <p class="sinfo">roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · perc 10</p>
+    </section>
   </div>
   <div class="ostage">
     <canvas id="focusCanvas"></canvas>
@@ -447,13 +511,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   </div>
   <div class="oconsole">
     <div class="conBox">
+      <h5 class="conTitle">Source · live</h5>
       <canvas id="widgetFocus" width="280" height="150" title="Virtual theremin — click or drag the beams"></canvas>
-      <div class="whint"><b>the source</b> — like the real thing: hands at the sphere = rest, <b>reach outward = more intensity</b> · works on the scene too: left/right half, slide toward the edge · two-finger touch = two hands · keys W/S &amp; ↑/↓ · idle 6s → hands hold where you left them (GHOSTS in the header for ambient drift) · hardware: MAP in the header</div>
+      <div class="whint">hands at the sphere = rest · <b>reach outward = more</b> · idle 6s → hands hold</div>
     </div>
     <div class="conBox grow">
-      <div class="monHead"><span id="oChord">—</span><span class="mflag" id="oOutState"></span><span id="oRoles" title="lanes playing right now"></span></div>
+      <div class="monHead"><h5 class="conTitle">MIDI out</h5><span id="oChord">—</span><span class="mflag" id="oOutState"></span><span id="oRoles" title="lanes playing right now"></span></div>
       <canvas id="midiMon" width="1240" height="104"></canvas>
-      <div class="whint"><b>midi out</b> — every role on its own channel (open RIG, top right, to remap — the rig is global, identical for every scene; each scene just plays a subset of roles) · <b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy</div>
+      <div class="whint">every role on its own channel (remap in MIDI RIG) · <b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy</div>
     </div>
   </div>
 </div>
@@ -1997,8 +2062,8 @@ window.SCRIMVIEW = {
     const sel = document.getElementById('camSel');
     if (!sel) return;
     if (!sel.options.length)
-      sel.innerHTML = this.PRESETS.map((p, i) => `<option value="${i}">CAM: ${p.n}</option>`).join('') +
-        '<option value="free" disabled>CAM: FREE ORBIT</option>';
+      sel.innerHTML = this.PRESETS.map((p, i) => `<option value="${i}">CAM · ${p.n}</option>`).join('') +
+        '<option value="free" disabled>CAM · FREE ORBIT</option>';
     sel.value = active >= 0 ? String(active) : 'free';
   },
   _init(P) {
@@ -2279,7 +2344,7 @@ window.SCRIMVIEW = {
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · Cave Layout 2026 (planner export) · 24×32 ft · 12 panels · ' +
-      'drag ORBIT · wheel/pinch ZOOM · CAM menu (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel/pinch ZOOM · CAM in the sidebar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
   },
 };
 
@@ -58010,6 +58075,12 @@ document.getElementById('oActs').addEventListener('click', e => {
 // live indicators: act chip highlight + now-playing role dots
 setInterval(() => {
   if (focus.idx < 0) return;
+  const fi = document.getElementById('frameInfo');
+  if (fi && focus.P) {
+    const txt = focus.P.w + '×' + focus.P.h + ' · ' + (focus.P.w / focus.P.h).toFixed(2) +
+      (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : ' · window');
+    if (fi.textContent !== txt) fi.textContent = txt;
+  }
   const el = document.getElementById('oActs');
   if (el && el.children.length && focus.P && focus.P.state) {
     const a2 = focus.P.state.act || 0;

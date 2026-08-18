@@ -580,6 +580,12 @@ document.getElementById('oActs').addEventListener('click', e => {
 // live indicators: act chip highlight + now-playing role dots
 setInterval(() => {
   if (focus.idx < 0) return;
+  const fi = document.getElementById('frameInfo');
+  if (fi && focus.P) {
+    const txt = focus.P.w + '×' + focus.P.h + ' · ' + (focus.P.w / focus.P.h).toFixed(2) +
+      (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : ' · window');
+    if (fi.textContent !== txt) fi.textContent = txt;
+  }
   const el = document.getElementById('oActs');
   if (el && el.children.length && focus.P && focus.P.state) {
     const a2 = focus.P.state.act || 0;
