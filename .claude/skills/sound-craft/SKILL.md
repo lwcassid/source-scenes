@@ -90,11 +90,22 @@ intensity (whole → 8ths → 16ths). Groove patterns as arrays indexed by
 ## MIDI out (MOut) — Ableton mirror
 
 Roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · texture 6 ·
-perc 10 · sfx 11 · bed 12. Every audible event sends `MOut.evNote(role,
-freq, vol, at, dur)` or `MOut.evDrum(note, vol, at)` (A.kick / A.hat
-auto-mirror). `MOut.expr(role, v)` streams CC74 energy. Note-offs are
-managed by MOut's pump — NEVER hand-schedule them. CC1/CC2 stream raw
+perc 10 · sfx 11 · bed 12. **The mirror is automatic for every A helper**:
+tone/bell/pluck2/bassNote/kick/hat/padVoices auto-emit; `A.hit` auto-emits
+a drum note bucketed by its filter freq (<250→36, <1200→38, <4500→42,
+else 46); `A.voice` groups are polled — an audible pitched voice holds a
+note on the TEXTURE channel (retunes re-strike, kill closes it) and pooled
+voice gain streams as texture CC74. Only pure-noise beds mirror nothing
+(Rain Atrium is the one such scene — that's by design, not a bug). Write
+`MOut.evNote(role, freq, vol, at, dur)` yourself only to pick a better
+role than the default. `MOut.expr(role, v)` streams CC74 energy. Note-offs
+are managed by MOut's pump — NEVER hand-schedule them. CC1/CC2 stream raw
 hands globally.
+
+**`rig.json` at the repo root says what instrument sits on each channel in
+the actual Live set** — read it before designing a scene's sound so you
+write for the rack that exists, and tell the user to update it when the
+Live set changes.
 
 ## Music-revision checklist
 

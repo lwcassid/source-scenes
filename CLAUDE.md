@@ -129,7 +129,13 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
   perspective shatters across segmented drapes. See the scene-craft skill.
 - MIDI roles → channels: lead 1, pad 2, bass 3, arp 4, bells 5, texture 6,
   perc 10, sfx 11, bed 12. CC1/CC2 = raw hands. CC74 per channel = that
-  layer's energy (map to filter cutoff in Ableton). Buffer 128.
+  layer's energy (map to filter cutoff in Ableton). Buffer 128. The mirror
+  is AUTOMATIC for every A helper — including `A.hit` (drum note bucketed
+  by filter freq) and `A.voice` (polled: audible pitched voices hold a note
+  on texture ch6; pooled gain = texture CC74) — so every scene that makes
+  pitched or percussive sound sends MIDI without scene-side code. What sits
+  on each channel in the Live set lives in `rig.json` (design-time, hand-
+  edited, not baked into the build).
 - MIDI CLOCK goes out at 24 PPQN off the transport's own AudioContext
   timeline (`MOut.clock`), with song-position + Start on scene open and Stop
   on close — Live follows each scene's BPM instead of someone retyping it.
