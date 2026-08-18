@@ -156,6 +156,58 @@ const MOut = {
       }
     }
   },
+  /* ---------- MIDI CLOCK — Ableton follows the scene instead of you
+     retyping the tempo on every scene change.
+     24 PPQN ticks (0xF8) are derived from the SAME AudioContext timeline the
+     notes are scheduled on (T.t0 / T.beat), so clock and notes cannot drift
+     apart. Song-position 0 then Start (0xFA) go out at beat 0; Stop (0xFC)
+     when the transport stops — which closeFocus already does, so a scene
+     change re-pins Live to the new BPM on its own.
+
+     LOOKAHEAD is deliberately short. Web MIDI cannot cancel a queued
+     message, so anything already scheduled WILL arrive: 120ms is enough to
+     ride out a stalled frame and short enough that a scene change spills
+     only a couple of stale ticks past the Stop.
+
+     In Live: Preferences -> Link/Tempo/MIDI -> switch this port's "Sync" on,
+     then press EXT in the transport bar. Live ignores clock entirely when
+     Sync is off, so leaving this enabled costs nothing. ---------- */
+  clock: { on: true, PPQ: 24, LOOKAHEAD: 0.12, n: 0, t0: -1, beat: 0, running: false },
+  clockSet(on) {
+    this.clock.on = !!on;
+    try { localStorage.setItem('srcMidiClock', this.clock.on ? '1' : '0'); } catch (e) {}
+    if (!this.clock.on) this.clockStop();
+    this.refreshUI();
+  },
+  _clk(bytes, at) { try { this.port.send(bytes, at); } catch (e) {} },
+  clockStop() {
+    const c = this.clock;
+    if (c.running && this.port) this._clk([0xFC]);
+    c.running = false; c.t0 = -1; c.n = 0;
+  },
+  clockPump() {
+    const c = this.clock;
+    const live = c.on && this.wants() && this.port &&
+      typeof T !== 'undefined' && T.running && AE.ctx;
+    if (!live) { if (c.running) this.clockStop(); return; }
+    // a new scene (or a live tempo change) re-pins the grid — resync to its beat 0
+    if (T.t0 !== c.t0 || T.beat !== c.beat) {
+      if (c.running) this._clk([0xFC]);
+      c.t0 = T.t0; c.beat = T.beat; c.n = 0; c.running = true;
+      this._clk([0xF2, 0, 0]);                // song position -> 1.1.1
+      this._clk([0xFA], this.ts(c.t0));       // start, landing on beat 0
+    }
+    const tick = c.beat / c.PPQ, now = AE.ctx.currentTime;
+    // fell behind (throttled tab, GC pause)? jump the counter to now instead of
+    // firing a burst of late ticks, which would shove Live's tempo around
+    const nMin = Math.ceil((now - c.t0) / tick);
+    if (c.n < nMin) c.n = nMin;
+    const horizon = now + c.LOOKAHEAD;
+    while (c.t0 + c.n * tick < horizon) {
+      this._clk([0xF8], this.ts(c.t0 + c.n * tick));
+      c.n++;
+    }
+  },
   testBurst() {
     const b = document.getElementById('btnTest');
     if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
@@ -171,6 +223,7 @@ const MOut = {
     if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
   },
   allOff() {
+    this.clockStop();
     if (this.port) {
       try { for (let ch = 0; ch < 16; ch++) this.port.send([0xB0 | ch, 123, 0]); } catch (e) {}
     }
@@ -187,6 +240,11 @@ const MOut = {
     if (b) {
       b.textContent = 'OUT: ' + (this.mode === 'web' ? 'WEB AUDIO' : this.mode === 'both' ? 'WEB+MIDI' : 'MIDI ONLY');
       b.classList.toggle('off', this.mode === 'web');
+    }
+    const cb = document.getElementById('btnClock');
+    if (cb) {
+      cb.textContent = 'CLOCK: ' + (this.clock.on ? 'ON' : 'OFF');
+      cb.classList.toggle('off', !this.clock.on);
     }
     const sel = document.getElementById('midiOutSel');
     if (sel) {
@@ -274,6 +332,19 @@ const MOut = {
     g.fillText('CC1/CC2 HANDS · CC74 FILTER', lx + 4, 11);
   }
 };
+
+/* ---------- clock boot: restore the operator's choice, run the pump ----------
+   One 20ms timer for the life of the page. It returns immediately unless a
+   port is open, out-mode is not WEB, and a transport is running — so the cost
+   when the clock is idle is a comparison, and there is no start/stop wiring
+   for scene code to forget. ---------- */
+try {
+  const ck = localStorage.getItem('srcMidiClock');
+  if (ck !== null) MOut.clock.on = ck === '1';
+} catch (e) {}
+setInterval(() => MOut.clockPump(), 20);
+// leaving the page must not strand Live running on a clock that stopped arriving
+window.addEventListener('pagehide', () => { try { MOut.clockStop(); } catch (e) {} });
 
 /* ============================================================
    SOUNDING BUS — what the board is ringing with, right now

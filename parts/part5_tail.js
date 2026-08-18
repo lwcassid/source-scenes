@@ -223,6 +223,7 @@ document.getElementById('midiOutSel').addEventListener('change', e => {
   MOut.port = outs[+e.target.value] || null;
   try { if (MOut.port) localStorage.setItem('srcOutPort', MOut.port.name); } catch (err) {}
 });
+document.getElementById('btnClock').addEventListener('click', () => MOut.clockSet(!MOut.clock.on));
 setInterval(() => MOut.refreshUI(), 1500);
 // act hotkeys — keys 1-4 jump acts inside a focused journey piece (smooth-fades there)
 window.addEventListener('keydown', e => {
@@ -561,8 +562,15 @@ document.getElementById('oActs').addEventListener('click', e => {
     };
     const secs = rotAt ? Math.max(0, Math.round((rotAt - Date.now()) / 1000)) : 0;
     const mmss = rotAt ? String(Math.floor(secs / 60)) + ':' + String(secs % 60).padStart(2, '0') : '—';
+    const hand = side => {
+      const m = midi.map[side], cal = midi.cal[side];
+      if (!m) return side + ':—';
+      return side + ':' + mapLabel(m) +
+        (cal ? '[' + cal.lo.toFixed(2) + '-' + cal.hi.toFixed(2) + (cal.inv ? ' INV' : '') +
+          (cal.rest !== null && cal.rest !== undefined ? ' rest' + cal.rest.toFixed(2) : ' NO-REST') + ']' : '[uncal]');
+    };
     const inMap = (midi.map.L || midi.map.R)
-      ? 'L:' + (midi.map.L ? 'cc' + midi.map.L.cc : '—') + ' R:' + (midi.map.R ? 'cc' + midi.map.R.cc : '—')
+      ? hand('L') + ' ' + hand('R')
       : 'unmapped (MAP → LEARN)';
     body.textContent =
       'SCENE  ' + (d ? d.id + ' · ' + d.title : '—') + (st && d && d.acts ? '\nACT    ' + d.acts[st.act] : '') +
@@ -570,6 +578,7 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
       '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
+      '\nCLOCK  ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'RUNNING ' + T.bpm + ' BPM' : 'armed (no transport)') +
       '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
       // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
       (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +

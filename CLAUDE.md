@@ -99,8 +99,17 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
   perspective shatters across segmented drapes. See the scene-craft skill.
 - MIDI roles → channels: lead 1, pad 2, bass 3, arp 4, bells 5, texture 6,
   perc 10, sfx 11, bed 12. CC1/CC2 = raw hands. CC74 per channel = that
-  layer's energy (map to filter cutoff in Ableton). Set Live's tempo to the
-  scene BPM. Buffer 128.
+  layer's energy (map to filter cutoff in Ableton). Buffer 128.
+- MIDI CLOCK goes out at 24 PPQN off the transport's own AudioContext
+  timeline (`MOut.clock`), with song-position + Start on scene open and Stop
+  on close — Live follows each scene's BPM instead of someone retyping it.
+  Header CLOCK toggle; Live needs that port's Sync on and EXT pressed.
+- Hand input is CALIBRATED, not raw (`CAL` + `midi.cal` in `part2_core.js`):
+  the LEARN sweep's measured range is kept and self-widens, polarity is an
+  INVERT toggle, and SET REST samples what the sensors read with nobody
+  there. Presence is then "is this reading away from rest, or moving?" —
+  NOT "did a message arrive", because a rangefinder streams all night.
+  Uncalibrated controllers keep the old behaviour exactly.
 - Mobile: bloom post-stack is gated off via `window.IS_MOBILE`; keep it that way.
 
 ## Working agreements

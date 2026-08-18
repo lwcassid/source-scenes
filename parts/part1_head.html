@@ -74,6 +74,9 @@
   #mapPop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
   #mapPop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
   #mapPop b{color:var(--txt)}
+  #mapPop #calBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+  #mapPop #calRead{font:9.5px/1.5 ui-monospace,monospace;color:var(--txt-dim);white-space:pre;
+    background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin:8px 0;overflow-x:auto}
 
   /* ---------- library bar + grid ---------- */
   main{padding:18px 16px 60px;max-width:1900px;margin:0 auto}
@@ -381,6 +384,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <span id="volLabel" style="font-size:9px;color:var(--txt-dim);letter-spacing:.1em">85%</span>
       <button id="btnOut" class="off" title="Route the generated music: internal WebAudio, MIDI out to your DAW, or both">OUT: WEB AUDIO</button>
       <select id="midiOutSel" style="display:none"></select>
+      <button id="btnClock" class="off" title="Send MIDI clock so Ableton follows the scene's tempo (Live: enable Sync on this port, then press EXT)">CLOCK: ON</button>
       <button id="btnRig" title="Role → MIDI channel routing for your DAW">RIG</button>
     </div>
     <button id="btnFav" class="off" title="Your starred shortlist">★ 0</button>
@@ -404,6 +408,17 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <button id="btnTest" title="Send a short test phrase to every role — check your DAW is hearing us">TEST ♪</button>
   </div>
   <p><b>Coaching:</b> hit CONNECT and allow MIDI. Press LEARN L, then <b>sweep your left control through its whole range</b> for ~2 seconds — the page hears which control moved and binds it, whether it speaks CC, pitch bend, or pressure. Repeat for R. Bindings persist across reloads. No hardware? The on-screen theremin, scene surface, edge lasers, and W/S · ↑/↓ keys all drive the hands.</p>
+  <div id="calBox" style="display:none">
+    <h4>Calibrate the sensors</h4>
+    <div class="row">
+      <button id="btnRest" title="Stand clear of the instrument, then press — whatever the sensors read with nobody there becomes the idle point">SET REST</button>
+      <button id="btnInvL" title="Flip the left hand if reaching outward reads as less">INVERT L</button>
+      <button id="btnInvR" title="Flip the right hand if reaching outward reads as less">INVERT R</button>
+      <button id="btnCalClear" title="Forget range, polarity and rest for both hands">CLEAR</button>
+    </div>
+    <pre id="calRead"></pre>
+    <p>The LEARN sweep already stored each control's working range, so full reach reaches <b>1.00</b>. Two things are worth doing on the show machine: press <b>SET REST</b> with nobody at the instrument — a rangefinder streams a value whether or not a hand is there, and this is what lets scenes go idle and tease again — and flip <b>INVERT</b> if the readout drops when you reach outward. Every scene expects <b>at the source = 0, arm's reach = 1</b>.</p>
+  </div>
 </div>
 
 <div id="favBanner">

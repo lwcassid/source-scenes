@@ -136,15 +136,72 @@ const AE = {
    CHANNELS — the two hands
    ============================================================ */
 const chan = {
-  L: { v: 0, target: 0, mode: 'drift', last: -99 },
-  R: { v: 0, target: 0, mode: 'drift', last: -99 }
+  L: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 },
+  R: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 }
+};
+
+/* ============================================================
+   CALIBRATION — turning what the sensor says into what the
+   scenes are written against.
+   Every scene assumes the same contract: 0 = hands at the
+   source, 1 = full reach outward. A laser rangefinder or a
+   theremin knows none of that. It has its own working range,
+   possibly the opposite polarity, and — the part that bites on
+   playa — it keeps streaming a value whether or not a hand is
+   in front of it, so "a message arrived" cannot mean "someone
+   is playing".
+   Three fixes, all opt-in: the learn sweep's measured range is
+   kept instead of thrown away, polarity is a toggle, and REST
+   (sampled with nobody at the instrument) is what presence is
+   actually measured against.
+   Nothing here engages until a range is learned, so on-screen
+   input, keys and plain MIDI controllers behave exactly as
+   before.
+   ============================================================ */
+const CAL = {
+  DEADZONE: 0.02,    // bottom of the mapped range reads as a clean 0
+  REST_EPS: 0.06,    // raw distance from the rest reading that counts as a hand
+  MOVE_EPS: 0.02,    // ...or this much movement inside the window, hand parked at rest
+  WINDOW: 2.5,       // seconds of raw history the movement test looks at
+  ABSENT_HOLD: 1.2   // seconds of confirmed absence before the channel lets go
 };
 function ghostL(t) { return clamp(0.5 + 0.42 * Math.sin(t * 0.13 + 1.7) + 0.09 * Math.sin(t * 0.53 + 0.4)); }
 function ghostR(t) { return clamp(0.5 + 0.40 * Math.sin(t * 0.094 + 4.2) + 0.10 * Math.sin(t * 0.61 + 2.1)); }
 let nowT = 0;
-function setChan(side, v) {
+// `raw` present means this came off a sensor and is subject to the presence
+// test. A pointer, key or slider is a human by definition and always counts.
+function setChan(side, v, raw) {
   const c = chan[side];
-  c.target = clamp(v); c.mode = 'live'; c.last = nowT;
+  if (raw === undefined) {
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+    return;
+  }
+  c.raw = raw;
+  c.hist.push({ t: nowT, raw });
+  while (c.hist.length && nowT - c.hist[0].t > CAL.WINDOW) c.hist.shift();
+  if (handPresent(side)) {
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+  } else {
+    if (!c.absentSince) c.absentSince = nowT;
+    // still tracking through the grace period — a hand that pauses dead still
+    // for half a second must not get dropped mid-gesture
+    if (c.mode === 'live') c.target = clamp(v);
+  }
+}
+// Is there a hand out there, or is this just the sensor idling?
+function handPresent(side) {
+  const c = chan[side], cal = midi.cal[side];
+  // no rest reading → fall back to the old rule: a message IS a hand
+  if (!cal || cal.rest === null || cal.rest === undefined) return true;
+  if (Math.abs(c.raw - cal.rest) > CAL.REST_EPS) return true;
+  // sitting at rest but still moving: someone is working right at the sphere
+  let lo = 1, hi = 0;
+  for (let i = 0; i < c.hist.length; i++) {
+    const r = c.hist[i].raw;
+    if (r < lo) lo = r;
+    if (r > hi) hi = r;
+  }
+  return (hi - lo) > CAL.MOVE_EPS;
 }
 let ghostsOn = true; // the library wall breathes by default — a focused scene starts still
 function updateChannels(t, dt) {
@@ -152,7 +209,14 @@ function updateChannels(t, dt) {
   const ambient = ghostsOn && focus.idx < 0; // ghosts only roam the wall, never a focused scene
   for (const side of ['L', 'R']) {
     const c = chan[side];
-    if (c.mode === 'live' && t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
+    if (c.mode === 'live') {
+      if (c.absentSince) {
+        // a rest-calibrated sensor can tell "held still" from "nobody there",
+        // so it lets go in about a second and settles the instrument to rest
+        // instead of freezing on whatever an empty sensor happens to read
+        if (t - c.absentSince > CAL.ABSENT_HOLD) { c.mode = 'drift'; if (!ambient) c.target = 0; }
+      } else if (t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
+    }
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);
     c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : 2.2));
   }
@@ -166,12 +230,82 @@ function updateChannels(t, dt) {
    device it moved on. Two different theremins can therefore
    drive L and R independently, even on the same channel/CC.
    ============================================================ */
-const midi = { access: null, map: { L: null, R: null }, learn: null, learnData: null, learnTimer: null, inputId: 'all' };
+const midi = {
+  access: null, map: { L: null, R: null }, learn: null, learnData: null, learnTimer: null, inputId: 'all',
+  // per-side calibration: {lo, hi} working range, `inv` polarity, `rest` = the
+  // raw reading with nobody at the instrument. null until a range is learned.
+  cal: { L: null, R: null },
+  restSampling: false, restData: { L: [], R: [] }, restTimer: null
+};
 // restore learned theremin bindings from a previous visit
 try {
   const sm = JSON.parse(localStorage.getItem('srcMidiMap') || 'null');
   if (sm && (sm.L || sm.R)) { midi.map.L = sm.L || null; midi.map.R = sm.R || null; }
 } catch (e) {}
+try {
+  const sc = JSON.parse(localStorage.getItem('srcMidiCal') || 'null');
+  if (sc) { midi.cal.L = sc.L || null; midi.cal.R = sc.R || null; }
+} catch (e) {}
+let _calSaveT = null;
+function saveCal() {
+  clearTimeout(_calSaveT); _calSaveT = null;
+  try { localStorage.setItem('srcMidiCal', JSON.stringify(midi.cal)); } catch (e) {}
+}
+// the range self-widens while playing; coalesce those writes
+function saveCalSoon() { if (!_calSaveT) _calSaveT = setTimeout(saveCal, 1200); }
+
+/* Raw sensor reading → the 0..1 every scene is written against:
+   working range → polarity → deadzone. */
+function calValue(side, raw) {
+  const cal = midi.cal[side];
+  if (!cal) return raw;
+  // the 2.6s sweep is a starting guess. Hardware drifts with heat and dust and
+  // nobody re-sweeps mid-show, so the range keeps widening to fit reality.
+  if (raw < cal.lo) { cal.lo = raw; saveCalSoon(); }
+  if (raw > cal.hi) { cal.hi = raw; saveCalSoon(); }
+  const span = cal.hi - cal.lo;
+  let v = clamp(span > 0.02 ? (raw - cal.lo) / span : raw);
+  if (cal.inv) v = 1 - v;
+  return v <= CAL.DEADZONE ? 0 : (v - CAL.DEADZONE) / (1 - CAL.DEADZONE);
+}
+const srcKey = m => m ? m.type + ':' + m.ch + ':' + m.num + ':' + m.dev : '';
+/* REST — hold everyone back from the instrument and press this. Whatever the
+   sensors read with nobody there becomes the zero point of presence, which is
+   what lets an always-streaming rangefinder ever go idle. */
+function startRest() {
+  if (midi.restSampling) return;
+  midi.restSampling = true;
+  midi.restData = { L: [], R: [] };
+  clearTimeout(midi.restTimer);
+  midi.restTimer = setTimeout(finishRest, 1600);
+  refreshMidiUI();
+}
+function finishRest() {
+  clearTimeout(midi.restTimer);
+  midi.restSampling = false;
+  for (const side of ['L', 'R']) {
+    const d = midi.restData[side];
+    if (d.length < 4) continue;                 // that side never spoke — leave it alone
+    d.sort((a, b) => a - b);
+    const rest = d[d.length >> 1];              // median: one spike can't move it
+    const cal = midi.cal[side] || (midi.cal[side] = { lo: 0, hi: 1, inv: false, rest: null });
+    cal.rest = rest;
+    cal.src = srcKey(midi.map[side]);
+  }
+  midi.restData = { L: [], R: [] };
+  saveCal();
+  refreshMidiUI();
+}
+function setInvert(side, on) {
+  const cal = midi.cal[side] || (midi.cal[side] = { lo: 0, hi: 1, inv: false, rest: null });
+  cal.inv = on === undefined ? !cal.inv : !!on;
+  saveCal(); refreshMidiUI();
+}
+function clearCal() {
+  midi.cal.L = null; midi.cal.R = null;
+  for (const side of ['L', 'R']) { chan[side].hist.length = 0; chan[side].absentSince = 0; }
+  saveCal(); refreshMidiUI();
+}
 function bindMidiInputs() {
   if (!midi.access) return;
   midi.access.inputs.forEach(inp => { inp.onmidimessage = onMidiMsg; });
@@ -204,7 +338,9 @@ function onMidiMsg(e) {
   }
   if (midi.inputId !== 'all' && p.dev !== midi.inputId) return;
   for (const side of ['L', 'R']) {
-    if (srcMatches(midi.map[side], p)) setChan(side, p.val);
+    if (!srcMatches(midi.map[side], p)) continue;
+    if (midi.restSampling) { midi.restData[side].push(p.val); continue; }
+    setChan(side, calValue(side, p.val), p.val);
   }
 }
 function startLearn(side) {
@@ -228,8 +364,20 @@ function finishLearn() {
   }
   midi.learn = null; midi.learnData = null;
   if (best && bestScore > 0.04) {
+    const wasKey = srcKey(midi.map[side]), prev = midi.cal[side];
     midi.map[side] = best.src;
     try { localStorage.setItem('srcMidiMap', JSON.stringify(midi.map)); } catch (e) {}
+    // the sweep measured this control's working range — KEEP it. Without this
+    // a sensor that really travels 0.15–0.72 gives the scenes 0.15–0.72 and
+    // full reach never arrives at 1.0.
+    const sameSrc = wasKey && wasKey === srcKey(best.src);
+    midi.cal[side] = {
+      lo: best.min, hi: best.max,
+      inv: prev ? prev.inv : false,                       // polarity is an operator choice
+      rest: sameSrc && prev ? prev.rest : null,           // a different control needs a new REST
+      src: srcKey(best.src)
+    };
+    saveCal();
   }
   refreshMidiUI();
 }
@@ -261,6 +409,16 @@ function refreshMidiUI() {
     br.textContent = midi.learn === 'R' ? 'MOVE R…' : midi.map.R ? 'R=' + mapLabel(midi.map.R) : 'LEARN R';
     bl.classList.toggle('learning', midi.learn === 'L');
     br.classList.toggle('learning', midi.learn === 'R');
+    const box = document.getElementById('calBox');
+    if (box) {
+      box.style.display = '';
+      const rb = document.getElementById('btnRest');
+      if (rb) { rb.textContent = midi.restSampling ? 'SAMPLING…' : 'SET REST'; rb.classList.toggle('learning', midi.restSampling); }
+      for (const side of ['L', 'R']) {
+        const ib = document.getElementById('btnInv' + side);
+        if (ib) ib.classList.toggle('off', !(midi.cal[side] && midi.cal[side].inv));
+      }
+    }
     if (sel) {
       sel.style.display = '';
       const inputs = [...midi.access.inputs.values()];
@@ -663,6 +821,32 @@ document.getElementById('btnMidi').addEventListener('click', connectMidi);
 document.getElementById('btnLearnL').addEventListener('click', () => startLearn('L'));
 document.getElementById('btnLearnR').addEventListener('click', () => startLearn('R'));
 document.getElementById('midiInSel').addEventListener('change', e => { midi.inputId = e.target.value; });
+document.getElementById('btnRest').addEventListener('click', startRest);
+document.getElementById('btnInvL').addEventListener('click', () => setInvert('L'));
+document.getElementById('btnInvR').addEventListener('click', () => setInvert('R'));
+document.getElementById('btnCalClear').addEventListener('click', clearCal);
+/* The calibration readout — raw in, mapped out, and whether the page believes
+   a hand is there. This is the panel you stare at when the wall "feels wrong"
+   on playa, so it shows the whole chain rather than a verdict. */
+setInterval(() => {
+  const el = document.getElementById('calRead');
+  if (!el || !document.getElementById('mapPop').classList.contains('open')) return;
+  const pad = (x, n) => String(x).padEnd(n);
+  const num = x => (x === null || x === undefined) ? '—' : x.toFixed(2);
+  const rows = [pad('', 7) + pad('raw', 6) + pad('out', 6) + pad('range', 13) + pad('rest', 6) + 'hand'];
+  for (const side of ['L', 'R']) {
+    const c = chan[side], cal = midi.cal[side];
+    rows.push(
+      pad(side + ' hand', 7) +
+      pad(num(c.raw), 6) +
+      pad(num(c.v), 6) +
+      pad(cal ? num(cal.lo) + '–' + num(cal.hi) + (cal.inv ? ' INV' : '') : 'unlearned', 13) +
+      pad(cal ? num(cal.rest) : '—', 6) +
+      (c.mode === 'live' ? 'PLAYING' : 'idle'));
+  }
+  const txt = rows.join('\n');
+  if (el.textContent !== txt) el.textContent = txt;
+}, 200);
 document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.add('open'));
 document.getElementById('btnHelpClose').addEventListener('click', () => document.getElementById('helpModal').classList.remove('open'));
 document.getElementById('helpModal').addEventListener('click', e => { if (e.target.id === 'helpModal') e.target.classList.remove('open'); });
