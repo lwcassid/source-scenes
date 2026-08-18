@@ -23,8 +23,13 @@ const QUEUE = {
       if (s) { this.list = JSON.parse(s).filter(Boolean); return; }
       // one-time migration: whatever was starred becomes the first queue
       const old = window.localStorage && localStorage.getItem('srcFavs');
-      if (old) { this.list = JSON.parse(old).filter(Boolean); this.save(); }
+      if (old) { this.list = JSON.parse(old).filter(Boolean); this.save(); return; }
     } catch (e) {}
+    // Nothing of your own yet — start from the camp's default set rather than
+    // from nothing. This is what stops a fresh show laptop performing all 43
+    // scenes in SRC order because nobody remembered to build a queue on it.
+    const def = this.sets().find(s2 => s2.default);
+    if (def) this.list = def.scenes.slice();
   },
   save() { try { window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list)); } catch (e) {} },
   has(id) { return this.list.indexOf(id) >= 0; },
@@ -70,6 +75,7 @@ const QUEUE = {
     if (tile && tile.cur) { closeFocus(); openFocus(tile.cur.idx); }
     else if (focus.idx < 0) openFocus(0);
     document.getElementById('queuePop').classList.remove('open');
+    this.wake(false);
     if (typeof enterShow === 'function') enterShow();
   },
   refresh() {
@@ -97,7 +103,9 @@ const QUEUE = {
     if (!ol) return;
     document.getElementById('queuePop').classList.toggle('empty', !this.list.length);
     ol.innerHTML = this.list.map((id, i) => `<li data-qid="${id}">
-      <span class="qn">${i + 1}</span><span class="qid">${id}</span>
+      <span class="qn">${i + 1}</span>
+      <canvas class="qthumb" width="56" height="35"></canvas>
+      <span class="qid">${id}</span>
       <span class="qt">${this.titleOf(id)}</span>
       <button data-q="up" title="earlier in the set"${i === 0 ? ' disabled' : ''}>↑</button>
       <button data-q="dn" title="later in the set"${i === this.list.length - 1 ? ' disabled' : ''}>↓</button>
@@ -109,6 +117,82 @@ const QUEUE = {
       else if (act === 'dn') this.move(id, 1);
       else this.toggle(id);
     }));
+    this.renderSets();
+    this.paintThumbs();
+  },
+
+  /* THUMBNAILS — SRC numbers are unreadable as a set list at 3am, so each row
+     shows the scene. The tile canvases are already rendering, so this is a blit,
+     not a second render. Tiles below the fold are paused by the
+     IntersectionObserver, so while the drawer is open we wake the queued ones
+     and hand their visibility back on close. */
+  paintThumbs() {
+    document.querySelectorAll('#queueList li').forEach(li => {
+      const tile = this.tileFor(li.dataset.qid);
+      const cv = li.querySelector('.qthumb');
+      if (!cv) return;
+      const g = cv.getContext('2d');
+      const src = tile && tile.querySelector('canvas');
+      if (!src || !src.width) { g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height); return; }
+      try { g.drawImage(src, 0, 0, cv.width, cv.height); } catch (e) {}
+    });
+  },
+  // wake queued tiles while the drawer is open so their thumbnails move
+  wake(on) {
+    clearInterval(this._thumbT); this._thumbT = null;
+    this.list.forEach(id => {
+      const tile = this.tileFor(id);
+      if (!tile) return;
+      const cv = tile.querySelector('canvas');
+      const P = cv && ioMap.get(cv);
+      if (!P) return;
+      if (on) P.visible = true;
+      else {
+        // hand it back honestly: the observer only fires on CHANGE, so a tile we
+        // forced awake off-screen would render forever if we just walked away
+        const r = cv.getBoundingClientRect();
+        P.visible = r.bottom > -120 && r.top < window.innerHeight + 120;
+      }
+    });
+    if (on) this._thumbT = setInterval(() => this.paintThumbs(), 120);
+  },
+
+  /* SHARED SETS — setlists.json, committed and baked into the build. The queue
+     above is personal scratch; these are what the camp agreed on. */
+  sets() { return (typeof SETLISTS !== 'undefined' && SETLISTS.sets) ? SETLISTS.sets : []; },
+  sameAs(set) {
+    return set.scenes.length === this.list.length && set.scenes.every((id, i) => this.list[i] === id);
+  },
+  loadSet(name) {
+    const set = this.sets().find(s2 => s2.name === name);
+    if (!set) return;
+    this.list = set.scenes.slice();
+    this.save(); this.refresh();
+  },
+  publish() {
+    const block = JSON.stringify({
+      name: 'MY SET', note: 'what this set is for', scenes: this.list
+    }, null, 2);
+    const done = () => {
+      const b = document.getElementById('btnSetPublish');
+      b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'COPY FOR REPO', 1800);
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(block).then(done).catch(() => prompt('Paste this into setlists.json:', block));
+    else prompt('Paste this into setlists.json:', block);
+  },
+  renderSets() {
+    const box = document.getElementById('setList');
+    if (!box) return;
+    const sets = this.sets();
+    box.innerHTML = sets.length ? sets.map(set => `<div class="setrow${this.sameAs(set) ? ' live' : ''}">
+      <span class="setname">${set.name}</span>
+      <span class="setcount">${set.scenes.length} scenes${set.default ? ' · default' : ''}</span>
+      <button data-set="${set.name}">${this.sameAs(set) ? 'LOADED' : 'LOAD'}</button>
+    </div>`).join('') : '<p>No shared sets yet — publish one from your queue.</p>';
+    box.querySelectorAll('button[data-set]').forEach(b =>
+      b.addEventListener('click', () => this.loadSet(b.dataset.set)));
+    const rows = box.querySelectorAll('.setrow');
+    sets.forEach((set, i) => { if (rows[i]) rows[i].title = set.note || ''; });
   },
   boot() {
     this.load();
@@ -140,12 +224,17 @@ const QUEUE = {
       }
     }
     const pop = document.getElementById('queuePop');
-    document.getElementById('btnQueue').addEventListener('click', () => pop.classList.toggle('open'));
-    document.getElementById('btnQueueClose').addEventListener('click', () => pop.classList.remove('open'));
+    document.getElementById('btnQueue').addEventListener('click', () => {
+      const open = pop.classList.toggle('open');
+      this.wake(open);
+      if (open) this.paintThumbs();
+    });
+    document.getElementById('btnQueueClose').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); });
+    document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
     document.getElementById('btnQueuePlay').addEventListener('click', () => this.play());
-    document.getElementById('btnQueueCheck').addEventListener('click', () => { pop.classList.remove('open'); PRE.open(); });
+    document.getElementById('btnQueueCheck').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); PRE.open(); });
     document.getElementById('btnQueueFocus').addEventListener('click', () => {
       if (focus.idx >= 0) this.toggle(famOf(PIECES[focus.idx]));
     });

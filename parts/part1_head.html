@@ -125,6 +125,21 @@
   #queueList .qt{font-size:10.5px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #queueList button{padding:2px 6px;font-size:10px;line-height:1.1}
   #queueList button:disabled{opacity:.28;cursor:default}
+  /* thumbnails: the set list is unreadable as SRC numbers at 3am */
+  #queueList .qthumb{width:56px;height:35px;flex:none;border-radius:3px;background:#000;
+    border:1px solid rgba(255,255,255,.10);display:block}
+  body.light #queueList .qthumb{border-color:rgba(0,0,0,.14)}
+  /* ---------- shared sets shelf ---------- */
+  #setShelf{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
+  #setShelf h4{font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--txt);margin-bottom:6px}
+  #setShelf p{font-size:9.5px;line-height:1.6;color:var(--txt-faint);margin:6px 0}
+  .setrow{display:flex;align-items:center;gap:7px;padding:5px 7px;border:1px solid var(--line);
+    border-radius:6px;margin-bottom:4px;background:rgba(0,0,0,.10)}
+  .setrow.live{border-color:var(--acc)}
+  .setrow .setname{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--txt);text-transform:uppercase}
+  .setrow .setcount{font:9px ui-monospace,monospace;color:var(--txt-faint);flex:1}
+  .setrow button{padding:2px 8px;font-size:9.5px;flex:none}
+  #setHint{border-top:1px dashed var(--line);padding-top:8px}
   #queueEmpty{display:none}
   #queuePop.empty #queueEmpty{display:block}
   #favBanner{display:none;margin:16px 24px 0;padding:12px 16px;border:1px solid rgba(255,217,119,.4);background:rgba(255,217,119,.06);
@@ -469,6 +484,15 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <button id="btnQueueLink">COPY LINK</button>
     <button id="btnQueueClear">CLEAR</button>
     <button id="btnQueueClose">CLOSE</button>
+  </div>
+  <div id="setShelf">
+    <h4>Shared sets</h4>
+    <p>Committed in <b>setlists.json</b>, baked into the build — so these travel to the show laptop and onto playa. Your queue above is your own scratch pad until you publish it.</p>
+    <div id="setList"></div>
+    <div class="row">
+      <button id="btnSetPublish" title="Copy this queue as a setlists.json block — paste it in, or hand it to Claude">COPY FOR REPO</button>
+    </div>
+    <p id="setHint">To publish: COPY FOR REPO → paste into <b>setlists.json</b> (or tell Claude in a session which set it is) → commit and push. Git is the memory; the diff is the history of what the show became.</p>
   </div>
 </div>
 <main>

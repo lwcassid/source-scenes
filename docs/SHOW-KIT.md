@@ -10,6 +10,11 @@ the URL — is what the projectors play.
 
 ## Before leaving for the burn (the checklist)
 
+0. Publish the set to the repo: build it in the browser, COPY FOR REPO, paste
+   into `setlists.json` (or hand it to Claude in a session), commit and push.
+   That file is baked into the build, so the offline show artifact CARRIES the
+   running order — the show laptop no longer depends on someone remembering to
+   open a `#set=` link on it. Mark the one you're performing `default: true`.
 1. Freeze the set: final versions pushed, then build the PERFORMANCE QUEUE —
    tick each scene's checkbox on the wall, open the QUEUE drawer in the header
    and drag the order into the shape you want the night to have. That list is

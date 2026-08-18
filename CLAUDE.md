@@ -20,6 +20,17 @@ PIECES index in a family — new versions append to the build) weighted 0.55
 against version count on a log curve at 0.45, so scenes people are actively
 loving float and never-revised v1s sink.
 
+SHARED SETS live in `setlists.json` at the repo root — committed, so git is
+the coordination mechanism (diff = history of what the show became, merge
+conflict = a real conversation about the set). `tools/build.sh` BAKES it into
+index.html, which is what carries the running order onto the offline show
+artifact; a fetch would die the moment the laptop leaves the internet. A
+browser with no queue of its own loads the set flagged `default: true`, so a
+fresh show laptop opens with the real set instead of 43 scenes by SRC number.
+COPY FOR REPO in the drawer emits the block to paste in (or hand to a Claude
+session). Editing setlists.json requires a rebuild — the build fails loudly if
+the JSON is malformed.
+
 SHOW CHECK (queue drawer) is the pre-flight: sound / set list / hands /
 calibration / Ableton / tempo / frame / display, each row reporting what it
 found with an inline fix. PLAY forces performance mode (panels off), pins the

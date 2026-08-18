@@ -7,6 +7,12 @@ set -e
 cd "$(dirname "$0")/.."
 {
   cat parts/part1_head.html
+  # SHARED SET LISTS — setlists.json is the coordination file (see its _readme).
+  # Baking it in is what carries the running order onto the OFFLINE show
+  # artifact; a fetch would die the moment the laptop leaves the internet.
+  printf 'const SETLISTS = '
+  cat setlists.json
+  printf ';\n'
   cat parts/part2_core.js
   cat parts/part2b_music.js
   cat parts/part2c_midiout.js
@@ -112,6 +118,8 @@ cd "$(dirname "$0")/.."
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
 } > index.html
+# setlists.json is hand-edited (and Claude-edited) — fail loudly, not at runtime
+python3 -c "import json,sys; json.load(open('setlists.json'))" || { echo "BUILD FAILED: setlists.json is not valid JSON"; exit 1; }
 # syntax check the assembled script
 python3 - <<'EOF'
 import re
