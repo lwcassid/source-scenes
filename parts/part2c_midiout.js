@@ -267,7 +267,7 @@ const MOut = {
     }
     const cb = document.getElementById('btnClock');
     if (cb) {
-      cb.textContent = 'CLOCK: ' + (this.clock.on ? 'ON' : 'OFF');
+      cb.textContent = 'CLOCK OUT: ' + (this.clock.on ? 'ON' : 'OFF');
       cb.classList.toggle('off', !this.clock.on);
     }
     const sel = document.getElementById('midiOutSel');

@@ -430,7 +430,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <span id="volLabel" style="font-size:9px;color:var(--txt-dim);letter-spacing:.1em">85%</span>
       <button id="btnOut" class="off" title="Route the generated music: internal WebAudio, MIDI out to your DAW, or both">OUT: WEB AUDIO</button>
       <select id="midiOutSel" style="display:none"></select>
-      <button id="btnClock" class="off" title="Send MIDI clock so Ableton follows the scene's tempo (Live: enable Sync on this port, then press EXT)">CLOCK: ON</button>
+      <button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button>
       <button id="btnRig" title="Role → MIDI channel routing for your DAW">RIG</button>
     </div>
     <button id="btnQueue" class="off" title="The performance queue — the scenes you play, in the order you play them">QUEUE 0</button>
@@ -2163,7 +2163,7 @@ const MOut = {
     }
     const cb = document.getElementById('btnClock');
     if (cb) {
-      cb.textContent = 'CLOCK: ' + (this.clock.on ? 'ON' : 'OFF');
+      cb.textContent = 'CLOCK OUT: ' + (this.clock.on ? 'ON' : 'OFF');
       cb.classList.toggle('off', !this.clock.on);
     }
     const sel = document.getElementById('midiOutSel');
@@ -58351,9 +58351,9 @@ const PRE = {
 
     r.push({ k: 'clock', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
       txt: !out ? 'browser transport only' :
-        !MOut.clock.on ? 'clock OFF — someone has to retype Live’s tempo on every scene change'
-        : MOut.clock.running ? 'clock running · Live follows at ' + T.bpm + ' BPM'
-        : 'clock armed — starts when a scene opens (Live needs Sync on + EXT)',
+        !MOut.clock.on ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
+        : MOut.clock.running ? 'driving Live at ' + T.bpm + ' BPM — this app is the tempo master'
+        : 'clock out armed — drives Live from the moment a scene opens (Live: port Sync on, EXT lit)',
       fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
 
     const projOn = typeof PROJ !== 'undefined' && PROJ.on;
@@ -58931,7 +58931,7 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
       '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
-      '\nCLOCK  ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'RUNNING ' + T.bpm + ' BPM' : 'armed (no transport)') +
+      '\nCLK→LIVE ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'DRIVING ' + T.bpm + ' BPM' : 'armed (no transport)') +
       '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
       // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
       (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +

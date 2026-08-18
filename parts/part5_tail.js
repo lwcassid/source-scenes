@@ -389,9 +389,9 @@ const PRE = {
 
     r.push({ k: 'clock', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
       txt: !out ? 'browser transport only' :
-        !MOut.clock.on ? 'clock OFF — someone has to retype Live’s tempo on every scene change'
-        : MOut.clock.running ? 'clock running · Live follows at ' + T.bpm + ' BPM'
-        : 'clock armed — starts when a scene opens (Live needs Sync on + EXT)',
+        !MOut.clock.on ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
+        : MOut.clock.running ? 'driving Live at ' + T.bpm + ' BPM — this app is the tempo master'
+        : 'clock out armed — drives Live from the moment a scene opens (Live: port Sync on, EXT lit)',
       fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
 
     const projOn = typeof PROJ !== 'undefined' && PROJ.on;
@@ -969,7 +969,7 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
       '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
-      '\nCLOCK  ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'RUNNING ' + T.bpm + ' BPM' : 'armed (no transport)') +
+      '\nCLK→LIVE ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'DRIVING ' + T.bpm + ' BPM' : 'armed (no transport)') +
       '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
       // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
       (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
