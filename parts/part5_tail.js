@@ -1,7 +1,4 @@
 /* ============================================================
-   TEAM — locked top-12 shortlist and owners (Wed deadline)
-   ============================================================ */
-/* ============================================================
    THE PERFORMANCE QUEUE
    ------------------------------------------------------------
    There used to be three competing answers to "what is in the
@@ -59,14 +56,21 @@ const QUEUE = {
     const t = this.tileFor(id);
     return t ? (t.querySelector('h3').textContent || id) : id + ' (not on this build)';
   },
-  play() {
+  // PLAY starts the performance: first queued scene, picture only, fullscreen
+  // on the chosen display. If something is actually broken (no audio) it opens
+  // the check instead of starting a silent show.
+  play(force) {
+    if (!force && typeof PRE !== 'undefined' && PRE.worst() === 'bad') {
+      document.getElementById('queuePop').classList.remove('open');
+      PRE.open();
+      return;
+    }
     const first = this.list.find(id => this.tileFor(id));
     const tile = first ? this.tileFor(first) : null;
     if (tile && tile.cur) { closeFocus(); openFocus(tile.cur.idx); }
     else if (focus.idx < 0) openFocus(0);
     document.getElementById('queuePop').classList.remove('open');
-    const ov = document.getElementById('overlay');
-    if (!document.fullscreenElement && ov.requestFullscreen) ov.requestFullscreen().catch(() => {});
+    if (typeof enterShow === 'function') enterShow();
   },
   refresh() {
     const btn = document.getElementById('btnQueue');
@@ -141,6 +145,7 @@ const QUEUE = {
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
     document.getElementById('btnQueuePlay').addEventListener('click', () => this.play());
+    document.getElementById('btnQueueCheck').addEventListener('click', () => { pop.classList.remove('open'); PRE.open(); });
     document.getElementById('btnQueueFocus').addEventListener('click', () => {
       if (focus.idx >= 0) this.toggle(famOf(PIECES[focus.idx]));
     });
@@ -149,6 +154,216 @@ const QUEUE = {
 };
 // part2_core calls FAV.refresh() on focus open; keep that name pointing here
 const FAV = QUEUE;
+
+/* ============================================================
+   WHICH SCREEN THE SHOW LANDS ON
+   ------------------------------------------------------------
+   The laptop drives the projectors off a splitter, so the show
+   is one fullscreen render that has to arrive on the PROJECTOR
+   display, not the built-in one. Chrome's Window Management API
+   can enumerate displays and fullscreen onto a named one; it
+   needs a permission the first call prompts for, and it needs a
+   user gesture, which is why probing happens on a click.
+
+   Honest limitation, stated in the panel too: one tab renders
+   one picture. Picking a display sends the SHOW there; it does
+   not give you a separate control window on the laptop. Control
+   during the show is the DBG strip and the PANELS pill (H) on
+   top of the picture.
+   ============================================================ */
+const SCREENS = {
+  details: null, chosen: null, denied: false,
+  supported() { return typeof window.getScreenDetails === 'function'; },
+  label(sc) { return (sc.label || '') + ' ' + sc.width + '×' + sc.height + (sc.isPrimary ? ' (primary)' : ''); },
+  load() { try { this.chosen = localStorage.getItem('srcShowScreen'); } catch (e) {} },
+  pick(label) {
+    this.chosen = label || null;
+    try {
+      if (label) localStorage.setItem('srcShowScreen', label);
+      else localStorage.removeItem('srcShowScreen');
+    } catch (e) {}
+  },
+  async probe() {
+    if (!this.supported() || this.details) return this.details;
+    try { this.details = await window.getScreenDetails(); }
+    catch (e) { this.denied = true; }
+    // Default to the display that is almost certainly the projector: the
+    // external, non-primary one. Landing the show on the built-in screen is
+    // the mistake this whole row exists to prevent.
+    if (this.details && !this.target()) {
+      const ext = this.details.screens.find(sc => !sc.isInternal && !sc.isPrimary) ||
+                  this.details.screens.find(sc => !sc.isInternal);
+      if (ext) this.pick(this.label(ext));
+    }
+    return this.details;
+  },
+  // is the show currently aimed at the laptop while another display exists?
+  aimedInternal() {
+    const t = this.target();
+    return !!(t && this.list().length > 1 && (t.isInternal || t.isPrimary));
+  },
+  // the ScreenDetailed we were told to use, if it is still attached
+  target() {
+    if (!this.details || !this.chosen) return null;
+    return this.details.screens.find(sc => this.label(sc) === this.chosen) || null;
+  },
+  list() { return this.details ? this.details.screens : []; }
+};
+SCREENS.load();
+
+/* Enter the show: picture only, on the chosen display.
+   PLAY forces performance mode — the PANELS preference persists between
+   sessions, and starting a show with the MIDI console sitting over the
+   picture is never what "play" meant. H (or the PANELS pill) brings it back. */
+function enterShow() {
+  const ov = document.getElementById('overlay');
+  if (typeof setPanels === 'function') setPanels(false);
+  if (typeof PROJ !== 'undefined' && !PROJ.on && typeof setProj === 'function') setProj(true);
+  if (document.fullscreenElement) return Promise.resolve(true);
+  const scr = SCREENS.target();
+  const opts = scr ? { screen: scr } : undefined;
+  if (!ov.requestFullscreen) return Promise.resolve(false);
+  return ov.requestFullscreen(opts).then(() => true).catch(() => {
+    // a targeted request can be refused (permission revoked, display unplugged)
+    // — fall back to plain fullscreen rather than silently doing nothing
+    if (!opts) return false;
+    return ov.requestFullscreen().then(() => true).catch(() => false);
+  });
+}
+
+/* ============================================================
+   PRE-FLIGHT — everything the wall needs, checked in one place,
+   fixed in place. Written for the moment before you hand the
+   instrument to strangers in the dark, so each row says what it
+   FOUND, not what it wants.
+   ============================================================ */
+const PRE = {
+  timer: null,
+  open() {
+    document.getElementById('preModal').classList.add('open');
+    SCREENS.probe().then(() => this.render());
+    this.render();
+    clearInterval(this.timer);
+    this.timer = setInterval(() => this.render(), 600);
+  },
+  close() {
+    document.getElementById('preModal').classList.remove('open');
+    clearInterval(this.timer); this.timer = null;
+  },
+  /* Severity is deliberate: BAD is "the show will not work", WARN is "this is
+     probably not what you meant". Nobody rehearsing with a mouse should get a
+     wall of red for having no theremin plugged in. */
+  rows() {
+    const r = [];
+    const ctxOn = AE.ctx && AE.ctx.state === 'running';
+    r.push({ k: 'audio', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
+      txt: !AE.on ? 'muted — SOUND is OFF in the header'
+        : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
+        : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
+        : 'running at ' + (AE.ctx.sampleRate / 1000).toFixed(1) + ' kHz',
+      fix: ctxOn ? null : ['WAKE AUDIO', () => {
+        AE.on = true; AE.ensure();
+        // only restart a voice if a scene is actually up — startVoice reads
+        // PIECES[focus.idx], and focus.idx is -1 on the library wall
+        if (focus.idx >= 0 && typeof startVoice === 'function') startVoice();
+      }] });
+
+    const nq = QUEUE.list.length;
+    r.push({ k: 'queue', label: 'Set list', lvl: nq ? 'ok' : 'warn',
+      txt: nq ? nq + (nq === 1 ? ' scene queued · ' : ' scenes queued · ') + 'opens with ' + QUEUE.titleOf(QUEUE.list[0])
+        : 'empty — the show would fall back to all ' + FAMS.length + ' scenes in library order',
+      fix: ['OPEN QUEUE', () => { this.close(); document.getElementById('queuePop').classList.add('open'); }] });
+
+    const bound = (midi.map.L ? 1 : 0) + (midi.map.R ? 1 : 0);
+    r.push({ k: 'hands', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
+      txt: !midi.access ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
+        : bound === 2 ? 'L and R both bound (' + mapLabel(midi.map.L) + ' · ' + mapLabel(midi.map.R) + ')'
+        : bound === 1 ? 'only ' + (midi.map.L ? 'L' : 'R') + ' is bound — the other hand is dead'
+        : 'MIDI on, but neither hand is bound yet',
+      fix: !midi.access ? ['CONNECT', () => connectMidi()]
+        : ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+
+    const cal = ['L', 'R'].map(sd => midi.cal[sd]);
+    const rested = cal.filter(c => c && c.rest !== null && c.rest !== undefined).length;
+    r.push({ k: 'cal', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
+      txt: !midi.access ? 'not needed without hardware'
+        : rested === 2 ? 'both hands ranged and rested — idle detection is live'
+        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle',
+      fix: midi.access ? ['SET REST', () => startRest()] : null });
+
+    const out = MOut.mode !== 'web';
+    r.push({ k: 'out', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
+      txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
+        : !MOut.port ? 'MIDI out on, but no port selected'
+        : 'sending to ' + MOut.port.name,
+      fix: out ? null : ['SEND MIDI', () => { AE.ensure(); MOut.setMode('both'); }] });
+
+    r.push({ k: 'clock', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
+      txt: !out ? 'browser transport only' :
+        !MOut.clock.on ? 'clock OFF — someone has to retype Live’s tempo on every scene change'
+        : MOut.clock.running ? 'clock running · Live follows at ' + T.bpm + ' BPM'
+        : 'clock armed — starts when a scene opens (Live needs Sync on + EXT)',
+      fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
+
+    const projOn = typeof PROJ !== 'undefined' && PROJ.on;
+    r.push({ k: 'frame', label: 'Frame', lvl: projOn ? 'ok' : 'warn',
+      txt: projOn ? '1920×1200 · 1.60 — the frame the projectors get'
+        : 'window frame — scenes are composed in a shape the wall never plays',
+      fix: projOn ? null : ['USE SHOW FRAME', () => { if (typeof setProj === 'function') setProj(true); }] });
+
+    r.push({ k: 'screen', label: 'Display',
+      lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
+      txt: this.screenText(), screenPicker: true });
+    return r;
+  },
+  screenText() {
+    if (!SCREENS.supported()) return 'this browser cannot list displays — drag the window onto the projector, then start';
+    if (SCREENS.denied) return 'permission denied — allow window management, or drag the window onto the projector';
+    const list = SCREENS.list();
+    if (!list.length) return 'checking displays…';
+    const t = SCREENS.target();
+    if (list.length === 1) return 'one display (' + SCREENS.label(list[0]) + ') — the show goes here';
+    if (!t) return list.length + ' displays — pick which one gets the show';
+    return SCREENS.aimedInternal()
+      ? 'aimed at the BUILT-IN screen (' + SCREENS.chosen + ') — the projector will not get the show'
+      : 'show goes to ' + SCREENS.chosen;
+  },
+  render() {
+    const box = document.getElementById('preRows');
+    if (!box) return;
+    const rows = this.rows();
+    box.innerHTML = rows.map(row => `<div class="prow ${row.lvl}" data-k="${row.k}">
+      <span class="dot"></span><span class="plabel">${row.label}</span>
+      <span class="pstat">${row.txt}</span>
+      ${row.screenPicker ? '<select id="preScreenSel"></select>' : ''}
+      ${row.fix ? `<button data-fix="${row.k}">${row.fix[0]}</button>` : ''}
+    </div>`).join('');
+    box.querySelectorAll('button[data-fix]').forEach(b => b.addEventListener('click', () => {
+      const row = rows.find(x => x.k === b.dataset.fix);
+      if (row && row.fix) { row.fix[1](); this.render(); }
+    }));
+    const sel = document.getElementById('preScreenSel');
+    if (sel) {
+      const list = SCREENS.list();
+      sel.style.display = list.length > 1 ? '' : 'none';
+      sel.innerHTML = list.map(sc => {
+        const l = SCREENS.label(sc);
+        return `<option value="${l}"${l === SCREENS.chosen ? ' selected' : ''}>${l}</option>`;
+      }).join('');
+      sel.addEventListener('change', e => { SCREENS.pick(e.target.value); this.render(); });
+    }
+    const note = document.getElementById('preScreenNote');
+    if (note) {
+      note.textContent = SCREENS.supported()
+        ? 'One tab renders one picture: choosing a display sends the SHOW there, it does not give you a second control window. During the show, PANELS (or H) brings the hands/MIDI/console back over the picture, and the DBG tab at the bottom is the truth window.'
+        : 'Display picking needs Chrome’s window-management support. Without it: drag this window onto the projector screen first, then start the show.';
+    }
+  },
+  worst() {
+    const lv = this.rows().map(r => r.lvl);
+    return lv.includes('bad') ? 'bad' : lv.includes('warn') ? 'warn' : 'ok';
+  }
+};
 
 /* ============================================================
    BOOT — build the wall, run the loop
@@ -419,11 +634,11 @@ function applyLibrary() {
     const src = +((id.match(/\d+/) || [999])[0]);
     const vers = (tile.querySelector('.vsel').options.length) || 1;
     let ord;
-    // queued scenes always sort by their running order first, whatever the
-    // sort is — once you have a set, the set is what you want to look at
-    const qp = QUEUE.pos(id);
-    if (qp) ord = -100000 + qp;
-    else if (sort === 'id') ord = src;
+    // Queued scenes deliberately DO NOT jump to the front. Ticking a checkbox
+    // used to re-sort the grid under the cursor, so the tile you just clicked
+    // shot away and you could not confirm what you had done. The queue drawer
+    // and the IN QUEUE chip are where you review the set; the wall holds still.
+    if (sort === 'id') ord = src;
     else if (sort === 'title') ord = tRank.get(tile);
     else if (sort === 'ver') ord = -vers * 100 + src;
     else ord = loveRank(id) * 10 + src;   // most worked on first
@@ -431,6 +646,10 @@ function applyLibrary() {
   });
   document.getElementById('libCount').textContent = shown + ' scenes';
 }
+document.getElementById('btnPreClose').addEventListener('click', () => PRE.close());
+document.getElementById('preModal').addEventListener('click', e => { if (e.target.id === 'preModal') PRE.close(); });
+// START goes even with warnings on the board — they are judgement calls, not blocks
+document.getElementById('btnPreStart').addEventListener('click', () => { PRE.close(); QUEUE.play(true); });
 document.getElementById('searchBox').addEventListener('input', applyLibrary);
 document.getElementById('sortSel').addEventListener('change', applyLibrary);
 document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => {
@@ -720,6 +939,8 @@ QUEUE.boot();
     try { localStorage.setItem('srcPanels', panels ? '1' : '0'); } catch (e) {}
     apply();
   };
+  // starting a show must not inherit yesterday's debugging layout
+  window.setPanels = on => { panels = !!on; apply(); };
   const pt = document.getElementById('panelTab');
   if (pt) pt.addEventListener('click', flip);
   window.addEventListener('keydown', e => {

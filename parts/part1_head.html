@@ -262,12 +262,28 @@
   #infoPanel .chips{margin-top:8px}
 
   /* modals */
-  #helpModal,#rigModal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
-  #helpModal.open,#rigModal.open{display:flex}
-  #helpModal .box,#rigModal .box{max-width:640px;max-height:86vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:28px}
-  #helpModal h2,#rigModal h2{font-size:14px;letter-spacing:.28em;color:var(--txt);margin-bottom:14px;font-weight:800;text-transform:uppercase}
+  #helpModal,#rigModal,#preModal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
+  #helpModal.open,#rigModal.open,#preModal.open{display:flex}
+  #helpModal .box,#rigModal .box,#preModal .box{max-width:640px;max-height:86vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:28px}
+  #helpModal h2,#rigModal h2,#preModal h2{font-size:14px;letter-spacing:.28em;color:var(--txt);margin-bottom:14px;font-weight:800;text-transform:uppercase}
   #helpModal h3,#rigModal h3{font-size:10px;letter-spacing:.22em;color:var(--acc);margin:18px 0 6px;text-transform:uppercase;font-weight:700}
-  #helpModal p,#helpModal li,#rigModal p{font-size:11.5px;line-height:1.7;color:var(--txt-dim)}
+  #helpModal p,#helpModal li,#rigModal p,#preModal p{font-size:11.5px;line-height:1.7;color:var(--txt-dim)}
+
+  /* ---------- pre-flight rows ---------- */
+  #preModal .box{max-width:660px}
+  .prow{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:5px 0;border:1px solid var(--line);
+    border-radius:8px;background:rgba(0,0,0,.14)}
+  .prow .dot{width:9px;height:9px;flex:none;border-radius:50%}
+  .prow.ok   .dot{background:#4ade80;box-shadow:0 0 7px rgba(74,222,128,.65)}
+  .prow.warn .dot{background:#fbbf24;box-shadow:0 0 7px rgba(251,191,36,.65)}
+  .prow.bad  .dot{background:#f87171;box-shadow:0 0 7px rgba(248,113,113,.7)}
+  .prow .plabel{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt);width:96px;flex:none;font-weight:700}
+  .prow .pstat{font-size:11px;color:var(--txt-dim);flex:1;line-height:1.45}
+  .prow.bad .pstat{color:#f87171}
+  .prow button,.prow select{padding:3px 9px;font-size:9.5px;flex:none}
+  #btnPreStart{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:800}
+  #btnPreStart:hover{background:var(--acc);border-color:var(--acc);color:#fff}
+  #preScreenNote{font-size:10px;color:var(--txt-faint);border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
   #helpModal ul{padding-left:18px}
   #helpModal b,#rigModal b{color:var(--txt)}
   .rigrow{display:flex;align-items:center;gap:10px;margin:7px 0}
@@ -449,6 +465,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   <p id="queueEmpty">Nothing queued yet. With an empty queue the show falls back to playing the whole wall in library order — which is how you end up performing 43 scenes sorted by number.</p>
   <div class="row">
     <button id="btnQueuePlay">▶ PLAY</button>
+    <button id="btnQueueCheck">SHOW CHECK</button>
     <button id="btnQueueLink">COPY LINK</button>
     <button id="btnQueueClear">CLEAR</button>
     <button id="btnQueueClose">CLOSE</button>
@@ -476,6 +493,20 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   <span>THE CAVE · BURNING MAN 2026</span><br>
   source prototyping wall · every piece is driven by two hands, L / R
 </footer>
+
+<!-- ================= PRE-FLIGHT ================= -->
+<div id="preModal">
+  <div class="box">
+    <h2>SHOW CHECK</h2>
+    <p>Everything the wall needs before you hand it to the camp. Each line says what it found and fixes itself where it can — nothing here sends you hunting through another panel.</p>
+    <div id="preRows"></div>
+    <p id="preScreenNote"></p>
+    <p style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">
+      <button id="btnPreStart">▶ START THE SHOW</button>
+      <button id="btnPreClose">CLOSE</button>
+    </p>
+  </div>
+</div>
 
 <!-- ================= FOCUS OVERLAY ================= -->
 <div id="overlay">

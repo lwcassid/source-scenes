@@ -20,6 +20,14 @@ PIECES index in a family — new versions append to the build) weighted 0.55
 against version count on a log curve at 0.45, so scenes people are actively
 loving float and never-revised v1s sink.
 
+SHOW CHECK (queue drawer) is the pre-flight: sound / set list / hands /
+calibration / Ableton / tempo / frame / display, each row reporting what it
+found with an inline fix. PLAY forces performance mode (panels off), pins the
+projector frame, and fullscreens onto the display chosen via Chrome's Window
+Management API — defaulting to the external screen, amber if aimed at the
+laptop. Red rows divert PLAY into the check. One tab = one picture: choosing a
+display moves the SHOW, it does not add a control window.
+
 ## Owners (coordination only — no longer shown in the UI)
 Kasia: Ferro Bloom (SRC-15), Weather Station (SRC-10), Epicycle Court (SRC-01)
 Nima: White Study (SRC-34), Stones/Sonora (SRC-32), Attractor Vespers (SRC-09),

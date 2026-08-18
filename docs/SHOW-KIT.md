@@ -24,14 +24,16 @@ the URL — is what the projectors play.
    edge → STAGE), confirm scenes render, sound plays, MIDI OUT reaches
    Ableton, theremins bind via MAP (bindings persist in the browser — bind
    them on the SHOW laptop, not yours).
-4b. **Calibrate the sensors on the show laptop** (MAP panel, once, after
-   LEARN — see "Calibration" below). The readout in that panel is the truth:
-   at the source must read `0.00`, arm's reach `1.00`, and with nobody at the
-   instrument both hands must say `idle`. If they say PLAYING with the room
-   empty, press SET REST again.
-4c. **Turn Live's sync on** so it follows the scene tempo instead of you
-   retyping it (see "MIDI clock" below).
-5. **Confirm the frame**: the projector frame (exactly 1920×1200 / 16:10) is
+4b. **Run SHOW CHECK** (QUEUE drawer → SHOW CHECK). It is the pre-flight: one
+   line per system — sound, set list, hands, calibration, Ableton, tempo,
+   frame, display — each saying what it FOUND, with a fix button that solves
+   it right there. Green everything before you hand the wall over. Amber is a
+   judgement call (no controller bound is fine if you're driving by mouse);
+   red means the show will not work.
+4c. **Check the DISPLAY row** — it picks the external screen automatically and
+   turns amber if the show is aimed at the laptop's built-in display, which is
+   the classic way to hit PLAY and watch nothing reach the projectors.
+5. **Confirm the frame** (SHOW CHECK's FRAME row says this too): the projector frame (exactly 1920×1200 / 16:10) is
    the default on desktop, so nothing to configure — but VERIFY: the DBG
    strip's `FRAME` line must read `1920×1200 · 1.60 · PROJ` before you hand
    the wall to the camp. If it doesn't, someone toggled it — press `P` on the
@@ -51,6 +53,24 @@ the URL — is what the projectors play.
 - The DBG strip (bottom of fullscreen) shows scene/act, hand values + mode,
   MIDI bindings, port, next-scene countdown, FPS — read it when anything
   feels wrong before touching cables.
+
+## Starting the show
+
+Build the queue, then **▶ PLAY** in the QUEUE drawer. PLAY does three things
+you would otherwise do by hand: opens the first queued scene, forces
+**performance mode** (picture only — the PANELS preference persists between
+sessions and would otherwise leave the MIDI console sitting over the show),
+and goes fullscreen **on the display you picked in SHOW CHECK**. If anything
+is red, PLAY opens SHOW CHECK instead of starting a broken show; START THE
+SHOW there overrides and goes anyway.
+
+During the show: PANELS (or `H`) brings the hands/MIDI/console back over the
+picture, the DBG tab at the bottom is the truth window, and the screen edges
+step the queue.
+
+One tab renders one picture. Picking a display sends the SHOW there — it does
+not give you a separate control window on the laptop. Control happens on top
+of the picture, via PANELS and DBG.
 
 ## MIDI clock — Live follows the scene
 
