@@ -5,9 +5,25 @@ description: Build or revise a scene (visual+sound instrument) for the SOURCE In
 
 # Scene Craft — how SOURCE scenes are built
 
+## THE EXPERIENCE (why any of the rules below exist)
+A dark room on playa. A stranger walks to a pedestal, moves two hands in the
+air, and the room answers — light on fabric, sound in the body — instantly
+enough that they KNOW it's them. Every scene serves four listeners at once:
+1. **The stranger** — proof of agency inside one second. Sound is faster than
+   sight; if the first gesture doesn't audibly answer, we lost them.
+2. **The player** — the instrument carries the musicianship (key, grid,
+   voicing); no wrong notes exist. What's left is INTENTION — timing,
+   phrasing, restraint — so there is something to get good at.
+3. **The room** — most people present aren't playing. The scene is their
+   atmosphere: beautiful unattended, quiet enough to talk over when small,
+   and it makes the player look like a performer.
+4. **The musician who sits in** — in key, on our clock, with rhythmic and
+   frequency room deliberately left EMPTY for them.
+The bar: satisfying as fuck to play, professional-sounding, legible on mesh
+scrim at night. An instrument, not a game; a song, not a screensaver.
+When a rule below conflicts with this section, this section wins.
+
 Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
-The bar: satisfying as fuck to play, jammable with live musicians, and legible
-projected on mesh scrim at night. It should feel like an instrument, not a game.
 
 ## The design laws (learned the hard way — don't relearn them)
 

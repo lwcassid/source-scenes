@@ -5,6 +5,21 @@ description: Design or revise the music and sound of a SOURCE scene — the harm
 
 # Sound Craft — how SOURCE scenes sound
 
+## NORTH STAR — the five listening tests
+Judge every scene's sound by PLAYING it and answering honestly; each failure
+names the revision work. (The experience these serve: see scene-craft's
+THE EXPERIENCE section — stranger / player / room / musician.)
+1. **Agency** — blindfold someone, hand them the hands: do they know within
+   3 seconds that THEY are making the sound?
+2. **Record** — 30 seconds of someone playing: does it stand alone as music
+   you'd play at a listening bar, or is it a demo of a tech stack?
+3. **Conversation** — small state: can two people talk at normal volume?
+   Silence is inventory; spend it on payoffs.
+4. **Sit-in** — name the empty beats and the empty frequency band where a
+   guitarist fits. Can't name them = the scene is finished-sounding = fail.
+5. **Arc** — does minute 9 sound different from minute 1? A loop is a
+   screensaver; an instrument accumulates.
+
 A scene's sound is one instrument with three layers. Get the layers right
 and the scene jams with live musicians; get them wrong and it's a screensaver
 with a backing track.

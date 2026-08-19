@@ -149,6 +149,14 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
 - Mobile: bloom post-stack is gated off via `window.IS_MOBILE`; keep it that way.
 
 ## Working agreements
+- THE SKILLS ARE THE STUDIO NOTEBOOK. When Lance, Kasia or Nima gives a
+  creative verdict in a session — a taste call, a "never do X again", a
+  "this is the reference" — distill it into the relevant skill (scene-craft /
+  sound-craft) IN THAT SAME SESSION, as one tight rule with the reason.
+  A verdict that isn't written into a skill did not happen: the next session
+  starts cold and will relearn the mistake. Skills must stay SHORT — every
+  addition should earn its lines, and folding two rules into one is a
+  contribution.
 - Read `.claude/skills/scene-craft/SKILL.md` before building or revising any
   scene — it holds the design laws, scrim/instrument criteria, and checklists.
 - Deep references live in `docs/`: instrument survey (all 35 scored),
