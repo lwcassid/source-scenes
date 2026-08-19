@@ -62,8 +62,23 @@ The site is ONE html file assembled by concatenating `parts/` in a fixed order
   retriggered pitches get strangled in Ableton; use the `_offs` pump)
 - `part3..part14` — scene registrations (`reg({...})`), one per scene
 - `partNN_vNN.js` — Night Circuit versions (one FILE per version)
-- `part15_history.js` + `part5_tail.js` — version pills, library bar,
+- `part15_history.js` + `part5_tail.js` — version pills, library rail,
   performance queue, SHOWTIME mode, debug strip. Tail ALWAYS concatenates last.
+
+### The shell law: ONE LEFT COLUMN, both views
+The library and the scene view share the same left column (`--rail`, 248px,
+`.sgroup` markup): the library's `#librail` and the focus overlay's `#sidebar`
+carry the SAME groups in the same order — SOURCE INPUT and MUSIC are literally
+identical — so a control you learn on the wall is where you left it once a
+scene is open. INFORMATION lives in that column too: a scene's interaction
+line, field notes and Ableton notes head its sidebar (clamped, `FULL NOTES`
+expands), instead of a panel sliding in over the picture. The header is brand
++ theme + help, nothing else; the scene bar is identity + `+ QUEUE` + theme +
+CLOSE, nothing else; the stage's own ⛶ is the only fullscreen control and it
+hides during the show. LINK, PNG and REGEN buttons were killed as clutter —
+the URL already carries `#scene=`, and `R` reseeds an open scene. A tile is a
+single target: clicking anywhere on the card opens it. New chrome must earn
+its place in one of these homes; a control that exists twice is a bug.
 
 ### The versioning law (non-negotiable)
 Every feedback round on a scene = a NEW VERSION as a NEW PART FILE

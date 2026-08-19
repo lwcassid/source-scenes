@@ -346,7 +346,7 @@ const PRE = {
     const r = [];
     const ctxOn = AE.ctx && AE.ctx.state === 'running';
     r.push({ k: 'audio', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
-      txt: !AE.on ? 'muted — SOUND is OFF in the header'
+      txt: !AE.on ? 'muted — SOUND is OFF in the left rail'
         : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
         : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
         : 'running at ' + (AE.ctx.sampleRate / 1000).toFixed(1) + ' kHz',
@@ -523,11 +523,6 @@ FAMS.forEach(F => {
       <span class="morelink">more</span>
       <div class="chips"></div>
       <p class="iline"></p>
-      <div class="btns">
-        <button data-act="focus">FOCUS</button>
-        <button data-act="regen">REGEN</button>
-        <button data-act="png">PNG</button>
-      </div>
     </div>`;
   grid.appendChild(tile);
   const cv = tile.querySelector('canvas');
@@ -569,15 +564,9 @@ FAMS.forEach(F => {
     e.target.textContent = on ? 'less' : 'more';
   });
   tile.querySelector('.qbox').addEventListener('click', e => { e.stopPropagation(); QUEUE.toggle(F.fam); });
-  tile.querySelector('.cwrap').addEventListener('click', () => openFocus(tile.cur.idx));
-  tile.querySelector('[data-act=focus]').addEventListener('click', () => openFocus(tile.cur.idx));
-  tile.querySelector('[data-act=regen]').addEventListener('click', () => insts[ti].reinit((Math.random() * 1e9) | 0));
-  tile.querySelector('[data-act=png]').addEventListener('click', () => {
-    const a = document.createElement('a');
-    a.download = tile.cur.def.id.toLowerCase() + '.png';
-    a.href = cv.toDataURL('image/png');
-    a.click();
-  });
+  // the whole card is the FOCUS button — the version dropdown, the queue box
+  // and MORE all stop their own clicks, so there is nothing else to hit
+  tile.addEventListener('click', () => openFocus(tile.cur.idx));
 });
 
 // version dropdown in fullscreen focus — flip live between versions to compare
@@ -672,7 +661,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
   }, 300);
   // focus-bar controls mirror the library header — no need to leave the scene
   const syncFocus = () => {
-    const pairs = [['btnSound', 'fSound', 'SOUND: '], ['btnOut', 'fOut', '']];
+    const pairs = [['btnSound', 'fSound', ''], ['btnOut', 'fOut', ''], ['btnClock', 'fClock', '']];
     for (const [a, b, pre] of pairs) {
       const ea = document.getElementById(a), eb = document.getElementById(b);
       if (ea && eb) { eb.textContent = pre + ea.textContent; eb.classList.toggle('off', ea.classList.contains('off')); }
@@ -685,6 +674,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
   document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
   document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
   document.getElementById('fRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
+  document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
   document.getElementById('btnGhosts').addEventListener('click', () => {
     ghostsOn = !ghostsOn;
     document.getElementById('btnGhosts').classList.toggle('off', !ghostsOn);
@@ -739,6 +729,18 @@ document.getElementById('btnPreClose').addEventListener('click', () => PRE.close
 document.getElementById('preModal').addEventListener('click', e => { if (e.target.id === 'preModal') PRE.close(); });
 // START goes even with warnings on the board — they are judgement calls, not blocks
 document.getElementById('btnPreStart').addEventListener('click', () => { PRE.close(); QUEUE.play(true); });
+// on a phone the rail folds: browsing needs search, not the whole cockpit
+(() => {
+  const rail = document.getElementById('librail'), tog = document.getElementById('railToggle');
+  if (window.IS_MOBILE) rail.classList.add('folded');
+  tog.addEventListener('click', () => {
+    const folded = rail.classList.toggle('folded');
+    tog.textContent = folded ? 'CONTROLS ▾' : 'CONTROLS ▴';
+    tog.classList.toggle('off', folded);
+  });
+})();
+document.getElementById('railPlay').addEventListener('click', () => QUEUE.play());
+document.getElementById('railCheck').addEventListener('click', () => PRE.open());
 document.getElementById('searchBox').addEventListener('input', applyLibrary);
 document.getElementById('sortSel').addEventListener('change', applyLibrary);
 document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => {
@@ -757,16 +759,6 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   }
   document.addEventListener('pointerdown', e => {
     if (pop.classList.contains('open') && !pop.contains(e.target) && e.target.id !== 'btnMap' && e.target.id !== 'fMap') pop.classList.remove('open');
-  });
-})();
-// fullscreen — the scene takes the whole display
-(() => {
-  const b = document.getElementById('fFull');
-  if (!b) return;
-  b.addEventListener('click', () => {
-    const ov = document.getElementById('overlay');
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (ov.requestFullscreen) ov.requestFullscreen();
   });
 })();
 // ESC closes the scene (when not exiting fullscreen)
@@ -870,15 +862,8 @@ document.getElementById('oActs').addEventListener('click', e => {
       syncing = false;
     }
   });
-  // LINK — copy this scene's URL
-  const b = document.getElementById('fShare');
-  if (b) b.addEventListener('click', () => {
-    if (focus.idx < 0) return;
-    const url = location.origin + location.pathname + '#scene=' + PIECES[focus.idx].id;
-    const done = () => { b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'LINK', 1500); };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Scene link:', url));
-    else prompt('Scene link:', url);
-  });
+  // (no LINK button: the URL carries #scene= on its own, and the address bar
+  // is where anyone copying a link already looks)
 })();
 /* ============================================================
    SHOWTIME — installation player mode.

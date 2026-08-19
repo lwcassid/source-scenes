@@ -724,7 +724,6 @@ function closeFocus() {
   if (typeof T !== 'undefined') { T.stop(); H.listeners = []; }
   focus.P = null; focus.idx = -1;
   overlay.classList.remove('open');
-  document.getElementById('infoPanel').classList.remove('open');
 }
 window.addEventListener('resize', () => { if (focus.P) syncStage(); });
 // P toggles the projector frame live — see the same scene in a window and in the show
@@ -798,21 +797,21 @@ function applyKeys(dt) {
 // late-bound: part5_tail wraps closeFocus for deep-link cleanup — a direct
 // reference here would skip the wrapper and leave #scene= stuck in the URL
 document.getElementById('btnClose').addEventListener('click', () => closeFocus());
-document.getElementById('btnInfo').addEventListener('click', () =>
-  document.getElementById('infoPanel').classList.toggle('open'));
-document.getElementById('btnRegen').addEventListener('click', () => {
-  if (focus.P) { focus.P.reinit((Math.random() * 1e9) | 0); }
+// the scene's notes open in place, at the top of the sidebar
+document.getElementById('sNotesTog').addEventListener('click', e => {
+  const on = document.getElementById('sceneNotes').classList.toggle('open');
+  e.target.textContent = on ? 'less' : 'full notes';
 });
-document.getElementById('btnPng').addEventListener('click', () => {
-  if (!focus.P) return;
-  const a = document.createElement('a');
-  a.download = PIECES[focus.idx].id.toLowerCase() + '.png';
-  a.href = focusCanvas.toDataURL('image/png');
-  a.click();
+// R reseeds the open scene — the only part of REGEN worth a control
+window.addEventListener('keydown', e => {
+  if (e.key !== 'r' && e.key !== 'R') return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (focus.P) focus.P.reinit((Math.random() * 1e9) | 0);
 });
 document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
-  e.target.textContent = AE.on ? 'ON' : 'OFF';
+  e.target.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
   if (AE.on) { AE.ensure(); startVoice(); }
   else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }

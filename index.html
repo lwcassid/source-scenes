@@ -12,7 +12,7 @@
     --acc:#ff9a5e; --acc-dim:#b06a41; --acc-faint:rgba(255,154,94,.16);
     --sans:-apple-system,'Inter','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
     --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
-    --r:14px; --rs:9px;
+    --r:14px; --rs:9px; --rail:248px;
     --btn-bg:rgba(255,255,255,.05); --btn-hov-bg:#fff; --btn-hov-txt:#000;
     --hint-bg:rgba(255,255,255,.92); --hint-txt:#000; --tile-hov:rgba(255,255,255,.2);
     --hdr-bg:rgba(7,7,8,.86);
@@ -41,9 +41,7 @@
     background:var(--hdr-bg);backdrop-filter:blur(14px);min-height:50px}
   .brand h1{font-size:13px;letter-spacing:.3em;color:var(--txt);font-weight:800;text-transform:uppercase;white-space:nowrap}
   .brand h1 span{color:var(--txt-faint);font-weight:400}
-  .hright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .tgroup{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 8px;border:1px solid var(--line2);border-radius:999px}
-  .glabel{font-size:8px;font-weight:800;letter-spacing:.2em;color:var(--txt-faint);text-transform:uppercase;margin-right:2px}
+  .hright{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   #widgetTop{display:block;border-radius:7px}
   body:not(.light) #widgetTop{background:#0c0c10}
   button{font-family:var(--sans);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
@@ -61,7 +59,7 @@
   @keyframes blink{50%{background:var(--acc);color:#000}}
 
   /* MAP popover — the source's own settings, with coaching */
-  #mapPop{display:none;position:fixed;top:54px;right:14px;z-index:60;width:340px;
+  #mapPop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;width:340px;
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.3)}
   #mapPop.open{display:block}
@@ -73,22 +71,29 @@
   #mapPop #calRead{font:9.5px/1.5 ui-monospace,monospace;color:var(--txt-dim);white-space:pre;
     background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin:8px 0;overflow-x:auto}
 
-  /* ---------- library bar + grid ---------- */
-  main{padding:18px 16px 60px;max-width:1900px;margin:0 auto}
-  .libbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 16px}
-  .libbar h2{font-size:15px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:var(--txt)}
-  .libbar .scount{font-size:9px;letter-spacing:.18em;color:var(--txt-dim);text-transform:uppercase}
+  /* ---------- library: LEFT RAIL + grid ----------
+     The rail is the same column, the same width and the same .sgroup
+     vocabulary the scene view uses, so a control you learn on the wall is
+     exactly where you left it once a scene is open. */
+  main{display:grid;grid-template-columns:var(--rail) 1fr;align-items:start;
+    padding:0;max-width:none;min-height:calc(100vh - 50px)}
+  #librail{position:sticky;top:50px;align-self:start;height:calc(100vh - 50px);overflow-y:auto;
+    border-right:1px solid var(--line);background:var(--panel2);
+    padding:16px 14px;display:flex;flex-direction:column;gap:22px}
+  #librail #widgetTop{width:100%;height:auto}
+  #railToggle{display:none} /* phones only — see the mobile block */
+  .gridwrap{padding:18px 16px 60px;min-width:0}
   #searchBox{font-family:var(--sans);font-size:11px;background:var(--panel);color:var(--txt);
-    border:1px solid var(--line);border-radius:999px;padding:6px 14px;width:200px;outline:none}
+    border:1px solid var(--line);border-radius:999px;padding:7px 12px;width:100%;outline:none}
   #searchBox:focus{border-color:var(--acc)}
   #searchBox::placeholder{color:var(--txt-faint)}
-  .fchips{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
-  .fchip{font-size:8.5px;padding:4px 10px}
+  .fchips{display:flex;gap:5px;flex-wrap:wrap}
+  .fchip{font-size:8.5px;padding:4px 10px;flex:1}
   .fchip.on{background:var(--acc);border-color:var(--acc);color:#fff}
   .fchip.on:hover{background:var(--acc);border-color:var(--acc);color:#fff}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
   .tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
-    display:flex;flex-direction:column;transition:border-color .15s}
+    display:flex;flex-direction:column;transition:border-color .15s;cursor:pointer}
   .tile:hover{border-color:var(--tile-hov)}
   .tile-head{display:flex;justify-content:space-between;align-items:center;gap:6px 8px;padding:10px 13px;
     border-bottom:1px solid var(--line2);font-size:9px;letter-spacing:.16em;color:var(--txt-dim);flex-wrap:wrap}
@@ -109,7 +114,7 @@
   .qbox.on:hover{background:var(--acc);border-color:var(--acc);color:#fff}
 
   /* ---------- performance queue drawer ---------- */
-  #queuePop{display:none;position:fixed;top:54px;right:14px;z-index:60;width:360px;max-height:78vh;overflow-y:auto;
+  #queuePop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;width:360px;max-height:78vh;overflow-y:auto;
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.3)}
   #queuePop.open{display:block}
@@ -149,7 +154,7 @@
   .cwrap canvas{display:block;width:100%;height:auto}
   .cwrap .hoverhint{position:absolute;right:10px;bottom:10px;font-size:9px;letter-spacing:.18em;color:var(--hint-txt);
     background:var(--hint-bg);border-radius:999px;padding:4px 10px;font-weight:700;opacity:0;transition:opacity .15s;pointer-events:none;text-transform:uppercase}
-  .cwrap:hover .hoverhint{opacity:1}
+  .tile:hover .hoverhint{opacity:1}
   .vsel{font-size:9px;padding:2px 5px;border-radius:999px;max-width:64px}
   .tbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
   .tbody h3{font-size:14px;letter-spacing:.14em;color:var(--txt);font-weight:700;text-transform:uppercase}
@@ -164,13 +169,10 @@
   .chip{font-size:8.5px;letter-spacing:.12em;color:var(--txt-dim);border:1px solid var(--line);border-radius:999px;padding:2.5px 8px;text-transform:uppercase}
   .iline{font-size:10.5px;line-height:1.55;color:var(--txt-dim)}
   .iline b{color:var(--acc);font-weight:600}
-  .btns{display:flex;gap:6px;margin-top:auto;padding-top:6px}
-  .btns button{background:transparent;color:var(--txt-dim);border-color:var(--line2)}
-  .btns button:hover{background:var(--btn-hov-bg);color:var(--btn-hov-txt);border-color:var(--btn-hov-bg)}
 
   /* ---------- focus overlay ---------- */
   #overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;
-    grid-template-columns:248px 1fr;grid-template-rows:auto 1fr auto}
+    grid-template-columns:var(--rail) 1fr;grid-template-rows:auto 1fr auto}
   #mapPop{z-index:300} /* reachable from the scene view too */
   #overlay.open{display:grid}
   .obar{grid-column:1/-1}
@@ -185,6 +187,22 @@
   .sgroup .srow > input[type=range]{flex:1;min-width:0}
   .sgroup .sinfo{font-size:9.5px;line-height:1.6;letter-spacing:.04em;color:var(--txt-faint);margin:6px 0 0}
   .sgroup .sinfo b{color:var(--txt-dim)}
+  /* the scene's own notes live at the top of the same column as its controls —
+     one place to look, instead of a panel that slid in over the picture */
+  .sgroup .snote{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:0 0 8px}
+  .sgroup .snote b{color:var(--txt)}
+  .sgroup h6{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt-faint);
+    font-weight:700;margin:12px 0 4px}
+  .stoggle{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--acc);cursor:pointer;
+    text-transform:uppercase;user-select:none}
+  .stoggle:hover{text-decoration:underline}
+  #sNotes{display:none}
+  #sceneNotes.open #sNotes{display:block}
+  /* collapsed, the interaction line is a teaser — the controls below it stay
+     above the fold no matter how long a scene's paradigm reads */
+  #ipInt{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+  #sceneNotes.open #ipInt{-webkit-line-clamp:unset}
+  #sceneNotes .chips{margin-top:10px}
   #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
   #sidebar .scrimonly{display:none}
   #overlay.scrimmode #sidebar .scrimonly{display:flex}
@@ -216,6 +234,8 @@
   #overlay .obar,#overlay .oconsole{transition:opacity .4s}
   #overlay.zen .obar,#overlay.zen .oconsole{opacity:0;pointer-events:none}
   .obtns{display:flex;gap:6px;flex-wrap:wrap}
+  .obtns button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .obtns button.on:hover{background:var(--acc);border-color:var(--acc);color:#fff}
   .ostage{position:relative;flex:1;overflow:hidden;background:var(--letterbox)}
   #overlay.fs .ostage{background:#000} /* on the projector the bars must be invisible */
   /* PERFORMANCE MODE — fullscreen defaults to picture-only; the PANELS pill
@@ -266,16 +286,6 @@
   #useHint.gone{opacity:0}
   #widgetFocus{cursor:ns-resize;touch-action:none;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:var(--rs)}
 
-  /* info panel */
-  #infoPanel{position:absolute;top:0;right:0;bottom:0;width:min(380px,86vw);z-index:6;
-    background:rgba(10,10,12,.96);border-left:1px solid var(--line);padding:20px;overflow-y:auto;
-    transform:translateX(100%);transition:transform .2s;backdrop-filter:blur(10px)}
-  #infoPanel.open{transform:none}
-  #infoPanel h4{font-size:10px;letter-spacing:.26em;color:var(--acc);margin:18px 0 7px;text-transform:uppercase;font-weight:700}
-  #infoPanel h4:first-child{margin-top:0}
-  #infoPanel p{font-size:11.5px;line-height:1.7;color:var(--txt-dim)}
-  #infoPanel .chips{margin-top:8px}
-
   /* modals */
   #helpModal,#rigModal,#preModal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
   #helpModal.open,#rigModal.open,#preModal.open{display:flex}
@@ -312,10 +322,12 @@
   #stageFS{position:absolute;top:14px;right:14px;z-index:8;width:40px;height:40px;border-radius:10px;
     font-size:17px;display:flex;align-items:center;justify-content:center;
     background:rgba(10,10,14,.55);border:1px solid var(--line);color:var(--txt);
-    opacity:0;pointer-events:none;transition:opacity .25s}
-  .ostage:hover #stageFS{opacity:1;pointer-events:auto} /* appears when you hover the stage */
+    opacity:.35;transition:opacity .25s}
+  .ostage:hover #stageFS{opacity:1} /* the only fullscreen control — always faintly there */
+  /* except during the show: on the projector nothing sits over the picture */
+  #overlay.fs #stageFS{opacity:0}
+  #overlay.fs .ostage:hover #stageFS{opacity:1}
   #overlay.zen #stageFS{opacity:0;pointer-events:none}
-  @media (pointer:coarse){#stageFS{opacity:.5;pointer-events:auto}} /* no hover on touch — keep it faintly present */
   .edgeNav{display:none;position:absolute;top:0;bottom:0;width:13%;z-index:7;cursor:pointer;align-items:center}
   #edgeL{left:0;justify-content:flex-start}
   #edgeR{right:0;justify-content:flex-end}
@@ -343,18 +355,25 @@
     header{padding:6px 8px;gap:8px;min-height:44px}
     .brand h1{font-size:10.5px;letter-spacing:.18em}
     .hright{gap:5px}
-    .tgroup{gap:4px;padding:3px 7px 3px 6px}
-    .glabel{display:none} /* the pills explain themselves — labels cost width */
-    #widgetTop{width:108px;height:28px}
     button{font-size:8.5px;padding:7px 9px} /* smaller type, same tap height */
     input[type=range]{width:52px}
     select{max-width:120px;font-size:9.5px}
-    #mapPop{left:10px;right:10px;width:auto;top:50px}
-    main{padding:12px 8px 40px}
+    #mapPop,#queuePop{left:10px;right:10px;width:auto;top:50px}
+    /* the rail lies down across the top: a search strip, with CONTROLS
+       folding the show/source/music groups away until you want them */
+    main{display:block;min-height:0}
+    #librail{position:static;height:auto;overflow:visible;gap:12px;padding:10px;
+      border-right:none;border-bottom:1px solid var(--line)}
+    #librail .libgrp{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+    #librail .libgrp h5{display:none}
+    #librail .libgrp .srow{margin:0;flex:1 1 auto}
+    #librail .libgrp .srow:first-of-type{flex:2 1 170px}
+    #librail .libgrp .sinfo{margin:0}
+    #railToggle{display:block;width:100%}
+    #librail.folded .railfold{display:none}
+    #librail #widgetTop{max-width:240px}
+    .gridwrap{padding:12px 8px 40px}
     .grid{gap:10px;grid-template-columns:1fr} /* one clean column — cards stay large and tappable */
-    .libbar{gap:7px;margin:0 2px 12px}
-    .libbar h2{font-size:13px;letter-spacing:.2em}
-    .libbar input[type=search],.libbar #searchBox{min-width:0;flex:1}
     /* focus overlay: wrap the bar, shrink the title, keep every control tappable */
     .obar{padding:8px 8px;gap:6px;flex-wrap:wrap}
     .obar .otitle{gap:7px}
@@ -365,7 +384,6 @@
     #widgetFocus{width:120px;height:80px}
     #midiMon{height:78px}
     .whint{font-size:9px}
-    #infoPanel{width:100vw}
     #useHint{top:10px;font-size:9px;padding:7px 12px;white-space:nowrap}
   }
   /* phone cockpit: one column — stage first, monitors stacked, then the
@@ -417,23 +435,6 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <h1>THE CAVE <span>·</span> SOURCE</h1>
   </div>
   <div class="hright">
-    <div class="tgroup" title="The source — the two-hand instrument driving every scene">
-      <span class="glabel">Source</span>
-      <canvas id="widgetTop" width="170" height="44"></canvas>
-      <button id="btnGhosts" title="Ambient ghost hands drift on the library wall when nobody is playing — focused scenes always start still">GHOSTS</button>
-      <button id="btnMap" title="Bind your hardware theremin / MIDI controller to the two hands">MAP</button>
-    </div>
-    <div class="tgroup" title="Where the music goes">
-      <span class="glabel">Sound</span>
-      <button id="btnSound">ON</button>
-      <input type="range" id="volSlider" min="0" max="100" value="85" title="Master volume">
-      <span id="volLabel" style="font-size:9px;color:var(--txt-dim);letter-spacing:.1em">85%</span>
-      <button id="btnOut" class="off" title="Route the generated music: internal WebAudio, MIDI out to your DAW, or both">OUT: WEB AUDIO</button>
-      <select id="midiOutSel" style="display:none"></select>
-      <button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button>
-      <button id="btnRig" title="Role → MIDI channel routing for your DAW">RIG</button>
-    </div>
-    <button id="btnQueue" class="off" title="The performance queue — the scenes you play, in the order you play them">QUEUE 0</button>
     <button id="btnTheme" class="icon" title="Theme — light matches the camper portal; dark is stage mode">◐</button>
     <button id="btnHelp" class="icon">?</button>
   </div>
@@ -496,21 +497,61 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   </div>
 </div>
 <main>
-  <div class="libbar">
-    <h2>Library</h2><span class="scount" id="libCount"></span>
-    <input id="searchBox" type="search" placeholder="search scenes…" autocomplete="off">
-    <select id="sortSel" title="Sort — MOST WORKED ON weighs how recently a scene was touched against how many versions it has">
-      <option value="love">most worked on</option>
-      <option value="id">SRC number</option>
-      <option value="title">title A–Z</option>
-      <option value="ver">most versions</option>
-    </select>
-    <div class="fchips">
-      <button class="fchip on" data-f="all">ALL</button>
-      <button class="fchip" data-f="queue">IN QUEUE</button>
-    </div>
-  </div>
-  <div class="grid" id="grid"></div>
+  <!-- THE RAIL — every control the wall has, in the column the scene view
+       uses for the same things. SOURCE INPUT and MUSIC are literally the same
+       groups, in the same order, on both views. -->
+  <aside id="librail">
+    <section class="sgroup libgrp">
+      <h5>Library</h5>
+      <div class="srow"><input id="searchBox" type="search" placeholder="search scenes…" autocomplete="off"></div>
+      <div class="srow">
+        <select id="sortSel" title="Sort — MOST WORKED ON weighs how recently a scene was touched against how many versions it has">
+          <option value="love">most worked on</option>
+          <option value="id">SRC number</option>
+          <option value="title">title A–Z</option>
+          <option value="ver">most versions</option>
+        </select>
+      </div>
+      <div class="srow fchips">
+        <button class="fchip on" data-f="all">ALL</button>
+        <button class="fchip" data-f="queue">IN QUEUE</button>
+      </div>
+      <p class="sinfo" id="libCount"></p>
+    </section>
+    <button id="railToggle" class="off">CONTROLS ▾</button>
+    <section class="sgroup railfold">
+      <h5>The set</h5>
+      <div class="srow">
+        <button id="railPlay" title="Start the show on the first queued scene — picture only, fullscreen">▶ PLAY</button>
+        <button id="railCheck" title="Pre-flight: sound, set, hands, calibration, Ableton, tempo, frame, display">CHECK</button>
+      </div>
+      <div class="srow"><button id="btnQueue" class="off" title="The performance queue — the scenes you play, in the order you play them">QUEUE 0</button></div>
+      <p class="sinfo">tick a scene to queue it — the queue's <b>order</b> is the running order</p>
+    </section>
+    <section class="sgroup railfold">
+      <h5>Source input</h5>
+      <canvas id="widgetTop" width="220" height="76" title="The source — the two-hand instrument driving every scene"></canvas>
+      <div class="srow" style="margin-top:8px">
+        <button id="btnGhosts" title="Ambient ghost hands drift on the library wall when nobody is playing — focused scenes always start still">GHOSTS</button>
+        <button id="btnMap" title="Bind your hardware theremin / MIDI controller to the two hands">MAP</button>
+      </div>
+      <p class="sinfo">ghost hands drift while nobody plays · <b>reach outward = more</b></p>
+    </section>
+    <section class="sgroup railfold">
+      <h5>Music</h5>
+      <div class="srow">
+        <button id="btnSound">SOUND: ON</button>
+        <input type="range" id="volSlider" min="0" max="100" value="85" title="Master volume">
+        <span id="volLabel" style="font-size:9px;color:var(--txt-dim);letter-spacing:.1em">85%</span>
+      </div>
+      <div class="srow"><button id="btnOut" class="off" title="Route the generated music: internal WebAudio, MIDI out to your DAW, or both">OUT: WEB AUDIO</button></div>
+      <div class="srow"><select id="midiOutSel" style="display:none"></select></div>
+      <div class="srow"><button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button></div>
+      <div class="srow"><button id="btnRig" title="Role → MIDI channel routing for your DAW">MIDI RIG</button></div>
+      <p class="sinfo">roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · perc 10</p>
+    </section>
+  </aside>
+  <div class="gridwrap"><div class="grid" id="grid"></div></div>
 </main>
 
 <footer>
@@ -538,16 +579,23 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <div class="otitle"><span class="tid" id="oTid"></span><h2 id="oTitle"></h2><span class="ttag" id="oTag"></span><span id="oVers"></span><span id="oActs"></span></div>
     <div class="obtns">
       <button id="btnQueueFocus" title="Add this scene to the performance queue">+ QUEUE</button>
-      <button id="btnInfo">INFO</button>
-      <button id="btnRegen">REGEN</button>
-      <button id="btnPng">PNG</button>
-      <button id="fShare" title="Copy this scene's shareable link">LINK</button>
-      <button id="fFull" class="icon" title="Fullscreen">⛶</button>
       <button id="btnThemeF" class="icon" title="Theme">◐</button>
       <button id="btnClose">CLOSE ✕</button>
     </div>
   </div>
   <div id="sidebar">
+    <section class="sgroup" id="sceneNotes">
+      <h5>This scene</h5>
+      <p class="snote" id="ipInt"></p>
+      <span class="stoggle" id="sNotesTog">full notes</span>
+      <div id="sNotes">
+        <h6>Field notes</h6>
+        <p class="snote" id="ipDesc"></p>
+        <h6>Sound — ableton build notes</h6>
+        <p class="snote" id="ipSound"></p>
+        <div class="chips" id="ipChips"></div>
+      </div>
+    </section>
     <section class="sgroup">
       <h5>View</h5>
       <div class="srow">
@@ -569,12 +617,13 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <section class="sgroup">
       <h5>Source input</h5>
       <div class="srow"><button id="fMap" title="Bind your hardware controller — range-based learn">MAP CONTROLLER</button></div>
-      <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · reach outward = more</p>
+      <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · reach outward = more · <b>R</b> reseeds the scene</p>
     </section>
     <section class="sgroup">
       <h5>Music</h5>
       <div class="srow"><button id="fSound">SOUND: ON</button><input type="range" id="fVol" min="0" max="100" value="85" title="Master volume"></div>
       <div class="srow"><button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button></div>
+      <div class="srow"><button id="fClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM (Live: port Sync on, EXT lit)">CLOCK OUT: ON</button></div>
       <div class="srow"><button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">MIDI RIG</button></div>
       <p class="sinfo">roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · perc 10</p>
     </section>
@@ -594,12 +643,6 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <div class="lslider right" id="slR">
       <div class="track"></div><div class="fill"></div><div class="knob"></div>
       <div class="lab">RIGHT<span class="cc" id="ccR">64</span><span class="mode" id="modeR">DRIFT</span></div>
-    </div>
-    <div id="infoPanel">
-      <h4>Field notes</h4><p id="ipDesc"></p>
-      <h4>Interaction</h4><p id="ipInt"></p>
-      <h4>Sound — ableton build notes</h4><p id="ipSound"></p>
-      <div class="chips" id="ipChips"></div>
     </div>
   </div>
   <div class="oconsole">
@@ -630,13 +673,13 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <li><b>Touch:</b> two fingers at once = two hands.</li>
       <li><b>Laser sliders:</b> drag the beams at either edge.</li>
       <li><b>Keyboard:</b> hold W/S for L, ↑/↓ for R.</li>
-      <li><b>Hardware:</b> open MAP in the header — connect, then LEARN each hand by sweeping your control through its full range. Two different controllers can drive the two hands.</li>
+      <li><b>Hardware:</b> open MAP in the left rail — connect, then LEARN each hand by sweeping your control through its full range. Two different controllers can drive the two hands.</li>
     </ul>
     <p>Let go for six seconds and the ghost hands take that channel back.</p>
     <h3>Hero assets</h3>
     <p>Akira Motorcycle by s.navajon (CC-BY) · palm trees via Sketchfab — thank you, artists.</p>
     <h3>For artists</h3>
-    <p>Each piece carries its interaction paradigm and Ableton sound-design notes in the INFO panel. REGEN reseeds the piece; PNG exports a still. Steal any of these paradigms for your own source piece.</p>
+    <p>Each piece carries its interaction paradigm and Ableton sound-design notes at the top of the scene's left column — the same column that holds its controls. <b>R</b> reseeds a scene while it is open, <b>←/→</b> walk the wall, <b>P</b> toggles the projector frame. Steal any of these paradigms for your own source piece.</p>
     <p style="margin-top:14px"><button id="btnHelpClose">CLOSE</button></p>
   </div>
 </div>
@@ -1416,7 +1459,6 @@ function closeFocus() {
   if (typeof T !== 'undefined') { T.stop(); H.listeners = []; }
   focus.P = null; focus.idx = -1;
   overlay.classList.remove('open');
-  document.getElementById('infoPanel').classList.remove('open');
 }
 window.addEventListener('resize', () => { if (focus.P) syncStage(); });
 // P toggles the projector frame live — see the same scene in a window and in the show
@@ -1490,21 +1532,21 @@ function applyKeys(dt) {
 // late-bound: part5_tail wraps closeFocus for deep-link cleanup — a direct
 // reference here would skip the wrapper and leave #scene= stuck in the URL
 document.getElementById('btnClose').addEventListener('click', () => closeFocus());
-document.getElementById('btnInfo').addEventListener('click', () =>
-  document.getElementById('infoPanel').classList.toggle('open'));
-document.getElementById('btnRegen').addEventListener('click', () => {
-  if (focus.P) { focus.P.reinit((Math.random() * 1e9) | 0); }
+// the scene's notes open in place, at the top of the sidebar
+document.getElementById('sNotesTog').addEventListener('click', e => {
+  const on = document.getElementById('sceneNotes').classList.toggle('open');
+  e.target.textContent = on ? 'less' : 'full notes';
 });
-document.getElementById('btnPng').addEventListener('click', () => {
-  if (!focus.P) return;
-  const a = document.createElement('a');
-  a.download = PIECES[focus.idx].id.toLowerCase() + '.png';
-  a.href = focusCanvas.toDataURL('image/png');
-  a.click();
+// R reseeds the open scene — the only part of REGEN worth a control
+window.addEventListener('keydown', e => {
+  if (e.key !== 'r' && e.key !== 'R') return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (focus.P) focus.P.reinit((Math.random() * 1e9) | 0);
 });
 document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
-  e.target.textContent = AE.on ? 'ON' : 'OFF';
+  e.target.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
   if (AE.on) { AE.ensure(); startVoice(); }
   else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
@@ -58308,7 +58350,7 @@ const PRE = {
     const r = [];
     const ctxOn = AE.ctx && AE.ctx.state === 'running';
     r.push({ k: 'audio', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
-      txt: !AE.on ? 'muted — SOUND is OFF in the header'
+      txt: !AE.on ? 'muted — SOUND is OFF in the left rail'
         : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
         : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
         : 'running at ' + (AE.ctx.sampleRate / 1000).toFixed(1) + ' kHz',
@@ -58485,11 +58527,6 @@ FAMS.forEach(F => {
       <span class="morelink">more</span>
       <div class="chips"></div>
       <p class="iline"></p>
-      <div class="btns">
-        <button data-act="focus">FOCUS</button>
-        <button data-act="regen">REGEN</button>
-        <button data-act="png">PNG</button>
-      </div>
     </div>`;
   grid.appendChild(tile);
   const cv = tile.querySelector('canvas');
@@ -58531,15 +58568,9 @@ FAMS.forEach(F => {
     e.target.textContent = on ? 'less' : 'more';
   });
   tile.querySelector('.qbox').addEventListener('click', e => { e.stopPropagation(); QUEUE.toggle(F.fam); });
-  tile.querySelector('.cwrap').addEventListener('click', () => openFocus(tile.cur.idx));
-  tile.querySelector('[data-act=focus]').addEventListener('click', () => openFocus(tile.cur.idx));
-  tile.querySelector('[data-act=regen]').addEventListener('click', () => insts[ti].reinit((Math.random() * 1e9) | 0));
-  tile.querySelector('[data-act=png]').addEventListener('click', () => {
-    const a = document.createElement('a');
-    a.download = tile.cur.def.id.toLowerCase() + '.png';
-    a.href = cv.toDataURL('image/png');
-    a.click();
-  });
+  // the whole card is the FOCUS button — the version dropdown, the queue box
+  // and MORE all stop their own clicks, so there is nothing else to hit
+  tile.addEventListener('click', () => openFocus(tile.cur.idx));
 });
 
 // version dropdown in fullscreen focus — flip live between versions to compare
@@ -58634,7 +58665,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
   }, 300);
   // focus-bar controls mirror the library header — no need to leave the scene
   const syncFocus = () => {
-    const pairs = [['btnSound', 'fSound', 'SOUND: '], ['btnOut', 'fOut', '']];
+    const pairs = [['btnSound', 'fSound', ''], ['btnOut', 'fOut', ''], ['btnClock', 'fClock', '']];
     for (const [a, b, pre] of pairs) {
       const ea = document.getElementById(a), eb = document.getElementById(b);
       if (ea && eb) { eb.textContent = pre + ea.textContent; eb.classList.toggle('off', ea.classList.contains('off')); }
@@ -58647,6 +58678,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
   document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
   document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
   document.getElementById('fRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
+  document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
   document.getElementById('btnGhosts').addEventListener('click', () => {
     ghostsOn = !ghostsOn;
     document.getElementById('btnGhosts').classList.toggle('off', !ghostsOn);
@@ -58701,6 +58733,18 @@ document.getElementById('btnPreClose').addEventListener('click', () => PRE.close
 document.getElementById('preModal').addEventListener('click', e => { if (e.target.id === 'preModal') PRE.close(); });
 // START goes even with warnings on the board — they are judgement calls, not blocks
 document.getElementById('btnPreStart').addEventListener('click', () => { PRE.close(); QUEUE.play(true); });
+// on a phone the rail folds: browsing needs search, not the whole cockpit
+(() => {
+  const rail = document.getElementById('librail'), tog = document.getElementById('railToggle');
+  if (window.IS_MOBILE) rail.classList.add('folded');
+  tog.addEventListener('click', () => {
+    const folded = rail.classList.toggle('folded');
+    tog.textContent = folded ? 'CONTROLS ▾' : 'CONTROLS ▴';
+    tog.classList.toggle('off', folded);
+  });
+})();
+document.getElementById('railPlay').addEventListener('click', () => QUEUE.play());
+document.getElementById('railCheck').addEventListener('click', () => PRE.open());
 document.getElementById('searchBox').addEventListener('input', applyLibrary);
 document.getElementById('sortSel').addEventListener('change', applyLibrary);
 document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => {
@@ -58719,16 +58763,6 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   }
   document.addEventListener('pointerdown', e => {
     if (pop.classList.contains('open') && !pop.contains(e.target) && e.target.id !== 'btnMap' && e.target.id !== 'fMap') pop.classList.remove('open');
-  });
-})();
-// fullscreen — the scene takes the whole display
-(() => {
-  const b = document.getElementById('fFull');
-  if (!b) return;
-  b.addEventListener('click', () => {
-    const ov = document.getElementById('overlay');
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (ov.requestFullscreen) ov.requestFullscreen();
   });
 })();
 // ESC closes the scene (when not exiting fullscreen)
@@ -58832,15 +58866,8 @@ document.getElementById('oActs').addEventListener('click', e => {
       syncing = false;
     }
   });
-  // LINK — copy this scene's URL
-  const b = document.getElementById('fShare');
-  if (b) b.addEventListener('click', () => {
-    if (focus.idx < 0) return;
-    const url = location.origin + location.pathname + '#scene=' + PIECES[focus.idx].id;
-    const done = () => { b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'LINK', 1500); };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Scene link:', url));
-    else prompt('Scene link:', url);
-  });
+  // (no LINK button: the URL carries #scene= on its own, and the address bar
+  // is where anyone copying a link already looks)
 })();
 /* ============================================================
    SHOWTIME — installation player mode.
