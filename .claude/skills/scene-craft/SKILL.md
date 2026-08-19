@@ -54,6 +54,16 @@ the fabric punishes velocity. Two projectors overlap → bright elements get
 depth-echoed: fields, swarms, rings benefit; text and frames die. Saturated
 hues; mesh eats ~half the light.
 
+## Airbrush, not line art (Lance's reference, SRC-44)
+The house look for organic scenes is the gradient-airbrush plate: NO strokes
+and no outlines anywhere, forms built as one metaball/SDF field so neighbours
+FUSE, hue accumulated as a vector and averaged by field weight so where two
+bodies melt their colours melt too, cream cores in the dense middles, a
+luminous rim at the silhouette, black pupils at radial centres, saturated
+spectral ramps, true black everywhere the field is empty. Full-frame ramps
+(a "sky") are a light spend — earn them late or leave them out. Reference
+implementation: `parts/part103_grove.js`.
+
 ## The frame is 1920×1200 (16:10) — compose for THAT
 The show is ONE WUXGA render, fullscreen, cloned to both PT-VMZ50s off the
 splitter: the scene is handed `P.w=1920, P.h=1200`, aspect **1.60**, and
