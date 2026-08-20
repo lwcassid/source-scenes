@@ -6,7 +6,7 @@
      bass   CH3   bass
      arp    CH4   sequenced arps (Night Circuit etc.)
      bells  CH5   bells / chimes / sparkles
-     texture CH6  reserved for future texture layers
+     texture CH6  continuous-voice mirror (drones/films) + pooled CC74
      perc   CH10  drums (36 kick, 42/46 hats)
    Point each Ableton track's MIDI From at its channel — up to
    16 instruments, one rig. Expression: CC74 per role channel
@@ -115,6 +115,29 @@ const MOut = {
     if (this.wants() && this.port) { try { this.port.send([0x80 | (ch - 1), this._bed, 0]); } catch (e) {} }
     this._bed = undefined;
   },
+  /* Managed sustained note for a CONTINUOUS voice — note-on when the voice
+     fades in, retune when its pitch crosses a semitone, note-off when it is
+     killed. This is what lets drone/film scenes (whose whole soundscape is
+     AE.voice groups, no discrete events) exist in Ableton at all. */
+  holdOn(h, role, freq, vel = 58) {
+    if (!isFinite(freq)) return;
+    const note = this.f2n(freq), ch = this.chFor(role);
+    if (h._mNote === note && h._mCh === ch) return;
+    const p = performance.now();
+    if (h._mNote !== undefined && this.wants() && this.port) {
+      try { this.port.send([0x80 | (h._mCh - 1), h._mNote, 0], p); } catch (e) {}
+    }
+    h._mNote = note; h._mCh = ch;
+    this.lastByRole[role] = p;
+    this.log.push({ p, role, ch, note, vel, durMs: 1600 });
+    if (this.log.length > 900) this.log.splice(0, 300);
+    if (this.wants() && this.port) { try { this.port.send([0x90 | (ch - 1), note, vel], p); } catch (e) {} }
+  },
+  holdOff(h) {
+    if (h._mNote === undefined) return;
+    if (this.wants() && this.port) { try { this.port.send([0x80 | (h._mCh - 1), h._mNote, 0]); } catch (e) {} }
+    h._mNote = undefined; h._mCh = undefined;
+  },
   padSet(voiceObj, freq, vel = 58) {
     const ch = this.chFor('pad');
     const note = this.f2n(freq);
@@ -156,6 +179,58 @@ const MOut = {
       }
     }
   },
+  /* ---------- MIDI CLOCK — Ableton follows the scene instead of you
+     retyping the tempo on every scene change.
+     24 PPQN ticks (0xF8) are derived from the SAME AudioContext timeline the
+     notes are scheduled on (T.t0 / T.beat), so clock and notes cannot drift
+     apart. Song-position 0 then Start (0xFA) go out at beat 0; Stop (0xFC)
+     when the transport stops — which closeFocus already does, so a scene
+     change re-pins Live to the new BPM on its own.
+
+     LOOKAHEAD is deliberately short. Web MIDI cannot cancel a queued
+     message, so anything already scheduled WILL arrive: 120ms is enough to
+     ride out a stalled frame and short enough that a scene change spills
+     only a couple of stale ticks past the Stop.
+
+     In Live: Preferences -> Link/Tempo/MIDI -> switch this port's "Sync" on,
+     then press EXT in the transport bar. Live ignores clock entirely when
+     Sync is off, so leaving this enabled costs nothing. ---------- */
+  clock: { on: true, PPQ: 24, LOOKAHEAD: 0.12, n: 0, t0: -1, beat: 0, running: false },
+  clockSet(on) {
+    this.clock.on = !!on;
+    try { localStorage.setItem('srcMidiClock', this.clock.on ? '1' : '0'); } catch (e) {}
+    if (!this.clock.on) this.clockStop();
+    this.refreshUI();
+  },
+  _clk(bytes, at) { try { this.port.send(bytes, at); } catch (e) {} },
+  clockStop() {
+    const c = this.clock;
+    if (c.running && this.port) this._clk([0xFC]);
+    c.running = false; c.t0 = -1; c.n = 0;
+  },
+  clockPump() {
+    const c = this.clock;
+    const live = c.on && this.wants() && this.port &&
+      typeof T !== 'undefined' && T.running && AE.ctx;
+    if (!live) { if (c.running) this.clockStop(); return; }
+    // a new scene (or a live tempo change) re-pins the grid — resync to its beat 0
+    if (T.t0 !== c.t0 || T.beat !== c.beat) {
+      if (c.running) this._clk([0xFC]);
+      c.t0 = T.t0; c.beat = T.beat; c.n = 0; c.running = true;
+      this._clk([0xF2, 0, 0]);                // song position -> 1.1.1
+      this._clk([0xFA], this.ts(c.t0));       // start, landing on beat 0
+    }
+    const tick = c.beat / c.PPQ, now = AE.ctx.currentTime;
+    // fell behind (throttled tab, GC pause)? jump the counter to now instead of
+    // firing a burst of late ticks, which would shove Live's tempo around
+    const nMin = Math.ceil((now - c.t0) / tick);
+    if (c.n < nMin) c.n = nMin;
+    const horizon = now + c.LOOKAHEAD;
+    while (c.t0 + c.n * tick < horizon) {
+      this._clk([0xF8], this.ts(c.t0 + c.n * tick));
+      c.n++;
+    }
+  },
   testBurst() {
     const b = document.getElementById('btnTest');
     if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
@@ -171,6 +246,8 @@ const MOut = {
     if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
   },
   allOff() {
+    this.clockStop();
+    if (this._voices) { this._voices.forEach(h => this.holdOff(h)); this._voices.clear(); }
     if (this.port) {
       try { for (let ch = 0; ch < 16; ch++) this.port.send([0xB0 | ch, 123, 0]); } catch (e) {}
     }
@@ -187,6 +264,11 @@ const MOut = {
     if (b) {
       b.textContent = 'OUT: ' + (this.mode === 'web' ? 'WEB AUDIO' : this.mode === 'both' ? 'WEB+MIDI' : 'MIDI ONLY');
       b.classList.toggle('off', this.mode === 'web');
+    }
+    const cb = document.getElementById('btnClock');
+    if (cb) {
+      cb.textContent = 'CLOCK OUT: ' + (this.clock.on ? 'ON' : 'OFF');
+      cb.classList.toggle('off', !this.clock.on);
     }
     const sel = document.getElementById('midiOutSel');
     if (sel) {
@@ -274,6 +356,19 @@ const MOut = {
     g.fillText('CC1/CC2 HANDS · CC74 FILTER', lx + 4, 11);
   }
 };
+
+/* ---------- clock boot: restore the operator's choice, run the pump ----------
+   One 20ms timer for the life of the page. It returns immediately unless a
+   port is open, out-mode is not WEB, and a transport is running — so the cost
+   when the clock is idle is a comparison, and there is no start/stop wiring
+   for scene code to forget. ---------- */
+try {
+  const ck = localStorage.getItem('srcMidiClock');
+  if (ck !== null) MOut.clock.on = ck === '1';
+} catch (e) {}
+setInterval(() => MOut.clockPump(), 20);
+// leaving the page must not strand Live running on a clock that stopped arriving
+window.addEventListener('pagehide', () => { try { MOut.clockStop(); } catch (e) {} });
 
 /* ============================================================
    SOUNDING BUS — what the board is ringing with, right now
@@ -370,12 +465,72 @@ AE.SB = {
   AE.kick = function (at, vol) { MOut.evDrum(36, vol !== undefined ? vol : 0.32, at || 0); _kick(at, vol); };
   const _hat = AE.hat.bind(AE);
   AE.hat = function (at, opts = {}) { MOut.evDrum(opts.open ? 46 : 42, opts.vol !== undefined ? opts.vol : 0.045, at || 0); _hat(at, opts); };
+  /* AE.hit — filtered-noise percussion. It was the LOUDEST hole in the mirror
+     (113 call sites; White Study's whole click language is hits). Map the
+     filter's center frequency onto the drum-rack notes the rig already uses:
+     low thud → 36, mid crack → 38, click → 42, air/tick → 46. */
+  const _hit = AE.hit.bind(AE);
+  AE.hit = function (opts = {}) {
+    const f = opts.freq !== undefined ? opts.freq : 2000;
+    const note = f < 250 ? 36 : f < 1200 ? 38 : f < 4500 ? 42 : 46;
+    MOut.evDrum(note, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0);
+    _hit(opts);
+  };
+  /* AE.voice — continuous voices, the other hole. A voice has no note events,
+     and scenes drive it two different ways (fadeIn OR writing v.gain directly
+     every tick), so hooks on any one method miss half the library. Instead:
+     every voice registers itself, and a 4Hz poll reads what is actually true —
+     group gain audible → HELD note on the texture channel at the first
+     audible oscillator's CURRENT pitch (placeholders have been tuned by the
+     time the gain comes up; later retunes re-strike via holdOn's semitone
+     check), gain gone or voice killed → note off. The pooled gain streams as
+     CC74 texture energy. Voices carrying padVoices are already mirrored
+     per-pad-voice on the pad channel and are skipped (_noHold); noise-only
+     voices have no pitch to report and stay silent. */
+  const _voice = AE.voice.bind(AE);
+  AE.voice = function () {
+    const h = _voice();
+    const _osc = h.osc;
+    h.osc = (type, freq) => { const o = _osc(type, freq); (h._oscs || (h._oscs = [])).push(o); return o; };
+    const _kill = h.kill;
+    h.kill = (s) => { MOut.holdOff(h); MOut._voices.delete(h); _kill(s); };
+    MOut._voices.add(h);
+    if (MOut._voices.size > 64) MOut._voices.delete(MOut._voices.values().next().value); // leak guard
+    return h;
+  };
+  MOut._voices = new Set();
+  setInterval(() => {
+    const M = MOut;
+    if (!AE.ctx || !M._voices.size) return;
+    let energy = 0;
+    M._voices.forEach(h => {
+      if (h._noHold) { M.holdOff(h); return; }
+      let g = 0;
+      try { g = h.group.gain.value; } catch (e) { M._voices.delete(h); return; }
+      const o = g > 0.004 && h._oscs &&
+        h._oscs.find(o2 => isFinite(o2.frequency.value) && o2.frequency.value > 25); // skip LFOs
+      if (o) {
+        M.holdOn(h, 'texture', o.frequency.value, Math.round(30 + Math.min(1, g) * 60));
+        energy = Math.max(energy, g);
+      } else M.holdOff(h);
+    });
+    M.expr('texture', Math.min(1, energy));
+  }, 250);
   const _padVoices = AE.padVoices.bind(AE);
   AE.padVoices = function (v, n, opts) {
+    v._noHold = true;   // its pad voices are mirrored individually below
     const voices = _padVoices(v, n, opts);
     for (const vc of voices) {
       const _set = vc.set.bind(vc);
-      vc.set = function (freq, glide) { MOut.padSet(vc, freq); _set(freq, glide); };
+      // velocity from the voice's ACTUAL gain, not a constant — measured
+      // across the library, every pad note was leaving at vel 58, which is
+      // exactly the machine-flat sound a velocity-sensitive patch exposes.
+      // Scenes that swell a pad voice's gain now speak at that loudness.
+      vc.set = function (freq, glide) {
+        let g = 0.045; try { g = vc.g.gain.value; } catch (e) {}
+        MOut.padSet(vc, freq, Math.round(Math.max(25, Math.min(105, 25 + (g / 0.05) * 45))));
+        _set(freq, glide);
+      };
     }
     return voices;
   };

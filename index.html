@@ -7,6 +7,7 @@
 <style>
   :root{
     --bg:#070708; --panel:#111114; --panel2:#0c0c0f; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.05);
+    --letterbox:#000;
     --txt:#f2f2ef; --txt-dim:#98988f; --txt-faint:#5c5c56;
     --acc:#ff9a5e; --acc-dim:#b06a41; --acc-faint:rgba(255,154,94,.16);
     --sans:-apple-system,'Inter','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
@@ -19,6 +20,7 @@
   /* LIGHT — matches the camper portal: white, black tracked type, warm red accent */
   body.light{
     --bg:#f4f4f1; --panel:#ffffff; --panel2:#fafaf8; --line:rgba(0,0,0,.13); --line2:rgba(0,0,0,.07);
+    --letterbox:#fff;
     --txt:#151513; --txt-dim:#6d6d65; --txt-faint:#a3a39a;
     --acc:#d4542c; --acc-dim:#a8431f; --acc-faint:rgba(212,84,44,.1);
     --btn-bg:rgba(0,0,0,.04); --btn-hov-bg:#111; --btn-hov-txt:#fff;
@@ -26,12 +28,7 @@
     --hdr-bg:rgba(244,244,241,.88);
   }
   /* light-mode legibility: the glow colors need ink versions on white */
-  body.light .owner.t12{color:#8a6a00;border-color:rgba(138,106,0,.5);text-shadow:none}
-  body.light .owner.kasia{color:#8a3fc2;border-color:rgba(138,63,194,.45)}
-  body.light .owner.nima{color:#0e7fb5;border-color:rgba(14,127,181,.45)}
-  body.light .owner.lance{color:#a86a10;border-color:rgba(168,106,16,.45)}
-  body.light .star{color:#b9b9b0}
-  body.light .star.on{color:#c79400;text-shadow:none}
+  body.light .qbox{color:#b9b9b0}
   body.light #favBanner{color:#7a5f00;border-color:rgba(138,106,0,.4);background:rgba(199,148,0,.07)}
   /* the focus overlay follows the shell theme — the STAGE (canvas) stays whatever the scene paints */
   *{box-sizing:border-box;margin:0;padding:0}
@@ -72,6 +69,9 @@
   #mapPop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
   #mapPop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
   #mapPop b{color:var(--txt)}
+  #mapPop #calBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+  #mapPop #calRead{font:9.5px/1.5 ui-monospace,monospace;color:var(--txt-dim);white-space:pre;
+    background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin:8px 0;overflow-x:auto}
 
   /* ---------- library bar + grid ---------- */
   main{padding:18px 16px 60px;max-width:1900px;margin:0 auto}
@@ -99,14 +99,49 @@
   .vpills button{border:1px solid var(--line);background:transparent;color:var(--txt-dim);font-size:9px;letter-spacing:.08em;padding:2px 8px;border-radius:999px}
   .vpills button:hover{border-color:rgba(255,255,255,.4);color:var(--txt);background:transparent}
   .vpills button.on{border-color:var(--acc);color:var(--acc);background:var(--acc-faint)}
-  .owner{font-size:8px;letter-spacing:.14em;padding:2.5px 8px;border:1px solid;border-radius:999px;white-space:nowrap;font-weight:700}
-  .owner.t12{color:#ffd977;border-color:rgba(255,217,119,.45)}
-  .owner.kasia{color:#e2a6ff;border-color:rgba(226,166,255,.45)}
-  .owner.nima{color:#7fd8ff;border-color:rgba(127,216,255,.45)}
-  .owner.lance{color:#ffc46b;border-color:rgba(255,196,107,.45)}
-  .star{border:none;background:none;padding:2px 4px;font-size:14px;color:var(--txt-faint);cursor:pointer;line-height:1}
-  .star:hover{background:none;color:#ffd977;border:none}
-  .star.on{color:#ffd977;text-shadow:0 0 8px rgba(255,217,119,.7)}
+  /* the queue checkbox — shows its POSITION once queued, so the running
+     order is readable straight off the wall without opening the drawer */
+  .qbox{border:1px solid var(--line);background:none;padding:0;width:19px;height:19px;flex:none;
+    border-radius:5px;font-size:9px;font-weight:800;color:var(--txt-faint);cursor:pointer;line-height:1;
+    display:flex;align-items:center;justify-content:center}
+  .qbox:hover{border-color:var(--acc);color:var(--acc);background:none}
+  .qbox.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .qbox.on:hover{background:var(--acc);border-color:var(--acc);color:#fff}
+
+  /* ---------- performance queue drawer ---------- */
+  #queuePop{display:none;position:fixed;top:54px;right:14px;z-index:60;width:360px;max-height:78vh;overflow-y:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  #queuePop.open{display:block}
+  #queuePop h4{font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--txt);margin-bottom:8px}
+  #queuePop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
+  #queuePop b{color:var(--txt)}
+  #queuePop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
+  #queueList{list-style:none;margin:10px 0;padding:0}
+  #queueList li{display:flex;align-items:center;gap:6px;padding:5px 6px;border:1px solid var(--line);
+    border-radius:6px;margin-bottom:4px;background:rgba(0,0,0,.12)}
+  #queueList .qn{font:9px ui-monospace,monospace;color:var(--acc);width:14px;flex:none;font-weight:800}
+  #queueList .qid{font:9px ui-monospace,monospace;color:var(--txt-faint);width:52px;flex:none}
+  #queueList .qt{font-size:10.5px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #queueList button{padding:2px 6px;font-size:10px;line-height:1.1}
+  #queueList button:disabled{opacity:.28;cursor:default}
+  /* thumbnails: the set list is unreadable as SRC numbers at 3am */
+  #queueList .qthumb{width:56px;height:35px;flex:none;border-radius:3px;background:#000;
+    border:1px solid rgba(255,255,255,.10);display:block}
+  body.light #queueList .qthumb{border-color:rgba(0,0,0,.14)}
+  /* ---------- shared sets shelf ---------- */
+  #setShelf{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
+  #setShelf h4{font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--txt);margin-bottom:6px}
+  #setShelf p{font-size:9.5px;line-height:1.6;color:var(--txt-faint);margin:6px 0}
+  .setrow{display:flex;align-items:center;gap:7px;padding:5px 7px;border:1px solid var(--line);
+    border-radius:6px;margin-bottom:4px;background:rgba(0,0,0,.10)}
+  .setrow.live{border-color:var(--acc)}
+  .setrow .setname{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--txt);text-transform:uppercase}
+  .setrow .setcount{font:9px ui-monospace,monospace;color:var(--txt-faint);flex:1}
+  .setrow button{padding:2px 8px;font-size:9.5px;flex:none}
+  #setHint{border-top:1px dashed var(--line);padding-top:8px}
+  #queueEmpty{display:none}
+  #queuePop.empty #queueEmpty{display:block}
   #favBanner{display:none;margin:16px 24px 0;padding:12px 16px;border:1px solid rgba(255,217,119,.4);background:rgba(255,217,119,.06);
     border-radius:var(--r);font-size:10px;letter-spacing:.12em;color:#ffd977;align-items:center;gap:12px;flex-wrap:wrap;text-transform:uppercase}
   #favBanner.open{display:flex}
@@ -134,9 +169,34 @@
   .btns button:hover{background:var(--btn-hov-bg);color:var(--btn-hov-txt);border-color:var(--btn-hov-bg)}
 
   /* ---------- focus overlay ---------- */
-  #overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;flex-direction:column}
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;
+    grid-template-columns:248px 1fr;grid-template-rows:auto 1fr auto}
   #mapPop{z-index:300} /* reachable from the scene view too */
-  #overlay.open{display:flex}
+  #overlay.open{display:grid}
+  .obar{grid-column:1/-1}
+  /* ---------- SIDEBAR — controls grouped by function ---------- */
+  #sidebar{grid-row:2/4;grid-column:1;border-right:1px solid var(--line);overflow-y:auto;
+    padding:16px 14px;display:flex;flex-direction:column;gap:22px;background:var(--panel2)}
+  .sgroup h5{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);
+    font-weight:700;margin:0 0 9px}
+  .sgroup .srow{display:flex;gap:8px;align-items:center;margin:0 0 7px}
+  .sgroup .srow > select{flex:1;width:100%;max-width:none;padding:7px 8px}
+  .sgroup .srow > button{flex:1;text-align:center}
+  .sgroup .srow > input[type=range]{flex:1;min-width:0}
+  .sgroup .sinfo{font-size:9.5px;line-height:1.6;letter-spacing:.04em;color:var(--txt-faint);margin:6px 0 0}
+  .sgroup .sinfo b{color:var(--txt-dim)}
+  #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
+  #sidebar .scrimonly{display:none}
+  #overlay.scrimmode #sidebar .scrimonly{display:flex}
+  .ostage,.oconsole{grid-column:2}
+  .conTitle{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--acc);
+    font-weight:700;margin:0 0 6px}
+  .monHead .conTitle{margin:0 10px 0 0}
+  /* fullscreen: the stage owns the whole grid; the sidebar leaves entirely */
+  #overlay.fs{grid-template-columns:1fr}
+  #overlay.fs #sidebar{display:none}
+  #overlay.fs .ostage{grid-column:1/-1;grid-row:1/4}
+  #overlay.fs .oconsole{grid-column:1/-1}
   .obar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;
     border-bottom:1px solid var(--line);flex-wrap:wrap}
   .obar .otitle{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
@@ -156,7 +216,20 @@
   #overlay .obar,#overlay .oconsole{transition:opacity .4s}
   #overlay.zen .obar,#overlay.zen .oconsole{opacity:0;pointer-events:none}
   .obtns{display:flex;gap:6px;flex-wrap:wrap}
-  .ostage{position:relative;flex:1;overflow:hidden}
+  .ostage{position:relative;flex:1;overflow:hidden;background:var(--letterbox)}
+  #overlay.fs .ostage{background:#000} /* on the projector the bars must be invisible */
+  /* PERFORMANCE MODE — fullscreen defaults to picture-only; the PANELS pill
+     (or H) brings the control bars in for MIDI / input debugging */
+  #overlay.fs.perf .obar,#overlay.fs.perf .oconsole{display:none}
+  #panelTab{display:none;position:absolute;left:76px;bottom:12px;z-index:14;padding:5px 11px;border-radius:8px;
+    font-size:10px;letter-spacing:.14em;font-family:var(--mono);background:rgba(10,10,14,.6);
+    border:1px solid rgba(255,255,255,.18);color:#cfd6e4;opacity:.35;cursor:pointer;transition:opacity .4s}
+  #panelTab:hover{opacity:1}
+  #overlay.fs #panelTab{display:inline-block}
+  #overlay.fs:not(.perf) #panelTab{color:var(--acc);opacity:.7}
+  #overlay.zen.perf #panelTab{opacity:0}
+  #overlay.zen.perf #panelTab:hover{opacity:1}
+  /* (scrim-only rows live in the sidebar via .scrimonly) */
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
   /* laser sliders */
@@ -204,12 +277,28 @@
   #infoPanel .chips{margin-top:8px}
 
   /* modals */
-  #helpModal,#rigModal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
-  #helpModal.open,#rigModal.open{display:flex}
-  #helpModal .box,#rigModal .box{max-width:640px;max-height:86vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:28px}
-  #helpModal h2,#rigModal h2{font-size:14px;letter-spacing:.28em;color:var(--txt);margin-bottom:14px;font-weight:800;text-transform:uppercase}
+  #helpModal,#rigModal,#preModal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
+  #helpModal.open,#rigModal.open,#preModal.open{display:flex}
+  #helpModal .box,#rigModal .box,#preModal .box{max-width:640px;max-height:86vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:28px}
+  #helpModal h2,#rigModal h2,#preModal h2{font-size:14px;letter-spacing:.28em;color:var(--txt);margin-bottom:14px;font-weight:800;text-transform:uppercase}
   #helpModal h3,#rigModal h3{font-size:10px;letter-spacing:.22em;color:var(--acc);margin:18px 0 6px;text-transform:uppercase;font-weight:700}
-  #helpModal p,#helpModal li,#rigModal p{font-size:11.5px;line-height:1.7;color:var(--txt-dim)}
+  #helpModal p,#helpModal li,#rigModal p,#preModal p{font-size:11.5px;line-height:1.7;color:var(--txt-dim)}
+
+  /* ---------- pre-flight rows ---------- */
+  #preModal .box{max-width:660px}
+  .prow{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:5px 0;border:1px solid var(--line);
+    border-radius:8px;background:rgba(0,0,0,.14)}
+  .prow .dot{width:9px;height:9px;flex:none;border-radius:50%}
+  .prow.ok   .dot{background:#4ade80;box-shadow:0 0 7px rgba(74,222,128,.65)}
+  .prow.warn .dot{background:#fbbf24;box-shadow:0 0 7px rgba(251,191,36,.65)}
+  .prow.bad  .dot{background:#f87171;box-shadow:0 0 7px rgba(248,113,113,.7)}
+  .prow .plabel{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt);width:96px;flex:none;font-weight:700}
+  .prow .pstat{font-size:11px;color:var(--txt-dim);flex:1;line-height:1.45}
+  .prow.bad .pstat{color:#f87171}
+  .prow button,.prow select{padding:3px 9px;font-size:9.5px;flex:none}
+  #btnPreStart{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:800}
+  #btnPreStart:hover{background:var(--acc);border-color:var(--acc);color:#fff}
+  #preScreenNote{font-size:10px;color:var(--txt-faint);border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
   #helpModal ul{padding-left:18px}
   #helpModal b,#rigModal b{color:var(--txt)}
   .rigrow{display:flex;align-items:center;gap:10px;margin:7px 0}
@@ -279,6 +368,28 @@
     #infoPanel{width:100vw}
     #useHint{top:10px;font-size:9px;padding:7px 12px;white-space:nowrap}
   }
+  /* phone cockpit: one column — stage first, monitors stacked, then the
+     sidebar groups. Lives AFTER the base .oconsole + 760px rules so these
+     same-specificity declarations win the cascade. */
+  @media (max-width:820px){
+    /* grid squashes over-full auto rows to min-content in a definite-height
+       container; a scrolling flex column sizes every panel honestly */
+    #overlay.open{display:flex;flex-direction:column;overflow-y:auto}
+    #overlay > *{flex:0 0 auto}
+    .obar{order:1}
+    .ostage{order:2;height:54vh;flex:0 0 54vh}
+    .oconsole{order:3;flex-direction:column;flex-wrap:nowrap;align-items:stretch;
+      justify-content:flex-start;gap:14px;padding:14px 16px}
+    #sidebar{order:4;border-right:none;border-top:1px solid var(--line)}
+    #overlay.fs .ostage{height:auto;flex:1 1 auto} /* fullscreen: stage takes it all */
+    .conBox{width:100%}
+    .conBox.grow{flex:none}
+    .oconsole .monHead{flex-wrap:wrap;row-gap:4px}
+    #widgetFocus{width:100%;max-width:340px;height:96px}
+    #midiMon{width:100%;height:78px}
+    .whint{max-width:none}
+    #sidebar select{max-width:none}
+  }
   /* phones held sideways — the natural way to ride: give everything to the stage */
   @media (max-width:1000px) and (max-height:500px){
     .oconsole{display:none}
@@ -319,10 +430,10 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <span id="volLabel" style="font-size:9px;color:var(--txt-dim);letter-spacing:.1em">85%</span>
       <button id="btnOut" class="off" title="Route the generated music: internal WebAudio, MIDI out to your DAW, or both">OUT: WEB AUDIO</button>
       <select id="midiOutSel" style="display:none"></select>
+      <button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button>
       <button id="btnRig" title="Role → MIDI channel routing for your DAW">RIG</button>
     </div>
-    <button id="btnFav" class="off" title="Your starred shortlist">★ 0</button>
-    <button id="btnFavLink" style="display:none">COPY LINK</button>
+    <button id="btnQueue" class="off" title="The performance queue — the scenes you play, in the order you play them">QUEUE 0</button>
     <button id="btnTheme" class="icon" title="Theme — light matches the camper portal; dark is stage mode">◐</button>
     <button id="btnHelp" class="icon">?</button>
   </div>
@@ -342,31 +453,61 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <button id="btnTest" title="Send a short test phrase to every role — check your DAW is hearing us">TEST ♪</button>
   </div>
   <p><b>Coaching:</b> hit CONNECT and allow MIDI. Press LEARN L, then <b>sweep your left control through its whole range</b> for ~2 seconds — the page hears which control moved and binds it, whether it speaks CC, pitch bend, or pressure. Repeat for R. Bindings persist across reloads. No hardware? The on-screen theremin, scene surface, edge lasers, and W/S · ↑/↓ keys all drive the hands.</p>
+  <div id="calBox" style="display:none">
+    <h4>Calibrate the sensors</h4>
+    <div class="row">
+      <button id="btnRest" title="Stand clear of the instrument, then press — whatever the sensors read with nobody there becomes the idle point">SET REST</button>
+      <button id="btnInvL" title="Flip the left hand if reaching outward reads as less">INVERT L</button>
+      <button id="btnInvR" title="Flip the right hand if reaching outward reads as less">INVERT R</button>
+      <button id="btnCalClear" title="Forget range, polarity and rest for both hands">CLEAR</button>
+    </div>
+    <pre id="calRead"></pre>
+    <p>The LEARN sweep already stored each control's working range, so full reach reaches <b>1.00</b>. Two things are worth doing on the show machine: press <b>SET REST</b> with nobody at the instrument — a rangefinder streams a value whether or not a hand is there, and this is what lets scenes go idle and tease again — and flip <b>INVERT</b> if the readout drops when you reach outward. Every scene expects <b>at the source = 0, arm's reach = 1</b>.</p>
+  </div>
 </div>
 
 <div id="favBanner">
   <span id="favBannerText"></span>
-  <button id="favMerge">MERGE INTO MINE</button>
+  <button id="favMerge">LOAD THIS QUEUE</button>
   <button id="favDismiss">DISMISS</button>
+</div>
+
+<!-- ================= PERFORMANCE QUEUE ================= -->
+<div id="queuePop">
+  <h4>Performance queue</h4>
+  <p>Tick a scene on the wall to add it. This list <b>is</b> the set — membership and running order both. SHOWTIME walks it in this order, and the screen edges step through it.</p>
+  <ol id="queueList"></ol>
+  <p id="queueEmpty">Nothing queued yet. With an empty queue the show falls back to playing the whole wall in library order — which is how you end up performing 43 scenes sorted by number.</p>
+  <div class="row">
+    <button id="btnQueuePlay">▶ PLAY</button>
+    <button id="btnQueueCheck">SHOW CHECK</button>
+    <button id="btnQueueLink">COPY LINK</button>
+    <button id="btnQueueClear">CLEAR</button>
+    <button id="btnQueueClose">CLOSE</button>
+  </div>
+  <div id="setShelf">
+    <h4>Shared sets</h4>
+    <p>Committed in <b>setlists.json</b>, baked into the build — so these travel to the show laptop and onto playa. Your queue above is your own scratch pad until you publish it.</p>
+    <div id="setList"></div>
+    <div class="row">
+      <button id="btnSetPublish" title="Copy this queue as a setlists.json block — paste it in, or hand it to Claude">COPY FOR REPO</button>
+    </div>
+    <p id="setHint">To publish: COPY FOR REPO → paste into <b>setlists.json</b> (or tell Claude in a session which set it is) → commit and push. Git is the memory; the diff is the history of what the show became.</p>
+  </div>
 </div>
 <main>
   <div class="libbar">
     <h2>Library</h2><span class="scount" id="libCount"></span>
     <input id="searchBox" type="search" placeholder="search scenes…" autocomplete="off">
-    <select id="sortSel" title="Sort">
-      <option value="active">active first</option>
+    <select id="sortSel" title="Sort — MOST WORKED ON weighs how recently a scene was touched against how many versions it has">
+      <option value="love">most worked on</option>
       <option value="id">SRC number</option>
       <option value="title">title A–Z</option>
-      <option value="ver">most iterated</option>
+      <option value="ver">most versions</option>
     </select>
     <div class="fchips">
       <button class="fchip on" data-f="all">ALL</button>
-      <button class="fchip" data-f="active">ACTIVE</button>
-      <button class="fchip" data-f="fav">★ MINE</button>
-      <button class="fchip" data-f="top12">TOP 12</button>
-      <button class="fchip" data-f="KASIA">KASIA</button>
-      <button class="fchip" data-f="NIMA">NIMA</button>
-      <button class="fchip" data-f="LANCE">LANCE</button>
+      <button class="fchip" data-f="queue">IN QUEUE</button>
     </div>
   </div>
   <div class="grid" id="grid"></div>
@@ -377,17 +518,26 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   source prototyping wall · every piece is driven by two hands, L / R
 </footer>
 
+<!-- ================= PRE-FLIGHT ================= -->
+<div id="preModal">
+  <div class="box">
+    <h2>SHOW CHECK</h2>
+    <p>Everything the wall needs before you hand it to the camp. Each line says what it found and fixes itself where it can — nothing here sends you hunting through another panel.</p>
+    <div id="preRows"></div>
+    <p id="preScreenNote"></p>
+    <p style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">
+      <button id="btnPreStart">▶ START THE SHOW</button>
+      <button id="btnPreClose">CLOSE</button>
+    </p>
+  </div>
+</div>
+
 <!-- ================= FOCUS OVERLAY ================= -->
 <div id="overlay">
   <div class="obar">
     <div class="otitle"><span class="tid" id="oTid"></span><h2 id="oTitle"></h2><span class="ttag" id="oTag"></span><span id="oVers"></span><span id="oActs"></span></div>
     <div class="obtns">
-      <button id="btnStarFocus" class="star" style="font-size:16px">☆</button>
-      <button id="fSound">SOUND: ON</button>
-      <input type="range" id="fVol" min="0" max="100" value="85" title="Master volume">
-      <button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button>
-      <button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">RIG</button>
-      <button id="fMap" title="Bind your hardware controller — works from here too">MAP</button>
+      <button id="btnQueueFocus" title="Add this scene to the performance queue">+ QUEUE</button>
       <button id="btnInfo">INFO</button>
       <button id="btnRegen">REGEN</button>
       <button id="btnPng">PNG</button>
@@ -397,12 +547,45 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <button id="btnClose">CLOSE ✕</button>
     </div>
   </div>
+  <div id="sidebar">
+    <section class="sgroup">
+      <h5>View</h5>
+      <div class="srow">
+        <select id="viewSel" title="What the stage shows — the flat projector frame, the two-projector ghost, or the throw in The Cave in 3D (V cycles)">
+          <option value="flat">FLAT · 1 PROJECTOR</option>
+          <option value="double">GHOST · 2 PROJECTORS</option>
+          <option value="scrim">SCRIM · THE CAVE 3D</option>
+        </select>
+      </div>
+      <div class="srow scrimonly">
+        <select id="camSel" title="Vantage point — or drag the 3D view to orbit, wheel/pinch to zoom (C cycles)"></select>
+      </div>
+      <div class="srow scrimonly">
+        <button id="btnDux" title="Show/hide the duxel structure in the 3D view (D)">DUXELS</button>
+      </div>
+      <p class="sinfo" id="frameInfo">1920×1200 · 16:10</p>
+      <p class="sinfo">one WUXGA render, cloned to both projectors</p>
+    </section>
+    <section class="sgroup">
+      <h5>Source input</h5>
+      <div class="srow"><button id="fMap" title="Bind your hardware controller — range-based learn">MAP CONTROLLER</button></div>
+      <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · reach outward = more</p>
+    </section>
+    <section class="sgroup">
+      <h5>Music</h5>
+      <div class="srow"><button id="fSound">SOUND: ON</button><input type="range" id="fVol" min="0" max="100" value="85" title="Master volume"></div>
+      <div class="srow"><button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button></div>
+      <div class="srow"><button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">MIDI RIG</button></div>
+      <p class="sinfo">roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · perc 10</p>
+    </section>
+  </div>
   <div class="ostage">
     <canvas id="focusCanvas"></canvas>
     <button id="stageFS" title="Showtime — take the whole display">⛶</button>
     <div id="edgeL" class="edgeNav"><span>‹</span></div>
     <div id="edgeR" class="edgeNav"><span>›</span></div>
     <div id="dbg"><div id="dbgTab">DBG</div><div id="dbgBody"></div></div>
+    <div id="panelTab" title="Show/hide the control panels (MIDI, hands, console) — H">PANELS</div>
     <div id="useHint">reach away from the source = more · left half = L · right half = R</div>
     <div class="lslider left" id="slL">
       <div class="track"></div><div class="fill"></div><div class="knob"></div>
@@ -421,13 +604,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
   </div>
   <div class="oconsole">
     <div class="conBox">
+      <h5 class="conTitle">Source · live</h5>
       <canvas id="widgetFocus" width="280" height="150" title="Virtual theremin — click or drag the beams"></canvas>
-      <div class="whint"><b>the source</b> — like the real thing: hands at the sphere = rest, <b>reach outward = more intensity</b> · works on the scene too: left/right half, slide toward the edge · two-finger touch = two hands · keys W/S &amp; ↑/↓ · idle 6s → hands hold where you left them (GHOSTS in the header for ambient drift) · hardware: MAP in the header</div>
+      <div class="whint">hands at the sphere = rest · <b>reach outward = more</b> · idle 6s → hands hold</div>
     </div>
     <div class="conBox grow">
-      <div class="monHead"><span id="oChord">—</span><span class="mflag" id="oOutState"></span><span id="oRoles" title="lanes playing right now"></span></div>
+      <div class="monHead"><h5 class="conTitle">MIDI out</h5><span id="oChord">—</span><span class="mflag" id="oOutState"></span><span id="oRoles" title="lanes playing right now"></span></div>
       <canvas id="midiMon" width="1240" height="104"></canvas>
-      <div class="whint"><b>midi out</b> — every role on its own channel (open RIG, top right, to remap — the rig is global, identical for every scene; each scene just plays a subset of roles) · <b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy</div>
+      <div class="whint">every role on its own channel (remap in MIDI RIG) · <b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy</div>
     </div>
   </div>
 </div>
@@ -471,6 +655,41 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
 </div>
 
 <script>
+const SETLISTS = {
+  "_readme": [
+    "SHARED SET LISTS — the coordination file. This is the memory.",
+    "",
+    "The queue in your browser is your own scratch pad (localStorage). This file",
+    "is what the three of you agree on: it is committed, so git is the sync, the",
+    "diff is the history, and a merge conflict is a real conversation about the",
+    "set rather than two people silently overwriting each other.",
+    "",
+    "It is baked into index.html at build time, which is the point — the OFFLINE",
+    "show artifact carries the set list with it, so a fresh show laptop on playa",
+    "opens with the real running order instead of 43 scenes sorted by number.",
+    "",
+    "TO CHANGE A SET: build it in the browser, hit COPY FOR REPO in the QUEUE",
+    "drawer, paste the block in here (or just hand it to Claude in a session and",
+    "say which set it is), then commit and push. Order matters — it IS the",
+    "running order.",
+    "",
+    "`default: true` marks the set a browser with no queue of its own loads."
+  ],
+  "sets": [
+    {
+      "name": "SURVEY THREE",
+      "default": true,
+      "note": "STRIKE / STRUM / SUSTAIN — the three from docs/INSTRUMENT-SURVEY.md, chosen for three different verbs and maximum diversity. A starting point that came out of the survey, NOT a decision anyone has made. Replace it.",
+      "scenes": ["SRC-30", "SRC-04", "SRC-20"]
+    },
+    {
+      "name": "MOST WORKED ON",
+      "note": "The scenes with the most love in them by the wall's own weighting — useful for showing people what the library is, less considered as a performance arc.",
+      "scenes": ["SRC-15", "SRC-38", "SRC-10", "SRC-30", "SRC-42", "SRC-32"]
+    }
+  ]
+}
+;
 'use strict';
 /* ============================================================
    SOURCE // INTERACTION LIBRARY — core framework
@@ -609,15 +828,72 @@ const AE = {
    CHANNELS — the two hands
    ============================================================ */
 const chan = {
-  L: { v: 0, target: 0, mode: 'drift', last: -99 },
-  R: { v: 0, target: 0, mode: 'drift', last: -99 }
+  L: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 },
+  R: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 }
+};
+
+/* ============================================================
+   CALIBRATION — turning what the sensor says into what the
+   scenes are written against.
+   Every scene assumes the same contract: 0 = hands at the
+   source, 1 = full reach outward. A laser rangefinder or a
+   theremin knows none of that. It has its own working range,
+   possibly the opposite polarity, and — the part that bites on
+   playa — it keeps streaming a value whether or not a hand is
+   in front of it, so "a message arrived" cannot mean "someone
+   is playing".
+   Three fixes, all opt-in: the learn sweep's measured range is
+   kept instead of thrown away, polarity is a toggle, and REST
+   (sampled with nobody at the instrument) is what presence is
+   actually measured against.
+   Nothing here engages until a range is learned, so on-screen
+   input, keys and plain MIDI controllers behave exactly as
+   before.
+   ============================================================ */
+const CAL = {
+  DEADZONE: 0.02,    // bottom of the mapped range reads as a clean 0
+  REST_EPS: 0.06,    // raw distance from the rest reading that counts as a hand
+  MOVE_EPS: 0.02,    // ...or this much movement inside the window, hand parked at rest
+  WINDOW: 2.5,       // seconds of raw history the movement test looks at
+  ABSENT_HOLD: 1.2   // seconds of confirmed absence before the channel lets go
 };
 function ghostL(t) { return clamp(0.5 + 0.42 * Math.sin(t * 0.13 + 1.7) + 0.09 * Math.sin(t * 0.53 + 0.4)); }
 function ghostR(t) { return clamp(0.5 + 0.40 * Math.sin(t * 0.094 + 4.2) + 0.10 * Math.sin(t * 0.61 + 2.1)); }
 let nowT = 0;
-function setChan(side, v) {
+// `raw` present means this came off a sensor and is subject to the presence
+// test. A pointer, key or slider is a human by definition and always counts.
+function setChan(side, v, raw) {
   const c = chan[side];
-  c.target = clamp(v); c.mode = 'live'; c.last = nowT;
+  if (raw === undefined) {
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+    return;
+  }
+  c.raw = raw;
+  c.hist.push({ t: nowT, raw });
+  while (c.hist.length && nowT - c.hist[0].t > CAL.WINDOW) c.hist.shift();
+  if (handPresent(side)) {
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+  } else {
+    if (!c.absentSince) c.absentSince = nowT;
+    // still tracking through the grace period — a hand that pauses dead still
+    // for half a second must not get dropped mid-gesture
+    if (c.mode === 'live') c.target = clamp(v);
+  }
+}
+// Is there a hand out there, or is this just the sensor idling?
+function handPresent(side) {
+  const c = chan[side], cal = midi.cal[side];
+  // no rest reading → fall back to the old rule: a message IS a hand
+  if (!cal || cal.rest === null || cal.rest === undefined) return true;
+  if (Math.abs(c.raw - cal.rest) > CAL.REST_EPS) return true;
+  // sitting at rest but still moving: someone is working right at the sphere
+  let lo = 1, hi = 0;
+  for (let i = 0; i < c.hist.length; i++) {
+    const r = c.hist[i].raw;
+    if (r < lo) lo = r;
+    if (r > hi) hi = r;
+  }
+  return (hi - lo) > CAL.MOVE_EPS;
 }
 let ghostsOn = true; // the library wall breathes by default — a focused scene starts still
 function updateChannels(t, dt) {
@@ -625,7 +901,14 @@ function updateChannels(t, dt) {
   const ambient = ghostsOn && focus.idx < 0; // ghosts only roam the wall, never a focused scene
   for (const side of ['L', 'R']) {
     const c = chan[side];
-    if (c.mode === 'live' && t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
+    if (c.mode === 'live') {
+      if (c.absentSince) {
+        // a rest-calibrated sensor can tell "held still" from "nobody there",
+        // so it lets go in about a second and settles the instrument to rest
+        // instead of freezing on whatever an empty sensor happens to read
+        if (t - c.absentSince > CAL.ABSENT_HOLD) { c.mode = 'drift'; if (!ambient) c.target = 0; }
+      } else if (t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
+    }
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);
     c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : 2.2));
   }
@@ -639,12 +922,82 @@ function updateChannels(t, dt) {
    device it moved on. Two different theremins can therefore
    drive L and R independently, even on the same channel/CC.
    ============================================================ */
-const midi = { access: null, map: { L: null, R: null }, learn: null, learnData: null, learnTimer: null, inputId: 'all' };
+const midi = {
+  access: null, map: { L: null, R: null }, learn: null, learnData: null, learnTimer: null, inputId: 'all',
+  // per-side calibration: {lo, hi} working range, `inv` polarity, `rest` = the
+  // raw reading with nobody at the instrument. null until a range is learned.
+  cal: { L: null, R: null },
+  restSampling: false, restData: { L: [], R: [] }, restTimer: null
+};
 // restore learned theremin bindings from a previous visit
 try {
   const sm = JSON.parse(localStorage.getItem('srcMidiMap') || 'null');
   if (sm && (sm.L || sm.R)) { midi.map.L = sm.L || null; midi.map.R = sm.R || null; }
 } catch (e) {}
+try {
+  const sc = JSON.parse(localStorage.getItem('srcMidiCal') || 'null');
+  if (sc) { midi.cal.L = sc.L || null; midi.cal.R = sc.R || null; }
+} catch (e) {}
+let _calSaveT = null;
+function saveCal() {
+  clearTimeout(_calSaveT); _calSaveT = null;
+  try { localStorage.setItem('srcMidiCal', JSON.stringify(midi.cal)); } catch (e) {}
+}
+// the range self-widens while playing; coalesce those writes
+function saveCalSoon() { if (!_calSaveT) _calSaveT = setTimeout(saveCal, 1200); }
+
+/* Raw sensor reading → the 0..1 every scene is written against:
+   working range → polarity → deadzone. */
+function calValue(side, raw) {
+  const cal = midi.cal[side];
+  if (!cal) return raw;
+  // the 2.6s sweep is a starting guess. Hardware drifts with heat and dust and
+  // nobody re-sweeps mid-show, so the range keeps widening to fit reality.
+  if (raw < cal.lo) { cal.lo = raw; saveCalSoon(); }
+  if (raw > cal.hi) { cal.hi = raw; saveCalSoon(); }
+  const span = cal.hi - cal.lo;
+  let v = clamp(span > 0.02 ? (raw - cal.lo) / span : raw);
+  if (cal.inv) v = 1 - v;
+  return v <= CAL.DEADZONE ? 0 : (v - CAL.DEADZONE) / (1 - CAL.DEADZONE);
+}
+const srcKey = m => m ? m.type + ':' + m.ch + ':' + m.num + ':' + m.dev : '';
+/* REST — hold everyone back from the instrument and press this. Whatever the
+   sensors read with nobody there becomes the zero point of presence, which is
+   what lets an always-streaming rangefinder ever go idle. */
+function startRest() {
+  if (midi.restSampling) return;
+  midi.restSampling = true;
+  midi.restData = { L: [], R: [] };
+  clearTimeout(midi.restTimer);
+  midi.restTimer = setTimeout(finishRest, 1600);
+  refreshMidiUI();
+}
+function finishRest() {
+  clearTimeout(midi.restTimer);
+  midi.restSampling = false;
+  for (const side of ['L', 'R']) {
+    const d = midi.restData[side];
+    if (d.length < 4) continue;                 // that side never spoke — leave it alone
+    d.sort((a, b) => a - b);
+    const rest = d[d.length >> 1];              // median: one spike can't move it
+    const cal = midi.cal[side] || (midi.cal[side] = { lo: 0, hi: 1, inv: false, rest: null });
+    cal.rest = rest;
+    cal.src = srcKey(midi.map[side]);
+  }
+  midi.restData = { L: [], R: [] };
+  saveCal();
+  refreshMidiUI();
+}
+function setInvert(side, on) {
+  const cal = midi.cal[side] || (midi.cal[side] = { lo: 0, hi: 1, inv: false, rest: null });
+  cal.inv = on === undefined ? !cal.inv : !!on;
+  saveCal(); refreshMidiUI();
+}
+function clearCal() {
+  midi.cal.L = null; midi.cal.R = null;
+  for (const side of ['L', 'R']) { chan[side].hist.length = 0; chan[side].absentSince = 0; }
+  saveCal(); refreshMidiUI();
+}
 function bindMidiInputs() {
   if (!midi.access) return;
   midi.access.inputs.forEach(inp => { inp.onmidimessage = onMidiMsg; });
@@ -677,7 +1030,9 @@ function onMidiMsg(e) {
   }
   if (midi.inputId !== 'all' && p.dev !== midi.inputId) return;
   for (const side of ['L', 'R']) {
-    if (srcMatches(midi.map[side], p)) setChan(side, p.val);
+    if (!srcMatches(midi.map[side], p)) continue;
+    if (midi.restSampling) { midi.restData[side].push(p.val); continue; }
+    setChan(side, calValue(side, p.val), p.val);
   }
 }
 function startLearn(side) {
@@ -701,8 +1056,20 @@ function finishLearn() {
   }
   midi.learn = null; midi.learnData = null;
   if (best && bestScore > 0.04) {
+    const wasKey = srcKey(midi.map[side]), prev = midi.cal[side];
     midi.map[side] = best.src;
     try { localStorage.setItem('srcMidiMap', JSON.stringify(midi.map)); } catch (e) {}
+    // the sweep measured this control's working range — KEEP it. Without this
+    // a sensor that really travels 0.15–0.72 gives the scenes 0.15–0.72 and
+    // full reach never arrives at 1.0.
+    const sameSrc = wasKey && wasKey === srcKey(best.src);
+    midi.cal[side] = {
+      lo: best.min, hi: best.max,
+      inv: prev ? prev.inv : false,                       // polarity is an operator choice
+      rest: sameSrc && prev ? prev.rest : null,           // a different control needs a new REST
+      src: srcKey(best.src)
+    };
+    saveCal();
   }
   refreshMidiUI();
 }
@@ -734,6 +1101,16 @@ function refreshMidiUI() {
     br.textContent = midi.learn === 'R' ? 'MOVE R…' : midi.map.R ? 'R=' + mapLabel(midi.map.R) : 'LEARN R';
     bl.classList.toggle('learning', midi.learn === 'L');
     br.classList.toggle('learning', midi.learn === 'R');
+    const box = document.getElementById('calBox');
+    if (box) {
+      box.style.display = '';
+      const rb = document.getElementById('btnRest');
+      if (rb) { rb.textContent = midi.restSampling ? 'SAMPLING…' : 'SET REST'; rb.classList.toggle('learning', midi.restSampling); }
+      for (const side of ['L', 'R']) {
+        const ib = document.getElementById('btnInv' + side);
+        if (ib) ib.classList.toggle('off', !(midi.cal[side] && midi.cal[side].inv));
+      }
+    }
     if (sel) {
       sel.style.display = '';
       const inputs = [...midi.access.inputs.values()];
@@ -876,6 +1253,118 @@ const focus = { P: null, voice: null, idx: -1 };
 const overlay = document.getElementById('overlay');
 const focusCanvas = document.getElementById('focusCanvas');
 
+/* ---------- PROJECTOR FRAME (the default) ----------
+   The show is ONE WUXGA render — 1920x1200, 16:10 — fullscreen, cloned to both
+   PT-VMZ50s off the splitter. A browser window is never that shape: windowed,
+   the stage is a ~3:1 letterbox strip, so scenes get composed in a frame they
+   will never actually play in, at half the pixel density areaScale() will see
+   live. PROJ pins the render to the real thing: canvas is exactly 1920x1200
+   whatever the window is, drawn into the largest 16:10 box that fits and
+   centered — the surrounding black is invisible on scrim anyway.
+   ON BY DEFAULT everywhere we design (desktop site + preview). Opt out with
+   ?win (or press P on the stage) for a native-window canvas. Phones default
+   to native — a 2.3MP canvas is ~8x the pixel work a phone screen needs and
+   the framerate pays for it — but ?proj forces the show frame even there.    */
+const PROJ = (() => {
+  const q = location.search;
+  const force = /[?&]proj\b/i.test(q), off = /[?&]win\b/i.test(q);
+  const P = { w: 1920, h: 1200, on: force || (!off && !window.IS_MOBILE) };
+  // ?frame=… picks a different projector class and cascades through every
+  // scene (they all read P.w/P.h + areaScale). Named or literal WxH:
+  //   ?frame=fhd   ?frame=wxga   ?frame=1400x1050
+  const NAMED = { wuxga: [1920, 1200], fhd: [1920, 1080], '1080p': [1920, 1080],
+                  wxga: [1280, 800], xga: [1024, 768], uhd: [3840, 2160], '4k': [3840, 2160] };
+  const fm = q.match(/[?&]frame=([a-z0-9]+x[0-9]+|[a-z0-9]+)/i);
+  if (fm) {
+    const v = fm[1].toLowerCase();
+    const wh = NAMED[v] || (v.match(/^(\d{3,4})x(\d{3,4})$/) || []).slice(1).map(Number);
+    if (wh && wh.length === 2 && wh[0] > 0) { P.w = wh[0]; P.h = wh[1]; if (!off) P.on = true; }
+  }
+  return P;
+})();
+// live re-frame (console / future RIG dropdown): setFrame(1920,1080) cascades
+// through the open scene immediately — everything reads PROJ.w/h
+function setFrame(w, h) { PROJ.w = w | 0; PROJ.h = h | 0; PROJ.on = true; if (typeof syncStage === 'function') syncStage(true); }
+
+/* ---------- VIEW MODES ----------
+   What the stage shows: the flat frame, the two-projector ghost, or the
+   throw into The Cave (head-on / room 3D). Picked from the VIEW dropdown
+   on the stage or cycled with V; the choice persists across scenes and
+   visits. Scrim modes need three.js and are skipped on mobile.          */
+const VIEW = { mode: 'flat', MODES: ['flat', 'double', 'scrim'] };
+try {
+  let v = localStorage.getItem('srcView');
+  if (v === 'scrim3d') v = 'scrim'; // pre-orbit builds had two scrim modes
+  if (VIEW.MODES.includes(v)) VIEW.mode = v;
+} catch (e) {}
+function setView(mode) {
+  if (mode === 'scrim3d') mode = 'scrim';
+  if (!VIEW.MODES.includes(mode)) return;
+  if (mode === 'scrim' && typeof THREE === 'undefined') {
+    console.warn('the scrim view needs three.js'); mode = 'flat';
+  }
+  VIEW.mode = mode;
+  try { localStorage.setItem('srcView', mode); } catch (e) {}
+  const sel = document.getElementById('viewSel');
+  if (sel && sel.value !== mode) sel.value = mode;
+  const ov = document.getElementById('overlay');
+  if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
+}
+function stageMetrics() {
+  const stage = focusCanvas.parentElement;
+  const cw = stage.clientWidth, ch = stage.clientHeight;
+  if (PROJ.on) {
+    let bw = cw, bh = Math.round(cw * PROJ.h / PROJ.w);
+    if (bh > ch) { bh = ch; bw = Math.round(ch * PROJ.w / PROJ.h); }
+    return { cssW: bw, cssH: bh, left: Math.round((cw - bw) / 2), top: Math.round((ch - bh) / 2),
+             pw: PROJ.w, ph: PROJ.h };
+  }
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  return { cssW: cw, cssH: ch, left: 0, top: 0,
+           pw: Math.floor(cw * dpr) || 1280, ph: Math.floor(ch * dpr) || 720 };
+}
+function applyStageBox(m) {
+  // letterbox color comes from CSS: --letterbox (white in the light theme so
+  // the frame boundary is visible; black in dark). Fullscreen forces black —
+  // on the projector the bars must be invisible.
+  const s = focusCanvas.style;
+  if (PROJ.on) {
+    s.inset = 'auto'; s.left = m.left + 'px'; s.top = m.top + 'px';
+    s.width = m.cssW + 'px'; s.height = m.cssH + 'px';
+  } else {
+    s.inset = '0'; s.left = ''; s.top = ''; s.width = '100%'; s.height = '100%';
+  }
+}
+// re-measure the stage and hand the piece the frame it should have. CSS is
+// always refit; the backing store (and the piece's init) only when it changed.
+function syncStage(force) {
+  const m = stageMetrics();
+  applyStageBox(m);
+  if (!focus.P || m.pw <= 0 || m.ph <= 0) return;
+  if (m.pw === focus.P.w && m.ph === focus.P.h) return;
+  if (!force) {
+    // resizing the backing store means reinit (scenes cache geometry), and
+    // reinit reads as the scene RESTARTING. Small viewport shifts — the
+    // mobile URL bar collapsing on scroll, the console reflowing — are not
+    // worth that jump: let CSS stretch a few percent and keep playing.
+    // A real change (rotation, big window resize) still re-inits.
+    const ar = (m.pw / m.ph) / (focus.P.w / focus.P.h);
+    const area = (m.pw * m.ph) / (focus.P.w * focus.P.h);
+    // mobile bars + console reflow can move the stage ~30%; rotation flips
+    // the aspect ~3-4x and still lands outside this window
+    if (ar > 0.68 && ar < 1.47 && area > 0.45 && area < 2.2) return;
+  }
+  focusCanvas.width = m.pw; focusCanvas.height = m.ph;
+  focus.P.w = focus.P.canvas.width = m.pw;
+  focus.P.h = focus.P.canvas.height = m.ph;
+  focus.P.reinit(focus.P.seed); // scenes cache geometry in init()
+}
+function setProj(on) { PROJ.on = !!on; syncStage(true); }
+// the console/bar can reflow after the overlay opens (wrapping hint text), which
+// used to leave the canvas sized to a stage that no longer existed
+if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); })
+  .observe(focusCanvas.parentElement);
+
 function openFocus(i) {
   AE.ensure();
   const def = PIECES[i];
@@ -884,12 +1373,10 @@ function openFocus(i) {
     H.setup(def.music, (Math.random() * 1e9) | 0);
   }
   focus.idx = i;
-  const stage = focusCanvas.parentElement;
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  const w = Math.floor(stage.clientWidth * dpr) || 1280;
-  const h = Math.floor(stage.clientHeight * dpr) || 720;
-  overlay.classList.add('open');
-  const w2 = Math.floor(stage.clientWidth * dpr) || w, h2 = Math.floor(stage.clientHeight * dpr) || h;
+  overlay.classList.add('open'); // measure the stage only once it is laid out
+  const m = stageMetrics();
+  applyStageBox(m);
+  const w2 = m.pw, h2 = m.ph;
   // pieces render to an offscreen scene; post-FX composites onto the visible canvas
   const scene = document.createElement('canvas');
   focusCanvas.width = w2; focusCanvas.height = h2;
@@ -913,6 +1400,8 @@ function openFocus(i) {
     if (fm) MOut.bedOn(20 + +fm[1]);
   }
   startVoice();
+  // the bars settle a frame later; take the frame that actually survives
+  requestAnimationFrame(() => { if (focus.P) syncStage(); });
 }
 function startVoice() {
   if (focus.voice) { focus.voice.stop(); focus.voice = null; }
@@ -929,17 +1418,14 @@ function closeFocus() {
   overlay.classList.remove('open');
   document.getElementById('infoPanel').classList.remove('open');
 }
-window.addEventListener('resize', () => {
-  if (!focus.P) return;
-  const stage = focusCanvas.parentElement;
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  const w = Math.floor(stage.clientWidth * dpr), h = Math.floor(stage.clientHeight * dpr);
-  if (w > 0 && h > 0) {
-    focusCanvas.width = w; focusCanvas.height = h;
-    focus.P.w = focus.P.canvas.width = w;
-    focus.P.h = focus.P.canvas.height = h;
-    focus.P.reinit(focus.P.seed);
-  }
+window.addEventListener('resize', () => { if (focus.P) syncStage(); });
+// P toggles the projector frame live — see the same scene in a window and in the show
+window.addEventListener('keydown', e => {
+  if (e.key !== 'p' && e.key !== 'P') return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (focus.idx < 0) return;
+  setProj(!PROJ.on);
 });
 
 /* ============================================================
@@ -948,7 +1434,7 @@ window.addEventListener('resize', () => {
 const activePtrs = new Map();
 function hideHint() { document.getElementById('useHint').classList.add('gone'); }
 focusCanvas.addEventListener('pointerdown', e => {
-  focusCanvas.setPointerCapture(e.pointerId);
+  try { focusCanvas.setPointerCapture(e.pointerId); } catch (err) {}
   activePtrs.set(e.pointerId, true);
   ptrDrive(e); hideHint();
 });
@@ -956,6 +1442,8 @@ focusCanvas.addEventListener('pointermove', e => { if (activePtrs.has(e.pointerI
 focusCanvas.addEventListener('pointerup', e => activePtrs.delete(e.pointerId));
 focusCanvas.addEventListener('pointercancel', e => activePtrs.delete(e.pointerId));
 function ptrDrive(e) {
+  // in the scrim view the pointer belongs to the CAMERA (orbit lives in part2d)
+  if (typeof VIEW !== 'undefined' && VIEW.mode === 'scrim') return;
   // REVERSED like the room: the source rests at center — reach OUTWARD = more
   const r = focusCanvas.getBoundingClientRect();
   const x = (e.clientX - r.left) / r.width;
@@ -999,7 +1487,9 @@ function applyKeys(dt) {
 /* ============================================================
    UI WIRING
    ============================================================ */
-document.getElementById('btnClose').addEventListener('click', closeFocus);
+// late-bound: part5_tail wraps closeFocus for deep-link cleanup — a direct
+// reference here would skip the wrapper and leave #scene= stuck in the URL
+document.getElementById('btnClose').addEventListener('click', () => closeFocus());
 document.getElementById('btnInfo').addEventListener('click', () =>
   document.getElementById('infoPanel').classList.toggle('open'));
 document.getElementById('btnRegen').addEventListener('click', () => {
@@ -1023,6 +1513,32 @@ document.getElementById('btnMidi').addEventListener('click', connectMidi);
 document.getElementById('btnLearnL').addEventListener('click', () => startLearn('L'));
 document.getElementById('btnLearnR').addEventListener('click', () => startLearn('R'));
 document.getElementById('midiInSel').addEventListener('change', e => { midi.inputId = e.target.value; });
+document.getElementById('btnRest').addEventListener('click', startRest);
+document.getElementById('btnInvL').addEventListener('click', () => setInvert('L'));
+document.getElementById('btnInvR').addEventListener('click', () => setInvert('R'));
+document.getElementById('btnCalClear').addEventListener('click', clearCal);
+/* The calibration readout — raw in, mapped out, and whether the page believes
+   a hand is there. This is the panel you stare at when the wall "feels wrong"
+   on playa, so it shows the whole chain rather than a verdict. */
+setInterval(() => {
+  const el = document.getElementById('calRead');
+  if (!el || !document.getElementById('mapPop').classList.contains('open')) return;
+  const pad = (x, n) => String(x).padEnd(n);
+  const num = x => (x === null || x === undefined) ? '—' : x.toFixed(2);
+  const rows = [pad('', 7) + pad('raw', 6) + pad('out', 6) + pad('range', 13) + pad('rest', 6) + 'hand'];
+  for (const side of ['L', 'R']) {
+    const c = chan[side], cal = midi.cal[side];
+    rows.push(
+      pad(side + ' hand', 7) +
+      pad(num(c.raw), 6) +
+      pad(num(c.v), 6) +
+      pad(cal ? num(cal.lo) + '–' + num(cal.hi) + (cal.inv ? ' INV' : '') : 'unlearned', 13) +
+      pad(cal ? num(cal.rest) : '—', 6) +
+      (c.mode === 'live' ? 'PLAYING' : 'idle'));
+  }
+  const txt = rows.join('\n');
+  if (el.textContent !== txt) el.textContent = txt;
+}, 200);
 document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.add('open'));
 document.getElementById('btnHelpClose').addEventListener('click', () => document.getElementById('helpModal').classList.remove('open'));
 document.getElementById('helpModal').addEventListener('click', e => { if (e.target.id === 'helpModal') e.target.classList.remove('open'); });
@@ -1386,7 +1902,7 @@ function areaScale(P) { return Math.sqrt((P.w * P.h) / (420 * 264)); }
      bass   CH3   bass
      arp    CH4   sequenced arps (Night Circuit etc.)
      bells  CH5   bells / chimes / sparkles
-     texture CH6  reserved for future texture layers
+     texture CH6  continuous-voice mirror (drones/films) + pooled CC74
      perc   CH10  drums (36 kick, 42/46 hats)
    Point each Ableton track's MIDI From at its channel — up to
    16 instruments, one rig. Expression: CC74 per role channel
@@ -1495,6 +2011,29 @@ const MOut = {
     if (this.wants() && this.port) { try { this.port.send([0x80 | (ch - 1), this._bed, 0]); } catch (e) {} }
     this._bed = undefined;
   },
+  /* Managed sustained note for a CONTINUOUS voice — note-on when the voice
+     fades in, retune when its pitch crosses a semitone, note-off when it is
+     killed. This is what lets drone/film scenes (whose whole soundscape is
+     AE.voice groups, no discrete events) exist in Ableton at all. */
+  holdOn(h, role, freq, vel = 58) {
+    if (!isFinite(freq)) return;
+    const note = this.f2n(freq), ch = this.chFor(role);
+    if (h._mNote === note && h._mCh === ch) return;
+    const p = performance.now();
+    if (h._mNote !== undefined && this.wants() && this.port) {
+      try { this.port.send([0x80 | (h._mCh - 1), h._mNote, 0], p); } catch (e) {}
+    }
+    h._mNote = note; h._mCh = ch;
+    this.lastByRole[role] = p;
+    this.log.push({ p, role, ch, note, vel, durMs: 1600 });
+    if (this.log.length > 900) this.log.splice(0, 300);
+    if (this.wants() && this.port) { try { this.port.send([0x90 | (ch - 1), note, vel], p); } catch (e) {} }
+  },
+  holdOff(h) {
+    if (h._mNote === undefined) return;
+    if (this.wants() && this.port) { try { this.port.send([0x80 | (h._mCh - 1), h._mNote, 0]); } catch (e) {} }
+    h._mNote = undefined; h._mCh = undefined;
+  },
   padSet(voiceObj, freq, vel = 58) {
     const ch = this.chFor('pad');
     const note = this.f2n(freq);
@@ -1536,6 +2075,58 @@ const MOut = {
       }
     }
   },
+  /* ---------- MIDI CLOCK — Ableton follows the scene instead of you
+     retyping the tempo on every scene change.
+     24 PPQN ticks (0xF8) are derived from the SAME AudioContext timeline the
+     notes are scheduled on (T.t0 / T.beat), so clock and notes cannot drift
+     apart. Song-position 0 then Start (0xFA) go out at beat 0; Stop (0xFC)
+     when the transport stops — which closeFocus already does, so a scene
+     change re-pins Live to the new BPM on its own.
+
+     LOOKAHEAD is deliberately short. Web MIDI cannot cancel a queued
+     message, so anything already scheduled WILL arrive: 120ms is enough to
+     ride out a stalled frame and short enough that a scene change spills
+     only a couple of stale ticks past the Stop.
+
+     In Live: Preferences -> Link/Tempo/MIDI -> switch this port's "Sync" on,
+     then press EXT in the transport bar. Live ignores clock entirely when
+     Sync is off, so leaving this enabled costs nothing. ---------- */
+  clock: { on: true, PPQ: 24, LOOKAHEAD: 0.12, n: 0, t0: -1, beat: 0, running: false },
+  clockSet(on) {
+    this.clock.on = !!on;
+    try { localStorage.setItem('srcMidiClock', this.clock.on ? '1' : '0'); } catch (e) {}
+    if (!this.clock.on) this.clockStop();
+    this.refreshUI();
+  },
+  _clk(bytes, at) { try { this.port.send(bytes, at); } catch (e) {} },
+  clockStop() {
+    const c = this.clock;
+    if (c.running && this.port) this._clk([0xFC]);
+    c.running = false; c.t0 = -1; c.n = 0;
+  },
+  clockPump() {
+    const c = this.clock;
+    const live = c.on && this.wants() && this.port &&
+      typeof T !== 'undefined' && T.running && AE.ctx;
+    if (!live) { if (c.running) this.clockStop(); return; }
+    // a new scene (or a live tempo change) re-pins the grid — resync to its beat 0
+    if (T.t0 !== c.t0 || T.beat !== c.beat) {
+      if (c.running) this._clk([0xFC]);
+      c.t0 = T.t0; c.beat = T.beat; c.n = 0; c.running = true;
+      this._clk([0xF2, 0, 0]);                // song position -> 1.1.1
+      this._clk([0xFA], this.ts(c.t0));       // start, landing on beat 0
+    }
+    const tick = c.beat / c.PPQ, now = AE.ctx.currentTime;
+    // fell behind (throttled tab, GC pause)? jump the counter to now instead of
+    // firing a burst of late ticks, which would shove Live's tempo around
+    const nMin = Math.ceil((now - c.t0) / tick);
+    if (c.n < nMin) c.n = nMin;
+    const horizon = now + c.LOOKAHEAD;
+    while (c.t0 + c.n * tick < horizon) {
+      this._clk([0xF8], this.ts(c.t0 + c.n * tick));
+      c.n++;
+    }
+  },
   testBurst() {
     const b = document.getElementById('btnTest');
     if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
@@ -1551,6 +2142,8 @@ const MOut = {
     if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
   },
   allOff() {
+    this.clockStop();
+    if (this._voices) { this._voices.forEach(h => this.holdOff(h)); this._voices.clear(); }
     if (this.port) {
       try { for (let ch = 0; ch < 16; ch++) this.port.send([0xB0 | ch, 123, 0]); } catch (e) {}
     }
@@ -1567,6 +2160,11 @@ const MOut = {
     if (b) {
       b.textContent = 'OUT: ' + (this.mode === 'web' ? 'WEB AUDIO' : this.mode === 'both' ? 'WEB+MIDI' : 'MIDI ONLY');
       b.classList.toggle('off', this.mode === 'web');
+    }
+    const cb = document.getElementById('btnClock');
+    if (cb) {
+      cb.textContent = 'CLOCK OUT: ' + (this.clock.on ? 'ON' : 'OFF');
+      cb.classList.toggle('off', !this.clock.on);
     }
     const sel = document.getElementById('midiOutSel');
     if (sel) {
@@ -1654,6 +2252,19 @@ const MOut = {
     g.fillText('CC1/CC2 HANDS · CC74 FILTER', lx + 4, 11);
   }
 };
+
+/* ---------- clock boot: restore the operator's choice, run the pump ----------
+   One 20ms timer for the life of the page. It returns immediately unless a
+   port is open, out-mode is not WEB, and a transport is running — so the cost
+   when the clock is idle is a comparison, and there is no start/stop wiring
+   for scene code to forget. ---------- */
+try {
+  const ck = localStorage.getItem('srcMidiClock');
+  if (ck !== null) MOut.clock.on = ck === '1';
+} catch (e) {}
+setInterval(() => MOut.clockPump(), 20);
+// leaving the page must not strand Live running on a clock that stopped arriving
+window.addEventListener('pagehide', () => { try { MOut.clockStop(); } catch (e) {} });
 
 /* ============================================================
    SOUNDING BUS — what the board is ringing with, right now
@@ -1750,16 +2361,536 @@ AE.SB = {
   AE.kick = function (at, vol) { MOut.evDrum(36, vol !== undefined ? vol : 0.32, at || 0); _kick(at, vol); };
   const _hat = AE.hat.bind(AE);
   AE.hat = function (at, opts = {}) { MOut.evDrum(opts.open ? 46 : 42, opts.vol !== undefined ? opts.vol : 0.045, at || 0); _hat(at, opts); };
+  /* AE.hit — filtered-noise percussion. It was the LOUDEST hole in the mirror
+     (113 call sites; White Study's whole click language is hits). Map the
+     filter's center frequency onto the drum-rack notes the rig already uses:
+     low thud → 36, mid crack → 38, click → 42, air/tick → 46. */
+  const _hit = AE.hit.bind(AE);
+  AE.hit = function (opts = {}) {
+    const f = opts.freq !== undefined ? opts.freq : 2000;
+    const note = f < 250 ? 36 : f < 1200 ? 38 : f < 4500 ? 42 : 46;
+    MOut.evDrum(note, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0);
+    _hit(opts);
+  };
+  /* AE.voice — continuous voices, the other hole. A voice has no note events,
+     and scenes drive it two different ways (fadeIn OR writing v.gain directly
+     every tick), so hooks on any one method miss half the library. Instead:
+     every voice registers itself, and a 4Hz poll reads what is actually true —
+     group gain audible → HELD note on the texture channel at the first
+     audible oscillator's CURRENT pitch (placeholders have been tuned by the
+     time the gain comes up; later retunes re-strike via holdOn's semitone
+     check), gain gone or voice killed → note off. The pooled gain streams as
+     CC74 texture energy. Voices carrying padVoices are already mirrored
+     per-pad-voice on the pad channel and are skipped (_noHold); noise-only
+     voices have no pitch to report and stay silent. */
+  const _voice = AE.voice.bind(AE);
+  AE.voice = function () {
+    const h = _voice();
+    const _osc = h.osc;
+    h.osc = (type, freq) => { const o = _osc(type, freq); (h._oscs || (h._oscs = [])).push(o); return o; };
+    const _kill = h.kill;
+    h.kill = (s) => { MOut.holdOff(h); MOut._voices.delete(h); _kill(s); };
+    MOut._voices.add(h);
+    if (MOut._voices.size > 64) MOut._voices.delete(MOut._voices.values().next().value); // leak guard
+    return h;
+  };
+  MOut._voices = new Set();
+  setInterval(() => {
+    const M = MOut;
+    if (!AE.ctx || !M._voices.size) return;
+    let energy = 0;
+    M._voices.forEach(h => {
+      if (h._noHold) { M.holdOff(h); return; }
+      let g = 0;
+      try { g = h.group.gain.value; } catch (e) { M._voices.delete(h); return; }
+      const o = g > 0.004 && h._oscs &&
+        h._oscs.find(o2 => isFinite(o2.frequency.value) && o2.frequency.value > 25); // skip LFOs
+      if (o) {
+        M.holdOn(h, 'texture', o.frequency.value, Math.round(30 + Math.min(1, g) * 60));
+        energy = Math.max(energy, g);
+      } else M.holdOff(h);
+    });
+    M.expr('texture', Math.min(1, energy));
+  }, 250);
   const _padVoices = AE.padVoices.bind(AE);
   AE.padVoices = function (v, n, opts) {
+    v._noHold = true;   // its pad voices are mirrored individually below
     const voices = _padVoices(v, n, opts);
     for (const vc of voices) {
       const _set = vc.set.bind(vc);
-      vc.set = function (freq, glide) { MOut.padSet(vc, freq); _set(freq, glide); };
+      // velocity from the voice's ACTUAL gain, not a constant — measured
+      // across the library, every pad note was leaving at vel 58, which is
+      // exactly the machine-flat sound a velocity-sensitive patch exposes.
+      // Scenes that swell a pad voice's gain now speak at that loudness.
+      vc.set = function (freq, glide) {
+        let g = 0.045; try { g = vc.g.gain.value; } catch (e) {}
+        MOut.padSet(vc, freq, Math.round(Math.max(25, Math.min(105, 25 + (g / 0.05) * 45))));
+        _set(freq, glide);
+      };
     }
     return voices;
   };
 })();
+/* ============================================================
+   SCRIM VIEW — how the frame actually lands in The Cave
+   ------------------------------------------------------------
+   Part of the VIEW system (dropdown on the stage, or V to cycle):
+     flat   — the plain 1920x1200 frame, one projector
+     double — same frame with the second projector's ghost overlaid
+     scrim  — the throw in The Cave in 3D, and YOU drive the camera:
+              drag orbits, wheel/pinch zooms, and the CAM menu (or C)
+              jumps between vantages. AT THE SOURCE is the default —
+              it's who we design for. Keys still play the hands.
+
+   THE LAYOUT IS REAL: panels, cables, source, lights and structure
+   come from Elyse's "Cave Layout 2026" planner export
+   (docs/cave-layout-2026.json; regenerate with tools/cave2rig.py).
+   Interior 24 x 32 ft between cable anchors, 8 ft duxel walls, cables
+   at 16 ft. TWELVE fabric panels on four cross-cables plus the two
+   diagonals: a main wall of 54" x 16 ft panels at z -5.6 and -10.3
+   (BEHIND the source), narrow 18" accents at z +2.3 and +8.1 and on
+   the diagonals (in front of and around the player). The source
+   obelisk stands INSIDE the drape field at (0.2, -1.5). Projectors:
+   2x PT-VMZ50 on the entrance-corner duxel tops (+/-12, 8 ft up,
+   z +16), converged on the main wall row (z -5.63) — so the throw
+   passes through the front accents, past the player, onto the wall.
+   What that shows honestly: slicing, per-panel depth offsets, the
+   two-throw double image off the registration row, gauze dimming,
+   floor spill. One simplification: every panel scatters uniformly
+   (no panel-behind-panel shadowing).
+
+   Needs three.js. Works on touch too: one finger orbits, two-finger
+   pinch zooms (the phone canvas is small, so the 3D view is cheap).
+   ============================================================ */
+const SCRIMRIG = {
+  // 12 fabric panels, verbatim from the planner export (sim x = planner x - 4)
+  PANELS: [
+    { x: -6.92, z: -10.32, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: 0.22, z: -10.32, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: 7.38, z: -10.32, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: -2.86, z: -5.63, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: 3.36, z: -5.63, w: 4.5, drop: 16, rot: 0, top: 16 },
+    { x: -8.24, z: 2.3, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: 6.12, z: 2.3, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: -4.92, z: 8.15, w: 1.5, drop: 10, rot: 0, top: 16 },
+    { x: 0.28, z: 8.15, w: 1.5, drop: 8, rot: 0, top: 16 },
+    { x: 4.79, z: 8.15, w: 1.5, drop: 10.5, rot: 0, top: 16 },
+    { x: 8.56, z: 11.41, w: 1.5, drop: 10, rot: -53.13, top: 16 },
+    { x: -8.64, z: 11.52, w: 1.5, drop: 10.5, rot: 53.13, top: 16 },
+  ],
+  CABLES: [
+    [[-12, 16, -16], [-12, 16, 16]],
+    [[12, 16, -16], [12, 16, 16]],
+    [[-12, 16, 16], [12, 16, -16]],
+    [[-12, 16, -16], [12, 16, 16]],
+    [[-12, 16, 8.15], [12, 16, 8.15]],
+    [[-12, 16, -5.63], [12, 16, -5.63]],
+    [[-12, 16, -10.32], [12, 16, -10.32]],
+    [[-12, 16, 2.3], [12, 16, 2.3]],
+    [[-4, 16, 16], [4, 16, 16]],
+  ],
+  // projectors — 2x PT-VMZ50 on the entrance-corner duxel tops
+  projSep: 24, projH: 8, projZ: 16,
+  throwRatio: 1.1,                 // wide end of the 1.09-1.77:1 zoom
+  aimH: 8, aimZ: -5.63,            // converged on the main-wall row
+  // gauze optics — scrim survey: mesh eats ~half the light
+  scatter: 0.55,
+  // real prop positions from the export
+  sourceX: 0.23, sourceZ: -1.55,
+  personX: -1.52, personZ: 20,     // export has them at z 34.8; kept closer for scale
+  floods: [[-12, -24], [-12, 24], [12, -24], [12, 24]],
+  // context + camp mood: ambient pastel purple/pink wash (the camp runs
+  // colored LEDs so people can see), playa-sand floor, duxel structure
+  bgC: 0x0a070d, structW: 24, structD: 32, wallH: 8, ceilH: 16,
+  moodLight: 0.5,
+  moodColors: [0xf2a6d8, 0xb593f0, 0xf2a6d8, 0xb593f0], // pink / lavender floods
+};
+
+window.SCRIMVIEW = {
+  // orbit state: camera on a sphere around a per-vantage target. Default is
+  // AT THE SOURCE — standing at the obelisk, eye height, facing the main wall.
+  orb: { th: 0.035, ph: 1.93, r: 7.1, tx: 0, ty: 8, tz: -8 },
+  PRESETS: [
+    { n: 'AT THE SOURCE', th: 0.035, ph: 1.93, r: 7.1, tgt: [0, 8, -8] },
+    { n: 'AUDIENCE', th: 0, ph: 1.695, r: 16.1, tgt: [0, 8, -4] },
+    { n: 'HEAD-ON', th: 0, ph: 1.571, r: 19.6, tgt: [0, 8, -5.63] },
+    { n: 'OBLIQUE', th: -1.012, ph: 1.624, r: 18.9, tgt: [0, 8, -2] },
+    { n: 'OVERVIEW', th: 0.656, ph: 1.39, r: 33.3, tgt: [0, 6, 0] },
+  ],
+  preset: 0,
+  applyPreset(i) {
+    this.preset = ((i % this.PRESETS.length) + this.PRESETS.length) % this.PRESETS.length;
+    const p = this.PRESETS[this.preset];
+    this.orb.th = p.th; this.orb.ph = p.ph; this.orb.r = p.r;
+    this.orb.tx = p.tgt[0]; this.orb.ty = p.tgt[1]; this.orb.tz = p.tgt[2];
+    this._camSync(this.preset);
+  },
+  _camSync(active) {
+    const sel = document.getElementById('camSel');
+    if (!sel) return;
+    if (!sel.options.length)
+      sel.innerHTML = this.PRESETS.map((p, i) => `<option value="${i}">CAM · ${p.n}</option>`).join('') +
+        '<option value="free" disabled>CAM · FREE ORBIT</option>';
+    sel.value = active >= 0 ? String(active) : 'free';
+  },
+  _init(P) {
+    const R = SCRIMRIG;
+    this.renderer = new THREE.WebGLRenderer({ antialias: false });
+    this.renderer.setSize(P.w, P.h, false);
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(R.bgC);
+    this.scene.fog = new THREE.FogExp2(R.bgC, 0.004);
+    this.camera = new THREE.PerspectiveCamera(50, P.w / P.h, 0.1, 400);
+    this._bindTex(P);
+    // two virtual projectors — matrices rebuilt each frame (cheap) so
+    // SCRIMRIG and PROJ (frame preset) edits cascade live
+    this.projCams = [new THREE.PerspectiveCamera(), new THREE.PerspectiveCamera()];
+    this.mats = [new THREE.Matrix4(), new THREE.Matrix4()];
+
+    const vert = `
+      uniform float uTime, uPhase, uDrop;
+      varying vec3 vWorld;
+      void main() {
+        // sway pinned at the cable, growing toward the free hem
+        float k = clamp(0.5 - position.y / uDrop, 0.0, 1.0);
+        vec3 p = position;
+        p.x += sin(uTime * 0.7 + uPhase + position.y * 0.35) * 0.22 * k * k;
+        p.z += sin(uTime * 0.53 + uPhase * 1.7) * 0.16 * k * k;
+        vec4 wp = modelMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`;
+    // NOTE: no woven-mesh pattern — the real scrim is high fidelity
+    // (tested); a fake weave just aliases into checkerboard moire.
+    const frag = `
+      uniform sampler2D uMap;
+      uniform mat4 uPL, uPR;
+      uniform float uGain;
+      varying vec3 vWorld;
+      vec3 throwFrom(mat4 m) {
+        vec4 q = m * vec4(vWorld, 1.0);
+        if (q.w <= 0.0) return vec3(0.0);
+        vec2 uv = q.xy / q.w * 0.5 + 0.5;
+        if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return vec3(0.0);
+        return texture2D(uMap, uv).rgb;
+      }
+      void main() {
+        vec3 col = throwFrom(uPL) + throwFrom(uPR);       // light adds on gauze
+        col = col * uGain + vec3(0.028, 0.019, 0.030);    // pastel-washed fabric
+        gl_FragColor = vec4(col, 1.0);
+      }`;
+
+    this.strips = [];
+    R.PANELS.forEach((Q, i) => {
+      const g = new THREE.PlaneGeometry(Q.w, Q.drop, 1, 8);
+      const m = new THREE.ShaderMaterial({
+        vertexShader: vert, fragmentShader: frag,
+        uniforms: {
+          uMap: { value: this.tex }, uPL: { value: this.mats[0] }, uPR: { value: this.mats[1] },
+          uGain: { value: R.scatter }, uTime: { value: 0 },
+          uPhase: { value: (i * 2.39) % 6.28 }, uDrop: { value: Q.drop },
+        },
+        blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      });
+      const s = new THREE.Mesh(g, m);
+      s.position.set(Q.x, Q.top - Q.drop / 2, Q.z);
+      s.rotation.y = Q.rot * Math.PI / 180;   // diagonal-cable panels
+      this.scene.add(s); this.strips.push(s);
+    });
+
+    // floor: playa sand under the pastel camp wash, plus the throw's spill.
+    // Brighter than true night — the camp's ambient LEDs are the reference.
+    this.floorMat = new THREE.ShaderMaterial({
+      vertexShader: `varying vec3 vWorld;
+        void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vWorld = wp.xyz;
+          gl_Position = projectionMatrix * viewMatrix * wp; }`,
+      fragmentShader: `
+        uniform sampler2D uMap;
+        uniform mat4 uPL, uPR;
+        uniform float uGain;
+        varying vec3 vWorld;
+        vec3 throwFrom(mat4 m) {
+          vec4 q = m * vec4(vWorld, 1.0);
+          if (q.w <= 0.0) return vec3(0.0);
+          vec2 uv = q.xy / q.w * 0.5 + 0.5;
+          if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return vec3(0.0);
+          return texture2D(uMap, uv).rgb;
+        }
+        float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        void main() {
+          // fine grain + broad drifts read as packed playa dust
+          float g = hash(floor(vWorld.xz * 3.0)) * 0.5 + hash(floor(vWorld.xz * 0.7)) * 0.5;
+          float drift = 0.5 + 0.5 * sin(vWorld.x * 0.31) * sin(vWorld.z * 0.23);
+          vec3 sand = mix(vec3(0.135, 0.105, 0.115), vec3(0.205, 0.165, 0.175), g * 0.6 + drift * 0.4);
+          sand *= vec3(1.02, 0.90, 1.06);                    // the pastel wash tints it
+          float fade = exp(-length(vWorld.xz) * 0.022);      // open playa falls off into night
+          sand *= mix(0.3, 1.0, fade);
+          gl_FragColor = vec4(throwFrom(uPL) * uGain + throwFrom(uPR) * uGain + sand, 1.0);
+        }`,
+      uniforms: { uMap: { value: this.tex }, uPL: { value: this.mats[0] }, uPR: { value: this.mats[1] }, uGain: { value: 0.10 } },
+    });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), this.floorMat);
+    floor.rotation.x = -Math.PI / 2; this.scene.add(floor);
+
+    // the two projectors + cone guides — a faint edge, a whisper of haze
+    // near the lens, and a glow at the lens itself. PURELY a guide: separate
+    // geometry, additive and dim; the throw on the fabric is untouched.
+    const lineM = new THREE.LineBasicMaterial({ color: 0x3c3c50, transparent: true, opacity: 0.55 });
+    const glowTex = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      const grd = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+      grd.addColorStop(0, 'rgba(255,245,225,1)');
+      grd.addColorStop(0.35, 'rgba(200,205,235,0.5)');
+      grd.addColorStop(1, 'rgba(160,170,220,0)');
+      g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+      return new THREE.CanvasTexture(c);
+    })();
+    const coneM = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      side: THREE.DoubleSide, fog: false,
+      vertexShader: `attribute float aT; varying float vT;
+        void main(){ vT = aT;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader: `varying float vT;
+        void main(){
+          float a = (1.0 - vT); a *= a;                 // bright at the lens, gone by the wall
+          gl_FragColor = vec4(vec3(0.33, 0.38, 0.55) * a * 0.16, 1.0);
+        }`,
+    });
+    [-1, 1].forEach(side => {
+      const box = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.5, 1.1),
+        new THREE.MeshBasicMaterial({ color: 0x23232b }));
+      box.position.set(side * R.projSep / 2, R.projH + 0.3, R.projZ); this.scene.add(box);
+      const o = box.position;
+      const dist = Math.hypot(o.x, o.y - R.aimH, o.z - R.aimZ);
+      const tw = dist / R.throwRatio, th = tw / (PROJ.w / PROJ.h);
+      const corners = [[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([cx, cy]) =>
+        new THREE.Vector3(cx * tw / 2, R.aimH + cy * th / 2, R.aimZ));
+      const pts = [];
+      corners.forEach((c, i2) => { pts.push(o, c, c, corners[(i2 + 1) % 4]); });
+      this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lineM));
+      const verts = [], aT = [];
+      corners.forEach((c, i2) => {
+        const c2 = corners[(i2 + 1) % 4];
+        verts.push(o.x, o.y, o.z, c.x, c.y, c.z, c2.x, c2.y, c2.z);
+        aT.push(0, 1, 1);
+      });
+      const cg = new THREE.BufferGeometry();
+      cg.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      cg.setAttribute('aT', new THREE.Float32BufferAttribute(aT, 1));
+      this.scene.add(new THREE.Mesh(cg, coneM));
+      const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.9 }));
+      spr.scale.set(2.6, 2.6, 1);
+      spr.position.set(o.x, o.y, o.z - 0.7);
+      this.scene.add(spr);
+    });
+
+    // the source obelisk (real position) + a person for scale
+    const src = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 8),
+      new THREE.MeshBasicMaterial({ color: 0x8fb4c8 }));
+    src.position.set(R.sourceX, 4.0, R.sourceZ); this.scene.add(src);
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 3.7, 8),
+      new THREE.MeshBasicMaterial({ color: 0x1a1a20 }));
+    ped.position.set(R.sourceX, 1.85, R.sourceZ); this.scene.add(ped);
+    const person = new THREE.Mesh(
+      THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.45, 4.5, 3, 8) : new THREE.CylinderGeometry(0.45, 0.45, 5.4, 8),
+      new THREE.MeshBasicMaterial({ color: 0x0d0d11 }));
+    person.position.set(R.personX, 2.7, R.personZ); this.scene.add(person);
+
+    // ---- dusk mood: sky, duxel-frame structure, real cables, warm pools
+    if (R.moodLight > 0) {
+      const sky = new THREE.Mesh(new THREE.SphereGeometry(180, 24, 12),
+        new THREE.ShaderMaterial({
+          side: THREE.BackSide, depthWrite: false, fog: false,
+          vertexShader: `varying vec3 vP; void main(){ vP = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+          fragmentShader: `varying vec3 vP;
+            void main(){
+              float h = clamp(normalize(vP).y, -0.1, 1.0);
+              vec3 zen = vec3(0.020, 0.020, 0.048);
+              vec3 hor = vec3(0.110, 0.058, 0.095);        // dusty rose-violet band
+              vec3 c = mix(hor, zen, smoothstep(0.0, 0.45, h));
+              if (h < 0.0) c = mix(hor, vec3(0.02,0.015,0.02), -h * 8.0);
+              gl_FragColor = vec4(c, 1.0);
+            }`,
+        }));
+      this.scene.add(sky);
+      // THE DUXELS — the camp's 8 ft cube frames, laid out like the planner:
+      // 1-story rows down both sides, 2-story back wall, 2-story entrance
+      // towers with an open arch between them, corner cubes. Toggle with the
+      // DUXELS button (or D) when the frames get in the way of judging a look.
+      this.duxels = new THREE.Group();
+      const woodM = new THREE.MeshLambertMaterial({ color: 0x9a7047 });
+      const beamG = new THREE.BoxGeometry(1, 1, 1);
+      const beam = (x1, y1, z1, x2, y2, z2) => {
+        const t = 0.32;
+        const b = new THREE.Mesh(beamG, woodM);
+        b.scale.set(Math.abs(x2 - x1) + t, Math.abs(y2 - y1) + t, Math.abs(z2 - z1) + t);
+        b.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+        this.duxels.add(b);
+      };
+      const cube = (x0, z0, y0) => {         // one 8 ft duxel frame, base corner (x0, y0, z0)
+        const x1 = x0 + 8, z1 = z0 + 8, y1 = y0 + 8;
+        beam(x0, y0, z0, x0, y1, z0); beam(x1, y0, z0, x1, y1, z0);
+        beam(x0, y0, z1, x0, y1, z1); beam(x1, y0, z1, x1, y1, z1);
+        for (const y of [y0, y1]) {
+          beam(x0, y, z0, x1, y, z0); beam(x0, y, z1, x1, y, z1);
+          beam(x0, y, z0, x0, y, z1); beam(x1, y, z0, x1, y, z1);
+        }
+      };
+      for (const zc of [-16, -8, 0, 8]) { cube(-20, zc, 0); cube(12, zc, 0); }   // side rows
+      for (const xc of [-12, -4, 4]) { cube(xc, -24, 0); cube(xc, -24, 8); }     // back wall, 2-story
+      for (const xc of [-12, 4]) { cube(xc, 16, 0); cube(xc, 16, 8); }           // entrance towers
+      cube(-4, 16, 8);                                                            // the arch over the opening
+      cube(-20, 16, 0); cube(12, 16, 0); cube(-20, -24, 0); cube(12, -24, 0);    // corners
+      this.duxels.visible = (() => { try { return localStorage.getItem('srcDuxels') !== '0'; } catch (e) { return true; } })();
+      this.scene.add(this.duxels);
+      const bd = document.getElementById('btnDux');
+      if (bd) bd.classList.toggle('off', !this.duxels.visible);
+      // the REAL cable runs from the planner (including the diagonals)
+      const cableM = new THREE.LineBasicMaterial({ color: 0x3a3a46, transparent: true, opacity: 0.7 });
+      R.CABLES.forEach(seg => {
+        const pts = seg.map(a => new THREE.Vector3(a[0], a[1], a[2]));
+        this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(
+          pts.length === 2 ? pts : [pts[0], pts[1], pts[1], pts[2]]), cableM));
+      });
+      // the camp's four floods at their real positions — pastel pink/lavender,
+      // bright enough that people can see, still far below the throw
+      this.scene.add(new THREE.AmbientLight(0x584a66, 1.0));
+      R.floods.forEach(([x, z], i) => {
+        const pl = new THREE.PointLight(R.moodColors[i % R.moodColors.length], R.moodLight, 40);
+        pl.position.set(x, R.ceilH, z); this.scene.add(pl);
+      });
+    }
+  },
+  _bindTex(P) {
+    // the texture follows the FOCUSED scene — switching scenes swaps P.canvas
+    if (this.tex && this.tex.image === P.canvas) return;
+    if (this.tex) this.tex.dispose();
+    this.tex = new THREE.CanvasTexture(P.canvas);
+    this.tex.generateMipmaps = false;
+    this.tex.minFilter = THREE.LinearFilter;
+    if (this.strips) this.strips.forEach(s => { s.material.uniforms.uMap.value = this.tex; });
+    if (this.floorMat) this.floorMat.uniforms.uMap.value = this.tex;
+  },
+  render(fg, P, t) {
+    if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); if (typeof setView === 'function') setView('flat'); return; } this._camSync(this.preset); }
+    this._bindTex(P);
+    if (this.renderer.domElement.width !== P.w || this.renderer.domElement.height !== P.h) {
+      this.renderer.setSize(P.w, P.h, false);
+    }
+    const R = SCRIMRIG;
+    // rebuild the two throw matrices (registered on the main-wall row)
+    [-1, 1].forEach((side, i) => {
+      const pc = this.projCams[i];
+      pc.position.set(side * R.projSep / 2, R.projH, R.projZ);
+      const dist = Math.hypot(pc.position.x, pc.position.y - R.aimH, pc.position.z - R.aimZ);
+      const tw = dist / R.throwRatio;
+      pc.fov = 2 * Math.atan((tw / (PROJ.w / PROJ.h)) / 2 / dist) * 180 / Math.PI;
+      pc.aspect = PROJ.w / PROJ.h; pc.near = 0.5; pc.far = 120;
+      pc.lookAt(0, R.aimH, R.aimZ);
+      pc.updateProjectionMatrix(); pc.updateMatrixWorld();
+      this.mats[i].multiplyMatrices(pc.projectionMatrix, pc.matrixWorldInverse);
+    });
+    // camera from the orbit state — the user's hands are on this
+    const o = this.orb;
+    this.camera.fov = 50;
+    this.camera.aspect = P.w / P.h; this.camera.updateProjectionMatrix();
+    this.camera.position.set(
+      o.tx + o.r * Math.sin(o.ph) * Math.sin(o.th),
+      o.ty + o.r * Math.cos(o.ph),
+      o.tz + o.r * Math.sin(o.ph) * Math.cos(o.th));
+    this.camera.lookAt(o.tx, o.ty, o.tz);
+    this.tex.needsUpdate = true;
+    this.strips.forEach(s => { s.material.uniforms.uTime.value = t; });
+    this.renderer.render(this.scene, this.camera);
+    fg.fillStyle = '#000'; fg.fillRect(0, 0, P.w, P.h);
+    fg.drawImage(this.renderer.domElement, 0, 0);
+    fg.fillStyle = 'rgba(200,210,225,0.55)';
+    fg.font = '12px monospace'; fg.textAlign = 'left';
+    fg.fillText('SCRIM · Cave Layout 2026 (planner export) · 24×32 ft · 12 panels · ' +
+      'drag ORBIT · wheel/pinch ZOOM · CAM in the sidebar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+  },
+};
+
+/* orbit input — in scrim mode the stage pointer belongs to the CAMERA
+   (part2_core's ptrDrive stands down); keys keep driving the hands.
+   One pointer orbits; two pointers (touch) pinch-zoom; wheel/trackpad zooms. */
+(() => {
+  const inScrim = () => typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' &&
+    typeof focus !== 'undefined' && focus.idx >= 0;
+  const ptrs = new Map();
+  let pinchDist = 0;
+  const dist = () => {
+    const [a, b] = [...ptrs.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+  focusCanvas.addEventListener('pointerdown', e => {
+    if (!inScrim()) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { focusCanvas.setPointerCapture(e.pointerId); } catch (err) {} // finger may already be gone
+    if (ptrs.size === 2) pinchDist = dist();
+  });
+  focusCanvas.addEventListener('pointermove', e => {
+    if (!inScrim() || !ptrs.has(e.pointerId)) return;
+    const o = SCRIMVIEW.orb, prev = ptrs.get(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 2) {                       // touch pinch → zoom
+      const d = dist();
+      if (pinchDist > 0 && d > 0) o.r = clamp(o.r * (pinchDist / d), 3, 70);
+      pinchDist = d;
+    } else if (ptrs.size === 1) {                // drag → orbit
+      o.th -= (e.clientX - prev.x) * 0.009;
+      o.ph = clamp(o.ph - (e.clientY - prev.y) * 0.007, 0.25, 2.0);
+    }
+    SCRIMVIEW._camSync(-1); // free orbit — no preset is "current" anymore
+  });
+  const end = e => { ptrs.delete(e.pointerId); pinchDist = 0; };
+  focusCanvas.addEventListener('pointerup', end);
+  focusCanvas.addEventListener('pointercancel', end);
+  focusCanvas.addEventListener('wheel', e => {
+    if (!inScrim()) return;
+    e.preventDefault();
+    // trackpad pinch arrives as ctrl+wheel with tiny deltas — give it real gain
+    const k = e.ctrlKey ? 0.014 : 0.0022;
+    SCRIMVIEW.orb.r = clamp(SCRIMVIEW.orb.r * (1 + e.deltaY * k), 3, 70);
+  }, { passive: false });
+  const duxFlip = () => {
+    if (!SCRIMVIEW.duxels) return;
+    SCRIMVIEW.duxels.visible = !SCRIMVIEW.duxels.visible;
+    try { localStorage.setItem('srcDuxels', SCRIMVIEW.duxels.visible ? '1' : '0'); } catch (err) {}
+    const bd = document.getElementById('btnDux');
+    if (bd) bd.classList.toggle('off', !SCRIMVIEW.duxels.visible);
+  };
+  const btnDux = document.getElementById('btnDux');
+  if (btnDux) btnDux.addEventListener('click', duxFlip);
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if ((e.key === 'd' || e.key === 'D') && inScrim()) duxFlip();
+  });
+  SCRIMVIEW._camSync(SCRIMVIEW.preset); // build the vantage menu up front
+  const camSel = document.getElementById('camSel');
+  if (camSel) camSel.addEventListener('change', () => {
+    if (camSel.value !== 'free') SCRIMVIEW.applyPreset(+camSel.value);
+    camSel.blur();
+  });
+})();
+// V cycles the view modes; C cycles vantages inside the scrim view
+window.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (typeof focus === 'undefined' || focus.idx < 0) return;
+  const k = e.key.toLowerCase();
+  if (k === 'v' && typeof setView === 'function') {
+    const order = VIEW.MODES;
+    setView(order[(order.indexOf(VIEW.mode) + 1) % order.length]);
+  }
+  if (k === 'c' && typeof VIEW !== 'undefined' && VIEW.mode === 'scrim')
+    SCRIMVIEW.applyPreset(SCRIMVIEW.preset + 1);
+});
 /* ============================================================
    PIECES 01–08
    ============================================================ */
@@ -55684,6 +56815,323 @@ reg({
     };
   }
 });
+/* ---------- SRC-28.3 · CHLADNI COURT V3 ---------- */
+/* Triptych: one plate, mirrored across three edge-to-edge squares that fill
+   the wall. No plate outline. Grains are bigger and never thin out — the
+   nodal lines render as bold bands. A slow phase drift lets the pattern sweep
+   toward a corner and breathe back to center. The mode-lock hunt (both hands
+   on whole numbers → bell + brighten + swell) is kept intact. */
+reg({
+  id: 'SRC-28.3', family: 'SRC-28', ver: 3, title: 'Chladni Court', tech: 'STANDING WAVES / SAND ON A PLATE',
+  music: { bpm: 58, root: 50, mode: 'lydian', prog: [0, 4], chordBars: 4 },
+  fx: { bloom: 0.5, edge: true },
+  tags: ['CYMATICS', 'MODE LOCK', 'SOUND MADE VISIBLE', 'MIRRORED TRIPTYCH'],
+  desc: 'The oldest trick for seeing sound: sand on a vibrating plate gathers along the silent lines. One plate, mirrored three times across the wall into a single symmetric frieze. Each hand tunes one of the two mode numbers. Between integers the sand seethes, homeless; land both hands on whole numbers and the plate LOCKS — a resonant mode snaps into geometry, the sand rushes to its nodal lines, the whole frieze brightens and the grains swell, and the two modes sound as an interval. Cymatics is the thesis of the whole installation: light behaving the way sound does.',
+  interact: 'L = mode number n (1–7), R = mode number m. The play is the hunt for resonance: integers are stable patterns, everything between is beautiful chaos. Ratio matters like the harmonograph — n:m = 2:3 locks a fifth in both geometry and sound. Slow hands near a lock let you watch the pattern crystallize band by band. Left alone, the pattern drifts and breathes across the plate.',
+  sound: 'Two plate tones — the actual modes: sine-heavy voices at the chord tones indexed by n and m, gain swelling with resonance (Ableton: glass/bowl patches, one per hand-side). Sand: granular rushing noise, gain from total grain motion — a real shhhh as patterns break and reform (granular engine, tiny grains, band-passed 2–6k). On lock: one soft tam-tam-ish bloom, then let the interval ring. On break: the noise swells as the geometry dissolves.',
+  init(P) {
+    const n = Math.round(3800 * Math.min(2.6, areaScale(P)));
+    const grains = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) { grains[i * 2] = P.rand(); grains[i * 2 + 1] = P.rand(); }
+    P.state = { grains, n, res: 0, wasLocked: false, motion: 0, lockT: -9 };
+  },
+  step(P, dt, t, inp) {
+    const s = P.state;
+    const nM = 1 + inp.L * 6, mM = 1 + inp.R * 6;
+    s.nM = nM; s.mM = mM;
+    const fn = Math.abs(nM - Math.round(nM)), fm = Math.abs(mM - Math.round(mM));
+    const res = clamp(1 - (fn + fm) / 0.14);
+    s.res += (res - s.res) * Math.min(1, dt * 3);
+    const locked = s.res > 0.6;
+    if (locked && !s.wasLocked) {
+      s.lockT = t;
+      const ni = Math.round(nM), mi = Math.round(mM);
+      P.ping(A => {
+        A.bell(H.chordTone(ni, 0), { at: A.q(), vol: 0.14, dur: 5, rev: 0.75 });
+        A.bell(H.chordTone(mi, 0), { at: A.q(), vol: 0.14, dur: 5, rev: 0.75, pan: 0.3 });
+        A.bassNote(H.rootFreq(-2), { at: A.q(), vol: 0.2, dur: 2.5 });
+        A.hit({ vol: 0.16, dur: 0.5, freq: 240, q: 0.6, type: 'lowpass' });
+      });
+    }
+    s.wasLocked = locked;
+    // slow phase drift: the pattern sweeps toward a corner and breathes back
+    // to center. Small amplitude so it always fills the square.
+    const dphx = 0.16 * Math.sin(t * 0.066), dphy = 0.16 * Math.sin(t * 0.051 + 1.3);
+    const PI = Math.PI;
+    const chi = (x, y) => {
+      const X = x + dphx, Y = y + dphy;
+      return Math.cos(nM * PI * X) * Math.cos(mM * PI * Y) - Math.cos(mM * PI * X) * Math.cos(nM * PI * Y);
+    };
+    // sand physics: descend the energy |χ|², jitter when unresolved. The jitter
+    // FLOOR is raised so nodal lines keep thickness — bold bands, not razors.
+    const eps = 0.004, k = dt * (0.06 + s.res * 0.22);
+    const jit = dt * (0.05 * (1 - s.res) + 0.014);
+    let motion = 0;
+    const g2 = s.grains;
+    for (let i = 0; i < s.n; i++) {
+      let x = g2[i * 2], y = g2[i * 2 + 1];
+      const c0 = chi(x, y);
+      const gx = (Math.abs(chi(x + eps, y)) - Math.abs(c0)) / eps;
+      const gy = (Math.abs(chi(x, y + eps)) - Math.abs(c0)) / eps;
+      const dx = -gx * k + (Math.random() - 0.5) * jit;
+      const dy = -gy * k + (Math.random() - 0.5) * jit;
+      x += dx; y += dy;
+      motion += Math.abs(dx) + Math.abs(dy);
+      if (x < 0.015) x = 0.015; if (x > 0.985) x = 0.985;
+      if (y < 0.015) y = 0.015; if (y > 0.985) y = 0.985;
+      g2[i * 2] = x; g2[i * 2 + 1] = y;
+    }
+    s.motion += (motion / s.n / Math.max(dt, 1e-4) - s.motion) * Math.min(1, dt * 4);
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    g.fillStyle = 'rgba(4,4,5,0.5)'; g.fillRect(0, 0, w, h);
+    // three edge-to-edge square panels filling the width, mirrored across
+    // the center panel so the whole wall reads as one symmetric frieze.
+    const m = w / 3;
+    const y0 = (h - m) / 2;
+    const rj = s.res > 0.6 ? Math.sin(t * 40) * s.res * 1.5 : 0;
+    const g2 = s.grains;
+    const warm = s.res;
+    const sinceLock = t - s.lockT;
+    // grain size scales with panel and swells on lock; never thins out
+    const sz = Math.max(2.4, m * 0.006) * (1 + warm * 0.9);
+    // stays warm GOLD at lock (green/blue held back) instead of clipping white
+    const baseFill = `rgba(235,${(200 + warm * 28) | 0},${(120 + warm * 55) | 0},${0.32 + warm * 0.5})`;
+    for (let p = 0; p < 3; p++) {
+      const x0 = p * m;
+      const mir = (p === 1) ? 1 : -1;      // center = base, flanks = mirror
+      const mx = (p === 1) ? 0 : 1;        // x -> mx + mir*gx  (mir=-1 => 1-gx)
+      // lock shockwave, per panel
+      if (sinceLock < 1.2) {
+        const kk = sinceLock / 1.2;
+        g.strokeStyle = `rgba(255,235,180,${(1 - kk) * 0.7})`;
+        g.lineWidth = 3 * (1 - kk);
+        g.beginPath(); g.arc(x0 + m / 2, h / 2, kk * m * 0.75, 0, TAU); g.stroke();
+      }
+      // sand — bold gold bands; blazes at resonance
+      g.fillStyle = baseFill;
+      for (let i = 0; i < s.n; i++) {
+        const gx = mx + mir * g2[i * 2];
+        g.fillRect(x0 + gx * m + rj * mir, y0 + g2[i * 2 + 1] * m, sz, sz);
+      }
+      // resonance glow pass: the pattern itself ignites
+      if (warm > 0.45) {
+        g.globalCompositeOperation = 'lighter';
+        g.fillStyle = `rgba(255,235,180,${(warm - 0.45) * 0.2})`;
+        for (let i = 0; i < s.n; i += 3) {
+          const gx = mx + mir * g2[i * 2];
+          g.fillRect(x0 + gx * m + rj * mir - 1, y0 + g2[i * 2 + 1] * m - 1, sz + 2, sz + 2);
+        }
+        g.globalCompositeOperation = 'source-over';
+      }
+      // the driver — the source at plate center (subtle, per panel)
+      const cx = x0 + m / 2, cy = h / 2;
+      const pulse = 0.5 + 0.5 * Math.sin(t * (2 + s.res * 6));
+      g.fillStyle = 'rgba(10,10,12,1)';
+      g.beginPath(); g.arc(cx, cy, m * 0.03, 0, TAU); g.fill();
+      g.strokeStyle = `rgba(200,255,180,${0.2 + pulse * 0.35 * (0.4 + s.res)})`;
+      g.lineWidth = 1.5;
+      g.beginPath(); g.arc(cx, cy, m * 0.03 + 3 + pulse * 3, 0, TAU); g.stroke();
+    }
+    g.fillStyle = 'rgba(200,190,150,0.8)'; g.font = '10px ui-monospace,monospace';
+    g.fillText('N ' + (s.nM || 1).toFixed(2) + '  M ' + (s.mM || 1).toFixed(2) + (s.res > 0.6 ? '  ◆ MODE LOCK ' + Math.round(s.nM) + ':' + Math.round(s.mM) : ''), 10, h - 10);
+  },
+  audio(A, P) {
+    const v = A.voice();
+    const oN = v.osc('sine', 220), oM = v.osc('sine', 330);
+    const gN = v.g(0.0001), gM = v.g(0.0001);
+    oN.connect(gN); gN.connect(v.group);
+    oM.connect(gM); gM.connect(v.group);
+    if (A.revIn) { const s2 = A.ctx.createGain(); s2.gain.value = 0.7; gN.connect(s2); gM.connect(s2); s2.connect(A.revIn); }
+    const sand = v.noise();
+    const sf = v.filter('bandpass', 3800, 0.8);
+    const sg = v.g(0);
+    sand.connect(sf); sf.connect(sg); sg.connect(v.group);
+    const pads = A.padVoices(v, 2, { type: 'triangle', gain: 0.025, cutoff: 300 });
+    A.leadToChord(pads, -1, 0.05);
+    H.onChord(() => A.leadToChord(pads, -1, 2));
+    // resonance reward voices: octave + fifth shimmer, silent until locked
+    const shO = v.osc('sine', 440), shF = v.osc('sine', 660);
+    const shG = v.g(0.0001);
+    shO.connect(shG); shF.connect(shG); shG.connect(v.group);
+    if (A.revIn) { const s2 = A.ctx.createGain(); s2.gain.value = 0.8; shG.connect(s2); s2.connect(A.revIn); }
+    v.fadeIn(1, 1.2);
+    return {
+      tick() {
+        const s = P.state;
+        const ni = Math.round(s.nM || 1), mi = Math.round(s.mM || 1);
+        const fn = (s.nM || 1) - ni, fm = (s.mM || 1) - mi;
+        A.set(oN.frequency, H.chordTone(ni, 0) * (1 + fn * 0.08), 0.1);
+        A.set(oM.frequency, H.chordTone(mi, 0) * (1 + fm * 0.08), 0.1);
+        const r2 = s.res * s.res;
+        A.set(gN.gain, 0.018 + r2 * 0.11, 0.2);
+        A.set(gM.gain, 0.018 + r2 * 0.11, 0.2);
+        A.set(shO.frequency, H.chordTone(ni, 1), 0.2);
+        A.set(shF.frequency, H.chordTone(ni + 2, 1), 0.25);
+        A.set(shG.gain, r2 * 0.05, 0.4);
+        pads.forEach(p => { p.level(0.012 + r2 * 0.045, 0.4); p.bright(260 + r2 * 1400, 0.4); });
+        A.set(sg.gain, Math.min(0.09, (s.motion || 0) * 0.35) * (1 - s.res * 0.75), 0.15);
+        MOut.expr('lead', s.res);
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-28.4 · CHLADNI COURT V4 ---------- */
+/* V3 with the per-panel driver circles removed and the on-lock grain swell
+   pulled back — lock still reads as more size + brightness, but the grains no
+   longer bloom large enough to swallow the pattern. */
+reg({
+  id: 'SRC-28.4', family: 'SRC-28', ver: 4, title: 'Chladni Court', tech: 'STANDING WAVES / SAND ON A PLATE',
+  music: { bpm: 58, root: 50, mode: 'lydian', prog: [0, 4], chordBars: 4 },
+  fx: { bloom: 0.5, edge: true },
+  tags: ['CYMATICS', 'MODE LOCK', 'SOUND MADE VISIBLE', 'MIRRORED TRIPTYCH'],
+  desc: 'The oldest trick for seeing sound: sand on a vibrating plate gathers along the silent lines. One plate, mirrored three times across the wall into a single symmetric frieze. Each hand tunes one of the two mode numbers. Between integers the sand seethes, homeless; land both hands on whole numbers and the plate LOCKS — a resonant mode snaps into geometry, the sand rushes to its nodal lines, the whole frieze brightens and the grains swell, and the two modes sound as an interval. Cymatics is the thesis of the whole installation: light behaving the way sound does.',
+  interact: 'L = mode number n (1–7), R = mode number m. The play is the hunt for resonance: integers are stable patterns, everything between is beautiful chaos. Ratio matters like the harmonograph — n:m = 2:3 locks a fifth in both geometry and sound. Slow hands near a lock let you watch the pattern crystallize band by band. Left alone, the pattern drifts and breathes across the plate.',
+  sound: 'Two plate tones — the actual modes: sine-heavy voices at the chord tones indexed by n and m, gain swelling with resonance (Ableton: glass/bowl patches, one per hand-side). Sand: granular rushing noise, gain from total grain motion — a real shhhh as patterns break and reform (granular engine, tiny grains, band-passed 2–6k). On lock: one soft tam-tam-ish bloom, then let the interval ring. On break: the noise swells as the geometry dissolves.',
+  init(P) {
+    const n = Math.round(3800 * Math.min(2.6, areaScale(P)));
+    const grains = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) { grains[i * 2] = P.rand(); grains[i * 2 + 1] = P.rand(); }
+    P.state = { grains, n, res: 0, wasLocked: false, motion: 0, lockT: -9 };
+  },
+  step(P, dt, t, inp) {
+    const s = P.state;
+    const nM = 1 + inp.L * 6, mM = 1 + inp.R * 6;
+    s.nM = nM; s.mM = mM;
+    const fn = Math.abs(nM - Math.round(nM)), fm = Math.abs(mM - Math.round(mM));
+    const res = clamp(1 - (fn + fm) / 0.14);
+    s.res += (res - s.res) * Math.min(1, dt * 3);
+    const locked = s.res > 0.6;
+    if (locked && !s.wasLocked) {
+      s.lockT = t;
+      const ni = Math.round(nM), mi = Math.round(mM);
+      P.ping(A => {
+        A.bell(H.chordTone(ni, 0), { at: A.q(), vol: 0.14, dur: 5, rev: 0.75 });
+        A.bell(H.chordTone(mi, 0), { at: A.q(), vol: 0.14, dur: 5, rev: 0.75, pan: 0.3 });
+        A.bassNote(H.rootFreq(-2), { at: A.q(), vol: 0.2, dur: 2.5 });
+        A.hit({ vol: 0.16, dur: 0.5, freq: 240, q: 0.6, type: 'lowpass' });
+      });
+    }
+    s.wasLocked = locked;
+    // slow phase drift: the pattern sweeps toward a corner and breathes back
+    // to center. Small amplitude so it always fills the square.
+    const dphx = 0.16 * Math.sin(t * 0.066), dphy = 0.16 * Math.sin(t * 0.051 + 1.3);
+    const PI = Math.PI;
+    const chi = (x, y) => {
+      const X = x + dphx, Y = y + dphy;
+      return Math.cos(nM * PI * X) * Math.cos(mM * PI * Y) - Math.cos(mM * PI * X) * Math.cos(nM * PI * Y);
+    };
+    // sand physics: descend the energy |χ|², jitter when unresolved. The jitter
+    // FLOOR is raised so nodal lines keep thickness — bold bands, not razors.
+    const eps = 0.004, k = dt * (0.06 + s.res * 0.22);
+    const jit = dt * (0.05 * (1 - s.res) + 0.014);
+    let motion = 0;
+    const g2 = s.grains;
+    for (let i = 0; i < s.n; i++) {
+      let x = g2[i * 2], y = g2[i * 2 + 1];
+      const c0 = chi(x, y);
+      const gx = (Math.abs(chi(x + eps, y)) - Math.abs(c0)) / eps;
+      const gy = (Math.abs(chi(x, y + eps)) - Math.abs(c0)) / eps;
+      const dx = -gx * k + (Math.random() - 0.5) * jit;
+      const dy = -gy * k + (Math.random() - 0.5) * jit;
+      x += dx; y += dy;
+      motion += Math.abs(dx) + Math.abs(dy);
+      if (x < 0.015) x = 0.015; if (x > 0.985) x = 0.985;
+      if (y < 0.015) y = 0.015; if (y > 0.985) y = 0.985;
+      g2[i * 2] = x; g2[i * 2 + 1] = y;
+    }
+    s.motion += (motion / s.n / Math.max(dt, 1e-4) - s.motion) * Math.min(1, dt * 4);
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    g.fillStyle = 'rgba(4,4,5,0.5)'; g.fillRect(0, 0, w, h);
+    // three edge-to-edge square panels filling the width, mirrored across
+    // the center panel so the whole wall reads as one symmetric frieze.
+    const m = w / 3;
+    const y0 = (h - m) / 2;
+    const rj = s.res > 0.6 ? Math.sin(t * 40) * s.res * 1.5 : 0;
+    const g2 = s.grains;
+    const warm = s.res;
+    const sinceLock = t - s.lockT;
+    // grain size scales with panel and swells on lock; never thins out
+    // on-lock swell — clearly bigger (~1.5x) but not enough to swallow the pattern
+    const sz = Math.max(2.4, m * 0.0055) * (1 + warm * 0.5);
+    // stays warm GOLD at lock (green/blue held back) instead of clipping white
+    const baseFill = `rgba(235,${(200 + warm * 28) | 0},${(120 + warm * 55) | 0},${0.32 + warm * 0.5})`;
+    for (let p = 0; p < 3; p++) {
+      const x0 = p * m;
+      const mir = (p === 1) ? 1 : -1;      // center = base, flanks = mirror
+      const mx = (p === 1) ? 0 : 1;        // x -> mx + mir*gx  (mir=-1 => 1-gx)
+      // lock shockwave, per panel
+      if (sinceLock < 1.2) {
+        const kk = sinceLock / 1.2;
+        g.strokeStyle = `rgba(255,235,180,${(1 - kk) * 0.7})`;
+        g.lineWidth = 3 * (1 - kk);
+        g.beginPath(); g.arc(x0 + m / 2, h / 2, kk * m * 0.75, 0, TAU); g.stroke();
+      }
+      // sand — bold gold bands; blazes at resonance
+      g.fillStyle = baseFill;
+      for (let i = 0; i < s.n; i++) {
+        const gx = mx + mir * g2[i * 2];
+        g.fillRect(x0 + gx * m + rj * mir, y0 + g2[i * 2 + 1] * m, sz, sz);
+      }
+      // resonance glow pass: the pattern brightens (not enlarges) on lock
+      if (warm > 0.45) {
+        g.globalCompositeOperation = 'lighter';
+        g.fillStyle = `rgba(255,235,180,${(warm - 0.45) * 0.22})`;
+        for (let i = 0; i < s.n; i += 3) {
+          const gx = mx + mir * g2[i * 2];
+          g.fillRect(x0 + gx * m + rj * mir, y0 + g2[i * 2 + 1] * m, sz, sz);
+        }
+        g.globalCompositeOperation = 'source-over';
+      }
+    }
+    g.fillStyle = 'rgba(200,190,150,0.8)'; g.font = '10px ui-monospace,monospace';
+    g.fillText('N ' + (s.nM || 1).toFixed(2) + '  M ' + (s.mM || 1).toFixed(2) + (s.res > 0.6 ? '  ◆ MODE LOCK ' + Math.round(s.nM) + ':' + Math.round(s.mM) : ''), 10, h - 10);
+  },
+  audio(A, P) {
+    const v = A.voice();
+    const oN = v.osc('sine', 220), oM = v.osc('sine', 330);
+    const gN = v.g(0.0001), gM = v.g(0.0001);
+    oN.connect(gN); gN.connect(v.group);
+    oM.connect(gM); gM.connect(v.group);
+    if (A.revIn) { const s2 = A.ctx.createGain(); s2.gain.value = 0.7; gN.connect(s2); gM.connect(s2); s2.connect(A.revIn); }
+    const sand = v.noise();
+    const sf = v.filter('bandpass', 3800, 0.8);
+    const sg = v.g(0);
+    sand.connect(sf); sf.connect(sg); sg.connect(v.group);
+    const pads = A.padVoices(v, 2, { type: 'triangle', gain: 0.025, cutoff: 300 });
+    A.leadToChord(pads, -1, 0.05);
+    H.onChord(() => A.leadToChord(pads, -1, 2));
+    // resonance reward voices: octave + fifth shimmer, silent until locked
+    const shO = v.osc('sine', 440), shF = v.osc('sine', 660);
+    const shG = v.g(0.0001);
+    shO.connect(shG); shF.connect(shG); shG.connect(v.group);
+    if (A.revIn) { const s2 = A.ctx.createGain(); s2.gain.value = 0.8; shG.connect(s2); s2.connect(A.revIn); }
+    v.fadeIn(1, 1.2);
+    return {
+      tick() {
+        const s = P.state;
+        const ni = Math.round(s.nM || 1), mi = Math.round(s.mM || 1);
+        const fn = (s.nM || 1) - ni, fm = (s.mM || 1) - mi;
+        A.set(oN.frequency, H.chordTone(ni, 0) * (1 + fn * 0.08), 0.1);
+        A.set(oM.frequency, H.chordTone(mi, 0) * (1 + fm * 0.08), 0.1);
+        const r2 = s.res * s.res;
+        A.set(gN.gain, 0.018 + r2 * 0.11, 0.2);
+        A.set(gM.gain, 0.018 + r2 * 0.11, 0.2);
+        A.set(shO.frequency, H.chordTone(ni, 1), 0.2);
+        A.set(shF.frequency, H.chordTone(ni + 2, 1), 0.25);
+        A.set(shG.gain, r2 * 0.05, 0.4);
+        pads.forEach(p => { p.level(0.012 + r2 * 0.045, 0.4); p.bright(260 + r2 * 1400, 0.4); });
+        A.set(sg.gain, Math.min(0.09, (s.motion || 0) * 0.35) * (1 - s.res * 0.75), 0.15);
+        MOut.expr('lead', s.res);
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
 /* ============================================================
    HISTORY — earlier versions of explorations, excavated from
    the session record. Registered with family + ver so every
@@ -56939,75 +58387,218 @@ reg({
   }
 });
 /* ============================================================
-   TEAM — locked top-12 shortlist and owners (Wed deadline)
+   THE PERFORMANCE QUEUE
+   ------------------------------------------------------------
+   There used to be three competing answers to "what is in the
+   show": a hardcoded TOP-12 badge, per-owner tags, and starred
+   favourites — and the one SHOWTIME actually read was the empty
+   one, so a fresh laptop performed all 43 scenes sorted by SRC
+   number. There is one answer now. Tick a scene, it joins the
+   queue; the queue's ORDER is the running order; SHOWTIME walks
+   it. Nothing else votes.
    ============================================================ */
-const OWNERS = {
-  'SRC-15': 'KASIA', 'SRC-10': 'KASIA', 'SRC-01': 'KASIA',
-  'SRC-34': 'NIMA', 'SRC-32': 'NIMA', 'SRC-09': 'NIMA',
-  'SRC-18': 'LANCE', 'SRC-30': 'LANCE', 'SRC-04': 'LANCE'
-};
-const TOP12 = new Set(['SRC-01', 'SRC-04', 'SRC-05', 'SRC-07', 'SRC-09', 'SRC-10',
-  'SRC-15', 'SRC-18', 'SRC-28', 'SRC-30', 'SRC-32', 'SRC-34']);
 let libFilter = 'all';
 function syncChips() {
   document.querySelectorAll('.fchip').forEach(c => c.classList.toggle('on', c.dataset.f === libFilter));
-  const bf = document.getElementById('btnFav');
-  if (bf) bf.classList.toggle('off', libFilter !== 'fav');
 }
 const famOf = def => def.family || def.id;
 
-/* ============================================================
-   FAVORITES / SHORTLIST — star pieces, share picks by link
-   Storage is guarded: persists on the hosted site, falls back
-   to in-memory anywhere storage is unavailable.
-   ============================================================ */
-const FAV = {
-  set: new Set(), filterOn: false, shared: null,
-  load() { try { const s = window.localStorage && localStorage.getItem('srcFavs'); if (s) this.set = new Set(JSON.parse(s)); } catch (e) {} },
-  save() { try { window.localStorage && localStorage.setItem('srcFavs', JSON.stringify([...this.set])); } catch (e) {} },
+const QUEUE = {
+  list: [], shared: null,
+  load() {
+    try {
+      const s = window.localStorage && localStorage.getItem('srcQueue');
+      if (s) { this.list = JSON.parse(s).filter(Boolean); return; }
+      // one-time migration: whatever was starred becomes the first queue
+      const old = window.localStorage && localStorage.getItem('srcFavs');
+      if (old) { this.list = JSON.parse(old).filter(Boolean); this.save(); return; }
+    } catch (e) {}
+    // Nothing of your own yet — start from the camp's default set rather than
+    // from nothing. This is what stops a fresh show laptop performing all 43
+    // scenes in SRC order because nobody remembered to build a queue on it.
+    const def = this.sets().find(s2 => s2.default);
+    if (def) this.list = def.scenes.slice();
+  },
+  save() { try { window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list)); } catch (e) {} },
+  has(id) { return this.list.indexOf(id) >= 0; },
+  pos(id) { return this.list.indexOf(id) + 1; },   // 1-based, 0 = not queued
   toggle(id) {
-    this.set.has(id) ? this.set.delete(id) : this.set.add(id);
+    const i = this.list.indexOf(id);
+    if (i >= 0) this.list.splice(i, 1); else this.list.push(id);
     this.save(); this.refresh();
   },
+  move(id, dir) {
+    const i = this.list.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= this.list.length) return;
+    this.list.splice(j, 0, this.list.splice(i, 1)[0]);
+    this.save(); this.refresh();
+  },
+  clear() { this.list = []; this.save(); this.refresh(); },
   link() {
-    const url = location.origin + location.pathname + '#fav=' + [...this.set].join(',');
+    const url = location.origin + location.pathname + '#set=' + this.list.join(',');
     const done = () => {
-      const b = document.getElementById('btnFavLink');
+      const b = document.getElementById('btnQueueLink');
       b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'COPY LINK', 1500);
     };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy your shortlist link:', url));
-    else prompt('Copy your shortlist link:', url);
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy your queue link:', url));
+    else prompt('Copy your queue link:', url);
+  },
+  // the tile a family lives on — the queue stores family ids, not versions
+  tileFor(id) { return [...grid.children].find(t => t.dataset.pid === id) || null; },
+  titleOf(id) {
+    const t = this.tileFor(id);
+    return t ? (t.querySelector('h3').textContent || id) : id + ' (not on this build)';
+  },
+  // PLAY starts the performance: first queued scene, picture only, fullscreen
+  // on the chosen display. If something is actually broken (no audio) it opens
+  // the check instead of starting a silent show.
+  play(force) {
+    if (!force && typeof PRE !== 'undefined' && PRE.worst() === 'bad') {
+      document.getElementById('queuePop').classList.remove('open');
+      PRE.open();
+      return;
+    }
+    const first = this.list.find(id => this.tileFor(id));
+    const tile = first ? this.tileFor(first) : null;
+    if (tile && tile.cur) { closeFocus(); openFocus(tile.cur.idx); }
+    else if (focus.idx < 0) openFocus(0);
+    document.getElementById('queuePop').classList.remove('open');
+    this.wake(false);
+    if (typeof enterShow === 'function') enterShow();
   },
   refresh() {
-    document.getElementById('btnFav').textContent = '★ ' + this.set.size;
-    document.getElementById('btnFavLink').style.display = (libFilter === 'fav' && this.set.size) ? '' : 'none';
+    const btn = document.getElementById('btnQueue');
+    if (btn) { btn.textContent = 'QUEUE ' + this.list.length; btn.classList.toggle('off', !this.list.length); }
     document.querySelectorAll('.tile').forEach(tile => {
-      const id = tile.dataset.pid;
-      const star = tile.querySelector('.star');
-      if (star) { star.textContent = this.set.has(id) ? '★' : '☆'; star.classList.toggle('on', this.set.has(id)); }
+      const id = tile.dataset.pid, box = tile.querySelector('.qbox');
+      if (!box) return;
+      const n = this.pos(id);
+      box.textContent = n || '';
+      box.classList.toggle('on', !!n);
+      box.title = n ? 'Queued #' + n + ' — click to remove' : 'Add to the performance queue';
     });
-    const fs = document.getElementById('btnStarFocus');
-    if (fs && focus.idx >= 0) {
-      const id = famOf(PIECES[focus.idx]);
-      fs.textContent = this.set.has(id) ? '★' : '☆';
-      fs.classList.toggle('on', this.set.has(id));
+    const fq = document.getElementById('btnQueueFocus');
+    if (fq && focus.idx >= 0) {
+      const n = this.pos(famOf(PIECES[focus.idx]));
+      fq.textContent = n ? '✓ QUEUED ' + n : '+ QUEUE';
+      fq.classList.toggle('on', !!n);
     }
+    this.renderList();
     if (typeof applyLibrary === 'function') applyLibrary();
+  },
+  renderList() {
+    const ol = document.getElementById('queueList');
+    if (!ol) return;
+    document.getElementById('queuePop').classList.toggle('empty', !this.list.length);
+    ol.innerHTML = this.list.map((id, i) => `<li data-qid="${id}">
+      <span class="qn">${i + 1}</span>
+      <canvas class="qthumb" width="56" height="35"></canvas>
+      <span class="qid">${id}</span>
+      <span class="qt">${this.titleOf(id)}</span>
+      <button data-q="up" title="earlier in the set"${i === 0 ? ' disabled' : ''}>↑</button>
+      <button data-q="dn" title="later in the set"${i === this.list.length - 1 ? ' disabled' : ''}>↓</button>
+      <button data-q="rm" title="drop from the set">✕</button>
+    </li>`).join('');
+    ol.querySelectorAll('button').forEach(b => b.addEventListener('click', e => {
+      const id = e.target.closest('li').dataset.qid, act = e.target.dataset.q;
+      if (act === 'up') this.move(id, -1);
+      else if (act === 'dn') this.move(id, 1);
+      else this.toggle(id);
+    }));
+    this.renderSets();
+    this.paintThumbs();
+  },
+
+  /* THUMBNAILS — SRC numbers are unreadable as a set list at 3am, so each row
+     shows the scene. The tile canvases are already rendering, so this is a blit,
+     not a second render. Tiles below the fold are paused by the
+     IntersectionObserver, so while the drawer is open we wake the queued ones
+     and hand their visibility back on close. */
+  paintThumbs() {
+    document.querySelectorAll('#queueList li').forEach(li => {
+      const tile = this.tileFor(li.dataset.qid);
+      const cv = li.querySelector('.qthumb');
+      if (!cv) return;
+      const g = cv.getContext('2d');
+      const src = tile && tile.querySelector('canvas');
+      if (!src || !src.width) { g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height); return; }
+      try { g.drawImage(src, 0, 0, cv.width, cv.height); } catch (e) {}
+    });
+  },
+  // wake queued tiles while the drawer is open so their thumbnails move
+  wake(on) {
+    clearInterval(this._thumbT); this._thumbT = null;
+    this.list.forEach(id => {
+      const tile = this.tileFor(id);
+      if (!tile) return;
+      const cv = tile.querySelector('canvas');
+      const P = cv && ioMap.get(cv);
+      if (!P) return;
+      if (on) P.visible = true;
+      else {
+        // hand it back honestly: the observer only fires on CHANGE, so a tile we
+        // forced awake off-screen would render forever if we just walked away
+        const r = cv.getBoundingClientRect();
+        P.visible = r.bottom > -120 && r.top < window.innerHeight + 120;
+      }
+    });
+    if (on) this._thumbT = setInterval(() => this.paintThumbs(), 120);
+  },
+
+  /* SHARED SETS — setlists.json, committed and baked into the build. The queue
+     above is personal scratch; these are what the camp agreed on. */
+  sets() { return (typeof SETLISTS !== 'undefined' && SETLISTS.sets) ? SETLISTS.sets : []; },
+  sameAs(set) {
+    return set.scenes.length === this.list.length && set.scenes.every((id, i) => this.list[i] === id);
+  },
+  loadSet(name) {
+    const set = this.sets().find(s2 => s2.name === name);
+    if (!set) return;
+    this.list = set.scenes.slice();
+    this.save(); this.refresh();
+  },
+  publish() {
+    const block = JSON.stringify({
+      name: 'MY SET', note: 'what this set is for', scenes: this.list
+    }, null, 2);
+    const done = () => {
+      const b = document.getElementById('btnSetPublish');
+      b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'COPY FOR REPO', 1800);
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(block).then(done).catch(() => prompt('Paste this into setlists.json:', block));
+    else prompt('Paste this into setlists.json:', block);
+  },
+  renderSets() {
+    const box = document.getElementById('setList');
+    if (!box) return;
+    const sets = this.sets();
+    box.innerHTML = sets.length ? sets.map(set => `<div class="setrow${this.sameAs(set) ? ' live' : ''}">
+      <span class="setname">${set.name}</span>
+      <span class="setcount">${set.scenes.length} scenes${set.default ? ' · default' : ''}</span>
+      <button data-set="${set.name}">${this.sameAs(set) ? 'LOADED' : 'LOAD'}</button>
+    </div>`).join('') : '<p>No shared sets yet — publish one from your queue.</p>';
+    box.querySelectorAll('button[data-set]').forEach(b =>
+      b.addEventListener('click', () => this.loadSet(b.dataset.set)));
+    const rows = box.querySelectorAll('.setrow');
+    sets.forEach((set, i) => { if (rows[i]) rows[i].title = set.note || ''; });
   },
   boot() {
     this.load();
-    if (location.hash.startsWith('#fav=')) {
-      const ids = location.hash.slice(5).split(',').filter(Boolean);
+    // a shared set arrives as an ordered list; #fav= links from the star era
+    // still open, they just land as a proposed queue instead of a shortlist
+    const h = location.hash;
+    const m = h.startsWith('#set=') ? h.slice(5) : h.startsWith('#fav=') ? h.slice(5) : null;
+    if (m) {
+      const ids = m.split(',').filter(Boolean);
       if (ids.length) {
-        this.shared = new Set(ids);
-        libFilter = 'fav'; syncChips();
+        this.shared = ids;
+        libFilter = 'queue'; syncChips();
         const bn = document.getElementById('favBanner');
         bn.classList.add('open');
         document.getElementById('favBannerText').textContent =
-          'VIEWING A SHARED SHORTLIST · ' + ids.length + ' PIECES';
+          'SOMEONE SHARED A SET · ' + ids.length + ' SCENES, IN THEIR ORDER';
         document.getElementById('favMerge').addEventListener('click', () => {
-          ids.forEach(id => this.set.add(id));
-          this.save(); this.shared = null;
+          this.list = ids.slice(); this.save(); this.shared = null;
           bn.classList.remove('open');
           history.replaceState(null, '', location.pathname);
           this.refresh();
@@ -57020,17 +58611,234 @@ const FAV = {
         });
       }
     }
-    document.getElementById('btnFav').addEventListener('click', () => {
-      libFilter = libFilter === 'fav' ? 'all' : 'fav';
-      if (libFilter !== 'fav') this.shared = null;
-      syncChips();
-      this.refresh();
+    const pop = document.getElementById('queuePop');
+    document.getElementById('btnQueue').addEventListener('click', () => {
+      const open = pop.classList.toggle('open');
+      this.wake(open);
+      if (open) this.paintThumbs();
     });
-    document.getElementById('btnFavLink').addEventListener('click', () => this.link());
-    document.getElementById('btnStarFocus').addEventListener('click', () => {
+    document.getElementById('btnQueueClose').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); });
+    document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
+    document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
+    document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
+    document.getElementById('btnQueuePlay').addEventListener('click', () => this.play());
+    document.getElementById('btnQueueCheck').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); PRE.open(); });
+    document.getElementById('btnQueueFocus').addEventListener('click', () => {
       if (focus.idx >= 0) this.toggle(famOf(PIECES[focus.idx]));
     });
     this.refresh();
+  }
+};
+// part2_core calls FAV.refresh() on focus open; keep that name pointing here
+const FAV = QUEUE;
+
+/* ============================================================
+   WHICH SCREEN THE SHOW LANDS ON
+   ------------------------------------------------------------
+   The laptop drives the projectors off a splitter, so the show
+   is one fullscreen render that has to arrive on the PROJECTOR
+   display, not the built-in one. Chrome's Window Management API
+   can enumerate displays and fullscreen onto a named one; it
+   needs a permission the first call prompts for, and it needs a
+   user gesture, which is why probing happens on a click.
+
+   Honest limitation, stated in the panel too: one tab renders
+   one picture. Picking a display sends the SHOW there; it does
+   not give you a separate control window on the laptop. Control
+   during the show is the DBG strip and the PANELS pill (H) on
+   top of the picture.
+   ============================================================ */
+const SCREENS = {
+  details: null, chosen: null, denied: false,
+  supported() { return typeof window.getScreenDetails === 'function'; },
+  label(sc) { return (sc.label || '') + ' ' + sc.width + '×' + sc.height + (sc.isPrimary ? ' (primary)' : ''); },
+  load() { try { this.chosen = localStorage.getItem('srcShowScreen'); } catch (e) {} },
+  pick(label) {
+    this.chosen = label || null;
+    try {
+      if (label) localStorage.setItem('srcShowScreen', label);
+      else localStorage.removeItem('srcShowScreen');
+    } catch (e) {}
+  },
+  async probe() {
+    if (!this.supported() || this.details) return this.details;
+    try { this.details = await window.getScreenDetails(); }
+    catch (e) { this.denied = true; }
+    // Default to the display that is almost certainly the projector: the
+    // external, non-primary one. Landing the show on the built-in screen is
+    // the mistake this whole row exists to prevent.
+    if (this.details && !this.target()) {
+      const ext = this.details.screens.find(sc => !sc.isInternal && !sc.isPrimary) ||
+                  this.details.screens.find(sc => !sc.isInternal);
+      if (ext) this.pick(this.label(ext));
+    }
+    return this.details;
+  },
+  // is the show currently aimed at the laptop while another display exists?
+  aimedInternal() {
+    const t = this.target();
+    return !!(t && this.list().length > 1 && (t.isInternal || t.isPrimary));
+  },
+  // the ScreenDetailed we were told to use, if it is still attached
+  target() {
+    if (!this.details || !this.chosen) return null;
+    return this.details.screens.find(sc => this.label(sc) === this.chosen) || null;
+  },
+  list() { return this.details ? this.details.screens : []; }
+};
+SCREENS.load();
+
+/* Enter the show: picture only, on the chosen display.
+   PLAY forces performance mode — the PANELS preference persists between
+   sessions, and starting a show with the MIDI console sitting over the
+   picture is never what "play" meant. H (or the PANELS pill) brings it back. */
+function enterShow() {
+  const ov = document.getElementById('overlay');
+  if (typeof setPanels === 'function') setPanels(false);
+  if (typeof PROJ !== 'undefined' && !PROJ.on && typeof setProj === 'function') setProj(true);
+  if (document.fullscreenElement) return Promise.resolve(true);
+  const scr = SCREENS.target();
+  const opts = scr ? { screen: scr } : undefined;
+  if (!ov.requestFullscreen) return Promise.resolve(false);
+  return ov.requestFullscreen(opts).then(() => true).catch(() => {
+    // a targeted request can be refused (permission revoked, display unplugged)
+    // — fall back to plain fullscreen rather than silently doing nothing
+    if (!opts) return false;
+    return ov.requestFullscreen().then(() => true).catch(() => false);
+  });
+}
+
+/* ============================================================
+   PRE-FLIGHT — everything the wall needs, checked in one place,
+   fixed in place. Written for the moment before you hand the
+   instrument to strangers in the dark, so each row says what it
+   FOUND, not what it wants.
+   ============================================================ */
+const PRE = {
+  timer: null,
+  open() {
+    document.getElementById('preModal').classList.add('open');
+    SCREENS.probe().then(() => this.render());
+    this.render();
+    clearInterval(this.timer);
+    this.timer = setInterval(() => this.render(), 600);
+  },
+  close() {
+    document.getElementById('preModal').classList.remove('open');
+    clearInterval(this.timer); this.timer = null;
+  },
+  /* Severity is deliberate: BAD is "the show will not work", WARN is "this is
+     probably not what you meant". Nobody rehearsing with a mouse should get a
+     wall of red for having no theremin plugged in. */
+  rows() {
+    const r = [];
+    const ctxOn = AE.ctx && AE.ctx.state === 'running';
+    r.push({ k: 'audio', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
+      txt: !AE.on ? 'muted — SOUND is OFF in the header'
+        : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
+        : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
+        : 'running at ' + (AE.ctx.sampleRate / 1000).toFixed(1) + ' kHz',
+      fix: ctxOn ? null : ['WAKE AUDIO', () => {
+        AE.on = true; AE.ensure();
+        // only restart a voice if a scene is actually up — startVoice reads
+        // PIECES[focus.idx], and focus.idx is -1 on the library wall
+        if (focus.idx >= 0 && typeof startVoice === 'function') startVoice();
+      }] });
+
+    const nq = QUEUE.list.length;
+    r.push({ k: 'queue', label: 'Set list', lvl: nq ? 'ok' : 'warn',
+      txt: nq ? nq + (nq === 1 ? ' scene queued · ' : ' scenes queued · ') + 'opens with ' + QUEUE.titleOf(QUEUE.list[0])
+        : 'empty — the show would fall back to all ' + FAMS.length + ' scenes in library order',
+      fix: ['OPEN QUEUE', () => { this.close(); document.getElementById('queuePop').classList.add('open'); }] });
+
+    const bound = (midi.map.L ? 1 : 0) + (midi.map.R ? 1 : 0);
+    r.push({ k: 'hands', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
+      txt: !midi.access ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
+        : bound === 2 ? 'L and R both bound (' + mapLabel(midi.map.L) + ' · ' + mapLabel(midi.map.R) + ')'
+        : bound === 1 ? 'only ' + (midi.map.L ? 'L' : 'R') + ' is bound — the other hand is dead'
+        : 'MIDI on, but neither hand is bound yet',
+      fix: !midi.access ? ['CONNECT', () => connectMidi()]
+        : ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+
+    const cal = ['L', 'R'].map(sd => midi.cal[sd]);
+    const rested = cal.filter(c => c && c.rest !== null && c.rest !== undefined).length;
+    r.push({ k: 'cal', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
+      txt: !midi.access ? 'not needed without hardware'
+        : rested === 2 ? 'both hands ranged and rested — idle detection is live'
+        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle',
+      fix: midi.access ? ['SET REST', () => startRest()] : null });
+
+    const out = MOut.mode !== 'web';
+    r.push({ k: 'out', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
+      txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
+        : !MOut.port ? 'MIDI out on, but no port selected'
+        : 'sending to ' + MOut.port.name,
+      fix: out ? null : ['SEND MIDI', () => { AE.ensure(); MOut.setMode('both'); }] });
+
+    r.push({ k: 'clock', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
+      txt: !out ? 'browser transport only' :
+        !MOut.clock.on ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
+        : MOut.clock.running ? 'driving Live at ' + T.bpm + ' BPM — this app is the tempo master'
+        : 'clock out armed — drives Live from the moment a scene opens (Live: port Sync on, EXT lit)',
+      fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
+
+    const projOn = typeof PROJ !== 'undefined' && PROJ.on;
+    r.push({ k: 'frame', label: 'Frame', lvl: projOn ? 'ok' : 'warn',
+      txt: projOn ? '1920×1200 · 1.60 — the frame the projectors get'
+        : 'window frame — scenes are composed in a shape the wall never plays',
+      fix: projOn ? null : ['USE SHOW FRAME', () => { if (typeof setProj === 'function') setProj(true); }] });
+
+    r.push({ k: 'screen', label: 'Display',
+      lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
+      txt: this.screenText(), screenPicker: true });
+    return r;
+  },
+  screenText() {
+    if (!SCREENS.supported()) return 'this browser cannot list displays — drag the window onto the projector, then start';
+    if (SCREENS.denied) return 'permission denied — allow window management, or drag the window onto the projector';
+    const list = SCREENS.list();
+    if (!list.length) return 'checking displays…';
+    const t = SCREENS.target();
+    if (list.length === 1) return 'one display (' + SCREENS.label(list[0]) + ') — the show goes here';
+    if (!t) return list.length + ' displays — pick which one gets the show';
+    return SCREENS.aimedInternal()
+      ? 'aimed at the BUILT-IN screen (' + SCREENS.chosen + ') — the projector will not get the show'
+      : 'show goes to ' + SCREENS.chosen;
+  },
+  render() {
+    const box = document.getElementById('preRows');
+    if (!box) return;
+    const rows = this.rows();
+    box.innerHTML = rows.map(row => `<div class="prow ${row.lvl}" data-k="${row.k}">
+      <span class="dot"></span><span class="plabel">${row.label}</span>
+      <span class="pstat">${row.txt}</span>
+      ${row.screenPicker ? '<select id="preScreenSel"></select>' : ''}
+      ${row.fix ? `<button data-fix="${row.k}">${row.fix[0]}</button>` : ''}
+    </div>`).join('');
+    box.querySelectorAll('button[data-fix]').forEach(b => b.addEventListener('click', () => {
+      const row = rows.find(x => x.k === b.dataset.fix);
+      if (row && row.fix) { row.fix[1](); this.render(); }
+    }));
+    const sel = document.getElementById('preScreenSel');
+    if (sel) {
+      const list = SCREENS.list();
+      sel.style.display = list.length > 1 ? '' : 'none';
+      sel.innerHTML = list.map(sc => {
+        const l = SCREENS.label(sc);
+        return `<option value="${l}"${l === SCREENS.chosen ? ' selected' : ''}>${l}</option>`;
+      }).join('');
+      sel.addEventListener('change', e => { SCREENS.pick(e.target.value); this.render(); });
+    }
+    const note = document.getElementById('preScreenNote');
+    if (note) {
+      note.textContent = SCREENS.supported()
+        ? 'One tab renders one picture: choosing a display sends the SHOW there, it does not give you a second control window. During the show, PANELS (or H) brings the hands/MIDI/console back over the picture, and the DBG tab at the bottom is the truth window.'
+        : 'Display picking needs Chrome’s window-management support. Without it: drag this window onto the projector screen first, then start the show.';
+    }
+  },
+  worst() {
+    const lv = this.rows().map(r => r.lvl);
+    return lv.includes('bad') ? 'bad' : lv.includes('warn') ? 'warn' : 'ok';
   }
 };
 
@@ -57038,10 +58846,36 @@ const FAV = {
    BOOT — build the wall, run the loop
    ============================================================ */
 const grid = document.getElementById('grid');
-// "active" = the owned shortlist (OWNERS) — drives the default sort + ACTIVE filter
-const ACTIVE_ORDER = ['SRC-18', 'SRC-30', 'SRC-04', 'SRC-15', 'SRC-10', 'SRC-01', 'SRC-34', 'SRC-32', 'SRC-09'];
-const famRank = f => { const i = ACTIVE_ORDER.indexOf(f); return i < 0 ? 999 : i; };
+/* WHERE THE LOVE WENT — the default library order.
+   A hand-maintained "active" list went stale the moment nobody updated it, so
+   the wall now derives its own answer from two things it already knows:
+     RECENCY — a new version is a new part file appended to the build, so the
+       highest PIECES index in a family tracks how recently it was touched.
+       (Proxy, not a timestamp: parts carry no dates. Close enough that the
+       scenes people are actually working on float, which is the point.)
+     DEPTH  — how many versions the family has, on a log curve so an 18-version
+       obsession doesn't bury a 6-version scene that got real attention.
+   Recency leads, because a scene worked on last week matters more to the set
+   than one that was iterated hard a year ago and dropped. */
+const LOVE = new Map();
+function computeLove() {
+  let maxIdx = 1, maxVer = 1;
+  FAMS.forEach(F => {
+    const idx = Math.max(...F.entries.map(e => e.idx));
+    maxIdx = Math.max(maxIdx, idx);
+    maxVer = Math.max(maxVer, F.entries.length);
+  });
+  FAMS.forEach(F => {
+    const recency = Math.max(...F.entries.map(e => e.idx)) / maxIdx;
+    const depth = Math.log(F.entries.length) / Math.log(maxVer);
+    LOVE.set(F.fam, 0.55 * recency + 0.45 * depth);
+  });
+}
+const loveRank = f => 1000 - Math.round((LOVE.get(f) || 0) * 1000);   // low = most loved
 const insts = [];
+// tile thumbnails render in the projector frame's exact shape (16:10, like
+// 1920x1200) at thumbnail density — 420x264 was 1.59, close but a lie
+const TILE_W = 416, TILE_H = 260;
 const ioMap = new Map();
 const io = ('IntersectionObserver' in window) ? new IntersectionObserver(entries => {
   for (const en of entries) {
@@ -57060,16 +58894,16 @@ const FAMS = [];
     FAMS[fi.get(f)].entries.push({ def, idx: i });
   });
   FAMS.forEach(F => F.entries.sort((a, b) => (a.def.ver || 1) - (b.def.ver || 1)));
-  FAMS.sort((a, b) => famRank(a.fam) - famRank(b.fam)); // stable: library keeps its order
+  computeLove();
+  FAMS.sort((a, b) => loveRank(a.fam) - loveRank(b.fam)); // most worked on first
 }
 
 FAMS.forEach(F => {
   const tile = document.createElement('div');
   tile.className = 'tile';
   tile.dataset.pid = F.fam;
-  const own = OWNERS[F.fam];
   tile.innerHTML = `
-    <div class="tile-head"><span class="tid">${F.fam}</span><span class="ttag"></span>${TOP12.has(F.fam) ? '<span class="owner t12">★ TOP 12</span>' : ''}${own ? `<span class="owner ${own.toLowerCase()}">${own}</span>` : ''}<select class="vsel" style="display:none" title="version history"></select><button class="star" title="add to shortlist">☆</button></div>
+    <div class="tile-head"><span class="tid">${F.fam}</span><span class="ttag"></span><select class="vsel" style="display:none" title="version history"></select><button class="qbox" title="add to the performance queue"></button></div>
     <div class="cwrap"><canvas></canvas><span class="hoverhint">FOCUS ▸</span></div>
     <div class="tbody">
       <h3></h3>
@@ -57086,7 +58920,7 @@ FAMS.forEach(F => {
   grid.appendChild(tile);
   const cv = tile.querySelector('canvas');
   tile.cur = F.entries[F.entries.length - 1]; // latest version selected by default
-  let P = makeInstance(tile.cur.def, cv, 420, 264);
+  let P = makeInstance(tile.cur.def, cv, TILE_W, TILE_H);
   const ti = insts.length;
   insts.push(P);
   if (io) { ioMap.set(cv, P); io.observe(cv); }
@@ -57103,7 +58937,7 @@ FAMS.forEach(F => {
       vs.innerHTML = F.entries.map(e => `<option value="${e.def.ver || 1}"${e === tile.cur ? ' selected' : ''}>V${e.def.ver || 1}</option>`).join('');
     } else vs.style.display = 'none';
     // searchable text for the library bar
-    tile.dataset.search = (F.fam + ' ' + en.def.title + ' ' + en.def.tech + ' ' + (en.def.tags || []).join(' ') + ' ' + (OWNERS[F.fam] || '') + ' ' + en.def.desc).toLowerCase();
+    tile.dataset.search = (F.fam + ' ' + en.def.title + ' ' + en.def.tech + ' ' + (en.def.tags || []).join(' ') + ' ' + en.def.desc).toLowerCase();
   };
   setText(tile.cur);
   tile.querySelector('.vsel').addEventListener('click', e => e.stopPropagation());
@@ -57111,18 +58945,18 @@ FAMS.forEach(F => {
     const en = F.entries.find(x => (x.def.ver || 1) === +e.target.value);
     if (!en || en === tile.cur) return;
     tile.cur = en;
-    P = makeInstance(en.def, cv, 420, 264);
+    P = makeInstance(en.def, cv, TILE_W, TILE_H);
     insts[ti] = P;
     if (io) ioMap.set(cv, P);
     setText(en);
-    FAV.refresh();
+    QUEUE.refresh();
   });
   tile.querySelector('.morelink').addEventListener('click', e => {
     e.stopPropagation();
     const on = tile.classList.toggle('exp');
     e.target.textContent = on ? 'less' : 'more';
   });
-  tile.querySelector('.star').addEventListener('click', e => { e.stopPropagation(); FAV.toggle(F.fam); });
+  tile.querySelector('.qbox').addEventListener('click', e => { e.stopPropagation(); QUEUE.toggle(F.fam); });
   tile.querySelector('.cwrap').addEventListener('click', () => openFocus(tile.cur.idx));
   tile.querySelector('[data-act=focus]').addEventListener('click', () => openFocus(tile.cur.idx));
   tile.querySelector('[data-act=regen]').addEventListener('click', () => insts[ti].reinit((Math.random() * 1e9) | 0));
@@ -57160,6 +58994,7 @@ document.getElementById('midiOutSel').addEventListener('change', e => {
   MOut.port = outs[+e.target.value] || null;
   try { if (MOut.port) localStorage.setItem('srcOutPort', MOut.port.name); } catch (err) {}
 });
+document.getElementById('btnClock').addEventListener('click', () => MOut.clockSet(!MOut.clock.on));
 setInterval(() => MOut.refreshUI(), 1500);
 // act hotkeys — keys 1-4 jump acts inside a focused journey piece (smooth-fades there)
 window.addEventListener('keydown', e => {
@@ -57259,7 +59094,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
 function applyLibrary() {
   const q = (document.getElementById('searchBox').value || '').trim().toLowerCase();
   const sort = document.getElementById('sortSel').value;
-  const activeShort = FAV.shared || FAV.set;
+  const inSet = QUEUE.shared || QUEUE.list;
   const tiles = [...grid.children];
   const titleSorted = tiles.slice().sort((a, b) =>
     a.querySelector('h3').textContent.localeCompare(b.querySelector('h3').textContent));
@@ -57269,31 +59104,36 @@ function applyLibrary() {
     const id = tile.dataset.pid;
     let show = !q || (tile.dataset.search || '').includes(q);
     if (show) {
-      if (libFilter === 'fav') show = activeShort.has(id);
-      else if (libFilter === 'top12') show = TOP12.has(id);
-      else if (libFilter === 'active') show = !!OWNERS[id];
-      else if (libFilter === 'KASIA' || libFilter === 'NIMA' || libFilter === 'LANCE') show = OWNERS[id] === libFilter;
+      if (libFilter === 'queue') show = inSet.indexOf(id) >= 0;
     }
     tile.style.display = show ? '' : 'none';
     if (show) shown++;
     const src = +((id.match(/\d+/) || [999])[0]);
     const vers = (tile.querySelector('.vsel').options.length) || 1;
     let ord;
+    // Queued scenes deliberately DO NOT jump to the front. Ticking a checkbox
+    // used to re-sort the grid under the cursor, so the tile you just clicked
+    // shot away and you could not confirm what you had done. The queue drawer
+    // and the IN QUEUE chip are where you review the set; the wall holds still.
     if (sort === 'id') ord = src;
     else if (sort === 'title') ord = tRank.get(tile);
     else if (sort === 'ver') ord = -vers * 100 + src;
-    else ord = famRank(id) * 1000 + (FAV.set.has(id) ? 0 : 500) + src; // active first, your stars float
+    else ord = loveRank(id) * 10 + src;   // most worked on first
     tile.style.order = Math.round(ord);
   });
   document.getElementById('libCount').textContent = shown + ' scenes';
 }
+document.getElementById('btnPreClose').addEventListener('click', () => PRE.close());
+document.getElementById('preModal').addEventListener('click', e => { if (e.target.id === 'preModal') PRE.close(); });
+// START goes even with warnings on the board — they are judgement calls, not blocks
+document.getElementById('btnPreStart').addEventListener('click', () => { PRE.close(); QUEUE.play(true); });
 document.getElementById('searchBox').addEventListener('input', applyLibrary);
 document.getElementById('sortSel').addEventListener('change', applyLibrary);
 document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => {
   libFilter = c.dataset.f === libFilter ? 'all' : c.dataset.f;
-  if (libFilter !== 'fav') FAV.shared = null;
+  if (libFilter !== 'queue') QUEUE.shared = null;
   syncChips();
-  FAV.refresh();
+  QUEUE.refresh();
 }));
 
 // MAP popover — the source's hardware bindings live here (library AND scene view)
@@ -57449,12 +59289,15 @@ document.getElementById('oActs').addEventListener('click', e => {
     resetRotation();
   });
   // THE SET LIST — starring a card on the wall is how a scene makes the show
+  // The queue, in queue order — not wall order. This is the whole point of it:
+  // a set list is dramaturgy, and the old one was sorted by SRC number.
+  // Empty queue still falls back to the wall so the app is never dead-ended.
   const showList = () => {
-    const tiles = [...grid.children]
+    const queued = QUEUE.list.map(id => QUEUE.tileFor(id)).filter(Boolean);
+    if (queued.length) return queued;
+    return [...grid.children]
       .filter(t2 => t2.style.display !== 'none')
       .sort((a2, b2) => (+a2.style.order || 0) - (+b2.style.order || 0));
-    const starred = tiles.filter(t2 => FAV.set.has(t2.dataset.pid));
-    return starred.length ? starred : tiles;
   };
   const step = (dir) => {
     if (focus.idx < 0) return;
@@ -57498,8 +59341,15 @@ document.getElementById('oActs').addEventListener('click', e => {
     };
     const secs = rotAt ? Math.max(0, Math.round((rotAt - Date.now()) / 1000)) : 0;
     const mmss = rotAt ? String(Math.floor(secs / 60)) + ':' + String(secs % 60).padStart(2, '0') : '—';
+    const hand = side => {
+      const m = midi.map[side], cal = midi.cal[side];
+      if (!m) return side + ':—';
+      return side + ':' + mapLabel(m) +
+        (cal ? '[' + cal.lo.toFixed(2) + '-' + cal.hi.toFixed(2) + (cal.inv ? ' INV' : '') +
+          (cal.rest !== null && cal.rest !== undefined ? ' rest' + cal.rest.toFixed(2) : ' NO-REST') + ']' : '[uncal]');
+    };
     const inMap = (midi.map.L || midi.map.R)
-      ? 'L:' + (midi.map.L ? 'cc' + midi.map.L.cc : '—') + ' R:' + (midi.map.R ? 'cc' + midi.map.R.cc : '—')
+      ? hand('L') + ' ' + hand('R')
       : 'unmapped (MAP → LEARN)';
     body.textContent =
       'SCENE  ' + (d ? d.id + ' · ' + d.title : '—') + (st && d && d.acts ? '\nACT    ' + d.acts[st.act] : '') +
@@ -57507,12 +59357,23 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
       '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
-      '\nNEXT SCENE ' + mmss + '   FPS ' + fps;
+      '\nCLK→LIVE ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'DRIVING ' + T.bpm + ' BPM' : 'armed (no transport)') +
+      '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
+      // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
+      (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
+        (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') +
+        (typeof VIEW !== 'undefined' ? ' · ' + VIEW.mode.toUpperCase() : '') : '');
   }, 500);
 })();
 // live indicators: act chip highlight + now-playing role dots
 setInterval(() => {
   if (focus.idx < 0) return;
+  const fi = document.getElementById('frameInfo');
+  if (fi && focus.P) {
+    const txt = focus.P.w + '×' + focus.P.h + ' · ' + (focus.P.w / focus.P.h).toFixed(2) +
+      (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : ' · window');
+    if (fi.textContent !== txt) fi.textContent = txt;
+  }
   const el = document.getElementById('oActs');
   if (el && el.children.length && focus.P && focus.P.state) {
     const a2 = focus.P.state.act || 0;
@@ -57534,7 +59395,39 @@ setInterval(() => {
   }
 }, 300);
 
-FAV.boot();
+QUEUE.boot();
+// VIEW dropdown — the discoverable face of the view modes (V still cycles)
+(() => {
+  const vs = document.getElementById('viewSel');
+  if (!vs) return;
+  setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
+                      // scrimmode class that reveals the vantage chips
+  vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
+})();
+// PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the
+// PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
+// for debugging. The choice persists across scenes and visits.
+(() => {
+  let panels = false;
+  try { panels = localStorage.getItem('srcPanels') === '1'; } catch (e) {}
+  const apply = () => overlay.classList.toggle('perf', !panels); // .perf only bites under .fs
+  const flip = () => {
+    panels = !panels;
+    try { localStorage.setItem('srcPanels', panels ? '1' : '0'); } catch (e) {}
+    apply();
+  };
+  // starting a show must not inherit yesterday's debugging layout
+  window.setPanels = on => { panels = !!on; apply(); };
+  const pt = document.getElementById('panelTab');
+  if (pt) pt.addEventListener('click', flip);
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (focus.idx < 0 || !overlay.classList.contains('fs')) return;
+    if (e.key === 'h' || e.key === 'H') flip();
+  });
+  apply();
+})();
 // theme — light matches the camper portal (default); dark is stage mode
 (() => {
   let th = 'light';
@@ -57587,14 +59480,28 @@ function frame(ts) {
     try {
       P.def.step(P, dt, t, inp);
       P.def.draw(P, P.g, P.w, P.h, t, inp);
-      // composite scene → display with non-destructive post-FX
+      // composite scene → display per the VIEW mode (dropdown / V key)
       const fg = focus.fctx;
       if (fg) {
-        fg.drawImage(P.canvas, 0, 0);
-        const fx = P.def.fx;
-        if (fx) {
-          if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
-          if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+        const vm = (typeof VIEW !== 'undefined') ? VIEW.mode : 'flat';
+        const scrimOK = window.SCRIMVIEW && typeof THREE !== 'undefined';
+        if ((vm === 'scrim' || vm === 'scrim3d') && scrimOK) {
+          SCRIMVIEW.render(fg, P, t);   // the frame thrown into The Cave
+        } else {
+          fg.drawImage(P.canvas, 0, 0);
+          if (vm === 'double') {
+            // the second projector's ghost — cloned signal, worst-case
+            // misregistration of ~0.8% of the frame width
+            fg.save();
+            fg.globalCompositeOperation = 'lighter'; fg.globalAlpha = 0.45;
+            fg.drawImage(P.canvas, Math.max(2, Math.round(P.w * 0.008)), 0);
+            fg.restore();
+          }
+          const fx = P.def.fx;
+          if (fx) {
+            if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
+            if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+          }
         }
       }
     } catch (e) { console.error(P.def.id, e); }

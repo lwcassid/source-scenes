@@ -9,7 +9,37 @@ Live site: https://source-interaction-library.netlify.app
 Deploys: push to `main` → Netlify auto-deploys the repo root. `index.html` is
 the site. That's the whole pipeline.
 
-## Owners
+## The performance queue (what's in the show)
+One mechanism, not four. Tick a scene's checkbox on the wall and it joins the
+QUEUE; the queue's ORDER is the running order; SHOWTIME walks exactly that.
+The old stars / TOP-12 badge / per-owner tags are gone — they were three
+competing answers to "what do we play", and the one the show actually read
+was the empty one. Queue persists per-browser (`srcQueue`) and shares as a
+`#set=a,b,c` link. Default library sort is MOST WORKED ON: recency (highest
+PIECES index in a family — new versions append to the build) weighted 0.55
+against version count on a log curve at 0.45, so scenes people are actively
+loving float and never-revised v1s sink.
+
+SHARED SETS live in `setlists.json` at the repo root — committed, so git is
+the coordination mechanism (diff = history of what the show became, merge
+conflict = a real conversation about the set). `tools/build.sh` BAKES it into
+index.html, which is what carries the running order onto the offline show
+artifact; a fetch would die the moment the laptop leaves the internet. A
+browser with no queue of its own loads the set flagged `default: true`, so a
+fresh show laptop opens with the real set instead of 43 scenes by SRC number.
+COPY FOR REPO in the drawer emits the block to paste in (or hand to a Claude
+session). Editing setlists.json requires a rebuild — the build fails loudly if
+the JSON is malformed.
+
+SHOW CHECK (queue drawer) is the pre-flight: sound / set list / hands /
+calibration / Ableton / tempo / frame / display, each row reporting what it
+found with an inline fix. PLAY forces performance mode (panels off), pins the
+projector frame, and fullscreens onto the display chosen via Chrome's Window
+Management API — defaulting to the external screen, amber if aimed at the
+laptop. Red rows divert PLAY into the check. One tab = one picture: choosing a
+display moves the SHOW, it does not add a control window.
+
+## Owners (coordination only — no longer shown in the UI)
 Kasia: Ferro Bloom (SRC-15), Weather Station (SRC-10), Epicycle Court (SRC-01)
 Nima: White Study (SRC-34), Stones/Sonora (SRC-32), Attractor Vespers (SRC-09),
   the reference-wall set (SRC-36 Foam Bloom · SRC-37 Iris Engine · SRC-38 Lumen
@@ -33,7 +63,7 @@ The site is ONE html file assembled by concatenating `parts/` in a fixed order
 - `part3..part14` — scene registrations (`reg({...})`), one per scene
 - `partNN_vNN.js` — Night Circuit versions (one FILE per version)
 - `part15_history.js` + `part5_tail.js` — version pills, library bar,
-  favorites/set-list, SHOWTIME mode, debug strip. Tail ALWAYS concatenates last.
+  performance queue, SHOWTIME mode, debug strip. Tail ALWAYS concatenates last.
 
 ### The versioning law (non-negotiable)
 Every feedback round on a scene = a NEW VERSION as a NEW PART FILE
@@ -48,10 +78,38 @@ python3 tools/build_preview.py  # self-contained preview for sighted testing
 git add -A && git commit -m "..." && git push   # Netlify does the rest
 ```
 
+### The frame: 1920×1200, 16:10 — the DEFAULT everywhere
+The show is one WUXGA render fullscreen, cloned to both projectors (Panasonic
+PT-VMZ50, native 1920×1200), so a scene gets `P.w=1920, P.h=1200` (aspect
+1.60, `areaScale` 4.56). The focus stage now renders exactly that frame BY
+DEFAULT, letterboxed and centered in whatever window you have — black bars are
+invisible on scrim — and tile thumbnails are exactly 16:10 too. So what you
+see is what the wall gets; there is nothing to remember to turn on.
+Opt-outs: **`?win`** in the URL (or press **`P`** on the stage) gives the old
+native-window canvas; phones default to native for framerate (`?proj` forces
+the show frame even there). `tools/shot.mjs`, `tools/shotcam.mjs`,
+`tools/shotevt.mjs` and `tools/playtest.js` shoot the show frame (`PROJ=0`
+opts out), and the DBG strip's `FRAME` line reports what the scene is
+actually getting — `1920×1200 · 1.60 · PROJ` is the show.
+Other projector classes: **`?frame=fhd|wxga|xga|uhd|1400x1050`** (or
+`setFrame(w,h)` live) re-pins the frame and cascades through every scene.
+**VIEW dropdown on the stage** (or `V` cycles): FLAT (one projector) ·
+GHOST (two-projector misregistration) · SCRIM THE CAVE 3D. In the scrim
+view YOU drive the camera — drag orbits, wheel zooms, `C` jumps vantages
+(AT THE SOURCE — the default and the design target — / AUDIENCE / HEAD-ON /
+OBLIQUE / OVERVIEW); the mouse belongs to the camera there, keys still play
+the hands. Rig derived from Elyse's planner (duxel = 8 ft): 24×40 ft
+interior, cable-hung 54″ panels on three rows 6 ft apart, projectors atop
+the entrance-corner duxels ~22 ft apart — numbers in `SCRIMRIG`
+(`parts/part2d_scrimview.js`). FULLSCREEN = performance mode: picture only;
+the PANELS pill (or `H`) brings the MIDI/hands/console panels in for
+debugging. View mode and panels choice persist across scenes and visits.
+
 ### Verify BEFORE you ship (sighted iteration)
 Never ship a scene you haven't SEEN. In a cloud sandbox:
 - build the preview, open it in headless Chromium with
-  `--enable-unsafe-swiftshader --autoplay-policy=no-user-gesture-required`
+  `--enable-unsafe-swiftshader --autoplay-policy=no-user-gesture-required`,
+  at viewport 1920×1200 with `?proj` (that's what the harnesses do)
 - `openFocus(PIECES.findIndex(p => p.id === 'SRC-XX.N'))`
 - drive hands with `setChan('L', v); setChan('R', v); focus.P.state.pres = 1`
   (re-issue every ~2s — live mode decays)
@@ -71,11 +129,34 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
   perspective shatters across segmented drapes. See the scene-craft skill.
 - MIDI roles → channels: lead 1, pad 2, bass 3, arp 4, bells 5, texture 6,
   perc 10, sfx 11, bed 12. CC1/CC2 = raw hands. CC74 per channel = that
-  layer's energy (map to filter cutoff in Ableton). Set Live's tempo to the
-  scene BPM. Buffer 128.
+  layer's energy (map to filter cutoff in Ableton). Buffer 128. The mirror
+  is AUTOMATIC for every A helper — including `A.hit` (drum note bucketed
+  by filter freq) and `A.voice` (polled: audible pitched voices hold a note
+  on texture ch6; pooled gain = texture CC74) — so every scene that makes
+  pitched or percussive sound sends MIDI without scene-side code. What sits
+  on each channel in the Live set lives in `rig.json` (design-time, hand-
+  edited, not baked into the build).
+- MIDI CLOCK goes out at 24 PPQN off the transport's own AudioContext
+  timeline (`MOut.clock`), with song-position + Start on scene open and Stop
+  on close — Live follows each scene's BPM instead of someone retyping it.
+  Header CLOCK toggle; Live needs that port's Sync on and EXT pressed.
+- Hand input is CALIBRATED, not raw (`CAL` + `midi.cal` in `part2_core.js`):
+  the LEARN sweep's measured range is kept and self-widens, polarity is an
+  INVERT toggle, and SET REST samples what the sensors read with nobody
+  there. Presence is then "is this reading away from rest, or moving?" —
+  NOT "did a message arrive", because a rangefinder streams all night.
+  Uncalibrated controllers keep the old behaviour exactly.
 - Mobile: bloom post-stack is gated off via `window.IS_MOBILE`; keep it that way.
 
 ## Working agreements
+- THE SKILLS ARE THE STUDIO NOTEBOOK. When Lance, Kasia or Nima gives a
+  creative verdict in a session — a taste call, a "never do X again", a
+  "this is the reference" — distill it into the relevant skill (scene-craft /
+  sound-craft) IN THAT SAME SESSION, as one tight rule with the reason.
+  A verdict that isn't written into a skill did not happen: the next session
+  starts cold and will relearn the mistake. Skills must stay SHORT — every
+  addition should earn its lines, and folding two rules into one is a
+  contribution.
 - Read `.claude/skills/scene-craft/SKILL.md` before building or revising any
   scene — it holds the design laws, scrim/instrument criteria, and checklists.
 - Deep references live in `docs/`: instrument survey (all 35 scored),
@@ -107,5 +188,6 @@ conflict (one file per version), but a stale clone that rebuilds and pushes
 - Lance handles structural work (harmony engine, UI/library chrome, tools).
   Structural changes must be ADDITIVE/OPT-IN where possible (existing scenes
   keep working untouched), and after ANY core change run
-  `SCENE=<id> node tools/playtest.js` against at least 2–3 scenes —
-  including someone else's — before pushing.
+  `SCENE=QA node tools/playtest.js` before pushing — 10 deliberately
+  different scenes (every rendering stack, all owners), minutes not tens of
+  minutes. `SCENE=ALL` is the full sweep for release-sized changes.

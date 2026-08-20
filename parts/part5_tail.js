@@ -1,73 +1,216 @@
 /* ============================================================
-   TEAM — locked top-12 shortlist and owners (Wed deadline)
+   THE PERFORMANCE QUEUE
+   ------------------------------------------------------------
+   There used to be three competing answers to "what is in the
+   show": a hardcoded TOP-12 badge, per-owner tags, and starred
+   favourites — and the one SHOWTIME actually read was the empty
+   one, so a fresh laptop performed all 43 scenes sorted by SRC
+   number. There is one answer now. Tick a scene, it joins the
+   queue; the queue's ORDER is the running order; SHOWTIME walks
+   it. Nothing else votes.
    ============================================================ */
-const OWNERS = {
-  'SRC-15': 'KASIA', 'SRC-10': 'KASIA', 'SRC-01': 'KASIA',
-  'SRC-34': 'NIMA', 'SRC-32': 'NIMA', 'SRC-09': 'NIMA',
-  'SRC-18': 'LANCE', 'SRC-30': 'LANCE', 'SRC-04': 'LANCE'
-};
-const TOP12 = new Set(['SRC-01', 'SRC-04', 'SRC-05', 'SRC-07', 'SRC-09', 'SRC-10',
-  'SRC-15', 'SRC-18', 'SRC-28', 'SRC-30', 'SRC-32', 'SRC-34']);
 let libFilter = 'all';
 function syncChips() {
   document.querySelectorAll('.fchip').forEach(c => c.classList.toggle('on', c.dataset.f === libFilter));
-  const bf = document.getElementById('btnFav');
-  if (bf) bf.classList.toggle('off', libFilter !== 'fav');
 }
 const famOf = def => def.family || def.id;
 
-/* ============================================================
-   FAVORITES / SHORTLIST — star pieces, share picks by link
-   Storage is guarded: persists on the hosted site, falls back
-   to in-memory anywhere storage is unavailable.
-   ============================================================ */
-const FAV = {
-  set: new Set(), filterOn: false, shared: null,
-  load() { try { const s = window.localStorage && localStorage.getItem('srcFavs'); if (s) this.set = new Set(JSON.parse(s)); } catch (e) {} },
-  save() { try { window.localStorage && localStorage.setItem('srcFavs', JSON.stringify([...this.set])); } catch (e) {} },
+const QUEUE = {
+  list: [], shared: null,
+  load() {
+    try {
+      const s = window.localStorage && localStorage.getItem('srcQueue');
+      if (s) { this.list = JSON.parse(s).filter(Boolean); return; }
+      // one-time migration: whatever was starred becomes the first queue
+      const old = window.localStorage && localStorage.getItem('srcFavs');
+      if (old) { this.list = JSON.parse(old).filter(Boolean); this.save(); return; }
+    } catch (e) {}
+    // Nothing of your own yet — start from the camp's default set rather than
+    // from nothing. This is what stops a fresh show laptop performing all 43
+    // scenes in SRC order because nobody remembered to build a queue on it.
+    const def = this.sets().find(s2 => s2.default);
+    if (def) this.list = def.scenes.slice();
+  },
+  save() { try { window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list)); } catch (e) {} },
+  has(id) { return this.list.indexOf(id) >= 0; },
+  pos(id) { return this.list.indexOf(id) + 1; },   // 1-based, 0 = not queued
   toggle(id) {
-    this.set.has(id) ? this.set.delete(id) : this.set.add(id);
+    const i = this.list.indexOf(id);
+    if (i >= 0) this.list.splice(i, 1); else this.list.push(id);
     this.save(); this.refresh();
   },
+  move(id, dir) {
+    const i = this.list.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= this.list.length) return;
+    this.list.splice(j, 0, this.list.splice(i, 1)[0]);
+    this.save(); this.refresh();
+  },
+  clear() { this.list = []; this.save(); this.refresh(); },
   link() {
-    const url = location.origin + location.pathname + '#fav=' + [...this.set].join(',');
+    const url = location.origin + location.pathname + '#set=' + this.list.join(',');
     const done = () => {
-      const b = document.getElementById('btnFavLink');
+      const b = document.getElementById('btnQueueLink');
       b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'COPY LINK', 1500);
     };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy your shortlist link:', url));
-    else prompt('Copy your shortlist link:', url);
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy your queue link:', url));
+    else prompt('Copy your queue link:', url);
+  },
+  // the tile a family lives on — the queue stores family ids, not versions
+  tileFor(id) { return [...grid.children].find(t => t.dataset.pid === id) || null; },
+  titleOf(id) {
+    const t = this.tileFor(id);
+    return t ? (t.querySelector('h3').textContent || id) : id + ' (not on this build)';
+  },
+  // PLAY starts the performance: first queued scene, picture only, fullscreen
+  // on the chosen display. If something is actually broken (no audio) it opens
+  // the check instead of starting a silent show.
+  play(force) {
+    if (!force && typeof PRE !== 'undefined' && PRE.worst() === 'bad') {
+      document.getElementById('queuePop').classList.remove('open');
+      PRE.open();
+      return;
+    }
+    const first = this.list.find(id => this.tileFor(id));
+    const tile = first ? this.tileFor(first) : null;
+    if (tile && tile.cur) { closeFocus(); openFocus(tile.cur.idx); }
+    else if (focus.idx < 0) openFocus(0);
+    document.getElementById('queuePop').classList.remove('open');
+    this.wake(false);
+    if (typeof enterShow === 'function') enterShow();
   },
   refresh() {
-    document.getElementById('btnFav').textContent = '★ ' + this.set.size;
-    document.getElementById('btnFavLink').style.display = (libFilter === 'fav' && this.set.size) ? '' : 'none';
+    const btn = document.getElementById('btnQueue');
+    if (btn) { btn.textContent = 'QUEUE ' + this.list.length; btn.classList.toggle('off', !this.list.length); }
     document.querySelectorAll('.tile').forEach(tile => {
-      const id = tile.dataset.pid;
-      const star = tile.querySelector('.star');
-      if (star) { star.textContent = this.set.has(id) ? '★' : '☆'; star.classList.toggle('on', this.set.has(id)); }
+      const id = tile.dataset.pid, box = tile.querySelector('.qbox');
+      if (!box) return;
+      const n = this.pos(id);
+      box.textContent = n || '';
+      box.classList.toggle('on', !!n);
+      box.title = n ? 'Queued #' + n + ' — click to remove' : 'Add to the performance queue';
     });
-    const fs = document.getElementById('btnStarFocus');
-    if (fs && focus.idx >= 0) {
-      const id = famOf(PIECES[focus.idx]);
-      fs.textContent = this.set.has(id) ? '★' : '☆';
-      fs.classList.toggle('on', this.set.has(id));
+    const fq = document.getElementById('btnQueueFocus');
+    if (fq && focus.idx >= 0) {
+      const n = this.pos(famOf(PIECES[focus.idx]));
+      fq.textContent = n ? '✓ QUEUED ' + n : '+ QUEUE';
+      fq.classList.toggle('on', !!n);
     }
+    this.renderList();
     if (typeof applyLibrary === 'function') applyLibrary();
+  },
+  renderList() {
+    const ol = document.getElementById('queueList');
+    if (!ol) return;
+    document.getElementById('queuePop').classList.toggle('empty', !this.list.length);
+    ol.innerHTML = this.list.map((id, i) => `<li data-qid="${id}">
+      <span class="qn">${i + 1}</span>
+      <canvas class="qthumb" width="56" height="35"></canvas>
+      <span class="qid">${id}</span>
+      <span class="qt">${this.titleOf(id)}</span>
+      <button data-q="up" title="earlier in the set"${i === 0 ? ' disabled' : ''}>↑</button>
+      <button data-q="dn" title="later in the set"${i === this.list.length - 1 ? ' disabled' : ''}>↓</button>
+      <button data-q="rm" title="drop from the set">✕</button>
+    </li>`).join('');
+    ol.querySelectorAll('button').forEach(b => b.addEventListener('click', e => {
+      const id = e.target.closest('li').dataset.qid, act = e.target.dataset.q;
+      if (act === 'up') this.move(id, -1);
+      else if (act === 'dn') this.move(id, 1);
+      else this.toggle(id);
+    }));
+    this.renderSets();
+    this.paintThumbs();
+  },
+
+  /* THUMBNAILS — SRC numbers are unreadable as a set list at 3am, so each row
+     shows the scene. The tile canvases are already rendering, so this is a blit,
+     not a second render. Tiles below the fold are paused by the
+     IntersectionObserver, so while the drawer is open we wake the queued ones
+     and hand their visibility back on close. */
+  paintThumbs() {
+    document.querySelectorAll('#queueList li').forEach(li => {
+      const tile = this.tileFor(li.dataset.qid);
+      const cv = li.querySelector('.qthumb');
+      if (!cv) return;
+      const g = cv.getContext('2d');
+      const src = tile && tile.querySelector('canvas');
+      if (!src || !src.width) { g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height); return; }
+      try { g.drawImage(src, 0, 0, cv.width, cv.height); } catch (e) {}
+    });
+  },
+  // wake queued tiles while the drawer is open so their thumbnails move
+  wake(on) {
+    clearInterval(this._thumbT); this._thumbT = null;
+    this.list.forEach(id => {
+      const tile = this.tileFor(id);
+      if (!tile) return;
+      const cv = tile.querySelector('canvas');
+      const P = cv && ioMap.get(cv);
+      if (!P) return;
+      if (on) P.visible = true;
+      else {
+        // hand it back honestly: the observer only fires on CHANGE, so a tile we
+        // forced awake off-screen would render forever if we just walked away
+        const r = cv.getBoundingClientRect();
+        P.visible = r.bottom > -120 && r.top < window.innerHeight + 120;
+      }
+    });
+    if (on) this._thumbT = setInterval(() => this.paintThumbs(), 120);
+  },
+
+  /* SHARED SETS — setlists.json, committed and baked into the build. The queue
+     above is personal scratch; these are what the camp agreed on. */
+  sets() { return (typeof SETLISTS !== 'undefined' && SETLISTS.sets) ? SETLISTS.sets : []; },
+  sameAs(set) {
+    return set.scenes.length === this.list.length && set.scenes.every((id, i) => this.list[i] === id);
+  },
+  loadSet(name) {
+    const set = this.sets().find(s2 => s2.name === name);
+    if (!set) return;
+    this.list = set.scenes.slice();
+    this.save(); this.refresh();
+  },
+  publish() {
+    const block = JSON.stringify({
+      name: 'MY SET', note: 'what this set is for', scenes: this.list
+    }, null, 2);
+    const done = () => {
+      const b = document.getElementById('btnSetPublish');
+      b.textContent = 'COPIED ✓'; setTimeout(() => b.textContent = 'COPY FOR REPO', 1800);
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(block).then(done).catch(() => prompt('Paste this into setlists.json:', block));
+    else prompt('Paste this into setlists.json:', block);
+  },
+  renderSets() {
+    const box = document.getElementById('setList');
+    if (!box) return;
+    const sets = this.sets();
+    box.innerHTML = sets.length ? sets.map(set => `<div class="setrow${this.sameAs(set) ? ' live' : ''}">
+      <span class="setname">${set.name}</span>
+      <span class="setcount">${set.scenes.length} scenes${set.default ? ' · default' : ''}</span>
+      <button data-set="${set.name}">${this.sameAs(set) ? 'LOADED' : 'LOAD'}</button>
+    </div>`).join('') : '<p>No shared sets yet — publish one from your queue.</p>';
+    box.querySelectorAll('button[data-set]').forEach(b =>
+      b.addEventListener('click', () => this.loadSet(b.dataset.set)));
+    const rows = box.querySelectorAll('.setrow');
+    sets.forEach((set, i) => { if (rows[i]) rows[i].title = set.note || ''; });
   },
   boot() {
     this.load();
-    if (location.hash.startsWith('#fav=')) {
-      const ids = location.hash.slice(5).split(',').filter(Boolean);
+    // a shared set arrives as an ordered list; #fav= links from the star era
+    // still open, they just land as a proposed queue instead of a shortlist
+    const h = location.hash;
+    const m = h.startsWith('#set=') ? h.slice(5) : h.startsWith('#fav=') ? h.slice(5) : null;
+    if (m) {
+      const ids = m.split(',').filter(Boolean);
       if (ids.length) {
-        this.shared = new Set(ids);
-        libFilter = 'fav'; syncChips();
+        this.shared = ids;
+        libFilter = 'queue'; syncChips();
         const bn = document.getElementById('favBanner');
         bn.classList.add('open');
         document.getElementById('favBannerText').textContent =
-          'VIEWING A SHARED SHORTLIST · ' + ids.length + ' PIECES';
+          'SOMEONE SHARED A SET · ' + ids.length + ' SCENES, IN THEIR ORDER';
         document.getElementById('favMerge').addEventListener('click', () => {
-          ids.forEach(id => this.set.add(id));
-          this.save(); this.shared = null;
+          this.list = ids.slice(); this.save(); this.shared = null;
           bn.classList.remove('open');
           history.replaceState(null, '', location.pathname);
           this.refresh();
@@ -80,17 +223,234 @@ const FAV = {
         });
       }
     }
-    document.getElementById('btnFav').addEventListener('click', () => {
-      libFilter = libFilter === 'fav' ? 'all' : 'fav';
-      if (libFilter !== 'fav') this.shared = null;
-      syncChips();
-      this.refresh();
+    const pop = document.getElementById('queuePop');
+    document.getElementById('btnQueue').addEventListener('click', () => {
+      const open = pop.classList.toggle('open');
+      this.wake(open);
+      if (open) this.paintThumbs();
     });
-    document.getElementById('btnFavLink').addEventListener('click', () => this.link());
-    document.getElementById('btnStarFocus').addEventListener('click', () => {
+    document.getElementById('btnQueueClose').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); });
+    document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
+    document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
+    document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
+    document.getElementById('btnQueuePlay').addEventListener('click', () => this.play());
+    document.getElementById('btnQueueCheck').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); PRE.open(); });
+    document.getElementById('btnQueueFocus').addEventListener('click', () => {
       if (focus.idx >= 0) this.toggle(famOf(PIECES[focus.idx]));
     });
     this.refresh();
+  }
+};
+// part2_core calls FAV.refresh() on focus open; keep that name pointing here
+const FAV = QUEUE;
+
+/* ============================================================
+   WHICH SCREEN THE SHOW LANDS ON
+   ------------------------------------------------------------
+   The laptop drives the projectors off a splitter, so the show
+   is one fullscreen render that has to arrive on the PROJECTOR
+   display, not the built-in one. Chrome's Window Management API
+   can enumerate displays and fullscreen onto a named one; it
+   needs a permission the first call prompts for, and it needs a
+   user gesture, which is why probing happens on a click.
+
+   Honest limitation, stated in the panel too: one tab renders
+   one picture. Picking a display sends the SHOW there; it does
+   not give you a separate control window on the laptop. Control
+   during the show is the DBG strip and the PANELS pill (H) on
+   top of the picture.
+   ============================================================ */
+const SCREENS = {
+  details: null, chosen: null, denied: false,
+  supported() { return typeof window.getScreenDetails === 'function'; },
+  label(sc) { return (sc.label || '') + ' ' + sc.width + '×' + sc.height + (sc.isPrimary ? ' (primary)' : ''); },
+  load() { try { this.chosen = localStorage.getItem('srcShowScreen'); } catch (e) {} },
+  pick(label) {
+    this.chosen = label || null;
+    try {
+      if (label) localStorage.setItem('srcShowScreen', label);
+      else localStorage.removeItem('srcShowScreen');
+    } catch (e) {}
+  },
+  async probe() {
+    if (!this.supported() || this.details) return this.details;
+    try { this.details = await window.getScreenDetails(); }
+    catch (e) { this.denied = true; }
+    // Default to the display that is almost certainly the projector: the
+    // external, non-primary one. Landing the show on the built-in screen is
+    // the mistake this whole row exists to prevent.
+    if (this.details && !this.target()) {
+      const ext = this.details.screens.find(sc => !sc.isInternal && !sc.isPrimary) ||
+                  this.details.screens.find(sc => !sc.isInternal);
+      if (ext) this.pick(this.label(ext));
+    }
+    return this.details;
+  },
+  // is the show currently aimed at the laptop while another display exists?
+  aimedInternal() {
+    const t = this.target();
+    return !!(t && this.list().length > 1 && (t.isInternal || t.isPrimary));
+  },
+  // the ScreenDetailed we were told to use, if it is still attached
+  target() {
+    if (!this.details || !this.chosen) return null;
+    return this.details.screens.find(sc => this.label(sc) === this.chosen) || null;
+  },
+  list() { return this.details ? this.details.screens : []; }
+};
+SCREENS.load();
+
+/* Enter the show: picture only, on the chosen display.
+   PLAY forces performance mode — the PANELS preference persists between
+   sessions, and starting a show with the MIDI console sitting over the
+   picture is never what "play" meant. H (or the PANELS pill) brings it back. */
+function enterShow() {
+  const ov = document.getElementById('overlay');
+  if (typeof setPanels === 'function') setPanels(false);
+  if (typeof PROJ !== 'undefined' && !PROJ.on && typeof setProj === 'function') setProj(true);
+  if (document.fullscreenElement) return Promise.resolve(true);
+  const scr = SCREENS.target();
+  const opts = scr ? { screen: scr } : undefined;
+  if (!ov.requestFullscreen) return Promise.resolve(false);
+  return ov.requestFullscreen(opts).then(() => true).catch(() => {
+    // a targeted request can be refused (permission revoked, display unplugged)
+    // — fall back to plain fullscreen rather than silently doing nothing
+    if (!opts) return false;
+    return ov.requestFullscreen().then(() => true).catch(() => false);
+  });
+}
+
+/* ============================================================
+   PRE-FLIGHT — everything the wall needs, checked in one place,
+   fixed in place. Written for the moment before you hand the
+   instrument to strangers in the dark, so each row says what it
+   FOUND, not what it wants.
+   ============================================================ */
+const PRE = {
+  timer: null,
+  open() {
+    document.getElementById('preModal').classList.add('open');
+    SCREENS.probe().then(() => this.render());
+    this.render();
+    clearInterval(this.timer);
+    this.timer = setInterval(() => this.render(), 600);
+  },
+  close() {
+    document.getElementById('preModal').classList.remove('open');
+    clearInterval(this.timer); this.timer = null;
+  },
+  /* Severity is deliberate: BAD is "the show will not work", WARN is "this is
+     probably not what you meant". Nobody rehearsing with a mouse should get a
+     wall of red for having no theremin plugged in. */
+  rows() {
+    const r = [];
+    const ctxOn = AE.ctx && AE.ctx.state === 'running';
+    r.push({ k: 'audio', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
+      txt: !AE.on ? 'muted — SOUND is OFF in the header'
+        : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
+        : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
+        : 'running at ' + (AE.ctx.sampleRate / 1000).toFixed(1) + ' kHz',
+      fix: ctxOn ? null : ['WAKE AUDIO', () => {
+        AE.on = true; AE.ensure();
+        // only restart a voice if a scene is actually up — startVoice reads
+        // PIECES[focus.idx], and focus.idx is -1 on the library wall
+        if (focus.idx >= 0 && typeof startVoice === 'function') startVoice();
+      }] });
+
+    const nq = QUEUE.list.length;
+    r.push({ k: 'queue', label: 'Set list', lvl: nq ? 'ok' : 'warn',
+      txt: nq ? nq + (nq === 1 ? ' scene queued · ' : ' scenes queued · ') + 'opens with ' + QUEUE.titleOf(QUEUE.list[0])
+        : 'empty — the show would fall back to all ' + FAMS.length + ' scenes in library order',
+      fix: ['OPEN QUEUE', () => { this.close(); document.getElementById('queuePop').classList.add('open'); }] });
+
+    const bound = (midi.map.L ? 1 : 0) + (midi.map.R ? 1 : 0);
+    r.push({ k: 'hands', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
+      txt: !midi.access ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
+        : bound === 2 ? 'L and R both bound (' + mapLabel(midi.map.L) + ' · ' + mapLabel(midi.map.R) + ')'
+        : bound === 1 ? 'only ' + (midi.map.L ? 'L' : 'R') + ' is bound — the other hand is dead'
+        : 'MIDI on, but neither hand is bound yet',
+      fix: !midi.access ? ['CONNECT', () => connectMidi()]
+        : ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+
+    const cal = ['L', 'R'].map(sd => midi.cal[sd]);
+    const rested = cal.filter(c => c && c.rest !== null && c.rest !== undefined).length;
+    r.push({ k: 'cal', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
+      txt: !midi.access ? 'not needed without hardware'
+        : rested === 2 ? 'both hands ranged and rested — idle detection is live'
+        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle',
+      fix: midi.access ? ['SET REST', () => startRest()] : null });
+
+    const out = MOut.mode !== 'web';
+    r.push({ k: 'out', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
+      txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
+        : !MOut.port ? 'MIDI out on, but no port selected'
+        : 'sending to ' + MOut.port.name,
+      fix: out ? null : ['SEND MIDI', () => { AE.ensure(); MOut.setMode('both'); }] });
+
+    r.push({ k: 'clock', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
+      txt: !out ? 'browser transport only' :
+        !MOut.clock.on ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
+        : MOut.clock.running ? 'driving Live at ' + T.bpm + ' BPM — this app is the tempo master'
+        : 'clock out armed — drives Live from the moment a scene opens (Live: port Sync on, EXT lit)',
+      fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
+
+    const projOn = typeof PROJ !== 'undefined' && PROJ.on;
+    r.push({ k: 'frame', label: 'Frame', lvl: projOn ? 'ok' : 'warn',
+      txt: projOn ? '1920×1200 · 1.60 — the frame the projectors get'
+        : 'window frame — scenes are composed in a shape the wall never plays',
+      fix: projOn ? null : ['USE SHOW FRAME', () => { if (typeof setProj === 'function') setProj(true); }] });
+
+    r.push({ k: 'screen', label: 'Display',
+      lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
+      txt: this.screenText(), screenPicker: true });
+    return r;
+  },
+  screenText() {
+    if (!SCREENS.supported()) return 'this browser cannot list displays — drag the window onto the projector, then start';
+    if (SCREENS.denied) return 'permission denied — allow window management, or drag the window onto the projector';
+    const list = SCREENS.list();
+    if (!list.length) return 'checking displays…';
+    const t = SCREENS.target();
+    if (list.length === 1) return 'one display (' + SCREENS.label(list[0]) + ') — the show goes here';
+    if (!t) return list.length + ' displays — pick which one gets the show';
+    return SCREENS.aimedInternal()
+      ? 'aimed at the BUILT-IN screen (' + SCREENS.chosen + ') — the projector will not get the show'
+      : 'show goes to ' + SCREENS.chosen;
+  },
+  render() {
+    const box = document.getElementById('preRows');
+    if (!box) return;
+    const rows = this.rows();
+    box.innerHTML = rows.map(row => `<div class="prow ${row.lvl}" data-k="${row.k}">
+      <span class="dot"></span><span class="plabel">${row.label}</span>
+      <span class="pstat">${row.txt}</span>
+      ${row.screenPicker ? '<select id="preScreenSel"></select>' : ''}
+      ${row.fix ? `<button data-fix="${row.k}">${row.fix[0]}</button>` : ''}
+    </div>`).join('');
+    box.querySelectorAll('button[data-fix]').forEach(b => b.addEventListener('click', () => {
+      const row = rows.find(x => x.k === b.dataset.fix);
+      if (row && row.fix) { row.fix[1](); this.render(); }
+    }));
+    const sel = document.getElementById('preScreenSel');
+    if (sel) {
+      const list = SCREENS.list();
+      sel.style.display = list.length > 1 ? '' : 'none';
+      sel.innerHTML = list.map(sc => {
+        const l = SCREENS.label(sc);
+        return `<option value="${l}"${l === SCREENS.chosen ? ' selected' : ''}>${l}</option>`;
+      }).join('');
+      sel.addEventListener('change', e => { SCREENS.pick(e.target.value); this.render(); });
+    }
+    const note = document.getElementById('preScreenNote');
+    if (note) {
+      note.textContent = SCREENS.supported()
+        ? 'One tab renders one picture: choosing a display sends the SHOW there, it does not give you a second control window. During the show, PANELS (or H) brings the hands/MIDI/console back over the picture, and the DBG tab at the bottom is the truth window.'
+        : 'Display picking needs Chrome’s window-management support. Without it: drag this window onto the projector screen first, then start the show.';
+    }
+  },
+  worst() {
+    const lv = this.rows().map(r => r.lvl);
+    return lv.includes('bad') ? 'bad' : lv.includes('warn') ? 'warn' : 'ok';
   }
 };
 
@@ -98,10 +458,36 @@ const FAV = {
    BOOT — build the wall, run the loop
    ============================================================ */
 const grid = document.getElementById('grid');
-// "active" = the owned shortlist (OWNERS) — drives the default sort + ACTIVE filter
-const ACTIVE_ORDER = ['SRC-18', 'SRC-30', 'SRC-04', 'SRC-15', 'SRC-10', 'SRC-01', 'SRC-34', 'SRC-32', 'SRC-09'];
-const famRank = f => { const i = ACTIVE_ORDER.indexOf(f); return i < 0 ? 999 : i; };
+/* WHERE THE LOVE WENT — the default library order.
+   A hand-maintained "active" list went stale the moment nobody updated it, so
+   the wall now derives its own answer from two things it already knows:
+     RECENCY — a new version is a new part file appended to the build, so the
+       highest PIECES index in a family tracks how recently it was touched.
+       (Proxy, not a timestamp: parts carry no dates. Close enough that the
+       scenes people are actually working on float, which is the point.)
+     DEPTH  — how many versions the family has, on a log curve so an 18-version
+       obsession doesn't bury a 6-version scene that got real attention.
+   Recency leads, because a scene worked on last week matters more to the set
+   than one that was iterated hard a year ago and dropped. */
+const LOVE = new Map();
+function computeLove() {
+  let maxIdx = 1, maxVer = 1;
+  FAMS.forEach(F => {
+    const idx = Math.max(...F.entries.map(e => e.idx));
+    maxIdx = Math.max(maxIdx, idx);
+    maxVer = Math.max(maxVer, F.entries.length);
+  });
+  FAMS.forEach(F => {
+    const recency = Math.max(...F.entries.map(e => e.idx)) / maxIdx;
+    const depth = Math.log(F.entries.length) / Math.log(maxVer);
+    LOVE.set(F.fam, 0.55 * recency + 0.45 * depth);
+  });
+}
+const loveRank = f => 1000 - Math.round((LOVE.get(f) || 0) * 1000);   // low = most loved
 const insts = [];
+// tile thumbnails render in the projector frame's exact shape (16:10, like
+// 1920x1200) at thumbnail density — 420x264 was 1.59, close but a lie
+const TILE_W = 416, TILE_H = 260;
 const ioMap = new Map();
 const io = ('IntersectionObserver' in window) ? new IntersectionObserver(entries => {
   for (const en of entries) {
@@ -120,16 +506,16 @@ const FAMS = [];
     FAMS[fi.get(f)].entries.push({ def, idx: i });
   });
   FAMS.forEach(F => F.entries.sort((a, b) => (a.def.ver || 1) - (b.def.ver || 1)));
-  FAMS.sort((a, b) => famRank(a.fam) - famRank(b.fam)); // stable: library keeps its order
+  computeLove();
+  FAMS.sort((a, b) => loveRank(a.fam) - loveRank(b.fam)); // most worked on first
 }
 
 FAMS.forEach(F => {
   const tile = document.createElement('div');
   tile.className = 'tile';
   tile.dataset.pid = F.fam;
-  const own = OWNERS[F.fam];
   tile.innerHTML = `
-    <div class="tile-head"><span class="tid">${F.fam}</span><span class="ttag"></span>${TOP12.has(F.fam) ? '<span class="owner t12">★ TOP 12</span>' : ''}${own ? `<span class="owner ${own.toLowerCase()}">${own}</span>` : ''}<select class="vsel" style="display:none" title="version history"></select><button class="star" title="add to shortlist">☆</button></div>
+    <div class="tile-head"><span class="tid">${F.fam}</span><span class="ttag"></span><select class="vsel" style="display:none" title="version history"></select><button class="qbox" title="add to the performance queue"></button></div>
     <div class="cwrap"><canvas></canvas><span class="hoverhint">FOCUS ▸</span></div>
     <div class="tbody">
       <h3></h3>
@@ -146,7 +532,7 @@ FAMS.forEach(F => {
   grid.appendChild(tile);
   const cv = tile.querySelector('canvas');
   tile.cur = F.entries[F.entries.length - 1]; // latest version selected by default
-  let P = makeInstance(tile.cur.def, cv, 420, 264);
+  let P = makeInstance(tile.cur.def, cv, TILE_W, TILE_H);
   const ti = insts.length;
   insts.push(P);
   if (io) { ioMap.set(cv, P); io.observe(cv); }
@@ -163,7 +549,7 @@ FAMS.forEach(F => {
       vs.innerHTML = F.entries.map(e => `<option value="${e.def.ver || 1}"${e === tile.cur ? ' selected' : ''}>V${e.def.ver || 1}</option>`).join('');
     } else vs.style.display = 'none';
     // searchable text for the library bar
-    tile.dataset.search = (F.fam + ' ' + en.def.title + ' ' + en.def.tech + ' ' + (en.def.tags || []).join(' ') + ' ' + (OWNERS[F.fam] || '') + ' ' + en.def.desc).toLowerCase();
+    tile.dataset.search = (F.fam + ' ' + en.def.title + ' ' + en.def.tech + ' ' + (en.def.tags || []).join(' ') + ' ' + en.def.desc).toLowerCase();
   };
   setText(tile.cur);
   tile.querySelector('.vsel').addEventListener('click', e => e.stopPropagation());
@@ -171,18 +557,18 @@ FAMS.forEach(F => {
     const en = F.entries.find(x => (x.def.ver || 1) === +e.target.value);
     if (!en || en === tile.cur) return;
     tile.cur = en;
-    P = makeInstance(en.def, cv, 420, 264);
+    P = makeInstance(en.def, cv, TILE_W, TILE_H);
     insts[ti] = P;
     if (io) ioMap.set(cv, P);
     setText(en);
-    FAV.refresh();
+    QUEUE.refresh();
   });
   tile.querySelector('.morelink').addEventListener('click', e => {
     e.stopPropagation();
     const on = tile.classList.toggle('exp');
     e.target.textContent = on ? 'less' : 'more';
   });
-  tile.querySelector('.star').addEventListener('click', e => { e.stopPropagation(); FAV.toggle(F.fam); });
+  tile.querySelector('.qbox').addEventListener('click', e => { e.stopPropagation(); QUEUE.toggle(F.fam); });
   tile.querySelector('.cwrap').addEventListener('click', () => openFocus(tile.cur.idx));
   tile.querySelector('[data-act=focus]').addEventListener('click', () => openFocus(tile.cur.idx));
   tile.querySelector('[data-act=regen]').addEventListener('click', () => insts[ti].reinit((Math.random() * 1e9) | 0));
@@ -220,6 +606,7 @@ document.getElementById('midiOutSel').addEventListener('change', e => {
   MOut.port = outs[+e.target.value] || null;
   try { if (MOut.port) localStorage.setItem('srcOutPort', MOut.port.name); } catch (err) {}
 });
+document.getElementById('btnClock').addEventListener('click', () => MOut.clockSet(!MOut.clock.on));
 setInterval(() => MOut.refreshUI(), 1500);
 // act hotkeys — keys 1-4 jump acts inside a focused journey piece (smooth-fades there)
 window.addEventListener('keydown', e => {
@@ -319,7 +706,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
 function applyLibrary() {
   const q = (document.getElementById('searchBox').value || '').trim().toLowerCase();
   const sort = document.getElementById('sortSel').value;
-  const activeShort = FAV.shared || FAV.set;
+  const inSet = QUEUE.shared || QUEUE.list;
   const tiles = [...grid.children];
   const titleSorted = tiles.slice().sort((a, b) =>
     a.querySelector('h3').textContent.localeCompare(b.querySelector('h3').textContent));
@@ -329,31 +716,36 @@ function applyLibrary() {
     const id = tile.dataset.pid;
     let show = !q || (tile.dataset.search || '').includes(q);
     if (show) {
-      if (libFilter === 'fav') show = activeShort.has(id);
-      else if (libFilter === 'top12') show = TOP12.has(id);
-      else if (libFilter === 'active') show = !!OWNERS[id];
-      else if (libFilter === 'KASIA' || libFilter === 'NIMA' || libFilter === 'LANCE') show = OWNERS[id] === libFilter;
+      if (libFilter === 'queue') show = inSet.indexOf(id) >= 0;
     }
     tile.style.display = show ? '' : 'none';
     if (show) shown++;
     const src = +((id.match(/\d+/) || [999])[0]);
     const vers = (tile.querySelector('.vsel').options.length) || 1;
     let ord;
+    // Queued scenes deliberately DO NOT jump to the front. Ticking a checkbox
+    // used to re-sort the grid under the cursor, so the tile you just clicked
+    // shot away and you could not confirm what you had done. The queue drawer
+    // and the IN QUEUE chip are where you review the set; the wall holds still.
     if (sort === 'id') ord = src;
     else if (sort === 'title') ord = tRank.get(tile);
     else if (sort === 'ver') ord = -vers * 100 + src;
-    else ord = famRank(id) * 1000 + (FAV.set.has(id) ? 0 : 500) + src; // active first, your stars float
+    else ord = loveRank(id) * 10 + src;   // most worked on first
     tile.style.order = Math.round(ord);
   });
   document.getElementById('libCount').textContent = shown + ' scenes';
 }
+document.getElementById('btnPreClose').addEventListener('click', () => PRE.close());
+document.getElementById('preModal').addEventListener('click', e => { if (e.target.id === 'preModal') PRE.close(); });
+// START goes even with warnings on the board — they are judgement calls, not blocks
+document.getElementById('btnPreStart').addEventListener('click', () => { PRE.close(); QUEUE.play(true); });
 document.getElementById('searchBox').addEventListener('input', applyLibrary);
 document.getElementById('sortSel').addEventListener('change', applyLibrary);
 document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => {
   libFilter = c.dataset.f === libFilter ? 'all' : c.dataset.f;
-  if (libFilter !== 'fav') FAV.shared = null;
+  if (libFilter !== 'queue') QUEUE.shared = null;
   syncChips();
-  FAV.refresh();
+  QUEUE.refresh();
 }));
 
 // MAP popover — the source's hardware bindings live here (library AND scene view)
@@ -509,12 +901,15 @@ document.getElementById('oActs').addEventListener('click', e => {
     resetRotation();
   });
   // THE SET LIST — starring a card on the wall is how a scene makes the show
+  // The queue, in queue order — not wall order. This is the whole point of it:
+  // a set list is dramaturgy, and the old one was sorted by SRC number.
+  // Empty queue still falls back to the wall so the app is never dead-ended.
   const showList = () => {
-    const tiles = [...grid.children]
+    const queued = QUEUE.list.map(id => QUEUE.tileFor(id)).filter(Boolean);
+    if (queued.length) return queued;
+    return [...grid.children]
       .filter(t2 => t2.style.display !== 'none')
       .sort((a2, b2) => (+a2.style.order || 0) - (+b2.style.order || 0));
-    const starred = tiles.filter(t2 => FAV.set.has(t2.dataset.pid));
-    return starred.length ? starred : tiles;
   };
   const step = (dir) => {
     if (focus.idx < 0) return;
@@ -558,8 +953,15 @@ document.getElementById('oActs').addEventListener('click', e => {
     };
     const secs = rotAt ? Math.max(0, Math.round((rotAt - Date.now()) / 1000)) : 0;
     const mmss = rotAt ? String(Math.floor(secs / 60)) + ':' + String(secs % 60).padStart(2, '0') : '—';
+    const hand = side => {
+      const m = midi.map[side], cal = midi.cal[side];
+      if (!m) return side + ':—';
+      return side + ':' + mapLabel(m) +
+        (cal ? '[' + cal.lo.toFixed(2) + '-' + cal.hi.toFixed(2) + (cal.inv ? ' INV' : '') +
+          (cal.rest !== null && cal.rest !== undefined ? ' rest' + cal.rest.toFixed(2) : ' NO-REST') + ']' : '[uncal]');
+    };
     const inMap = (midi.map.L || midi.map.R)
-      ? 'L:' + (midi.map.L ? 'cc' + midi.map.L.cc : '—') + ' R:' + (midi.map.R ? 'cc' + midi.map.R.cc : '—')
+      ? hand('L') + ' ' + hand('R')
       : 'unmapped (MAP → LEARN)';
     body.textContent =
       'SCENE  ' + (d ? d.id + ' · ' + d.title : '—') + (st && d && d.acts ? '\nACT    ' + d.acts[st.act] : '') +
@@ -567,12 +969,23 @@ document.getElementById('oActs').addEventListener('click', e => {
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
       '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
-      '\nNEXT SCENE ' + mmss + '   FPS ' + fps;
+      '\nCLK→LIVE ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'DRIVING ' + T.bpm + ' BPM' : 'armed (no transport)') +
+      '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
+      // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
+      (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
+        (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') +
+        (typeof VIEW !== 'undefined' ? ' · ' + VIEW.mode.toUpperCase() : '') : '');
   }, 500);
 })();
 // live indicators: act chip highlight + now-playing role dots
 setInterval(() => {
   if (focus.idx < 0) return;
+  const fi = document.getElementById('frameInfo');
+  if (fi && focus.P) {
+    const txt = focus.P.w + '×' + focus.P.h + ' · ' + (focus.P.w / focus.P.h).toFixed(2) +
+      (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : ' · window');
+    if (fi.textContent !== txt) fi.textContent = txt;
+  }
   const el = document.getElementById('oActs');
   if (el && el.children.length && focus.P && focus.P.state) {
     const a2 = focus.P.state.act || 0;
@@ -594,7 +1007,39 @@ setInterval(() => {
   }
 }, 300);
 
-FAV.boot();
+QUEUE.boot();
+// VIEW dropdown — the discoverable face of the view modes (V still cycles)
+(() => {
+  const vs = document.getElementById('viewSel');
+  if (!vs) return;
+  setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
+                      // scrimmode class that reveals the vantage chips
+  vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
+})();
+// PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the
+// PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
+// for debugging. The choice persists across scenes and visits.
+(() => {
+  let panels = false;
+  try { panels = localStorage.getItem('srcPanels') === '1'; } catch (e) {}
+  const apply = () => overlay.classList.toggle('perf', !panels); // .perf only bites under .fs
+  const flip = () => {
+    panels = !panels;
+    try { localStorage.setItem('srcPanels', panels ? '1' : '0'); } catch (e) {}
+    apply();
+  };
+  // starting a show must not inherit yesterday's debugging layout
+  window.setPanels = on => { panels = !!on; apply(); };
+  const pt = document.getElementById('panelTab');
+  if (pt) pt.addEventListener('click', flip);
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (focus.idx < 0 || !overlay.classList.contains('fs')) return;
+    if (e.key === 'h' || e.key === 'H') flip();
+  });
+  apply();
+})();
 // theme — light matches the camper portal (default); dark is stage mode
 (() => {
   let th = 'light';
@@ -647,14 +1092,28 @@ function frame(ts) {
     try {
       P.def.step(P, dt, t, inp);
       P.def.draw(P, P.g, P.w, P.h, t, inp);
-      // composite scene → display with non-destructive post-FX
+      // composite scene → display per the VIEW mode (dropdown / V key)
       const fg = focus.fctx;
       if (fg) {
-        fg.drawImage(P.canvas, 0, 0);
-        const fx = P.def.fx;
-        if (fx) {
-          if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
-          if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+        const vm = (typeof VIEW !== 'undefined') ? VIEW.mode : 'flat';
+        const scrimOK = window.SCRIMVIEW && typeof THREE !== 'undefined';
+        if ((vm === 'scrim' || vm === 'scrim3d') && scrimOK) {
+          SCRIMVIEW.render(fg, P, t);   // the frame thrown into The Cave
+        } else {
+          fg.drawImage(P.canvas, 0, 0);
+          if (vm === 'double') {
+            // the second projector's ghost — cloned signal, worst-case
+            // misregistration of ~0.8% of the frame width
+            fg.save();
+            fg.globalCompositeOperation = 'lighter'; fg.globalAlpha = 0.45;
+            fg.drawImage(P.canvas, Math.max(2, Math.round(P.w * 0.008)), 0);
+            fg.restore();
+          }
+          const fx = P.def.fx;
+          if (fx) {
+            if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
+            if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+          }
         }
       }
     } catch (e) { console.error(P.def.id, e); }
