@@ -5,9 +5,25 @@ description: Build or revise a scene (visual+sound instrument) for the SOURCE In
 
 # Scene Craft — how SOURCE scenes are built
 
+## THE EXPERIENCE (why any of the rules below exist)
+A dark room on playa. A stranger walks to a pedestal, moves two hands in the
+air, and the room answers — light on fabric, sound in the body — instantly
+enough that they KNOW it's them. Every scene serves four listeners at once:
+1. **The stranger** — proof of agency inside one second. Sound is faster than
+   sight; if the first gesture doesn't audibly answer, we lost them.
+2. **The player** — the instrument carries the musicianship (key, grid,
+   voicing); no wrong notes exist. What's left is INTENTION — timing,
+   phrasing, restraint — so there is something to get good at.
+3. **The room** — most people present aren't playing. The scene is their
+   atmosphere: beautiful unattended, quiet enough to talk over when small,
+   and it makes the player look like a performer.
+4. **The musician who sits in** — in key, on our clock, with rhythmic and
+   frequency room deliberately left EMPTY for them.
+The bar: satisfying as fuck to play, professional-sounding, legible on mesh
+scrim at night. An instrument, not a game; a song, not a screensaver.
+When a rule below conflicts with this section, this section wins.
+
 Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
-The bar: satisfying as fuck to play, jammable with live musicians, and legible
-projected on mesh scrim at night. It should feel like an instrument, not a game.
 
 ## The design laws (learned the hard way — don't relearn them)
 
@@ -37,6 +53,24 @@ roads; radial and field compositions survive slicing. Slow-to-medium motion;
 the fabric punishes velocity. Two projectors overlap → bright elements get
 depth-echoed: fields, swarms, rings benefit; text and frames die. Saturated
 hues; mesh eats ~half the light.
+
+## The frame is 1920×1200 (16:10) — compose for THAT
+The show is ONE WUXGA render, fullscreen, cloned to both PT-VMZ50s off the
+splitter: the scene is handed `P.w=1920, P.h=1200`, aspect **1.60**, and
+`areaScale(P) = 4.56`. A browser window is nothing like it — windowed, the
+stage is a ~1280×400 letterbox strip (aspect 3.2, areaScale 2.1), so a scene
+tuned there is composed in a frame it will never play in and at HALF the
+density it gets live. Two consequences:
+- **The projector frame is the default.** The focus stage and the tile
+  thumbnails render 16:10 everywhere (stage = exactly 1920×1200, letterboxed
+  into the window); the harnesses (`tools/shot.mjs`, `tools/playtest.js`)
+  shoot that frame. `?win` or `P` on the stage opts out when you want a
+  native-window canvas. The DBG strip's `FRAME` line tells you what you've
+  got — `1920×1200 · 1.60 · PROJ` is the show.
+- **Write geometry that reflows**: fractions of `w`/`h`, `Math.min(w,h)` for
+  radii, `areaScale(P)` for counts. Never hardcode pixel sizes or element
+  counts tuned to one window, and never let a composition depend on a wide
+  strip (a horizon band 400px tall reads as a stripe at 1200).
 
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
@@ -76,7 +110,8 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
 5. Sound: voices follow the visual state 1:1 (a bloom = a voice; its side =
    its pan). If a thing lights up, it should sound; if it sounds, light it up.
 6. Assemble (`bash tools/build.sh`), then SIGHTED VERIFICATION (see CLAUDE.md):
-   screenshot idle / tight / one-sided / full states and READ them. Iterate
+   screenshot idle / tight / one-sided / full states — in the 1920×1200
+   projector frame, which is what the harnesses shoot — and READ them. Iterate
    until the stills match the intent — assumptions about rendered output are
    wrong about half the time (fog, tonemapping, scale, and pivot bugs hide).
 7. Capture a short GIF of the money interaction for the group chat.
@@ -97,4 +132,6 @@ past ~200 units.
 - Is there a reason to stay 3 minutes (a build, a discovery, a rare event)?
 - Did this revision REMOVE at least as much as it added?
 - Does it read at 20% brightness on a black background with fat marks?
+- Press `V` (scrim view): does it survive slicing into 18″ strips, the
+  two-projector double image, and the mesh eating half the light?
 - Is the MIDI mirror complete (every audible event has an evNote/evDrum)?

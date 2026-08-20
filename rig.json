@@ -1,0 +1,42 @@
+{
+  "_readme": [
+    "THE RIG — what is actually on the other end of each MIDI channel.",
+    "",
+    "The browser's contract is fixed: nine ROLES on nine channels, CC74 per",
+    "channel as that layer's energy, CC1/CC2 the raw hands, MIDI clock for",
+    "tempo. This file is the OTHER half of the contract: what instrument sits",
+    "on each channel in the Live set, how it sounds, and when a scene should",
+    "reach for it. It is design-time knowledge, not runtime — nothing in the",
+    "page reads it. It exists so a Claude session designing a scene's sound",
+    "can write for YOUR rack instead of an imaginary one, and so the three of",
+    "you agree on what channel 5 IS.",
+    "",
+    "Fill in `instrument` (device/preset name as it appears in Live),",
+    "`character` (how it actually sounds — dark/glassy/plucky/breathy...),",
+    "and `use` (when a scene should want it). Honest beats aspirational:",
+    "describe the patch you have, not the one you plan.",
+    "",
+    "Keep it current the cheap way: change the Live set → update this file in",
+    "the same breath, commit both. A Claude session can also scaffold this",
+    "file from the .als itself (it is gzipped XML — drop it in the repo and",
+    "ask), or eventually via an Ableton MCP link. Until then, hand-edited.",
+    "",
+    "Per-track convention that makes CC74 work everywhere: each track is an",
+    "Instrument Rack whose MACRO 1 is mapped to the patch's brightness/cutoff,",
+    "and CC74 on that channel drives Macro 1. Swap the instrument inside the",
+    "rack freely — the mapping survives."
+  ],
+  "port": "IAC Driver Bus 1",
+  "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
+  "roles": {
+    "lead":    { "ch": 1,  "instrument": "", "character": "", "use": "melodic triggers — plucks, tones, answers" },
+    "pad":     { "ch": 2,  "instrument": "", "character": "", "use": "sustained voice-led chords; glides on chord changes" },
+    "bass":    { "ch": 3,  "instrument": "", "character": "", "use": "root movement; keep the sub for the wall" },
+    "arp":     { "ch": 4,  "instrument": "", "character": "", "use": "sequenced 16th patterns (Night Circuit etc.)" },
+    "bells":   { "ch": 5,  "instrument": "", "character": "", "use": "chimes, sparkles, rain-on-gong one-shots" },
+    "texture": { "ch": 6,  "instrument": "", "character": "", "use": "the continuous-voice mirror: every scene's drones and films land here as held notes, CC74 = pooled voice energy" },
+    "perc":    { "ch": 10, "instrument": "", "character": "", "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness" },
+    "sfx":     { "ch": 11, "instrument": "", "character": "", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain" },
+    "bed":     { "ch": 12, "instrument": "", "character": "", "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades" }
+  }
+}

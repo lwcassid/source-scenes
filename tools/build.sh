@@ -7,9 +7,16 @@ set -e
 cd "$(dirname "$0")/.."
 {
   cat parts/part1_head.html
+  # SHARED SET LISTS — setlists.json is the coordination file (see its _readme).
+  # Baking it in is what carries the running order onto the OFFLINE show
+  # artifact; a fetch would die the moment the laptop leaves the internet.
+  printf 'const SETLISTS = '
+  cat setlists.json
+  printf ';\n'
   cat parts/part2_core.js
   cat parts/part2b_music.js
   cat parts/part2c_midiout.js
+  cat parts/part2d_scrimview.js
   cat parts/part3_pieces_a.js
   cat parts/part4_pieces_b.js
   cat parts/part6_pieces_c.js
@@ -40,6 +47,7 @@ cd "$(dirname "$0")/.."
   cat parts/part32_fb10.js
   cat parts/part33_fb11.js
   cat parts/part34_fb12.js
+  cat parts/part35_fb13.js
   cat parts/part35_sg3.js
   cat parts/part36_sg4.js
   cat parts/part37_sg5.js
@@ -98,10 +106,23 @@ cd "$(dirname "$0")/.."
   cat parts/part94_lumen15.js
   cat parts/part95_lumen16.js
   cat parts/part96_lumen17.js
+  cat parts/part95_fb14.js
+  cat parts/part96_fb15.js
+  cat parts/part97_fb16.js
+  cat parts/part98_fb17.js
+  cat parts/part99_fb18.js
+  cat parts/part100_ridge4.js
+  cat parts/part101_ridge5.js
+  cat parts/part102_ridge6.js
+  cat parts/part103_ridge7.js
+  cat parts/part100_chladni3.js
+  cat parts/part101_chladni4.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
 } > index.html
+# setlists.json is hand-edited (and Claude-edited) — fail loudly, not at runtime
+python3 -c "import json,sys; json.load(open('setlists.json'))" || { echo "BUILD FAILED: setlists.json is not valid JSON"; exit 1; }
 # syntax check the assembled script
 python3 - <<'EOF'
 import re

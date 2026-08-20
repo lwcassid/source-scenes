@@ -6,11 +6,12 @@ const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const outPrefix = process.argv[2] || 'cam';
 const spec = (process.argv[3] || 'chase:0:0:0:0:9000').split(',');
 const b = await chromium.launch({ executablePath: EXE, headless: true, args: ['--enable-unsafe-swiftshader','--autoplay-policy=no-user-gesture-required','--use-gl=swiftshader','--no-sandbox'] });
-const p = await b.newPage({ viewport: { width: 1280, height: 760 } });
+const PROJ = process.env.PROJ !== '0'; // shoot the real 1920x1200 show frame
+const p = await b.newPage({ viewport: PROJ ? { width: 1920, height: 1200 } : { width: 1280, height: 760 } });
 p.on('pageerror', e => console.log('PAGEERR:', e.message));
-await p.goto('file://' + path.resolve('night-circuit-preview.html'), { waitUntil: 'load', timeout: 60000 });
+await p.goto('file://' + path.resolve('night-circuit-preview.html') + (PROJ ? '?proj' : '?win'), { waitUntil: 'load', timeout: 60000 });
 await p.waitForTimeout(2500);
-await p.evaluate(() => { const i = PIECES.findIndex(x => x.id === 'SRC-18.17'); openFocus(i); });
+await p.evaluate(() => { document.getElementById('overlay').classList.add('fs', 'zen'); const i = PIECES.findIndex(x => x.id === 'SRC-18.17'); openFocus(i); });
 await p.waitForTimeout(3200);
 for (const st of spec) {
   const [label, cam, L, R, act, ms] = st.split(':');

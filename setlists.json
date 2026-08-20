@@ -1,0 +1,34 @@
+{
+  "_readme": [
+    "SHARED SET LISTS — the coordination file. This is the memory.",
+    "",
+    "The queue in your browser is your own scratch pad (localStorage). This file",
+    "is what the three of you agree on: it is committed, so git is the sync, the",
+    "diff is the history, and a merge conflict is a real conversation about the",
+    "set rather than two people silently overwriting each other.",
+    "",
+    "It is baked into index.html at build time, which is the point — the OFFLINE",
+    "show artifact carries the set list with it, so a fresh show laptop on playa",
+    "opens with the real running order instead of 43 scenes sorted by number.",
+    "",
+    "TO CHANGE A SET: build it in the browser, hit COPY FOR REPO in the QUEUE",
+    "drawer, paste the block in here (or just hand it to Claude in a session and",
+    "say which set it is), then commit and push. Order matters — it IS the",
+    "running order.",
+    "",
+    "`default: true` marks the set a browser with no queue of its own loads."
+  ],
+  "sets": [
+    {
+      "name": "SURVEY THREE",
+      "default": true,
+      "note": "STRIKE / STRUM / SUSTAIN — the three from docs/INSTRUMENT-SURVEY.md, chosen for three different verbs and maximum diversity. A starting point that came out of the survey, NOT a decision anyone has made. Replace it.",
+      "scenes": ["SRC-30", "SRC-04", "SRC-20"]
+    },
+    {
+      "name": "MOST WORKED ON",
+      "note": "The scenes with the most love in them by the wall's own weighting — useful for showing people what the library is, less considered as a performance arc.",
+      "scenes": ["SRC-15", "SRC-38", "SRC-10", "SRC-30", "SRC-42", "SRC-32"]
+    }
+  ]
+}
