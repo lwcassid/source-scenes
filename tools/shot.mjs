@@ -4,6 +4,9 @@
 //   L/R are hand values (0..1, reach OUTWARD = higher = 1). act -1 = leave.
 // Renders night-circuit-preview.html headless (swiftshader) and screenshots
 // each state after settling. Re-issues hand values every 500ms (live decays).
+// SHOOTS THE SHOW FRAME: 1920x1200 / 16:10, the WUXGA render both PT-VMZ50s
+// get. `?proj` pins the canvas to exactly that, so composition AND density
+// (areaScale) match the wall. PROJ=0 in the env falls back to a plain window.
 import { chromium } from 'playwright-core';
 import path from 'path';
 
@@ -11,7 +14,8 @@ const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const pieceId = process.argv[2] || 'SRC-18.16';
 const outPrefix = process.argv[3] || 'v16';
 const spec = (process.argv[4] || 'full:0:0:1:0:3500').split(',');
-const fileUrl = 'file://' + path.resolve('night-circuit-preview.html');
+const PROJ = process.env.PROJ !== '0';
+const fileUrl = 'file://' + path.resolve('night-circuit-preview.html') + (PROJ ? '?proj' : '?win');
 
 const browser = await chromium.launch({
   executablePath: EXE,
@@ -19,12 +23,16 @@ const browser = await chromium.launch({
   args: ['--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required',
          '--use-gl=swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'],
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
+const page = await browser.newPage(PROJ
+  ? { viewport: { width: 1920, height: 1200 } }   // 1:1 with the projector output
+  : { viewport: { width: 1280, height: 760 } });
 page.on('pageerror', e => console.log('PAGEERR:', e.message));
 await page.goto(fileUrl, { waitUntil: 'load', timeout: 60000 });
 await page.waitForTimeout(2500); // let three + GLBs settle
 
 const idx = await page.evaluate((id) => {
+  // fs+zen = SHOWTIME: the stage owns every pixel and the chrome is invisible
+  document.getElementById('overlay').classList.add('fs', 'zen');
   const i = (typeof PIECES !== 'undefined') ? PIECES.findIndex(p => p.id === id) : -1;
   if (i >= 0) openFocus(i);
   return i;

@@ -1,0 +1,48 @@
+{
+  "_source": "thecave.up.railway.app/portal/planner/12 — 'Cave Layout 2026' by Elyse Lefebvre, updated 2026-08-10. Extract of the planner API response: the cells grid (duxel structure) is summarized in _structure; decor/cables/canvases are verbatim. Units: feet; duxel = 8 ft. Planner axes: x -8..16 (24 ft interior width), z -16..16 (32 ft cable span), entrance at +z. Regenerate the sim rig with tools/cave2rig.py.",
+  "_structure": {
+    "interior": "3 duxels wide x 4 deep between cable anchors (24 x 32 ft)",
+    "walls": "1-story (8 ft) duxel perimeter; 2-story (16 ft) towers flanking the entrance (+z) and at the back center",
+    "cableHeight": 16
+  },
+  "decor": [
+    {"id":"decor-1-1781986784722","position":[3.8318718329883614,-17.200513597747292],"rotation":0,"decorType":"subwoofer"},
+    {"id":"decor-1-1783653061993","baseY":8,"position":[-8,16],"rotation":0,"decorType":"speaker"},
+    {"id":"decor-2-1783653064711","baseY":8,"position":[16,-16],"rotation":0,"decorType":"speaker"},
+    {"id":"decor-3-1783653067157","baseY":8,"position":[-8,-16],"rotation":0,"decorType":"speaker"},
+    {"id":"decor-4-1783653071877","baseY":8,"position":[16,16],"rotation":0,"decorType":"speaker"},
+    {"id":"decor-5-1783653097199","baseY":16,"position":[16,-24],"rotation":0,"decorType":"floodlight"},
+    {"id":"decor-6-1783653100916","baseY":16,"position":[-8,-24],"rotation":0,"decorType":"floodlight"},
+    {"id":"decor-7-1783653168860","baseY":16,"position":[-8,-24],"rotation":0,"decorType":"floodlight"},
+    {"id":"decor-8-1783653177981","baseY":16,"position":[-8,24],"rotation":0,"decorType":"floodlight"},
+    {"id":"decor-9-1783653180016","baseY":16,"position":[16,24],"rotation":0,"decorType":"floodlight"},
+    {"id":"decor-1-1786319830174","heightFt":5.416666666666666,"position":[2.482103946350022,34.76934784640556],"rotation":0,"decorType":"person"},
+    {"id":"decor-1-1786324837199","baseY":16,"width":4.5,"cableT":0.3808413467508734,"length":16,"cableId":"cable-2-1786324789149","position":[1.1401851421705134,-5.625781277125505],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-2-1786324847732","baseY":16,"width":4.5,"cableT":0.21164729988235964,"length":16,"cableId":"cable-3-1786324794766","position":[-2.9206197961427396,-10.316613370095972],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-3-1786324855032","baseY":16,"width":4.5,"cableT":0.807459705061285,"length":16,"cableId":"cable-3-1786324794766","position":[11.379160647620502,-10.316613370095972],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-4-1786324888032","baseY":16,"width":1.5,"cableT":0.13993724839818308,"length":10.5,"cableId":"cable-3-1781500413687","position":[-4.641542542868836,11.522056723825115],"rotation":53.13010235415362,"decorType":"fabric-18"},
+    {"id":"decor-5-1786324890832","baseY":16,"width":1.5,"cableT":0.8566622962390903,"length":10,"cableId":"cable-4-1781500418720","position":[12.560105083726786,11.413473444969046],"rotation":-53.130102354165324,"decorType":"fabric-18"},
+    {"id":"decor-6-1786324895049","baseY":16,"width":1.5,"cableT":0.29499352385733485,"length":10,"cableId":"cable-1-1786324782817","position":[-0.9201894272010871,8.149516525142957],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-7-1786324897766","baseY":16,"width":1.5,"cableT":0.6996267286237999,"length":10.5,"cableId":"cable-1-1786324782817","position":[8.79114424681962,8.149516525142957],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-8-1786324902831","baseY":16,"width":1.5,"cableT":0.5117150930921434,"length":8,"cableId":"cable-1-1786324782817","position":[4.281168971653402,8.149516525142957],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-9-1786324953431","locked":true,"position":[4.229583576054667,-1.5488183796877983],"rotation":0,"decorType":"obelisk"},
+    {"id":"decor-1-1786325222612","baseY":16,"width":4.5,"cableT":0.6399396328096407,"length":16,"cableId":"cable-2-1786324789149","position":[7.3585857621857595,-5.625781277125505],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-2-1786325240829","baseY":16,"width":1.5,"cableT":0.15670595815294108,"length":8,"cableId":"cable-1-1786325055463","position":[-4.2391231616881875,2.295716927945172],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-3-1786325245887","baseY":16,"width":1.5,"cableT":0.7551083683768884,"length":8,"cableId":"cable-1-1786325055463","position":[10.122760565625097,2.295716927945172],"rotation":0,"decorType":"fabric-18"},
+    {"id":"decor-4-1786325316130","baseY":16,"width":1.5,"cableT":0.5090667087514814,"length":8,"cableId":"cable-3-1786324794766","position":[4.217605184634346,-10.316613370095972],"rotation":0,"decorType":"fabric-18"}
+  ],
+  "cables": [
+    {"id":"cable-1-1781500400837","label":"Cable 1","anchors":[{"position":[-8,16,-16]},{"position":[-8,16,-16]},{"position":[-8,16,16]}]},
+    {"id":"cable-2-1781500407020","label":"Cable 2","anchors":[{"position":[16,16,-16]},{"position":[16,16,16]}]},
+    {"id":"cable-3-1781500413687","label":"Cable 3","anchors":[{"position":[-8,16,16]},{"position":[16,16,-16]}]},
+    {"id":"cable-4-1781500418720","label":"Cable 4","anchors":[{"position":[-8,16,-16]},{"position":[16,16,16]}]},
+    {"id":"cable-1-1786324782817","label":"Cable 5","anchors":[{"position":[-8,16,8.149516525142957]},{"position":[16,16,8.149516525142957]}]},
+    {"id":"cable-2-1786324789149","label":"Cable 6","anchors":[{"position":[-8,16,-5.625781277125505]},{"position":[16,16,-5.625781277125505]}]},
+    {"id":"cable-3-1786324794766","label":"Cable 7","anchors":[{"position":[-8,16,-10.316613370095972]},{"position":[16,16,-10.316613370095972]}]},
+    {"id":"cable-1-1786325055463","label":"Cable 8","anchors":[{"position":[-8,16,2.295716927945172]},{"position":[16,16,2.295716927945172]}]},
+    {"id":"cable-1-1786325439144","label":"Cable 9","anchors":[{"position":[0,16,16]},{"position":[8,16,16]}]}
+  ],
+  "canvases": [
+    {"id":"canvas-1-1781504560748","color":"#e8dcc8","width":40,"length":40,"anchors":[{"position":[-16,8,-24]},{"position":[24,8,-24]},{"position":[24,8,20]},{"position":[-16,8,16]}],"peak":{"position":[4.547696590423584,17.39023208618164,14.37439250946045]}}
+  ]
+}

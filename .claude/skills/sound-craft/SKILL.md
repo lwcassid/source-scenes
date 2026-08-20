@@ -5,6 +5,21 @@ description: Design or revise the music and sound of a SOURCE scene — the harm
 
 # Sound Craft — how SOURCE scenes sound
 
+## NORTH STAR — the five listening tests
+Judge every scene's sound by PLAYING it and answering honestly; each failure
+names the revision work. (The experience these serve: see scene-craft's
+THE EXPERIENCE section — stranger / player / room / musician.)
+1. **Agency** — blindfold someone, hand them the hands: do they know within
+   3 seconds that THEY are making the sound?
+2. **Record** — 30 seconds of someone playing: does it stand alone as music
+   you'd play at a listening bar, or is it a demo of a tech stack?
+3. **Conversation** — small state: can two people talk at normal volume?
+   Silence is inventory; spend it on payoffs.
+4. **Sit-in** — name the empty beats and the empty frequency band where a
+   guitarist fits. Can't name them = the scene is finished-sounding = fail.
+5. **Arc** — does minute 9 sound different from minute 1? A loop is a
+   screensaver; an instrument accumulates.
+
 A scene's sound is one instrument with three layers. Get the layers right
 and the scene jams with live musicians; get them wrong and it's a screensaver
 with a backing track.
@@ -90,11 +105,42 @@ intensity (whole → 8ths → 16ths). Groove patterns as arrays indexed by
 ## MIDI out (MOut) — Ableton mirror
 
 Roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · texture 6 ·
-perc 10 · sfx 11 · bed 12. Every audible event sends `MOut.evNote(role,
-freq, vol, at, dur)` or `MOut.evDrum(note, vol, at)` (A.kick / A.hat
-auto-mirror). `MOut.expr(role, v)` streams CC74 energy. Note-offs are
-managed by MOut's pump — NEVER hand-schedule them. CC1/CC2 stream raw
+perc 10 · sfx 11 · bed 12. **The mirror is automatic for every A helper**:
+tone/bell/pluck2/bassNote/kick/hat/padVoices auto-emit; `A.hit` auto-emits
+a drum note bucketed by its filter freq (<250→36, <1200→38, <4500→42,
+else 46); `A.voice` groups are polled — an audible pitched voice holds a
+note on the TEXTURE channel (retunes re-strike, kill closes it) and pooled
+voice gain streams as texture CC74. Only pure-noise beds mirror nothing
+(Rain Atrium is the one such scene — that's by design, not a bug). Write
+`MOut.evNote(role, freq, vol, at, dur)` yourself only to pick a better
+role than the default. `MOut.expr(role, v)` streams CC74 energy. Note-offs
+are managed by MOut's pump — NEVER hand-schedule them. CC1/CC2 stream raw
 hands globally.
+
+**`rig.json` at the repo root says what instrument sits on each channel in
+the actual Live set** — read it before designing a scene's sound so you
+write for the rack that exists, and tell the user to update it when the
+Live set changes.
+
+## Velocity — where "professional" lives or dies
+
+Velocity is PER-NOTE and mirrors the browser-side `vol` of every event
+(`v2v`: vol 0→28, 0.25→123). So dynamics are already yours to write — but a
+constant `vol` produces machine-flat velocity, and a velocity-sensitive patch
+in Live exposes it instantly. The law:
+
+- **Derive `vol` from the gesture**, not a literal: intensity, approach
+  speed, distance from center, charge time. Storm Garden (vel 29–61 with
+  hand intensity) is the reference; a bell line at `vol: 0.05` forever is a
+  doorbell.
+- **Accents on the grid**: downbeats and pattern heads get a vol bump
+  (~×1.3), off-beats sit lower. Cheap, transforms a flat arp.
+- **Flat-on-purpose is a choice, not a default** — White Study's Ikeda
+  clicks are MEANT to be machine-identical; say so in the scene notes.
+- The mirror already varies what it owns: texture holds scale velocity with
+  voice gain, pad notes with each pad voice's gain. What's left is per-scene
+  `vol` writing — check your scene with the DBG monitor: if every bar of a
+  role draws the same brightness, it is flat.
 
 ## Music-revision checklist
 
