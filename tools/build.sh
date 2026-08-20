@@ -117,6 +117,7 @@ cd "$(dirname "$0")/.."
   cat parts/part101_chladni4.js
   cat parts/part103_chladni5.js
   cat parts/part104_chladni6.js
+  cat parts/part105_chladni7.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
