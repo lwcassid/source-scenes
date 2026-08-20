@@ -52704,6 +52704,1534 @@ reg({
     };
   }
 });
+/* ---------- SRC-38.16 · LUMEN FIELD (finer stones) ---------- */
+// Colour-stop strings, memoised by the alpha they were built for. Measured:
+// this does NOT move the needle under software rendering — the cost is the
+// rasterising of the gradient-filled triangles, not building their stop
+// strings (caching them changed nothing). Kept only because it is free and
+// the balance tips the other way on a real GPU, where the fills are cheap
+// and per-frame JS allocation is the larger share.
+const LUMEN16_STOPCACHE = new Map();
+reg({
+  id: 'SRC-38.16', family: 'SRC-38', ver: 16, title: 'Lumen Film', tech: 'GEM FILM / APERTURE ORGAN',
+  music: {
+    bpm: 66, root: 50, mode: 'dorian', chordBars: 4,
+    // PEDAL ON D. The film gets lighter as the progression walks — Dm9 is the
+    // closed frame, D6/9 is the frame full of holes.
+    chords: [
+      [0, 7, 15, 19, 26],   // Dm9
+      [0, 5, 12, 17, 22],   // Gsus/D
+      [0, 8, 15, 20, 24],   // B♭/D
+      [0, 9, 14, 16, 21]    // D6/9    — the light gets through
+    ],
+    chordNames: ['Dm9', 'Gsus/D', 'B♭/D', 'D6/9']
+  },
+  fx: { bloom: 0.46 },
+  tags: ['FINER STONES', 'SAME LIGHT', 'ALL FOUR RAYS REFRACT', 'L TURNS THE GRADIENTS TOO'],
+  desc: 'V16: the stones are 40% smaller — they were reading too large once the frame went full screen. Two things had to move with them or the change would have taken the scene apart. There are more of them, 100 rather than 44, because area falls with the square of the radius and a thinned-out field both shows black between the stones and starves the lights, which only exist where two stones overlap. And the bursts keep their old size rather than shrinking along with their host, since the light was already where it wanted to be; fewer stones in a hundred are chosen to carry one, so the count of lights on screen stays about what it was. The result is a finer weave under the same lamp.',
+  interact: 'R = LIGHT PRESSURE, unchanged — the lamp behind the sheet. Draw in and the film is closed, a dark faceted field and nothing else. Reach out and the bursts light one at a time, scattered anywhere in the frame, each on its own clock, each adding its held note to the chord. A burst always tells you before it commits — it leaks a little glow half a beat early, then blooms with its note on the sixteenth. L = ORIENTATION — an absolute dial: hand at the sphere and the crystals sit at rest; reach out and the whole field turns with your hand, up to a full turn at full reach, AND the gradients inside the stones lag round behind it, so the colour travels across the facets while they turn. Every burst sits on a real edge of a real stone and slides along it, so its rays swing with the geometry making them.',
+  sound: 'An aperture organ. Every lit burst holds one voice — pitch by where it sits in the frame (high in the frame = high in the chord), stereo position by where it sits left to right — so the picture and the chord are the same object. Voices enter rolled low-to-high like a harp and each entrance is doubled by a glass bell (MIDI role: bells) on the sixteenth it commits. Fewer, larger bursts than before means a sparser, more deliberate chord. L still opens every voice filter together and detunes their partials. Underneath: a slow air bed and a root pedal that never moves. NO PERCUSSION. Ableton: pad ch2 = the voices (CC74 = L), bells ch5, texture ch6 = air, bass ch3 = pedal.',
+
+  init(P) {
+    const S = Math.min(P.w, P.h), w = P.w, h = P.h;
+    // P.focused is still false during init — size off the area instead
+    // Stones are 40% smaller than V15, so the count has to climb or the
+    // film stops being a film: area falls with the square of the radius
+    // (0.6^2 = 0.36), and a sparse field both shows black between the stones
+    // and starves the lights, which only exist where two stones overlap.
+    // 44 / 0.36 = 122 would hold V15's exact density, but measured at 10fps
+    // under software rendering against V15's 27 — three times the cost, and
+    // lag has bitten this scene twice. 64 buys back a good part of the weave
+    // for a cost close to V15's. The weave is now the dial: raising this
+    // fills the black between the stones and costs frames, roughly linearly.
+    const N = areaScale(P) > 1.6 ? 64 : 26;
+    const cells = [];
+    for (let i = 0; i < N; i++) {
+      cells.push({
+        x: P.rand() * w, y: P.rand() * h,
+        r: S * (0.045 + P.rand() * 0.141),   // 40% smaller than V15, same spread
+        ph: P.rand() * TAU, sp: 0.1 + P.rand() * 0.22,
+        // per-stone gradient tilt: every stone leans the palette its own way
+        gradRot: (P.rand() - 0.5) * 1.3,
+        drift: (P.rand() - 0.5) * 0.5,
+        baseRot: P.rand() * TAU, rot: 0
+      });
+    }
+    // a few rounds of pushing apart — soap does this on its own in a second
+    for (let it = 0; it < 60; it++) {
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const a = cells[i], b = cells[j];
+          // 0.74 — the cells must OVERLAP, or the sheet has holes in it that
+          // are not apertures, just gaps, and it stops reading as one film
+          const dx = b.x - a.x, dy = b.y - a.y, rr = (a.r + b.r) * 0.74;
+          const d = Math.hypot(dx, dy) || 1;
+          if (d < rr) {
+            const f = (rr - d) * 0.5, ux = dx / d * f, uy = dy / d * f;
+            a.x -= ux; a.y -= uy; b.x += ux; b.y += uy;
+          }
+        }
+      }
+      for (const c of cells) {
+        c.x = clamp(c.x, -c.r * 0.3, w + c.r * 0.3);
+        c.y = clamp(c.y, -c.r * 0.3, h + c.r * 0.3);
+      }
+    }
+    const vertsAt = (c, rot) => {
+      const rx = c.r * 0.78, ry = c.r * 1.08, ca = Math.cos(rot), sa = Math.sin(rot);
+      return [[0, -ry], [rx, 0], [0, ry], [-rx, 0]]
+        .map(([x, y]) => [c.x + x * ca - y * sa, c.y + x * sa + y * ca]);
+    };
+    // is a point inside a stone? the kite is convex, so every edge has to
+    // see the point on the same side
+    const inKite = (pt, poly) => {
+      let sign = 0;
+      for (let k = 0; k < 4; k++) {
+        const A = poly[k], B = poly[(k + 1) % 4];
+        const cr = (B[0] - A[0]) * (pt[1] - A[1]) - (B[1] - A[1]) * (pt[0] - A[0]);
+        if (cr === 0) continue;
+        const sg = cr > 0 ? 1 : -1;
+        if (sign === 0) sign = sg; else if (sg !== sign) return false;
+      }
+      return true;
+    };
+    // who overlaps whom
+    const neigh = [];
+    for (let i = 0; i < N; i++) neigh.push([]);
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const a = cells[i], b = cells[j];
+        if (Math.hypot(b.x - a.x, b.y - a.y) > (a.r + b.r) * 0.82) continue;
+        neigh[i].push(j); neigh[j].push(i);
+      }
+    }
+    // ONE BURST PER STONE AT MOST, and only for some stones. The burst sits
+    // on a point of the host's own outline that is also INSIDE a neighbour —
+    // tested, not assumed — which is what keeps it over diamond and never
+    // over the black. Of the candidates, take the one furthest into the
+    // neighbour so the slow slide along the edge cannot walk it out.
+    const ap = [];
+    for (let i = 0; i < N; i++) {
+      if (!neigh[i].length) continue;
+      // held down from 0.6 to keep the SAME number of lights on screen as
+      // V15 (~23) now that there are nearly three times as many stones — the
+      // sparse, deliberate spread is the part that was working. Roughly a
+      // third of the stones that draw the ticket get rejected below for
+      // having no anchor that sits inside a neighbour, so this runs a little
+      // above the target rate.
+      if (P.rand() > 0.55) continue;             // not every stone lights
+      const host = cells[i];
+      const hv = vertsAt(host, host.baseRot);
+      // try neighbours nearest first — deepest overlap
+      const order = neigh[i].slice().sort((x, y) =>
+        Math.hypot(cells[x].x - host.x, cells[x].y - host.y) -
+        Math.hypot(cells[y].x - host.x, cells[y].y - host.y));
+      let found = null;
+      for (const j of order) {
+        const guest = cells[j], gv = vertsAt(guest, guest.baseRot);
+        let bd = Infinity, be = -1, bu = 0.5;
+        for (let e = 0; e < 4; e++) {
+          const p0 = hv[e], p1 = hv[(e + 1) % 4];
+          for (let si = 0; si <= 24; si++) {
+            const u = si / 24;
+            const pt = [p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u];
+            if (!inKite(pt, gv)) continue;
+            const dd = Math.hypot(pt[0] - guest.x, pt[1] - guest.y);
+            if (dd < bd) { bd = dd; be = e; bu = u; }
+          }
+        }
+        if (be >= 0) { found = { e: be, u: bu }; break; }
+      }
+      if (!found) continue;
+      ap.push({
+        host: i, eIdx: found.e, u0: clamp(found.u, 0.16, 0.84),
+        // the burst slides slowly back and forth along its edge
+        uSp: 0.12 + P.rand() * 0.3, uPh: P.rand() * TAU,
+        // every burst its own size
+        // divided through by the 0.6 shrink so the bursts and their rays
+        // stay the size that was signed off, instead of quietly getting 40%
+        // smaller along with the stone they sit on. Still scales with the
+        // host, so a bigger stone still throws a bigger light.
+        size: host.r * (0.83 + P.rand() * 1.92),
+        open: 0, lit: 0, on: false, arm: 0,
+        x: host.x, y: host.y,
+        // SCATTERED: threshold independent of position, so bursts turn up
+        // anywhere in the frame rather than opening outward from the centre
+        th: clamp(0.06 + P.rand() * 0.92),
+        // each grows and fades at its own rate — separate timelines
+        growRate: 2.4 + P.rand() * 4.6, fadeRate: 1.1 + P.rand() * 2.8
+      });
+    }
+    ap.sort((u, z) => u.th - z.th);
+    ap.forEach((p, i) => { p.i = i; p.voice = i < 8 ? i : -1; });
+    P.state = { cells, ap, pres: 0, lightP: 0, thick: 0, rotL: 0, spin: 0, openN: 0, lamp: 0, evq: [] };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    s.lightP += (clamp(inp.R) - s.lightP) * Math.min(1, dt * 7);
+    s.thick += (clamp(inp.L) - s.thick) * Math.min(1, dt * 6);
+    // idle tease: the lamp behind the sheet breathes on its own
+    const idle = (1 - s.pres) * (0.12 + 0.1 * Math.sin(t * 0.31));
+    s.lamp = Math.max(s.lightP, idle);
+
+    // ORIENTATION: absolute dial. Hand at the sphere = the field sits at its
+    // resting cut; reach out and the whole field turns with the hand, up to
+    // one full turn — no momentum, it tracks the hand directly. At rest
+    // (no presence) the field settles back to zero, per the abandoned-scene
+    // rule, with a tiny sinusoidal wobble that hints it CAN be turned.
+    s.rotL += (clamp(inp.L) - s.rotL) * Math.min(1, dt * 8);
+    const targetSpin = s.pres > 0.05 ? s.rotL * TAU : 0;
+    s.spin += (targetSpin - s.spin) * Math.min(1, dt * 7);
+
+    for (const c of s.cells) {
+      c.ph += dt * c.sp;
+      c.x += Math.cos(c.ph * 0.7 + c.drift) * dt * 5;
+      c.y += Math.sin(c.ph) * dt * 4;
+      c.rot = c.baseRot + s.spin + (1 - s.pres) * 0.05 * Math.sin(t * 0.25 + c.ph * 2);
+    }
+    let open = 0;
+    for (const p of s.ap) {
+      const H = s.cells[p.host];
+      p.x = H.x; p.y = H.y;
+      const want = s.lamp > p.th;
+      // TELEGRAPH: light starts leaking before the burst commits, so the eye
+      // is warned half a beat before the ear.
+      const lead = clamp((s.lamp - p.th + 0.09) / 0.14);
+      p.lit += (lead - p.lit) * Math.min(1, dt * 9);
+      if (want !== p.on) {
+        p.arm += dt;
+        if (p.arm > 0.05) { p.on = want; p.arm = 0; s.evq.push({ p, on: want }); }
+      } else p.arm = 0;
+      p.open += ((p.on ? 1 : 0) - p.open) * Math.min(1, dt * (p.on ? p.growRate : p.fadeRate));
+      if (p.on) open++;
+    }
+    s.openN = open;
+    if (s.evq.length > 20) s.evq.splice(0, s.evq.length - 20);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#010103';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const gate = clamp(s.pres * 1.15);          // keeps the field dark at rest
+    const LIGHT_DIR = -Math.PI / 2;              // the sun is fixed; the field turns
+
+    // THE PALETTE — lifted directly from the reference illustration's own
+    // linear gradient (black → blue → mint → near-white → gold → red →
+    // indigo → black). This is the ONLY colour source in the whole scene.
+    const SVGSTOPS = [
+      [0, '0,0,0'], [0.2, '37,85,238'], [0.4, '100,215,160'], [0.5, '242,255,242'],
+      [0.6, '255,214,90'], [0.7, '225,61,47'], [0.8, '0,14,223'], [1, '0,0,0']
+    ];
+    const addSvgStops = (grad, a) => {
+      let set = LUMEN16_STOPCACHE.get(a);
+      if (!set) {
+        set = SVGSTOPS.map(([t, rgb]) => [t, `rgba(${rgb},${a})`]);
+        LUMEN16_STOPCACHE.set(a, set);
+      }
+      for (let i = 0; i < set.length; i++) grad.addColorStop(set[i][0], set[i][1]);
+    };
+
+    // a diamond's 4 vertices — taller than wide, like a cut stone
+    const diamondPts = (c, rScale) => {
+      const rx = c.r * 0.78 * rScale, ry = c.r * 1.08 * rScale, a = c.rot;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const raw = [[0, -ry], [rx, 0], [0, ry], [-rx, 0]];
+      return raw.map(([x, y]) => [c.x + x * ca - y * sa, c.y + x * sa + y * ca]);
+    };
+
+    // ---- THE FILM: six wedges off a ridge, palette running from each
+    // wedge's inner edge outward. The gradient axis is the stone's own
+    // gradRot PLUS a fraction of the field's turn — so as L rotates the
+    // field, the colour also creeps round inside each stone instead of
+    // being carried along rigidly with it.
+    const gradLag = s.spin * 0.34;
+    const stonePts = [];
+    for (const c of s.cells) {
+      const pts = diamondPts(c, 1);
+      stonePts.push(pts);
+      const T = pts[0], R = pts[1], B = pts[2], L = pts[3];
+      const U = [c.x + (T[0] - c.x) * 0.45, c.y + (T[1] - c.y) * 0.45];
+      const D = [c.x + (B[0] - c.x) * 0.45, c.y + (B[1] - c.y) * 0.45];
+      const tris = [[T, U, R], [U, D, R], [D, B, R], [T, U, L], [U, D, L], [D, B, L]];
+      const gAng = c.gradRot + gradLag;
+      const cr = Math.cos(gAng), sr = Math.sin(gAng);
+      for (const [inA, inB, outV] of tris) {
+        const mx = (inA[0] + inB[0]) / 2, my = (inA[1] + inB[1]) / 2;
+        const facetAngle = Math.atan2(outV[1] - my, outV[0] - mx);
+        const lit = 0.5 + 0.5 * Math.cos(facetAngle - LIGHT_DIR);
+        const alphaEnv = clamp(0.04 + lit * 0.5 * gate + s.lamp * 0.3);
+        const dx0 = outV[0] - mx, dy0 = outV[1] - my;
+        const gx = mx + dx0 * cr - dy0 * sr, gy = my + dx0 * sr + dy0 * cr;
+        const fg = g.createLinearGradient(mx, my, gx, gy);
+        addSvgStops(fg, alphaEnv.toFixed(2));
+        g.fillStyle = fg;
+        g.beginPath(); g.moveTo(inA[0], inA[1]); g.lineTo(inB[0], inB[1]); g.lineTo(outV[0], outV[1]); g.closePath();
+        g.fill();
+      }
+    }
+    // NO OUTLINE, and no overlay pass — the stone colour is left alone.
+
+    // ---- THE LAMP: few, large, soft ------------------------------------
+    g.globalCompositeOperation = 'lighter';
+    // the beam's colour run, as explicit channels so each can be drawn on
+    // its own and nudged off the others. Alphas fall away well before the
+    // tip so the ray fades out rather than stopping.
+    const BEAM = [
+      [0, 242, 255, 242, 1.32],
+      [0.25, 37, 85, 238, 1.06],
+      [0.55, 255, 214, 90, 0.6],
+      [0.82, 225, 61, 47, 0.2],
+      [1, 225, 61, 47, 0]
+    ];
+    for (const p of s.ap) {
+      const a = Math.max(p.lit * 0.35, p.open);
+      if (a < 0.01) continue;
+      const hv = stonePts[p.host];
+      const e0 = hv[p.eIdx], e1 = hv[(p.eIdx + 1) % 4];
+      // slide along that edge — the light travels the stone's own border
+      const u = clamp(p.u0 + Math.sin(t * p.uSp + p.uPh) * 0.12, 0.06, 0.94);
+      const sx = e0[0] + (e1[0] - e0[0]) * u, sy = e0[1] + (e1[1] - e0[1]) * u;
+      // the edge's own direction: beams built off this swing with the stone
+      const eAng = Math.atan2(e1[1] - e0[1], e1[0] - e0[0]);
+
+      const R = p.size * (0.13 + a * 0.4);
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, R);
+      gr.addColorStop(0, `rgba(242,255,242,${(Math.min(0.92, a) * bright).toFixed(2)})`);
+      gr.addColorStop(0.35, `rgba(37,85,238,${(a * 0.55 * bright).toFixed(2)})`);
+      gr.addColorStop(0.7, `rgba(255,214,90,${(a * 0.3 * bright).toFixed(2)})`);
+      gr.addColorStop(1, 'rgba(225,61,47,0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(sx, sy, R, 0, TAU); g.fill();
+
+      if (p.open > 0.2) {
+        const L = R * (2.2 + p.open * 5);            // longer than before
+        // ALL FOUR RAYS ARE BUILT THE SAME WAY. The cross pair stays short
+        // and a little thinner, but it gets the identical falloff, colour
+        // split and fading tail — drawing it as one flat stroke is what left
+        // it stopping at a hard edge.
+        const dirs = [
+          { a: eAng, len: 1, w: 0.475, wMin: 4.5, av: 0.27 },
+          { a: eAng + Math.PI, len: 1, w: 0.475, wMin: 4.5, av: 0.27 },
+          { a: eAng + Math.PI / 2, len: 0.4, w: 0.22, wMin: 3, av: 0.19 },
+          { a: eAng - Math.PI / 2, len: 0.4, w: 0.22, wMin: 3, av: 0.19 }
+        ];
+        g.lineCap = 'round';
+        for (const dr of dirs) {
+          const Ln = L * dr.len, cx = Math.cos(dr.a) * Ln, cy = Math.sin(dr.a) * Ln;
+          const ex = sx + cx, ey = sy + cy;
+          // wide beams cover a lot of ground, so each pass stays faint
+          const av = p.open * dr.av * bright;
+          const coreW = Math.max(dr.wMin * ms, R * dr.w * p.open);
+          const mkGrad = (mult, ch) => {
+            const gd = g.createLinearGradient(sx, sy, ex, ey);
+            for (const st of BEAM) {
+              const rr = (ch === undefined || ch === 0) ? st[1] : 0;
+              const gg = (ch === undefined || ch === 1) ? st[2] : 0;
+              const bb = (ch === undefined || ch === 2) ? st[3] : 0;
+              gd.addColorStop(st[0], `rgba(${rr},${gg},${bb},${(av * st[4] * mult).toFixed(3)})`);
+            }
+            return gd;
+          };
+          // the soft outer falloff — widest and faintest. Held back while
+          // the rest was brightened: this is the pass that covers the most
+          // ground, so it is what washes the frame out if it climbs too.
+          g.strokeStyle = mkGrad(0.26);
+          g.lineWidth = coreW * 1.5;
+          g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke();
+
+          // THE REFRACTION: the same ray drawn once per colour channel,
+          // each shifted across the ray. Added together the three recombine
+          // to the original colour down the middle, and the shift leaves red
+          // along one edge and blue along the other — genuinely out of
+          // register, not a coloured line drawn alongside.
+          const perpx = -cy / Ln, perpy = cx / Ln;
+          const sep = Math.max(1.5 * ms, coreW * 0.085);
+          for (let ch = 0; ch < 3; ch++) {
+            g.strokeStyle = mkGrad(1, ch);
+            g.lineWidth = coreW;
+            const off = (ch - 1) * sep;      // red +, green centre, blue −
+            g.beginPath();
+            g.moveTo(sx + perpx * off, sy + perpy * off);
+            g.lineTo(ex + perpx * off, ey + perpy * off);
+            g.stroke();
+          }
+          // a hot thread down the middle so the beam still has a core
+          g.strokeStyle = mkGrad(1.6);
+          g.lineWidth = Math.max(2.4 * ms, coreW * 0.2);
+          g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke();
+        }
+        g.lineCap = 'butt';
+      }
+    }
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(190,225,255,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('SPOTS ' + s.openN + '/' + s.ap.length + '   LAMP ' + Math.round(s.lamp * 100) +
+      '   TURN ' + Math.round(s.spin / TAU * 100) + '%' +
+      (s.pres < 0.3 ? '   · CLOSED' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const s0 = P.state;
+
+    /* --- air behind the sheet ------------------------------------------ */
+    const n = v.noise(), nf = v.filter('bandpass', 500, 0.9), ng = v.g(0.006);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- ONE VOICE PER BURST. Eight of them; the rest of the field is
+       light only. Pitch by height in the frame, pan by side — the chord
+       and the picture are the same object.                               */
+    const NV = 8;
+    const voices = [];
+    for (let i = 0; i < NV; i++) {
+      const o1 = v.osc('triangle', 220), o2 = v.osc('triangle', 220), o3 = v.osc('sine', 440);
+      o2.detune.value = 6;
+      const f = v.filter('lowpass', 700, 1.1);
+      const g = v.g(0.0001);
+      const pan = A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : null;
+      o1.connect(f); o2.connect(f); o3.connect(f); f.connect(g);
+      if (pan) { g.connect(pan); pan.connect(v.group); } else { g.connect(v.group); }
+      if (AE.revIn) { const sd = A.ctx.createGain(); sd.gain.value = 0.7; g.connect(sd); sd.connect(AE.revIn); }
+      voices.push({ o1, o2, o3, f, g, pan, freq: 220, note: -1, lvl: 0 });
+    }
+    const setV = (vc, freq, glide) => {
+      if (!isFinite(freq) || freq <= 20) return;
+      vc.freq = freq;
+      A.set(vc.o1.frequency, freq, glide);
+      A.set(vc.o2.frequency, freq, glide);
+      A.set(vc.o3.frequency, freq * 2.01, glide);
+      if (typeof MOut !== 'undefined') {
+        const note = MOut.f2n(freq);
+        if (note !== vc.note) {
+          const ch = MOut.chFor('pad'), p = performance.now();
+          if (vc.note >= 0 && MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0], p); } catch (e) {} }
+          vc.note = note;
+          MOut.log.push({ p, role: 'pad', ch, note, vel: 62, durMs: 2600 });
+          if (MOut.wants() && MOut.port) { try { MOut.port.send([0x90 | (ch - 1), note, 62], p); } catch (e) {} }
+        }
+      }
+    };
+
+    /* --- the pedal ------------------------------------------------------ */
+    const sub = A.padVoices(v, 1, { type: 'triangle', gain: 0.014, cutoff: 220, q: 0.5 });
+    const retune = glide => {
+      sub[0].set(H.rootFreq(-2), glide);
+      // every lit burst re-voices into the new chord, rolled low to high
+      const ap = P.state.ap;
+      for (const p of ap) {
+        if (p.voice < 0 || !p.on) continue;
+        const vc = voices[p.voice];
+        setV(vc, H.chordTone(p.deg || 0, p.oct || 0), glide);
+      }
+    };
+    retune(0.05);
+    H.onChord(() => retune(0.2));
+    v.fadeIn(1, 1.6);
+
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const thick = s.thick || 0;
+
+        A.set(ng.gain, (0.003 + s.lamp * 0.012) * gate, 0.4);
+        A.set(nf.frequency, 360 + s.lamp * 1500 + thick * 400, 0.4);
+        sub[0].level(0.01 + s.lamp * 0.008, 0.5);
+
+        /* ---- bursts committing: the entrance is rolled and quantised -- */
+        let ev, i = 0;
+        while ((ev = s.evq.shift()) && i < 6) {
+          i++;
+          const p = ev.p;
+          if (p.voice < 0) continue;
+          const vc = voices[p.voice];
+          if (ev.on) {
+            // HEIGHT IS PITCH: a burst near the top of the frame sings high
+            const up = clamp(1 - p.y / P.h);
+            const deg = Math.round(up * 9);
+            const oct = up > 0.72 ? 1 : 0;
+            p.deg = deg; p.oct = oct;
+            setV(vc, H.chordTone(deg, oct), 0.08);
+            if (vc.pan) A.set(vc.pan.pan, clamp(p.x / P.w * 2 - 1, -1, 1) * 0.7, 0.2);
+            const at = T.next(0.25) + p.voice * 0.012;   // low-to-high harp stagger
+            A.set(vc.g.gain, 0.024 + thick * 0.012, 0.35);
+            A.bell(H.chordTone(deg + 3, oct + 1), { at, vol: 0.05 * gate, dur: 2.4, pan: clamp(p.x / P.w * 2 - 1, -1, 1) * 0.8, rev: 0.7 });
+          } else {
+            A.set(vc.g.gain, 0.0001, 0.5);
+            if (typeof MOut !== 'undefined' && vc.note >= 0) {
+              const ch = MOut.chFor('pad');
+              if (MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+              vc.note = -1;
+            }
+          }
+        }
+
+        /* ---- L opens every voice's filter together --------------------- */
+        for (let k = 0; k < NV; k++) {
+          const vc = voices[k];
+          A.set(vc.f.frequency, 420 + (1 - thick) * 2600 + s.lamp * 700, 0.25);
+          A.set(vc.o2.detune, 4 + (1 - thick) * 16, 0.3);
+          A.set(vc.o3.detune, (1 - thick) * 9, 0.3);
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', 1 - thick);
+          MOut.expr('texture', s.lamp);
+          MOut.expr('bells', clamp(s.openN / 8));
+        }
+      },
+      stop() {
+        if (typeof MOut !== 'undefined' && MOut.wants() && MOut.port) {
+          const ch = MOut.chFor('pad');
+          for (const vc of voices) if (vc.note >= 0) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+        }
+        v.kill();
+      }
+    };
+  }
+});
+/* ---------- SRC-38.17 · LUMEN FIELD (density holds at any shape) ---------- */
+// Colour-stop strings, memoised by the alpha they were built for. Measured:
+// this does NOT move the needle under software rendering — the cost is the
+// rasterising of the gradient-filled triangles, not building their stop
+// strings (caching them changed nothing). Kept only because it is free and
+// the balance tips the other way on a real GPU, where the fills are cheap
+// and per-frame JS allocation is the larger share.
+const LUMEN17_STOPCACHE = new Map();
+reg({
+  id: 'SRC-38.17', family: 'SRC-38', ver: 17, title: 'Lumen Film', tech: 'GEM FILM / APERTURE ORGAN',
+  music: {
+    bpm: 66, root: 50, mode: 'dorian', chordBars: 4,
+    // PEDAL ON D. The film gets lighter as the progression walks — Dm9 is the
+    // closed frame, D6/9 is the frame full of holes.
+    chords: [
+      [0, 7, 15, 19, 26],   // Dm9
+      [0, 5, 12, 17, 22],   // Gsus/D
+      [0, 8, 15, 20, 24],   // B♭/D
+      [0, 9, 14, 16, 21]    // D6/9    — the light gets through
+    ],
+    chordNames: ['Dm9', 'Gsus/D', 'B♭/D', 'D6/9']
+  },
+  fx: { bloom: 0.46 },
+  tags: ['DENSITY HOLDS AT ANY SHAPE', 'FINER STONES', 'SAME LIGHT', 'L TURNS THE GRADIENTS TOO'],
+  desc: 'V17: the weave is now held as a fraction of the frame rather than a fixed number of stones, so it looks the same whatever shape the window or the projector is. Before this it did not: the stones are sized off the short side of the frame while the area grows with the long one, which means a set count quietly gets sparser the wider the window gets — the field that reads right in a long letterbox comes out close to twice as dense on a projector nearer square. The count is now solved from the coverage instead, so a stone stays the same size against the frame and the same fraction of the picture is stone at every shape. Everything else is V16. — V16: the stones are 40% smaller — they were reading too large once the frame went full screen. Two things had to move with them or the change would have taken the scene apart. There are more of them, 100 rather than 44, because area falls with the square of the radius and a thinned-out field both shows black between the stones and starves the lights, which only exist where two stones overlap. And the bursts keep their old size rather than shrinking along with their host, since the light was already where it wanted to be; fewer stones in a hundred are chosen to carry one, so the count of lights on screen stays about what it was. The result is a finer weave under the same lamp.',
+  interact: 'R = LIGHT PRESSURE, unchanged — the lamp behind the sheet. Draw in and the film is closed, a dark faceted field and nothing else. Reach out and the bursts light one at a time, scattered anywhere in the frame, each on its own clock, each adding its held note to the chord. A burst always tells you before it commits — it leaks a little glow half a beat early, then blooms with its note on the sixteenth. L = ORIENTATION — an absolute dial: hand at the sphere and the crystals sit at rest; reach out and the whole field turns with your hand, up to a full turn at full reach, AND the gradients inside the stones lag round behind it, so the colour travels across the facets while they turn. Every burst sits on a real edge of a real stone and slides along it, so its rays swing with the geometry making them.',
+  sound: 'An aperture organ. Every lit burst holds one voice — pitch by where it sits in the frame (high in the frame = high in the chord), stereo position by where it sits left to right — so the picture and the chord are the same object. Voices enter rolled low-to-high like a harp and each entrance is doubled by a glass bell (MIDI role: bells) on the sixteenth it commits. Fewer, larger bursts than before means a sparser, more deliberate chord. L still opens every voice filter together and detunes their partials. Underneath: a slow air bed and a root pedal that never moves. NO PERCUSSION. Ableton: pad ch2 = the voices (CC74 = L), bells ch5, texture ch6 = air, bass ch3 = pedal.',
+
+  init(P) {
+    const S = Math.min(P.w, P.h), w = P.w, h = P.h;
+    // P.focused is still false during init — size off the area instead
+    // DENSITY IS A COVERAGE FRACTION, NOT A COUNT. A fixed count only holds
+    // its look at one window shape: the frame's area grows with width while
+    // the stones are sized off min(w,h). Since (w*h)/min(w,h)^2 IS the aspect
+    // ratio, a fixed count makes density track aspect directly — the same 64
+    // stones that read right in a 2.9:1 window come out ~1.8x denser on a
+    // 16:10 projector. So pick the count that puts a set fraction of the
+    // frame under stone instead. A kite is 2*(0.78r)*(1.08r) = 1.6848 r^2,
+    // and r is uniform over [R_LO,R_HI]*S, so E[r^2] = S^2*(lo^2+lo*d+d^2/3).
+    // ...and SIZE is a fraction of the LONG side, not the short one. Sizing
+    // off min(w,h) is what made the stones look too big full screen: the
+    // same coefficient that gives a stone 9.9% of the frame width in a 2.9:1
+    // window gives it 18.1% on a 16:10 projector, because the short side
+    // grows when the shape squares up. Against the long side it is 9.9% in
+    // both. Coefficients below are the old ones re-expressed against that
+    // basis, so the full-window view is pixel-for-pixel what it was.
+    const B = Math.max(P.w, P.h);
+    const R_LO = 0.0153, R_HI = 0.0632, RD = R_HI - R_LO;
+    const meanKite = 1.6848 * B * B * (R_LO * R_LO + R_LO * RD + RD * RD / 3);
+    // 0.55 is the weave signed off in the full-window view. Tiles run thinner
+    // — they are thumbnails and the wall draws a lot of them at once.
+    const COVER = areaScale(P) > 1.6 ? 0.55 : 0.34;
+    // Clamped only to stop a freak window shape starving the field or running
+    // away with the count. The ceiling is high because the count is NOT what
+    // costs: measured at one canvas, this version draws 114 stones at 6.7fps
+    // while V16 drew 64 at 5.4 — more stones, cheaper, because sizing off the
+    // long side makes each one so much smaller that total fill area drops.
+    // Fill area is the bill here, not the number of draws.
+    const N = Math.max(10, Math.min(130, Math.round(COVER * w * h / meanKite)));
+    const cells = [];
+    for (let i = 0; i < N; i++) {
+      cells.push({
+        x: P.rand() * w, y: P.rand() * h,
+        r: B * (R_LO + P.rand() * RD),       // fraction of the LONG side
+        ph: P.rand() * TAU, sp: 0.1 + P.rand() * 0.22,
+        // per-stone gradient tilt: every stone leans the palette its own way
+        gradRot: (P.rand() - 0.5) * 1.3,
+        drift: (P.rand() - 0.5) * 0.5,
+        baseRot: P.rand() * TAU, rot: 0
+      });
+    }
+    // a few rounds of pushing apart — soap does this on its own in a second
+    for (let it = 0; it < 60; it++) {
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const a = cells[i], b = cells[j];
+          // 0.74 — the cells must OVERLAP, or the sheet has holes in it that
+          // are not apertures, just gaps, and it stops reading as one film
+          const dx = b.x - a.x, dy = b.y - a.y, rr = (a.r + b.r) * 0.74;
+          const d = Math.hypot(dx, dy) || 1;
+          if (d < rr) {
+            const f = (rr - d) * 0.5, ux = dx / d * f, uy = dy / d * f;
+            a.x -= ux; a.y -= uy; b.x += ux; b.y += uy;
+          }
+        }
+      }
+      for (const c of cells) {
+        c.x = clamp(c.x, -c.r * 0.3, w + c.r * 0.3);
+        c.y = clamp(c.y, -c.r * 0.3, h + c.r * 0.3);
+      }
+    }
+    const vertsAt = (c, rot) => {
+      const rx = c.r * 0.78, ry = c.r * 1.08, ca = Math.cos(rot), sa = Math.sin(rot);
+      return [[0, -ry], [rx, 0], [0, ry], [-rx, 0]]
+        .map(([x, y]) => [c.x + x * ca - y * sa, c.y + x * sa + y * ca]);
+    };
+    // is a point inside a stone? the kite is convex, so every edge has to
+    // see the point on the same side
+    const inKite = (pt, poly) => {
+      let sign = 0;
+      for (let k = 0; k < 4; k++) {
+        const A = poly[k], B = poly[(k + 1) % 4];
+        const cr = (B[0] - A[0]) * (pt[1] - A[1]) - (B[1] - A[1]) * (pt[0] - A[0]);
+        if (cr === 0) continue;
+        const sg = cr > 0 ? 1 : -1;
+        if (sign === 0) sign = sg; else if (sg !== sign) return false;
+      }
+      return true;
+    };
+    // who overlaps whom
+    const neigh = [];
+    for (let i = 0; i < N; i++) neigh.push([]);
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const a = cells[i], b = cells[j];
+        if (Math.hypot(b.x - a.x, b.y - a.y) > (a.r + b.r) * 0.82) continue;
+        neigh[i].push(j); neigh[j].push(i);
+      }
+    }
+    // ONE BURST PER STONE AT MOST, and only for some stones. The burst sits
+    // on a point of the host's own outline that is also INSIDE a neighbour —
+    // tested, not assumed — which is what keeps it over diamond and never
+    // over the black. Of the candidates, take the one furthest into the
+    // neighbour so the slow slide along the edge cannot walk it out.
+    const ap = [];
+    for (let i = 0; i < N; i++) {
+      if (!neigh[i].length) continue;
+      // held down from 0.6 to keep the SAME number of lights on screen as
+      // V15 (~23) now that there are nearly three times as many stones — the
+      // sparse, deliberate spread is the part that was working. Roughly a
+      // third of the stones that draw the ticket get rejected below for
+      // having no anchor that sits inside a neighbour, so this runs a little
+      // above the target rate.
+      if (P.rand() > 0.55) continue;             // not every stone lights
+      const host = cells[i];
+      const hv = vertsAt(host, host.baseRot);
+      // try neighbours nearest first — deepest overlap
+      const order = neigh[i].slice().sort((x, y) =>
+        Math.hypot(cells[x].x - host.x, cells[x].y - host.y) -
+        Math.hypot(cells[y].x - host.x, cells[y].y - host.y));
+      let found = null;
+      for (const j of order) {
+        const guest = cells[j], gv = vertsAt(guest, guest.baseRot);
+        let bd = Infinity, be = -1, bu = 0.5;
+        for (let e = 0; e < 4; e++) {
+          const p0 = hv[e], p1 = hv[(e + 1) % 4];
+          for (let si = 0; si <= 24; si++) {
+            const u = si / 24;
+            const pt = [p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u];
+            if (!inKite(pt, gv)) continue;
+            const dd = Math.hypot(pt[0] - guest.x, pt[1] - guest.y);
+            if (dd < bd) { bd = dd; be = e; bu = u; }
+          }
+        }
+        if (be >= 0) { found = { e: be, u: bu }; break; }
+      }
+      if (!found) continue;
+      ap.push({
+        host: i, eIdx: found.e, u0: clamp(found.u, 0.16, 0.84),
+        // the burst slides slowly back and forth along its edge
+        uSp: 0.12 + P.rand() * 0.3, uPh: P.rand() * TAU,
+        // every burst its own size
+        // divided through by the 0.6 shrink so the bursts and their rays
+        // stay the size that was signed off, instead of quietly getting 40%
+        // smaller along with the stone they sit on. Still scales with the
+        // host, so a bigger stone still throws a bigger light.
+        size: host.r * (0.83 + P.rand() * 1.92),
+        open: 0, lit: 0, on: false, arm: 0,
+        x: host.x, y: host.y,
+        // SCATTERED: threshold independent of position, so bursts turn up
+        // anywhere in the frame rather than opening outward from the centre
+        th: clamp(0.06 + P.rand() * 0.92),
+        // each grows and fades at its own rate — separate timelines
+        growRate: 2.4 + P.rand() * 4.6, fadeRate: 1.1 + P.rand() * 2.8
+      });
+    }
+    ap.sort((u, z) => u.th - z.th);
+    ap.forEach((p, i) => { p.i = i; p.voice = i < 8 ? i : -1; });
+    P.state = { cells, ap, pres: 0, lightP: 0, thick: 0, rotL: 0, spin: 0, openN: 0, lamp: 0, evq: [] };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    s.lightP += (clamp(inp.R) - s.lightP) * Math.min(1, dt * 7);
+    s.thick += (clamp(inp.L) - s.thick) * Math.min(1, dt * 6);
+    // idle tease: the lamp behind the sheet breathes on its own
+    const idle = (1 - s.pres) * (0.12 + 0.1 * Math.sin(t * 0.31));
+    s.lamp = Math.max(s.lightP, idle);
+
+    // ORIENTATION: absolute dial. Hand at the sphere = the field sits at its
+    // resting cut; reach out and the whole field turns with the hand, up to
+    // one full turn — no momentum, it tracks the hand directly. At rest
+    // (no presence) the field settles back to zero, per the abandoned-scene
+    // rule, with a tiny sinusoidal wobble that hints it CAN be turned.
+    s.rotL += (clamp(inp.L) - s.rotL) * Math.min(1, dt * 8);
+    const targetSpin = s.pres > 0.05 ? s.rotL * TAU : 0;
+    s.spin += (targetSpin - s.spin) * Math.min(1, dt * 7);
+
+    for (const c of s.cells) {
+      c.ph += dt * c.sp;
+      c.x += Math.cos(c.ph * 0.7 + c.drift) * dt * 5;
+      c.y += Math.sin(c.ph) * dt * 4;
+      c.rot = c.baseRot + s.spin + (1 - s.pres) * 0.05 * Math.sin(t * 0.25 + c.ph * 2);
+    }
+    let open = 0;
+    for (const p of s.ap) {
+      const H = s.cells[p.host];
+      p.x = H.x; p.y = H.y;
+      const want = s.lamp > p.th;
+      // TELEGRAPH: light starts leaking before the burst commits, so the eye
+      // is warned half a beat before the ear.
+      const lead = clamp((s.lamp - p.th + 0.09) / 0.14);
+      p.lit += (lead - p.lit) * Math.min(1, dt * 9);
+      if (want !== p.on) {
+        p.arm += dt;
+        if (p.arm > 0.05) { p.on = want; p.arm = 0; s.evq.push({ p, on: want }); }
+      } else p.arm = 0;
+      p.open += ((p.on ? 1 : 0) - p.open) * Math.min(1, dt * (p.on ? p.growRate : p.fadeRate));
+      if (p.on) open++;
+    }
+    s.openN = open;
+    if (s.evq.length > 20) s.evq.splice(0, s.evq.length - 20);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#010103';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const gate = clamp(s.pres * 1.15);          // keeps the field dark at rest
+    const LIGHT_DIR = -Math.PI / 2;              // the sun is fixed; the field turns
+
+    // THE PALETTE — lifted directly from the reference illustration's own
+    // linear gradient (black → blue → mint → near-white → gold → red →
+    // indigo → black). This is the ONLY colour source in the whole scene.
+    const SVGSTOPS = [
+      [0, '0,0,0'], [0.2, '37,85,238'], [0.4, '100,215,160'], [0.5, '242,255,242'],
+      [0.6, '255,214,90'], [0.7, '225,61,47'], [0.8, '0,14,223'], [1, '0,0,0']
+    ];
+    const addSvgStops = (grad, a) => {
+      let set = LUMEN17_STOPCACHE.get(a);
+      if (!set) {
+        set = SVGSTOPS.map(([t, rgb]) => [t, `rgba(${rgb},${a})`]);
+        LUMEN17_STOPCACHE.set(a, set);
+      }
+      for (let i = 0; i < set.length; i++) grad.addColorStop(set[i][0], set[i][1]);
+    };
+
+    // a diamond's 4 vertices — taller than wide, like a cut stone
+    const diamondPts = (c, rScale) => {
+      const rx = c.r * 0.78 * rScale, ry = c.r * 1.08 * rScale, a = c.rot;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const raw = [[0, -ry], [rx, 0], [0, ry], [-rx, 0]];
+      return raw.map(([x, y]) => [c.x + x * ca - y * sa, c.y + x * sa + y * ca]);
+    };
+
+    // ---- THE FILM: six wedges off a ridge, palette running from each
+    // wedge's inner edge outward. The gradient axis is the stone's own
+    // gradRot PLUS a fraction of the field's turn — so as L rotates the
+    // field, the colour also creeps round inside each stone instead of
+    // being carried along rigidly with it.
+    const gradLag = s.spin * 0.34;
+    const stonePts = [];
+    for (const c of s.cells) {
+      const pts = diamondPts(c, 1);
+      stonePts.push(pts);
+      const T = pts[0], R = pts[1], B = pts[2], L = pts[3];
+      const U = [c.x + (T[0] - c.x) * 0.45, c.y + (T[1] - c.y) * 0.45];
+      const D = [c.x + (B[0] - c.x) * 0.45, c.y + (B[1] - c.y) * 0.45];
+      const tris = [[T, U, R], [U, D, R], [D, B, R], [T, U, L], [U, D, L], [D, B, L]];
+      const gAng = c.gradRot + gradLag;
+      const cr = Math.cos(gAng), sr = Math.sin(gAng);
+      for (const [inA, inB, outV] of tris) {
+        const mx = (inA[0] + inB[0]) / 2, my = (inA[1] + inB[1]) / 2;
+        const facetAngle = Math.atan2(outV[1] - my, outV[0] - mx);
+        const lit = 0.5 + 0.5 * Math.cos(facetAngle - LIGHT_DIR);
+        const alphaEnv = clamp(0.04 + lit * 0.5 * gate + s.lamp * 0.3);
+        const dx0 = outV[0] - mx, dy0 = outV[1] - my;
+        const gx = mx + dx0 * cr - dy0 * sr, gy = my + dx0 * sr + dy0 * cr;
+        const fg = g.createLinearGradient(mx, my, gx, gy);
+        addSvgStops(fg, alphaEnv.toFixed(2));
+        g.fillStyle = fg;
+        g.beginPath(); g.moveTo(inA[0], inA[1]); g.lineTo(inB[0], inB[1]); g.lineTo(outV[0], outV[1]); g.closePath();
+        g.fill();
+      }
+    }
+    // NO OUTLINE, and no overlay pass — the stone colour is left alone.
+
+    // ---- THE LAMP: few, large, soft ------------------------------------
+    g.globalCompositeOperation = 'lighter';
+    // the beam's colour run, as explicit channels so each can be drawn on
+    // its own and nudged off the others. Alphas fall away well before the
+    // tip so the ray fades out rather than stopping.
+    const BEAM = [
+      [0, 242, 255, 242, 1.32],
+      [0.25, 37, 85, 238, 1.06],
+      [0.55, 255, 214, 90, 0.6],
+      [0.82, 225, 61, 47, 0.2],
+      [1, 225, 61, 47, 0]
+    ];
+    for (const p of s.ap) {
+      const a = Math.max(p.lit * 0.35, p.open);
+      if (a < 0.01) continue;
+      const hv = stonePts[p.host];
+      const e0 = hv[p.eIdx], e1 = hv[(p.eIdx + 1) % 4];
+      // slide along that edge — the light travels the stone's own border
+      const u = clamp(p.u0 + Math.sin(t * p.uSp + p.uPh) * 0.12, 0.06, 0.94);
+      const sx = e0[0] + (e1[0] - e0[0]) * u, sy = e0[1] + (e1[1] - e0[1]) * u;
+      // the edge's own direction: beams built off this swing with the stone
+      const eAng = Math.atan2(e1[1] - e0[1], e1[0] - e0[0]);
+
+      const R = p.size * (0.13 + a * 0.4);
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, R);
+      gr.addColorStop(0, `rgba(242,255,242,${(Math.min(0.92, a) * bright).toFixed(2)})`);
+      gr.addColorStop(0.35, `rgba(37,85,238,${(a * 0.55 * bright).toFixed(2)})`);
+      gr.addColorStop(0.7, `rgba(255,214,90,${(a * 0.3 * bright).toFixed(2)})`);
+      gr.addColorStop(1, 'rgba(225,61,47,0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(sx, sy, R, 0, TAU); g.fill();
+
+      if (p.open > 0.2) {
+        const L = R * (2.2 + p.open * 5);            // longer than before
+        // ALL FOUR RAYS ARE BUILT THE SAME WAY. The cross pair stays short
+        // and a little thinner, but it gets the identical falloff, colour
+        // split and fading tail — drawing it as one flat stroke is what left
+        // it stopping at a hard edge.
+        const dirs = [
+          { a: eAng, len: 1, w: 0.475, wMin: 4.5, av: 0.27 },
+          { a: eAng + Math.PI, len: 1, w: 0.475, wMin: 4.5, av: 0.27 },
+          { a: eAng + Math.PI / 2, len: 0.4, w: 0.22, wMin: 3, av: 0.19 },
+          { a: eAng - Math.PI / 2, len: 0.4, w: 0.22, wMin: 3, av: 0.19 }
+        ];
+        g.lineCap = 'round';
+        for (const dr of dirs) {
+          const Ln = L * dr.len, cx = Math.cos(dr.a) * Ln, cy = Math.sin(dr.a) * Ln;
+          const ex = sx + cx, ey = sy + cy;
+          // wide beams cover a lot of ground, so each pass stays faint
+          const av = p.open * dr.av * bright;
+          const coreW = Math.max(dr.wMin * ms, R * dr.w * p.open);
+          const mkGrad = (mult, ch) => {
+            const gd = g.createLinearGradient(sx, sy, ex, ey);
+            for (const st of BEAM) {
+              const rr = (ch === undefined || ch === 0) ? st[1] : 0;
+              const gg = (ch === undefined || ch === 1) ? st[2] : 0;
+              const bb = (ch === undefined || ch === 2) ? st[3] : 0;
+              gd.addColorStop(st[0], `rgba(${rr},${gg},${bb},${(av * st[4] * mult).toFixed(3)})`);
+            }
+            return gd;
+          };
+          // the soft outer falloff — widest and faintest. Held back while
+          // the rest was brightened: this is the pass that covers the most
+          // ground, so it is what washes the frame out if it climbs too.
+          g.strokeStyle = mkGrad(0.26);
+          g.lineWidth = coreW * 1.5;
+          g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke();
+
+          // THE REFRACTION: the same ray drawn once per colour channel,
+          // each shifted across the ray. Added together the three recombine
+          // to the original colour down the middle, and the shift leaves red
+          // along one edge and blue along the other — genuinely out of
+          // register, not a coloured line drawn alongside.
+          const perpx = -cy / Ln, perpy = cx / Ln;
+          const sep = Math.max(1.5 * ms, coreW * 0.085);
+          for (let ch = 0; ch < 3; ch++) {
+            g.strokeStyle = mkGrad(1, ch);
+            g.lineWidth = coreW;
+            const off = (ch - 1) * sep;      // red +, green centre, blue −
+            g.beginPath();
+            g.moveTo(sx + perpx * off, sy + perpy * off);
+            g.lineTo(ex + perpx * off, ey + perpy * off);
+            g.stroke();
+          }
+          // a hot thread down the middle so the beam still has a core
+          g.strokeStyle = mkGrad(1.6);
+          g.lineWidth = Math.max(2.4 * ms, coreW * 0.2);
+          g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke();
+        }
+        g.lineCap = 'butt';
+      }
+    }
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(190,225,255,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('SPOTS ' + s.openN + '/' + s.ap.length + '   LAMP ' + Math.round(s.lamp * 100) +
+      '   TURN ' + Math.round(s.spin / TAU * 100) + '%' +
+      (s.pres < 0.3 ? '   · CLOSED' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const s0 = P.state;
+
+    /* --- air behind the sheet ------------------------------------------ */
+    const n = v.noise(), nf = v.filter('bandpass', 500, 0.9), ng = v.g(0.006);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- ONE VOICE PER BURST. Eight of them; the rest of the field is
+       light only. Pitch by height in the frame, pan by side — the chord
+       and the picture are the same object.                               */
+    const NV = 8;
+    const voices = [];
+    for (let i = 0; i < NV; i++) {
+      const o1 = v.osc('triangle', 220), o2 = v.osc('triangle', 220), o3 = v.osc('sine', 440);
+      o2.detune.value = 6;
+      const f = v.filter('lowpass', 700, 1.1);
+      const g = v.g(0.0001);
+      const pan = A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : null;
+      o1.connect(f); o2.connect(f); o3.connect(f); f.connect(g);
+      if (pan) { g.connect(pan); pan.connect(v.group); } else { g.connect(v.group); }
+      if (AE.revIn) { const sd = A.ctx.createGain(); sd.gain.value = 0.7; g.connect(sd); sd.connect(AE.revIn); }
+      voices.push({ o1, o2, o3, f, g, pan, freq: 220, note: -1, lvl: 0 });
+    }
+    const setV = (vc, freq, glide) => {
+      if (!isFinite(freq) || freq <= 20) return;
+      vc.freq = freq;
+      A.set(vc.o1.frequency, freq, glide);
+      A.set(vc.o2.frequency, freq, glide);
+      A.set(vc.o3.frequency, freq * 2.01, glide);
+      if (typeof MOut !== 'undefined') {
+        const note = MOut.f2n(freq);
+        if (note !== vc.note) {
+          const ch = MOut.chFor('pad'), p = performance.now();
+          if (vc.note >= 0 && MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0], p); } catch (e) {} }
+          vc.note = note;
+          MOut.log.push({ p, role: 'pad', ch, note, vel: 62, durMs: 2600 });
+          if (MOut.wants() && MOut.port) { try { MOut.port.send([0x90 | (ch - 1), note, 62], p); } catch (e) {} }
+        }
+      }
+    };
+
+    /* --- the pedal ------------------------------------------------------ */
+    const sub = A.padVoices(v, 1, { type: 'triangle', gain: 0.014, cutoff: 220, q: 0.5 });
+    const retune = glide => {
+      sub[0].set(H.rootFreq(-2), glide);
+      // every lit burst re-voices into the new chord, rolled low to high
+      const ap = P.state.ap;
+      for (const p of ap) {
+        if (p.voice < 0 || !p.on) continue;
+        const vc = voices[p.voice];
+        setV(vc, H.chordTone(p.deg || 0, p.oct || 0), glide);
+      }
+    };
+    retune(0.05);
+    H.onChord(() => retune(0.2));
+    v.fadeIn(1, 1.6);
+
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const thick = s.thick || 0;
+
+        A.set(ng.gain, (0.003 + s.lamp * 0.012) * gate, 0.4);
+        A.set(nf.frequency, 360 + s.lamp * 1500 + thick * 400, 0.4);
+        sub[0].level(0.01 + s.lamp * 0.008, 0.5);
+
+        /* ---- bursts committing: the entrance is rolled and quantised -- */
+        let ev, i = 0;
+        while ((ev = s.evq.shift()) && i < 6) {
+          i++;
+          const p = ev.p;
+          if (p.voice < 0) continue;
+          const vc = voices[p.voice];
+          if (ev.on) {
+            // HEIGHT IS PITCH: a burst near the top of the frame sings high
+            const up = clamp(1 - p.y / P.h);
+            const deg = Math.round(up * 9);
+            const oct = up > 0.72 ? 1 : 0;
+            p.deg = deg; p.oct = oct;
+            setV(vc, H.chordTone(deg, oct), 0.08);
+            if (vc.pan) A.set(vc.pan.pan, clamp(p.x / P.w * 2 - 1, -1, 1) * 0.7, 0.2);
+            const at = T.next(0.25) + p.voice * 0.012;   // low-to-high harp stagger
+            A.set(vc.g.gain, 0.024 + thick * 0.012, 0.35);
+            A.bell(H.chordTone(deg + 3, oct + 1), { at, vol: 0.05 * gate, dur: 2.4, pan: clamp(p.x / P.w * 2 - 1, -1, 1) * 0.8, rev: 0.7 });
+          } else {
+            A.set(vc.g.gain, 0.0001, 0.5);
+            if (typeof MOut !== 'undefined' && vc.note >= 0) {
+              const ch = MOut.chFor('pad');
+              if (MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+              vc.note = -1;
+            }
+          }
+        }
+
+        /* ---- L opens every voice's filter together --------------------- */
+        for (let k = 0; k < NV; k++) {
+          const vc = voices[k];
+          A.set(vc.f.frequency, 420 + (1 - thick) * 2600 + s.lamp * 700, 0.25);
+          A.set(vc.o2.detune, 4 + (1 - thick) * 16, 0.3);
+          A.set(vc.o3.detune, (1 - thick) * 9, 0.3);
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', 1 - thick);
+          MOut.expr('texture', s.lamp);
+          MOut.expr('bells', clamp(s.openN / 8));
+        }
+      },
+      stop() {
+        if (typeof MOut !== 'undefined' && MOut.wants() && MOut.port) {
+          const ch = MOut.chFor('pad');
+          for (const vc of voices) if (vc.note >= 0) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+        }
+        v.kill();
+      }
+    };
+  }
+});
+/* ---------- SRC-38.18 · LUMEN FIELD (no small stones) ---------- */
+// Colour-stop strings, memoised by the alpha they were built for. Measured:
+// this does NOT move the needle under software rendering — the cost is the
+// rasterising of the gradient-filled triangles, not building their stop
+// strings (caching them changed nothing). Kept only because it is free and
+// the balance tips the other way on a real GPU, where the fills are cheap
+// and per-frame JS allocation is the larger share.
+const LUMEN18_STOPCACHE = new Map();
+reg({
+  id: 'SRC-38.18', family: 'SRC-38', ver: 18, title: 'Lumen Film', tech: 'GEM FILM / APERTURE ORGAN',
+  music: {
+    bpm: 66, root: 50, mode: 'dorian', chordBars: 4,
+    // PEDAL ON D. The film gets lighter as the progression walks — Dm9 is the
+    // closed frame, D6/9 is the frame full of holes.
+    chords: [
+      [0, 7, 15, 19, 26],   // Dm9
+      [0, 5, 12, 17, 22],   // Gsus/D
+      [0, 8, 15, 20, 24],   // B♭/D
+      [0, 9, 14, 16, 21]    // D6/9    — the light gets through
+    ],
+    chordNames: ['Dm9', 'Gsus/D', 'B♭/D', 'D6/9']
+  },
+  fx: { bloom: 0.46 },
+  tags: ['NO SMALL STONES', 'DENSITY HOLDS AT ANY SHAPE', 'SAME LIGHT', 'L TURNS THE GRADIENTS TOO'],
+  desc: 'V18: the two smallest bands of stone are gone — the little ones were reading as grit against the big cut faces rather than as gems of their own. The floor of the size range lifts, the spread narrows from roughly four-to-one to under two-to-one, and because the weave is held as a fraction of the frame the count simply falls out of that: bigger stones, fewer of them, the same amount of picture under stone. — V17: the weave is now held as a fraction of the frame rather than a fixed number of stones, so it looks the same whatever shape the window or the projector is. Before this it did not: the stones are sized off the short side of the frame while the area grows with the long one, which means a set count quietly gets sparser the wider the window gets — the field that reads right in a long letterbox comes out close to twice as dense on a projector nearer square. The count is now solved from the coverage instead, so a stone stays the same size against the frame and the same fraction of the picture is stone at every shape. Everything else is V16. — V16: the stones are 40% smaller — they were reading too large once the frame went full screen. Two things had to move with them or the change would have taken the scene apart. There are more of them, 100 rather than 44, because area falls with the square of the radius and a thinned-out field both shows black between the stones and starves the lights, which only exist where two stones overlap. And the bursts keep their old size rather than shrinking along with their host, since the light was already where it wanted to be; fewer stones in a hundred are chosen to carry one, so the count of lights on screen stays about what it was. The result is a finer weave under the same lamp.',
+  interact: 'R = LIGHT PRESSURE, unchanged — the lamp behind the sheet. Draw in and the film is closed, a dark faceted field and nothing else. Reach out and the bursts light one at a time, scattered anywhere in the frame, each on its own clock, each adding its held note to the chord. A burst always tells you before it commits — it leaks a little glow half a beat early, then blooms with its note on the sixteenth. L = ORIENTATION — an absolute dial: hand at the sphere and the crystals sit at rest; reach out and the whole field turns with your hand, up to a full turn at full reach, AND the gradients inside the stones lag round behind it, so the colour travels across the facets while they turn. Every burst sits on a real edge of a real stone and slides along it, so its rays swing with the geometry making them.',
+  sound: 'An aperture organ. Every lit burst holds one voice — pitch by where it sits in the frame (high in the frame = high in the chord), stereo position by where it sits left to right — so the picture and the chord are the same object. Voices enter rolled low-to-high like a harp and each entrance is doubled by a glass bell (MIDI role: bells) on the sixteenth it commits. Fewer, larger bursts than before means a sparser, more deliberate chord. L still opens every voice filter together and detunes their partials. Underneath: a slow air bed and a root pedal that never moves. NO PERCUSSION. Ableton: pad ch2 = the voices (CC74 = L), bells ch5, texture ch6 = air, bass ch3 = pedal.',
+
+  init(P) {
+    const S = Math.min(P.w, P.h), w = P.w, h = P.h;
+    // P.focused is still false during init — size off the area instead
+    // DENSITY IS A COVERAGE FRACTION, NOT A COUNT. A fixed count only holds
+    // its look at one window shape: the frame's area grows with width while
+    // the stones are sized off min(w,h). Since (w*h)/min(w,h)^2 IS the aspect
+    // ratio, a fixed count makes density track aspect directly — the same 64
+    // stones that read right in a 2.9:1 window come out ~1.8x denser on a
+    // 16:10 projector. So pick the count that puts a set fraction of the
+    // frame under stone instead. A kite is 2*(0.78r)*(1.08r) = 1.6848 r^2,
+    // and r is uniform over [R_LO,R_HI]*S, so E[r^2] = S^2*(lo^2+lo*d+d^2/3).
+    // ...and SIZE is a fraction of the LONG side, not the short one. Sizing
+    // off min(w,h) is what made the stones look too big full screen: the
+    // same coefficient that gives a stone 9.9% of the frame width in a 2.9:1
+    // window gives it 18.1% on a 16:10 projector, because the short side
+    // grows when the shape squares up. Against the long side it is 9.9% in
+    // both. Coefficients below are the old ones re-expressed against that
+    // basis, so the full-window view is pixel-for-pixel what it was.
+    const B = Math.max(P.w, P.h);
+    // The two smallest size bands are gone. The radius was uniform over
+    // 0.0153..0.0632 of the long side; split five ways that is bands of
+    // 0.00958, so dropping the bottom two lifts the floor to 0.0345 and
+    // leaves a 1.83x spread instead of 4.13x. Coverage is unchanged, so the
+    // count falls out on its own — bigger stones, fewer of them: 83 rather
+    // than 118 at 1920x1200, for the same fraction of the frame under stone
+    // and therefore the same fill cost.
+    const R_LO = 0.0345, R_HI = 0.0632, RD = R_HI - R_LO;
+    const meanKite = 1.6848 * B * B * (R_LO * R_LO + R_LO * RD + RD * RD / 3);
+    // 0.55 is the weave signed off in the full-window view. Tiles run thinner
+    // — they are thumbnails and the wall draws a lot of them at once.
+    const COVER = areaScale(P) > 1.6 ? 0.55 : 0.34;
+    // Clamped only to stop a freak window shape starving the field or running
+    // away with the count. The ceiling is high because the count is NOT what
+    // costs: measured at one canvas, this version draws 114 stones at 6.7fps
+    // while V16 drew 64 at 5.4 — more stones, cheaper, because sizing off the
+    // long side makes each one so much smaller that total fill area drops.
+    // Fill area is the bill here, not the number of draws.
+    const N = Math.max(10, Math.min(130, Math.round(COVER * w * h / meanKite)));
+    const cells = [];
+    for (let i = 0; i < N; i++) {
+      cells.push({
+        x: P.rand() * w, y: P.rand() * h,
+        r: B * (R_LO + P.rand() * RD),       // fraction of the LONG side
+        ph: P.rand() * TAU, sp: 0.1 + P.rand() * 0.22,
+        // per-stone gradient tilt: every stone leans the palette its own way
+        gradRot: (P.rand() - 0.5) * 1.3,
+        drift: (P.rand() - 0.5) * 0.5,
+        baseRot: P.rand() * TAU, rot: 0
+      });
+    }
+    // a few rounds of pushing apart — soap does this on its own in a second
+    for (let it = 0; it < 60; it++) {
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const a = cells[i], b = cells[j];
+          // 0.74 — the cells must OVERLAP, or the sheet has holes in it that
+          // are not apertures, just gaps, and it stops reading as one film
+          const dx = b.x - a.x, dy = b.y - a.y, rr = (a.r + b.r) * 0.74;
+          const d = Math.hypot(dx, dy) || 1;
+          if (d < rr) {
+            const f = (rr - d) * 0.5, ux = dx / d * f, uy = dy / d * f;
+            a.x -= ux; a.y -= uy; b.x += ux; b.y += uy;
+          }
+        }
+      }
+      for (const c of cells) {
+        c.x = clamp(c.x, -c.r * 0.3, w + c.r * 0.3);
+        c.y = clamp(c.y, -c.r * 0.3, h + c.r * 0.3);
+      }
+    }
+    const vertsAt = (c, rot) => {
+      const rx = c.r * 0.78, ry = c.r * 1.08, ca = Math.cos(rot), sa = Math.sin(rot);
+      return [[0, -ry], [rx, 0], [0, ry], [-rx, 0]]
+        .map(([x, y]) => [c.x + x * ca - y * sa, c.y + x * sa + y * ca]);
+    };
+    // is a point inside a stone? the kite is convex, so every edge has to
+    // see the point on the same side
+    const inKite = (pt, poly) => {
+      let sign = 0;
+      for (let k = 0; k < 4; k++) {
+        const A = poly[k], B = poly[(k + 1) % 4];
+        const cr = (B[0] - A[0]) * (pt[1] - A[1]) - (B[1] - A[1]) * (pt[0] - A[0]);
+        if (cr === 0) continue;
+        const sg = cr > 0 ? 1 : -1;
+        if (sign === 0) sign = sg; else if (sg !== sign) return false;
+      }
+      return true;
+    };
+    // who overlaps whom
+    const neigh = [];
+    for (let i = 0; i < N; i++) neigh.push([]);
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const a = cells[i], b = cells[j];
+        if (Math.hypot(b.x - a.x, b.y - a.y) > (a.r + b.r) * 0.82) continue;
+        neigh[i].push(j); neigh[j].push(i);
+      }
+    }
+    // ONE BURST PER STONE AT MOST, and only for some stones. The burst sits
+    // on a point of the host's own outline that is also INSIDE a neighbour —
+    // tested, not assumed — which is what keeps it over diamond and never
+    // over the black. Of the candidates, take the one furthest into the
+    // neighbour so the slow slide along the edge cannot walk it out.
+    const ap = [];
+    for (let i = 0; i < N; i++) {
+      if (!neigh[i].length) continue;
+      // held down from 0.6 to keep the SAME number of lights on screen as
+      // V15 (~23) now that there are nearly three times as many stones — the
+      // sparse, deliberate spread is the part that was working. Roughly a
+      // third of the stones that draw the ticket get rejected below for
+      // having no anchor that sits inside a neighbour, so this runs a little
+      // above the target rate.
+      if (P.rand() > 0.55) continue;             // not every stone lights
+      const host = cells[i];
+      const hv = vertsAt(host, host.baseRot);
+      // try neighbours nearest first — deepest overlap
+      const order = neigh[i].slice().sort((x, y) =>
+        Math.hypot(cells[x].x - host.x, cells[x].y - host.y) -
+        Math.hypot(cells[y].x - host.x, cells[y].y - host.y));
+      let found = null;
+      for (const j of order) {
+        const guest = cells[j], gv = vertsAt(guest, guest.baseRot);
+        let bd = Infinity, be = -1, bu = 0.5;
+        for (let e = 0; e < 4; e++) {
+          const p0 = hv[e], p1 = hv[(e + 1) % 4];
+          for (let si = 0; si <= 24; si++) {
+            const u = si / 24;
+            const pt = [p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u];
+            if (!inKite(pt, gv)) continue;
+            const dd = Math.hypot(pt[0] - guest.x, pt[1] - guest.y);
+            if (dd < bd) { bd = dd; be = e; bu = u; }
+          }
+        }
+        if (be >= 0) { found = { e: be, u: bu }; break; }
+      }
+      if (!found) continue;
+      ap.push({
+        host: i, eIdx: found.e, u0: clamp(found.u, 0.16, 0.84),
+        // the burst slides slowly back and forth along its edge
+        uSp: 0.12 + P.rand() * 0.3, uPh: P.rand() * TAU,
+        // every burst its own size
+        // divided through by the 0.6 shrink so the bursts and their rays
+        // stay the size that was signed off, instead of quietly getting 40%
+        // smaller along with the stone they sit on. Still scales with the
+        // host, so a bigger stone still throws a bigger light.
+        size: host.r * (0.83 + P.rand() * 1.92),
+        open: 0, lit: 0, on: false, arm: 0,
+        x: host.x, y: host.y,
+        // SCATTERED: threshold independent of position, so bursts turn up
+        // anywhere in the frame rather than opening outward from the centre
+        th: clamp(0.06 + P.rand() * 0.92),
+        // each grows and fades at its own rate — separate timelines
+        growRate: 2.4 + P.rand() * 4.6, fadeRate: 1.1 + P.rand() * 2.8
+      });
+    }
+    ap.sort((u, z) => u.th - z.th);
+    ap.forEach((p, i) => { p.i = i; p.voice = i < 8 ? i : -1; });
+    P.state = { cells, ap, pres: 0, lightP: 0, thick: 0, rotL: 0, spin: 0, openN: 0, lamp: 0, evq: [] };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    s.lightP += (clamp(inp.R) - s.lightP) * Math.min(1, dt * 7);
+    s.thick += (clamp(inp.L) - s.thick) * Math.min(1, dt * 6);
+    // idle tease: the lamp behind the sheet breathes on its own
+    const idle = (1 - s.pres) * (0.12 + 0.1 * Math.sin(t * 0.31));
+    s.lamp = Math.max(s.lightP, idle);
+
+    // ORIENTATION: absolute dial. Hand at the sphere = the field sits at its
+    // resting cut; reach out and the whole field turns with the hand, up to
+    // one full turn — no momentum, it tracks the hand directly. At rest
+    // (no presence) the field settles back to zero, per the abandoned-scene
+    // rule, with a tiny sinusoidal wobble that hints it CAN be turned.
+    s.rotL += (clamp(inp.L) - s.rotL) * Math.min(1, dt * 8);
+    const targetSpin = s.pres > 0.05 ? s.rotL * TAU : 0;
+    s.spin += (targetSpin - s.spin) * Math.min(1, dt * 7);
+
+    for (const c of s.cells) {
+      c.ph += dt * c.sp;
+      c.x += Math.cos(c.ph * 0.7 + c.drift) * dt * 5;
+      c.y += Math.sin(c.ph) * dt * 4;
+      c.rot = c.baseRot + s.spin + (1 - s.pres) * 0.05 * Math.sin(t * 0.25 + c.ph * 2);
+    }
+    let open = 0;
+    for (const p of s.ap) {
+      const H = s.cells[p.host];
+      p.x = H.x; p.y = H.y;
+      const want = s.lamp > p.th;
+      // TELEGRAPH: light starts leaking before the burst commits, so the eye
+      // is warned half a beat before the ear.
+      const lead = clamp((s.lamp - p.th + 0.09) / 0.14);
+      p.lit += (lead - p.lit) * Math.min(1, dt * 9);
+      if (want !== p.on) {
+        p.arm += dt;
+        if (p.arm > 0.05) { p.on = want; p.arm = 0; s.evq.push({ p, on: want }); }
+      } else p.arm = 0;
+      p.open += ((p.on ? 1 : 0) - p.open) * Math.min(1, dt * (p.on ? p.growRate : p.fadeRate));
+      if (p.on) open++;
+    }
+    s.openN = open;
+    if (s.evq.length > 20) s.evq.splice(0, s.evq.length - 20);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#010103';
+    g.fillRect(0, 0, w, h);
+    const bright = 0.5 + s.pres * 0.5;
+    const gate = clamp(s.pres * 1.15);          // keeps the field dark at rest
+    const LIGHT_DIR = -Math.PI / 2;              // the sun is fixed; the field turns
+
+    // THE PALETTE — lifted directly from the reference illustration's own
+    // linear gradient (black → blue → mint → near-white → gold → red →
+    // indigo → black). This is the ONLY colour source in the whole scene.
+    const SVGSTOPS = [
+      [0, '0,0,0'], [0.2, '37,85,238'], [0.4, '100,215,160'], [0.5, '242,255,242'],
+      [0.6, '255,214,90'], [0.7, '225,61,47'], [0.8, '0,14,223'], [1, '0,0,0']
+    ];
+    const addSvgStops = (grad, a) => {
+      let set = LUMEN18_STOPCACHE.get(a);
+      if (!set) {
+        set = SVGSTOPS.map(([t, rgb]) => [t, `rgba(${rgb},${a})`]);
+        LUMEN18_STOPCACHE.set(a, set);
+      }
+      for (let i = 0; i < set.length; i++) grad.addColorStop(set[i][0], set[i][1]);
+    };
+
+    // a diamond's 4 vertices — taller than wide, like a cut stone
+    const diamondPts = (c, rScale) => {
+      const rx = c.r * 0.78 * rScale, ry = c.r * 1.08 * rScale, a = c.rot;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const raw = [[0, -ry], [rx, 0], [0, ry], [-rx, 0]];
+      return raw.map(([x, y]) => [c.x + x * ca - y * sa, c.y + x * sa + y * ca]);
+    };
+
+    // ---- THE FILM: six wedges off a ridge, palette running from each
+    // wedge's inner edge outward. The gradient axis is the stone's own
+    // gradRot PLUS a fraction of the field's turn — so as L rotates the
+    // field, the colour also creeps round inside each stone instead of
+    // being carried along rigidly with it.
+    const gradLag = s.spin * 0.34;
+    const stonePts = [];
+    for (const c of s.cells) {
+      const pts = diamondPts(c, 1);
+      stonePts.push(pts);
+      const T = pts[0], R = pts[1], B = pts[2], L = pts[3];
+      const U = [c.x + (T[0] - c.x) * 0.45, c.y + (T[1] - c.y) * 0.45];
+      const D = [c.x + (B[0] - c.x) * 0.45, c.y + (B[1] - c.y) * 0.45];
+      const tris = [[T, U, R], [U, D, R], [D, B, R], [T, U, L], [U, D, L], [D, B, L]];
+      const gAng = c.gradRot + gradLag;
+      const cr = Math.cos(gAng), sr = Math.sin(gAng);
+      for (const [inA, inB, outV] of tris) {
+        const mx = (inA[0] + inB[0]) / 2, my = (inA[1] + inB[1]) / 2;
+        const facetAngle = Math.atan2(outV[1] - my, outV[0] - mx);
+        const lit = 0.5 + 0.5 * Math.cos(facetAngle - LIGHT_DIR);
+        const alphaEnv = clamp(0.04 + lit * 0.5 * gate + s.lamp * 0.3);
+        const dx0 = outV[0] - mx, dy0 = outV[1] - my;
+        const gx = mx + dx0 * cr - dy0 * sr, gy = my + dx0 * sr + dy0 * cr;
+        const fg = g.createLinearGradient(mx, my, gx, gy);
+        addSvgStops(fg, alphaEnv.toFixed(2));
+        g.fillStyle = fg;
+        g.beginPath(); g.moveTo(inA[0], inA[1]); g.lineTo(inB[0], inB[1]); g.lineTo(outV[0], outV[1]); g.closePath();
+        g.fill();
+      }
+    }
+    // NO OUTLINE, and no overlay pass — the stone colour is left alone.
+
+    // ---- THE LAMP: few, large, soft ------------------------------------
+    g.globalCompositeOperation = 'lighter';
+    // the beam's colour run, as explicit channels so each can be drawn on
+    // its own and nudged off the others. Alphas fall away well before the
+    // tip so the ray fades out rather than stopping.
+    const BEAM = [
+      [0, 242, 255, 242, 1.32],
+      [0.25, 37, 85, 238, 1.06],
+      [0.55, 255, 214, 90, 0.6],
+      [0.82, 225, 61, 47, 0.2],
+      [1, 225, 61, 47, 0]
+    ];
+    for (const p of s.ap) {
+      const a = Math.max(p.lit * 0.35, p.open);
+      if (a < 0.01) continue;
+      const hv = stonePts[p.host];
+      const e0 = hv[p.eIdx], e1 = hv[(p.eIdx + 1) % 4];
+      // slide along that edge — the light travels the stone's own border
+      const u = clamp(p.u0 + Math.sin(t * p.uSp + p.uPh) * 0.12, 0.06, 0.94);
+      const sx = e0[0] + (e1[0] - e0[0]) * u, sy = e0[1] + (e1[1] - e0[1]) * u;
+      // the edge's own direction: beams built off this swing with the stone
+      const eAng = Math.atan2(e1[1] - e0[1], e1[0] - e0[0]);
+
+      const R = p.size * (0.13 + a * 0.4);
+      const gr = g.createRadialGradient(sx, sy, 0, sx, sy, R);
+      gr.addColorStop(0, `rgba(242,255,242,${(Math.min(0.92, a) * bright).toFixed(2)})`);
+      gr.addColorStop(0.35, `rgba(37,85,238,${(a * 0.55 * bright).toFixed(2)})`);
+      gr.addColorStop(0.7, `rgba(255,214,90,${(a * 0.3 * bright).toFixed(2)})`);
+      gr.addColorStop(1, 'rgba(225,61,47,0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(sx, sy, R, 0, TAU); g.fill();
+
+      if (p.open > 0.2) {
+        const L = R * (2.2 + p.open * 5);            // longer than before
+        // ALL FOUR RAYS ARE BUILT THE SAME WAY. The cross pair stays short
+        // and a little thinner, but it gets the identical falloff, colour
+        // split and fading tail — drawing it as one flat stroke is what left
+        // it stopping at a hard edge.
+        const dirs = [
+          { a: eAng, len: 1, w: 0.475, wMin: 4.5, av: 0.27 },
+          { a: eAng + Math.PI, len: 1, w: 0.475, wMin: 4.5, av: 0.27 },
+          { a: eAng + Math.PI / 2, len: 0.4, w: 0.22, wMin: 3, av: 0.19 },
+          { a: eAng - Math.PI / 2, len: 0.4, w: 0.22, wMin: 3, av: 0.19 }
+        ];
+        g.lineCap = 'round';
+        for (const dr of dirs) {
+          const Ln = L * dr.len, cx = Math.cos(dr.a) * Ln, cy = Math.sin(dr.a) * Ln;
+          const ex = sx + cx, ey = sy + cy;
+          // wide beams cover a lot of ground, so each pass stays faint
+          const av = p.open * dr.av * bright;
+          const coreW = Math.max(dr.wMin * ms, R * dr.w * p.open);
+          const mkGrad = (mult, ch) => {
+            const gd = g.createLinearGradient(sx, sy, ex, ey);
+            for (const st of BEAM) {
+              const rr = (ch === undefined || ch === 0) ? st[1] : 0;
+              const gg = (ch === undefined || ch === 1) ? st[2] : 0;
+              const bb = (ch === undefined || ch === 2) ? st[3] : 0;
+              gd.addColorStop(st[0], `rgba(${rr},${gg},${bb},${(av * st[4] * mult).toFixed(3)})`);
+            }
+            return gd;
+          };
+          // the soft outer falloff — widest and faintest. Held back while
+          // the rest was brightened: this is the pass that covers the most
+          // ground, so it is what washes the frame out if it climbs too.
+          g.strokeStyle = mkGrad(0.26);
+          g.lineWidth = coreW * 1.5;
+          g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke();
+
+          // THE REFRACTION: the same ray drawn once per colour channel,
+          // each shifted across the ray. Added together the three recombine
+          // to the original colour down the middle, and the shift leaves red
+          // along one edge and blue along the other — genuinely out of
+          // register, not a coloured line drawn alongside.
+          const perpx = -cy / Ln, perpy = cx / Ln;
+          const sep = Math.max(1.5 * ms, coreW * 0.085);
+          for (let ch = 0; ch < 3; ch++) {
+            g.strokeStyle = mkGrad(1, ch);
+            g.lineWidth = coreW;
+            const off = (ch - 1) * sep;      // red +, green centre, blue −
+            g.beginPath();
+            g.moveTo(sx + perpx * off, sy + perpy * off);
+            g.lineTo(ex + perpx * off, ey + perpy * off);
+            g.stroke();
+          }
+          // a hot thread down the middle so the beam still has a core
+          g.strokeStyle = mkGrad(1.6);
+          g.lineWidth = Math.max(2.4 * ms, coreW * 0.2);
+          g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke();
+        }
+        g.lineCap = 'butt';
+      }
+    }
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(190,225,255,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    g.fillText('SPOTS ' + s.openN + '/' + s.ap.length + '   LAMP ' + Math.round(s.lamp * 100) +
+      '   TURN ' + Math.round(s.spin / TAU * 100) + '%' +
+      (s.pres < 0.3 ? '   · CLOSED' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const s0 = P.state;
+
+    /* --- air behind the sheet ------------------------------------------ */
+    const n = v.noise(), nf = v.filter('bandpass', 500, 0.9), ng = v.g(0.006);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- ONE VOICE PER BURST. Eight of them; the rest of the field is
+       light only. Pitch by height in the frame, pan by side — the chord
+       and the picture are the same object.                               */
+    const NV = 8;
+    const voices = [];
+    for (let i = 0; i < NV; i++) {
+      const o1 = v.osc('triangle', 220), o2 = v.osc('triangle', 220), o3 = v.osc('sine', 440);
+      o2.detune.value = 6;
+      const f = v.filter('lowpass', 700, 1.1);
+      const g = v.g(0.0001);
+      const pan = A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : null;
+      o1.connect(f); o2.connect(f); o3.connect(f); f.connect(g);
+      if (pan) { g.connect(pan); pan.connect(v.group); } else { g.connect(v.group); }
+      if (AE.revIn) { const sd = A.ctx.createGain(); sd.gain.value = 0.7; g.connect(sd); sd.connect(AE.revIn); }
+      voices.push({ o1, o2, o3, f, g, pan, freq: 220, note: -1, lvl: 0 });
+    }
+    const setV = (vc, freq, glide) => {
+      if (!isFinite(freq) || freq <= 20) return;
+      vc.freq = freq;
+      A.set(vc.o1.frequency, freq, glide);
+      A.set(vc.o2.frequency, freq, glide);
+      A.set(vc.o3.frequency, freq * 2.01, glide);
+      if (typeof MOut !== 'undefined') {
+        const note = MOut.f2n(freq);
+        if (note !== vc.note) {
+          const ch = MOut.chFor('pad'), p = performance.now();
+          if (vc.note >= 0 && MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0], p); } catch (e) {} }
+          vc.note = note;
+          MOut.log.push({ p, role: 'pad', ch, note, vel: 62, durMs: 2600 });
+          if (MOut.wants() && MOut.port) { try { MOut.port.send([0x90 | (ch - 1), note, 62], p); } catch (e) {} }
+        }
+      }
+    };
+
+    /* --- the pedal ------------------------------------------------------ */
+    const sub = A.padVoices(v, 1, { type: 'triangle', gain: 0.014, cutoff: 220, q: 0.5 });
+    const retune = glide => {
+      sub[0].set(H.rootFreq(-2), glide);
+      // every lit burst re-voices into the new chord, rolled low to high
+      const ap = P.state.ap;
+      for (const p of ap) {
+        if (p.voice < 0 || !p.on) continue;
+        const vc = voices[p.voice];
+        setV(vc, H.chordTone(p.deg || 0, p.oct || 0), glide);
+      }
+    };
+    retune(0.05);
+    H.onChord(() => retune(0.2));
+    v.fadeIn(1, 1.6);
+
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const thick = s.thick || 0;
+
+        A.set(ng.gain, (0.003 + s.lamp * 0.012) * gate, 0.4);
+        A.set(nf.frequency, 360 + s.lamp * 1500 + thick * 400, 0.4);
+        sub[0].level(0.01 + s.lamp * 0.008, 0.5);
+
+        /* ---- bursts committing: the entrance is rolled and quantised -- */
+        let ev, i = 0;
+        while ((ev = s.evq.shift()) && i < 6) {
+          i++;
+          const p = ev.p;
+          if (p.voice < 0) continue;
+          const vc = voices[p.voice];
+          if (ev.on) {
+            // HEIGHT IS PITCH: a burst near the top of the frame sings high
+            const up = clamp(1 - p.y / P.h);
+            const deg = Math.round(up * 9);
+            const oct = up > 0.72 ? 1 : 0;
+            p.deg = deg; p.oct = oct;
+            setV(vc, H.chordTone(deg, oct), 0.08);
+            if (vc.pan) A.set(vc.pan.pan, clamp(p.x / P.w * 2 - 1, -1, 1) * 0.7, 0.2);
+            const at = T.next(0.25) + p.voice * 0.012;   // low-to-high harp stagger
+            A.set(vc.g.gain, 0.024 + thick * 0.012, 0.35);
+            A.bell(H.chordTone(deg + 3, oct + 1), { at, vol: 0.05 * gate, dur: 2.4, pan: clamp(p.x / P.w * 2 - 1, -1, 1) * 0.8, rev: 0.7 });
+          } else {
+            A.set(vc.g.gain, 0.0001, 0.5);
+            if (typeof MOut !== 'undefined' && vc.note >= 0) {
+              const ch = MOut.chFor('pad');
+              if (MOut.wants() && MOut.port) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+              vc.note = -1;
+            }
+          }
+        }
+
+        /* ---- L opens every voice's filter together --------------------- */
+        for (let k = 0; k < NV; k++) {
+          const vc = voices[k];
+          A.set(vc.f.frequency, 420 + (1 - thick) * 2600 + s.lamp * 700, 0.25);
+          A.set(vc.o2.detune, 4 + (1 - thick) * 16, 0.3);
+          A.set(vc.o3.detune, (1 - thick) * 9, 0.3);
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', 1 - thick);
+          MOut.expr('texture', s.lamp);
+          MOut.expr('bells', clamp(s.openN / 8));
+        }
+      },
+      stop() {
+        if (typeof MOut !== 'undefined' && MOut.wants() && MOut.port) {
+          const ch = MOut.chFor('pad');
+          for (const vc of voices) if (vc.note >= 0) { try { MOut.port.send([0x80 | (ch - 1), vc.note, 0]); } catch (e) {} }
+        }
+        v.kill();
+      }
+    };
+  }
+});
 /* ---------- SRC-15.14 · FERRO BLOOM V14 (randomized clusters kept, gradient flows on its own again) ---------- */
 reg({
   id: 'SRC-15.14', family: 'SRC-15', ver: 14,
@@ -56504,6 +58032,928 @@ reg({
       if (c.w > 0.8) { liveN++; if (c.side) nR++; else nL++; }
     }
     s.live = liveN; s.nL = nL; s.nR = nR;
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.ph = beats * TAU;
+    const sig2 = 2 * s.sig * s.sig;
+
+    // ---- the field --------------------------------------------------------
+    const GX = s.GX, GY = s.GY, f = s.f, fs = s.fs, ownV = s.ownV;
+    const cw = w / GX, ch = h / GY, W = s.waves, C = s.cores;
+    for (let j = 0; j <= GY; j++) {
+      const y = j * ch;
+      for (let i = 0; i <= GX; i++) {
+        const x = i * cw;
+        let val = 0;
+        for (let q = 0; q < W.length; q++) {
+          const wv = W[q];
+          const u = (x * Math.cos(wv.dir) + y * Math.sin(wv.dir)) / Math.max(w, h);
+          val += wv.a * Math.sin(u * wv.k * TAU + s.ph * wv.sp * 0.25 + q);
+        }
+        let best = 0;
+        for (let q = 0; q < 6; q++) {
+          const c = C[q];
+          if (c.w < 0.05) continue;
+          const dx = x - c.x, dy = y - c.y;
+          const e = c.w * Math.exp(-(dx * dx + dy * dy) / sig2);
+          val += e;
+          if (e > best) best = e;
+        }
+        const o = j * (GX + 1) + i;
+        f[o] = val; ownV[o] = best;
+      }
+    }
+    // one five-point smoothing pass — this is what takes the faceting off the
+    // contours without paying for a finer grid everywhere
+    const RW = GX + 1;
+    for (let j = 0; j <= GY; j++) {
+      for (let i = 0; i <= GX; i++) {
+        const o = j * RW + i;
+        const l = i > 0 ? f[o - 1] : f[o], r = i < GX ? f[o + 1] : f[o];
+        const u = j > 0 ? f[o - RW] : f[o], d = j < GY ? f[o + RW] : f[o];
+        fs[o] = f[o] * 0.44 + (l + r + u + d) * 0.14;
+      }
+    }
+
+    // ---- march it into ridges: level picks the hue, ownV picks the burn ----
+    const seg = s.seg, lo = s.lo, st = s.step, NL = s.NL, oTh = s.oTh;
+    for (let k = 0; k < s.NB; k++) seg[k].length = 0;
+    for (let j = 0; j < GY; j++) {
+      for (let i = 0; i < GX; i++) {
+        const o = j * RW + i;
+        const a = fs[o], b = fs[o + 1], c = fs[o + RW + 1], d = fs[o + RW];
+        let mn = a, mx = a;
+        if (b < mn) mn = b; else if (b > mx) mx = b;
+        if (c < mn) mn = c; else if (c > mx) mx = c;
+        if (d < mn) mn = d; else if (d > mx) mx = d;
+        let k0 = Math.ceil((mn - lo) / st), k1 = Math.floor((mx - lo) / st);
+        if (k0 < 0) k0 = 0;
+        if (k1 > NL - 1) k1 = NL - 1;
+        if (k1 < k0) continue;
+        const x0 = i * cw, y0 = j * ch;
+        const ov = ownV[o];
+        const tier = ov > oTh[4] ? 5 : ov > oTh[3] ? 4 : ov > oTh[2] ? 3
+          : ov > oTh[1] ? 2 : ov > oTh[0] ? 1 : 0;
+        for (let k = k0; k <= k1; k++) {
+          const lev = lo + k * st;
+          const m = (a > lev ? 1 : 0) | (b > lev ? 2 : 0) | (c > lev ? 4 : 0) | (d > lev ? 8 : 0);
+          if (m === 0 || m === 15) continue;
+          const out = seg[k * 6 + tier];
+          const ax = x0 + cw * (lev - a) / (b - a), ay = y0;
+          const bx = x0 + cw, by = y0 + ch * (lev - b) / (c - b);
+          const cx2 = x0 + cw * (lev - d) / (c - d), cy2 = y0 + ch;
+          const dx2 = x0, dy2 = y0 + ch * (lev - a) / (d - a);
+          switch (m) {
+            case 1: case 14: out.push(dx2, dy2, ax, ay); break;
+            case 2: case 13: out.push(ax, ay, bx, by); break;
+            case 3: case 12: out.push(dx2, dy2, bx, by); break;
+            case 4: case 11: out.push(bx, by, cx2, cy2); break;
+            case 6: case 9: out.push(ax, ay, cx2, cy2); break;
+            case 7: case 8: out.push(dx2, dy2, cx2, cy2); break;
+            case 5: out.push(dx2, dy2, ax, ay, bx, by, cx2, cy2); break;
+            case 10: out.push(ax, ay, bx, by, cx2, cy2, dx2, dy2); break;
+          }
+        }
+      }
+    }
+
+    // ---- TOPOLOGY: whose loops are whose (untouched — this writes the music)
+    const waveCeil = 0.72;
+    const cnt = (a, b) => Math.max(0, Math.min(s.NL,
+      Math.floor((Math.min(b, lo + (s.NL - 1) * st) - lo) / st) - Math.floor((Math.max(a, waveCeil) - lo) / st)));
+    let topSaddle = 0;
+    for (let i = 0; i < 6; i++) {
+      const ci = C[i];
+      if (ci.w < 0.8) { if (ci.loops !== 0) { s.evq.push({ core: i, n: 0, up: false }); ci.loops = 0; } continue; }
+      let sad = 0;
+      for (let j = 0; j < 6; j++) {
+        if (i === j) continue;
+        const cj = C[j];
+        if (cj.w < 0.8) continue;
+        const dx = cj.x - ci.x, dy = cj.y - ci.y;
+        const v2 = (ci.w + cj.w) * Math.exp(-((dx * dx + dy * dy) / 4) / sig2);
+        if (v2 > sad) sad = v2;
+        if (v2 > topSaddle) topSaddle = v2;
+      }
+      const n = cnt(sad, ci.w);
+      if (n !== ci.loops) { s.evq.push({ core: i, n, up: n > ci.loops }); ci.loops = n; }
+    }
+    const nB = cnt(waveCeil, topSaddle);
+    if (nB !== s.shared) { s.evq.push({ core: -1, n: nB, up: nB > s.shared }); s.shared = nB; }
+    if (s.evq.length > 14) s.evq.splice(0, s.evq.length - 14);
+    let ridges = 0;
+    for (let k = 0; k < s.NB; k++) ridges += seg[k].length;
+    s.ridges = ridges >> 2;
+    // segments per grid cell — resolution-independent, so the tile and the
+    // 1920x1200 focus land on the same fullness for the same gesture
+    const dn = s.ridges / (GX * GY);
+    const want = s.dFloor + (1 - s.dFloor) * clamp((dn - s.dLo) / s.dSpan);
+    // ease it so the frame swells and sinks rather than flickering with the
+    // per-frame segment count
+    s.dens += (want - s.dens) * Math.min(1, dt * 2.2);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#08070b';
+    g.fillRect(0, 0, w, h);
+    // presence says "someone is here", fullness says "and this is how much
+    // they have built" — an empty frame is dark even with hands on the sphere
+    const bright = (0.5 + s.pres * 0.5) * s.dens;
+    // ONE WEIGHT for every ridge. V4-V6 ran V3's thinnest stroke (0.8); this
+    // is that pulled 30% finer again — 0.8 * 0.7. At 1920x1200 that lands
+    // near 7.4px, just under the ~8px the scrim survey wants, so the mesh
+    // is what decides whether this holds.
+    const lw = Math.max(3.4 * ms, Math.min(w, h) * 0.011) * 0.56;
+
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.lineWidth = lw;
+    // low ground first so the summits paint over their own flanks
+    for (let b = 0; b < s.NB; b++) {
+      const sg = s.seg[b];
+      if (!sg || !sg.length) continue;
+      const k = (b / 6) | 0, c = s.lut[k];
+      // Proximity carries the fade (V3's job); height only trims the last
+      // sliver, so the summit tier lands on exactly #f36c3b. The alpha spread
+      // is gentler than V3's because the hue ramp is already climbing hard in
+      // luminance — violet is dark, orange is bright — and the two compound.
+      const a = s.tierA[b % 6] * (0.88 + s.lutT[k] * 0.12) * bright;
+      g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+      g.beginPath();
+      for (let i = 0; i < sg.length; i += 4) {
+        g.moveTo(sg[i], sg[i + 1]);
+        g.lineTo(sg[i + 2], sg[i + 3]);
+      }
+      g.stroke();
+    }
+
+    // the summit haze takes the colour of the height it has actually reached,
+    // so a core visibly heats violet → orange as that hand reaches out
+    g.globalCompositeOperation = 'lighter';
+    for (const c of s.cores) {
+      if (c.w < 0.6) continue;
+      const col = s.ramp((c.w - s.lo) / s.rSpan);
+      const R = s.sig * (0.5 + clamp(c.w / s.wMax) * 0.5);
+      const gr = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, R);
+      gr.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},${0.16 * clamp(c.w / s.wMax) * bright})`);
+      gr.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(c.x, c.y, R, 0, TAU); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(243,108,59,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const BASSN = ['—', 'ROOT', 'WALKING', 'SYNCOPATED'];
+    const LEADN = ['—', 'TONE', 'TONE+ARP', 'TONE+ARP+BELL'];
+    g.fillText('BASS ' + BASSN[s.nL] + ' (' + s.nL + ')   LEAD ' + LEADN[s.nR] + ' (' + s.nR + ')' +
+      '   LOOPS ' + s.cores.map(c => c.loops).join('/') + '   SHARED ' + s.shared +
+      (s.pres < 0.3 ? '   · FLOWING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the loom: bowed air -------------------------------------------- */
+    const n = v.noise(), nf = v.filter('bandpass', 800, 1.6), ng = v.g(0.008);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- glue: triangle only. No sawtooth anywhere in this version ------ */
+    const bed = A.padVoices(v, 3, { type: 'triangle', gain: 0.008, cutoff: 300, q: 0.6 });
+    const place = glide => A.leadToChord(bed, -1, glide);
+    place(0.05);
+    H.onChord(() => place(0.2));
+    v.fadeIn(1, 1.4);
+
+    // THE PICTURE WRITES THE PARTS: a core's loop count is its note
+    const warmTone = (i, oct) => H.chordTone(P.state.cores[i].deg + P.state.cores[i].loops, oct);
+    const coolTone = (i, oct) => H.chordTone(P.state.cores[i].deg + P.state.cores[i].loops, oct);
+
+    // bass figures, indexed by how many left cores are up. 1 = downbeat root,
+    // 2 = a walking pair, 3 = a syncopated sixteenth line. Values are which
+    // left core supplies the note.
+    const BASS = [
+      [],
+      [[0, 0]],
+      [[0, 0], [8, 1], [14, 0]],
+      [[0, 0], [3, 2], [6, 1], [10, 0], [11, 2], [14, 1]]
+    ];
+
+    let nextT = T.next(0.25), lastLoops = [0, 0, 0, 0, 0, 0], arpI = 0;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const shared = s.shared || 0;
+        const conv = clamp(shared / 5);
+
+        A.set(ng.gain, (0.004 + clamp(s.ridges / 900) * 0.012) * gate, 0.3);
+        A.set(nf.frequency, 400 + clamp(s.ridges / 900) * 2000, 0.3);
+        bed.forEach(b => { b.level(0.006 + s.pres * 0.004, 0.5); b.bright(220 + clamp(s.ridges / 900) * 400, 0.4); });
+
+        /* ---- the grid: bass on the left, leads on the right ----------- */
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+
+          // LEFT HAND — the floor. More cores up, busier line.
+          const fig = BASS[Math.min(3, s.nL)];
+          for (const [step, coreI] of fig) {
+            if (step !== st) continue;
+            const c = s.cores[coreI];
+            if (!c || c.w < 0.8) continue;
+            const dur = s.nL > 2 ? 0.5 : s.nL > 1 ? 0.9 : 2.4;
+            A.bassNote(warmTone(coreI, -1), { at: nextT, vol: (0.1 + clamp(c.w / 5) * 0.06) * gate, dur });
+          }
+
+          // RIGHT HAND — the front line. Each core is a different player.
+          const c4 = s.cores[4];
+          if (c4 && c4.w > 0.8 && st % 2 === 0) {
+            // the running arpeggio, around its own loop count
+            arpI++;
+            const off = [0, 2, 4, 2, 5, 3][arpI % 6];
+            A.pluck2(H.chordTone(c4.deg + c4.loops + off, 0), {
+              at: nextT, vol: (0.03 + clamp(c4.w / 5) * 0.02) * gate,
+              dur: 0.55, pan: 0.6, rev: 0.45, del: 0.2, role: 'lead'
+            });
+          }
+          const c5 = s.cores[5];
+          if (c5 && c5.w > 0.8 && (st === 6 || st === 13)) {
+            // the high answer, off the beat and sparse
+            A.bell(H.chordTone(c5.deg + c5.loops + 4, 1), {
+              at: nextT, vol: 0.028 * gate, dur: 2.4, pan: 0.25, rev: 0.75
+            });
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        /* ---- the long lead re-sings whenever its loops change ---------- */
+        const c3 = s.cores[3];
+        if (c3 && c3.w > 0.8 && c3.loops !== lastLoops[3]) {
+          lastLoops[3] = c3.loops;
+          const f = coolTone(3, 0);
+          const at = T.next(0.5);
+          A.tone(f * (1 - conv * 0.02), {
+            at, vol: 0.06 * gate, dur: 3.4, attack: 0.5, type: 'triangle',
+            pan: 0.5, rev: 0.6, del: 0.1, role: 'lead'
+          });
+          // the doubling is the same voice — it must not become its own note
+          const sp = MOut.suspend; MOut.suspend = true;
+          A.tone(f * 1.005, { at: at + 0.03, vol: 0.03 * gate, dur: 3, attack: 0.6, type: 'triangle', pan: 0.2, rev: 0.7 });
+          MOut.suspend = sp;
+        }
+
+        /* ---- accents: a loop gained or lost, on its own side ----------- */
+        let ev, k = 0;
+        while ((ev = s.evq.shift()) && k < 4) {
+          k++;
+          const at = T.next(0.25);
+          if (ev.core < 0) {
+            // rings that enclose more than one core
+            if (ev.up) {
+              A.bell(H.chordTone(ev.n + 2, 1), { at, vol: 0.045 * gate, dur: 3.2, pan: 0, rev: 0.78 });
+              A.bassNote(H.chordTone(0, -1), { at, vol: 0.07 * gate, dur: 2.2 });
+            } else {
+              A.pluck2(H.chordTone(ev.n, 0), { at, vol: 0.025 * gate, dur: 1.1, pan: 0, rev: 0.5, role: 'lead' });
+            }
+            continue;
+          }
+          const c = s.cores[ev.core];
+          if (c.side === 0) {
+            // the floor moved
+            A.bassNote(warmTone(ev.core, -1), { at, vol: (ev.up ? 0.09 : 0.05) * gate, dur: ev.up ? 1.4 : 0.7 });
+          } else if (ev.core !== 3) {
+            A.pluck2(coolTone(ev.core, 0), {
+              at, vol: (ev.up ? 0.045 : 0.026) * gate, dur: ev.up ? 1.1 : 0.6,
+              pan: (c.hx * 2 - 1) * 0.8, rev: 0.5, del: 0.18, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('bass', clamp(s.nL / 3));
+          MOut.expr('lead', clamp(s.nR / 3));
+          MOut.expr('pad', clamp(s.ridges / 900));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-42.8 · RIDGE LOOM V8 (the palette breathes between two states) ---------- */
+reg({
+  id: 'SRC-42.8', family: 'SRC-42', ver: 8, title: 'Ridge Loom V8', tech: 'CONTOUR HEAT / TWO PALETTES, 6S BREATH',
+  music: {
+    bpm: 96, root: 49, mode: 'dorian', chordBars: 2,
+    chords: [
+      [0, 7, 15, 21, 26],   // C♯m13   — the dorian sixth
+      [0, 5, 12, 17, 21],   // F♯/C♯
+      [0, 7, 14, 19, 22],   // C♯m9
+      [0, 10, 15, 19, 24]   // C♯m7
+    ],
+    chordNames: ['C♯m13', 'F♯/C♯', 'C♯m9', 'C♯m7']
+  },
+  fx: { bloom: 0.45 },
+  tags: ['LEFT HAND = BASS', 'RIGHT HAND = LEADS', 'HEIGHT IS THE COLOUR', 'THE PALETTE BREATHES'],
+  desc: 'V7 with the palette on a slow breath. Two colour states, six seconds apart, running back and forth forever. STATE ONE is the one you know: deep violet (#4900ff) on the low ground and outermost rings, climbing to hot orange (#f36c3b) at the summits. STATE TWO rolls the whole ramp forward — the orange that was on the summits becomes cyan (#00edff), and the violet that was on the floor becomes that orange. So the picture never sits still: over six seconds the low country warms from violet through magenta and red into orange while the peaks run up through gold and green into cyan, then it all comes back. The hues rotate rather than cross-fade — a straight blend from orange to cyan passes through dead grey, and this scene cannot afford a grey frame. Everything else is V7: one fine stroke, height picks the hue, proximity picks the burn, an empty frame stays dark.',
+  interact: 'The two hands are two different musicians. L is the RHYTHM SECTION: its three cores are the bassline, and every one you surface makes that line busier and more melodic — one core is a root on the downbeat, two is a walking pair, three is a full syncopated figure whose notes are chosen by how many loops each core has closed. R is the FRONT LINE: its three cores are three different leads, arriving one at a time — first a long singing tone, then a running eighth-note arpeggio beside it, then a high answering bell on top. So the left hand decides how the floor moves and the right hand decides who is soloing over it, and both stay readable: count the whorls on a side and you know what that side is playing, and read the colour at the middle of a whorl to know how hard that hand is pushing. Bring both hands home and the frame cools back to a violet flow.',
+  sound: 'Unchanged from V3 — this revision is colour and line weight only. Split down the middle by hand. LEFT = bass (MIDI role: bass): one core gives a root on the downbeat, a second adds the walking pair, a third opens a syncopated sixteenth figure — and the notes are taken from each left core\'s own loop count, so the bassline is literally written by the picture. RIGHT = leads (role: lead, plus bells): core one is a long bowed tone that re-sings whenever its loop count changes, core two is a running eighth arpeggio around its own loop count, core three is a sparse high bell answering off the beat. Every loop gained or lost is also an accent on its own side. When rings start enclosing more than one core the scene changes state: a bell and a sub bloom, and the lead voices converge toward one pitch, so a crowded frame resolves instead of clashing. Under it: a bowed loom bed whose brightness follows how much ridge is on screen, a quiet triangle glue pad, and a pedal on C♯ that never moves — no sawtooth, no horns. Ableton: bass ch3, lead ch1, bells ch5, pad ch2, texture ch6.',
+
+  init(P) {
+    const w = P.w, h = P.h;
+    // P.focused is false during init — size off the area. Wall tiles get a
+    // much coarser field; nobody counts ridges on a thumbnail.
+    const fine = areaScale(P) > 1.6 ? 1 : 0.38;
+    const CORES = [
+      { hx: 0.13, hy: 0.30, side: 0, slot: 0, deg: 0 },
+      { hx: 0.22, hy: 0.80, side: 0, slot: 1, deg: 2 },
+      { hx: 0.40, hy: 0.22, side: 0, slot: 2, deg: 4 },
+      { hx: 0.87, hy: 0.30, side: 1, slot: 0, deg: 1 },
+      { hx: 0.78, hy: 0.80, side: 1, slot: 1, deg: 3 },
+      { hx: 0.58, hy: 0.72, side: 1, slot: 2, deg: 5 }
+    ];
+    for (const c of CORES) {
+      c.x = c.hx * w; c.y = c.hy * h; c.w = 0; c.loops = 0; c.ph = P.rand() * TAU;
+    }
+    // finer grid + a smoothing pass = ridges that curve instead of faceting
+    const GX = Math.max(30, Math.round(112 * fine)), GY = Math.max(20, Math.round(70 * fine));
+    const N = (GX + 1) * (GY + 1);
+    const lo = -0.95, step = 0.42, NL = 26;
+    P.state = {
+      GX, GY, cores: CORES, pres: 0, ph: 0,
+      f: new Float32Array(N), fs: new Float32Array(N),
+      // how hard the nearest core owns each cell — V3's term, back again. This
+      // is what fades the open country and burns the middle of a whorl.
+      ownV: new Float32Array(N),
+      sig: w * 0.075, lo, step, NL, wMax: 5,
+      shared: 0, ridges: 0, live: 2, nL: 1, nR: 1, evq: [],
+      waves: [
+        { k: 3.1, a: 0.55, dir: 0.4, sp: 1 },
+        { k: 5.3, a: 0.33, dir: 2.1, sp: -0.62 },
+        { k: 8.7, a: 0.18, dir: 3.9, sp: 0.41 }
+      ],
+      // BUCKET = CONTOUR LEVEL × PROXIMITY TIER. The level picks the hue, the
+      // tier picks how hard it burns. V3 folded both into one 19-bucket list
+      // keyed on which core owned the ground; splitting them lets height and
+      // intensity say different things.
+      seg: [], NB: NL * 6,
+      // V3's own thresholds on ownV, subdivided: V3 stepped the burn in three
+      // jumps and hid the seams under a width change too, which this version
+      // doesn't have — six finer steps keep the falloff from ringing.
+      // The floor sits higher than V3's 0.4 because #4900ff is a far darker
+      // colour than V3's grey-purple far field; the same alpha would sink it
+      // below what the mesh can carry.
+      // V5's spread was 1.9x floor-to-summit, which matched V3 but read flat.
+      // 4.2x here: the open country has to be genuinely dark for a whorl to
+      // land as a knot of light rather than just a warmer patch of weave.
+      oTh: [0.12, 0.4, 0.9, 1.7, 2.8], tierA: [0.24, 0.34, 0.47, 0.64, 0.82, 1],
+      // HOW FULL THE FRAME IS decides how much light it gets. Normalised by
+      // grid size, not raw segment count — a wall tile marches a far coarser
+      // field and would otherwise be pinned dark forever.
+      dLo: 0.28, dSpan: 0.34, dFloor: 0.6, dens: 1,
+      // The heat ramp. rSpan is chosen so a fully-extended core (w = wMax)
+      // tops out at pure orange while the flowing background — which never
+      // gets above the wave ceiling — stays down in the violets.
+      rSpan: 5.65, lut: [], lutT: []
+    };
+    const s = P.state;
+    // TWO PALETTE STATES, six seconds apart. Anchors are held in HSV because
+    // the endpoints have to travel by ROTATING hue: orange and cyan sit nearly
+    // opposite each other, so a straight blend collapses through #abb8b9 —
+    // a grey frame, which this scene cannot afford. Both endpoints rotate the
+    // same way (+119 deg on the floor, +168 on the peaks), so the whole ramp
+    // sweeps together instead of pulling apart.
+    //   state 1: floor #4900ff  ->  peaks #f36c3b
+    //   state 2: floor #f36c3b  ->  peaks #00edff
+    s.palLo = [[257.2, 1, 1], [16.0, 0.757, 0.953]];
+    s.palHi = [[16.0, 0.757, 0.953], [184.2, 1, 1]];
+    s.cyc = 6;            // seconds per crossing; a full there-and-back is 12
+    s.mix = 0;
+    s.curLo = [0x49, 0x00, 0xff];
+    s.curHi = [0xf3, 0x6c, 0x3b];
+    // HSV -> RGB, kept on state so step() can call it every frame
+    s.h2r = (h, sa, v) => {
+      h = ((h % 360) + 360) % 360;
+      const c = v * sa, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+      let r = 0, g = 0, b = 0;
+      if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; }
+      else if (h < 180) { g = c; b = x; } else if (h < 240) { g = x; b = c; }
+      else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+      return [((r + m) * 255) | 0, ((g + m) * 255) | 0, ((b + m) * 255) | 0];
+    };
+    // the ramp itself still blends in gamma space between whatever the two
+    // endpoints currently are — that is what keeps the mid-ramp saturated
+    s.ramp = u => {
+      const t = clamp(u), A = s.curLo, B = s.curHi;
+      return [
+        Math.sqrt(A[0] * A[0] * (1 - t) + B[0] * B[0] * t) | 0,
+        Math.sqrt(A[1] * A[1] * (1 - t) + B[1] * B[1] * t) | 0,
+        Math.sqrt(A[2] * A[2] * (1 - t) + B[2] * B[2] * t) | 0
+      ];
+    };
+    for (let k = 0; k < NL; k++) {
+      const t = clamp(k * step / s.rSpan);
+      s.lutT.push(t);
+      s.lut.push(s.ramp(t));
+    }
+    for (let b = 0; b < s.NB; b++) s.seg.push([]);
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const HV = [clamp(inp.L), clamp(inp.R)];
+    const TH = [[0, 0.28, 0.9], [0.32, 0.4, 0], [0.64, 0.36, 0]];
+    let liveN = 0, nL = 0, nR = 0;
+    for (const c of s.cores) {
+      const x = HV[c.side];
+      const th = TH[c.slot];
+      const want = (c.slot === 0 ? clamp(th[1] + x * th[2]) : clamp((x - th[0]) / th[1])) * s.wMax;
+      c.w += (want - c.w) * Math.min(1, dt * 4.5);
+      c.ph += dt * 0.3;
+      c.x = c.hx * w + Math.sin(c.ph) * w * 0.012;
+      c.y = c.hy * h + Math.cos(c.ph * 0.8) * h * 0.02;
+      if (c.w > 0.8) { liveN++; if (c.side) nR++; else nL++; }
+    }
+    s.live = liveN; s.nL = nL; s.nR = nR;
+    // ---- the palette breath: 6s across, 6s back, forever ------------------
+    // wall-clock, not beats — a continuous drift is not an event, and the
+    // design law only quantises events to the grid.
+    const ph = (t % (s.cyc * 2)) / s.cyc;
+    const tri = ph < 1 ? ph : 2 - ph;
+    s.mix = tri * tri * (3 - 2 * tri);   // smoothstep: dwell at each state
+    for (let e = 0; e < 2; e++) {
+      const P0 = (e ? s.palHi : s.palLo)[0], P1 = (e ? s.palHi : s.palLo)[1];
+      let dh = P1[0] - P0[0];
+      if (dh > 180) dh -= 360; else if (dh < -180) dh += 360;  // shortest arc
+      const col = s.h2r(P0[0] + dh * s.mix,
+                        P0[1] + (P1[1] - P0[1]) * s.mix,
+                        P0[2] + (P1[2] - P0[2]) * s.mix);
+      const dst = e ? s.curHi : s.curLo;
+      dst[0] = col[0]; dst[1] = col[1]; dst[2] = col[2];
+    }
+    for (let k = 0; k < s.NL; k++) {
+      const c = s.ramp(s.lutT[k]), d = s.lut[k];
+      d[0] = c[0]; d[1] = c[1]; d[2] = c[2];
+    }
+
+    const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
+    s.ph = beats * TAU;
+    const sig2 = 2 * s.sig * s.sig;
+
+    // ---- the field --------------------------------------------------------
+    const GX = s.GX, GY = s.GY, f = s.f, fs = s.fs, ownV = s.ownV;
+    const cw = w / GX, ch = h / GY, W = s.waves, C = s.cores;
+    for (let j = 0; j <= GY; j++) {
+      const y = j * ch;
+      for (let i = 0; i <= GX; i++) {
+        const x = i * cw;
+        let val = 0;
+        for (let q = 0; q < W.length; q++) {
+          const wv = W[q];
+          const u = (x * Math.cos(wv.dir) + y * Math.sin(wv.dir)) / Math.max(w, h);
+          val += wv.a * Math.sin(u * wv.k * TAU + s.ph * wv.sp * 0.25 + q);
+        }
+        let best = 0;
+        for (let q = 0; q < 6; q++) {
+          const c = C[q];
+          if (c.w < 0.05) continue;
+          const dx = x - c.x, dy = y - c.y;
+          const e = c.w * Math.exp(-(dx * dx + dy * dy) / sig2);
+          val += e;
+          if (e > best) best = e;
+        }
+        const o = j * (GX + 1) + i;
+        f[o] = val; ownV[o] = best;
+      }
+    }
+    // one five-point smoothing pass — this is what takes the faceting off the
+    // contours without paying for a finer grid everywhere
+    const RW = GX + 1;
+    for (let j = 0; j <= GY; j++) {
+      for (let i = 0; i <= GX; i++) {
+        const o = j * RW + i;
+        const l = i > 0 ? f[o - 1] : f[o], r = i < GX ? f[o + 1] : f[o];
+        const u = j > 0 ? f[o - RW] : f[o], d = j < GY ? f[o + RW] : f[o];
+        fs[o] = f[o] * 0.44 + (l + r + u + d) * 0.14;
+      }
+    }
+
+    // ---- march it into ridges: level picks the hue, ownV picks the burn ----
+    const seg = s.seg, lo = s.lo, st = s.step, NL = s.NL, oTh = s.oTh;
+    for (let k = 0; k < s.NB; k++) seg[k].length = 0;
+    for (let j = 0; j < GY; j++) {
+      for (let i = 0; i < GX; i++) {
+        const o = j * RW + i;
+        const a = fs[o], b = fs[o + 1], c = fs[o + RW + 1], d = fs[o + RW];
+        let mn = a, mx = a;
+        if (b < mn) mn = b; else if (b > mx) mx = b;
+        if (c < mn) mn = c; else if (c > mx) mx = c;
+        if (d < mn) mn = d; else if (d > mx) mx = d;
+        let k0 = Math.ceil((mn - lo) / st), k1 = Math.floor((mx - lo) / st);
+        if (k0 < 0) k0 = 0;
+        if (k1 > NL - 1) k1 = NL - 1;
+        if (k1 < k0) continue;
+        const x0 = i * cw, y0 = j * ch;
+        const ov = ownV[o];
+        const tier = ov > oTh[4] ? 5 : ov > oTh[3] ? 4 : ov > oTh[2] ? 3
+          : ov > oTh[1] ? 2 : ov > oTh[0] ? 1 : 0;
+        for (let k = k0; k <= k1; k++) {
+          const lev = lo + k * st;
+          const m = (a > lev ? 1 : 0) | (b > lev ? 2 : 0) | (c > lev ? 4 : 0) | (d > lev ? 8 : 0);
+          if (m === 0 || m === 15) continue;
+          const out = seg[k * 6 + tier];
+          const ax = x0 + cw * (lev - a) / (b - a), ay = y0;
+          const bx = x0 + cw, by = y0 + ch * (lev - b) / (c - b);
+          const cx2 = x0 + cw * (lev - d) / (c - d), cy2 = y0 + ch;
+          const dx2 = x0, dy2 = y0 + ch * (lev - a) / (d - a);
+          switch (m) {
+            case 1: case 14: out.push(dx2, dy2, ax, ay); break;
+            case 2: case 13: out.push(ax, ay, bx, by); break;
+            case 3: case 12: out.push(dx2, dy2, bx, by); break;
+            case 4: case 11: out.push(bx, by, cx2, cy2); break;
+            case 6: case 9: out.push(ax, ay, cx2, cy2); break;
+            case 7: case 8: out.push(dx2, dy2, cx2, cy2); break;
+            case 5: out.push(dx2, dy2, ax, ay, bx, by, cx2, cy2); break;
+            case 10: out.push(ax, ay, bx, by, cx2, cy2, dx2, dy2); break;
+          }
+        }
+      }
+    }
+
+    // ---- TOPOLOGY: whose loops are whose (untouched — this writes the music)
+    const waveCeil = 0.72;
+    const cnt = (a, b) => Math.max(0, Math.min(s.NL,
+      Math.floor((Math.min(b, lo + (s.NL - 1) * st) - lo) / st) - Math.floor((Math.max(a, waveCeil) - lo) / st)));
+    let topSaddle = 0;
+    for (let i = 0; i < 6; i++) {
+      const ci = C[i];
+      if (ci.w < 0.8) { if (ci.loops !== 0) { s.evq.push({ core: i, n: 0, up: false }); ci.loops = 0; } continue; }
+      let sad = 0;
+      for (let j = 0; j < 6; j++) {
+        if (i === j) continue;
+        const cj = C[j];
+        if (cj.w < 0.8) continue;
+        const dx = cj.x - ci.x, dy = cj.y - ci.y;
+        const v2 = (ci.w + cj.w) * Math.exp(-((dx * dx + dy * dy) / 4) / sig2);
+        if (v2 > sad) sad = v2;
+        if (v2 > topSaddle) topSaddle = v2;
+      }
+      const n = cnt(sad, ci.w);
+      if (n !== ci.loops) { s.evq.push({ core: i, n, up: n > ci.loops }); ci.loops = n; }
+    }
+    const nB = cnt(waveCeil, topSaddle);
+    if (nB !== s.shared) { s.evq.push({ core: -1, n: nB, up: nB > s.shared }); s.shared = nB; }
+    if (s.evq.length > 14) s.evq.splice(0, s.evq.length - 14);
+    let ridges = 0;
+    for (let k = 0; k < s.NB; k++) ridges += seg[k].length;
+    s.ridges = ridges >> 2;
+    // segments per grid cell — resolution-independent, so the tile and the
+    // 1920x1200 focus land on the same fullness for the same gesture
+    const dn = s.ridges / (GX * GY);
+    const want = s.dFloor + (1 - s.dFloor) * clamp((dn - s.dLo) / s.dSpan);
+    // ease it so the frame swells and sinks rather than flickering with the
+    // per-frame segment count
+    s.dens += (want - s.dens) * Math.min(1, dt * 2.2);
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = '#08070b';
+    g.fillRect(0, 0, w, h);
+    // presence says "someone is here", fullness says "and this is how much
+    // they have built" — an empty frame is dark even with hands on the sphere
+    const bright = (0.5 + s.pres * 0.5) * s.dens;
+    // ONE WEIGHT for every ridge. V4-V6 ran V3's thinnest stroke (0.8); this
+    // is that pulled 30% finer again — 0.8 * 0.7. At 1920x1200 that lands
+    // near 7.4px, just under the ~8px the scrim survey wants, so the mesh
+    // is what decides whether this holds.
+    const lw = Math.max(3.4 * ms, Math.min(w, h) * 0.011) * 0.56;
+
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.lineWidth = lw;
+    // low ground first so the summits paint over their own flanks
+    for (let b = 0; b < s.NB; b++) {
+      const sg = s.seg[b];
+      if (!sg || !sg.length) continue;
+      const k = (b / 6) | 0, c = s.lut[k];
+      // Proximity carries the fade (V3's job); height only trims the last
+      // sliver, so the summit tier lands on exactly #f36c3b. The alpha spread
+      // is gentler than V3's because the hue ramp is already climbing hard in
+      // luminance — violet is dark, orange is bright — and the two compound.
+      const a = s.tierA[b % 6] * (0.88 + s.lutT[k] * 0.12) * bright;
+      g.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+      g.beginPath();
+      for (let i = 0; i < sg.length; i += 4) {
+        g.moveTo(sg[i], sg[i + 1]);
+        g.lineTo(sg[i + 2], sg[i + 3]);
+      }
+      g.stroke();
+    }
+
+    // the summit haze takes the colour of the height it has actually reached,
+    // so a core visibly heats violet → orange as that hand reaches out
+    g.globalCompositeOperation = 'lighter';
+    for (const c of s.cores) {
+      if (c.w < 0.6) continue;
+      const col = s.ramp((c.w - s.lo) / s.rSpan);
+      const R = s.sig * (0.5 + clamp(c.w / s.wMax) * 0.5);
+      const gr = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, R);
+      gr.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},${0.16 * clamp(c.w / s.wMax) * bright})`);
+      gr.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(c.x, c.y, R, 0, TAU); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
+
+    g.fillStyle = 'rgba(243,108,59,0.85)';
+    g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+    const BASSN = ['—', 'ROOT', 'WALKING', 'SYNCOPATED'];
+    const LEADN = ['—', 'TONE', 'TONE+ARP', 'TONE+ARP+BELL'];
+    g.fillText('BASS ' + BASSN[s.nL] + ' (' + s.nL + ')   LEAD ' + LEADN[s.nR] + ' (' + s.nR + ')' +
+      '   LOOPS ' + s.cores.map(c => c.loops).join('/') + '   SHARED ' + s.shared +
+      (s.pres < 0.3 ? '   · FLOWING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the loom: bowed air -------------------------------------------- */
+    const n = v.noise(), nf = v.filter('bandpass', 800, 1.6), ng = v.g(0.008);
+    n.connect(nf); nf.connect(ng); ng.connect(v.group);
+
+    /* --- glue: triangle only. No sawtooth anywhere in this version ------ */
+    const bed = A.padVoices(v, 3, { type: 'triangle', gain: 0.008, cutoff: 300, q: 0.6 });
+    const place = glide => A.leadToChord(bed, -1, glide);
+    place(0.05);
+    H.onChord(() => place(0.2));
+    v.fadeIn(1, 1.4);
+
+    // THE PICTURE WRITES THE PARTS: a core's loop count is its note
+    const warmTone = (i, oct) => H.chordTone(P.state.cores[i].deg + P.state.cores[i].loops, oct);
+    const coolTone = (i, oct) => H.chordTone(P.state.cores[i].deg + P.state.cores[i].loops, oct);
+
+    // bass figures, indexed by how many left cores are up. 1 = downbeat root,
+    // 2 = a walking pair, 3 = a syncopated sixteenth line. Values are which
+    // left core supplies the note.
+    const BASS = [
+      [],
+      [[0, 0]],
+      [[0, 0], [8, 1], [14, 0]],
+      [[0, 0], [3, 2], [6, 1], [10, 0], [11, 2], [14, 1]]
+    ];
+
+    let nextT = T.next(0.25), lastLoops = [0, 0, 0, 0, 0, 0], arpI = 0;
+    return {
+      tick(inp, dt) {
+        const s = P.state, now = A.t();
+        const gate = 0.25 + s.pres * 0.75;
+        const shared = s.shared || 0;
+        const conv = clamp(shared / 5);
+
+        A.set(ng.gain, (0.004 + clamp(s.ridges / 900) * 0.012) * gate, 0.3);
+        A.set(nf.frequency, 400 + clamp(s.ridges / 900) * 2000, 0.3);
+        bed.forEach(b => { b.level(0.006 + s.pres * 0.004, 0.5); b.bright(220 + clamp(s.ridges / 900) * 400, 0.4); });
+
+        /* ---- the grid: bass on the left, leads on the right ----------- */
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+
+          // LEFT HAND — the floor. More cores up, busier line.
+          const fig = BASS[Math.min(3, s.nL)];
+          for (const [step, coreI] of fig) {
+            if (step !== st) continue;
+            const c = s.cores[coreI];
+            if (!c || c.w < 0.8) continue;
+            const dur = s.nL > 2 ? 0.5 : s.nL > 1 ? 0.9 : 2.4;
+            A.bassNote(warmTone(coreI, -1), { at: nextT, vol: (0.1 + clamp(c.w / 5) * 0.06) * gate, dur });
+          }
+
+          // RIGHT HAND — the front line. Each core is a different player.
+          const c4 = s.cores[4];
+          if (c4 && c4.w > 0.8 && st % 2 === 0) {
+            // the running arpeggio, around its own loop count
+            arpI++;
+            const off = [0, 2, 4, 2, 5, 3][arpI % 6];
+            A.pluck2(H.chordTone(c4.deg + c4.loops + off, 0), {
+              at: nextT, vol: (0.03 + clamp(c4.w / 5) * 0.02) * gate,
+              dur: 0.55, pan: 0.6, rev: 0.45, del: 0.2, role: 'lead'
+            });
+          }
+          const c5 = s.cores[5];
+          if (c5 && c5.w > 0.8 && (st === 6 || st === 13)) {
+            // the high answer, off the beat and sparse
+            A.bell(H.chordTone(c5.deg + c5.loops + 4, 1), {
+              at: nextT, vol: 0.028 * gate, dur: 2.4, pan: 0.25, rev: 0.75
+            });
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        /* ---- the long lead re-sings whenever its loops change ---------- */
+        const c3 = s.cores[3];
+        if (c3 && c3.w > 0.8 && c3.loops !== lastLoops[3]) {
+          lastLoops[3] = c3.loops;
+          const f = coolTone(3, 0);
+          const at = T.next(0.5);
+          A.tone(f * (1 - conv * 0.02), {
+            at, vol: 0.06 * gate, dur: 3.4, attack: 0.5, type: 'triangle',
+            pan: 0.5, rev: 0.6, del: 0.1, role: 'lead'
+          });
+          // the doubling is the same voice — it must not become its own note
+          const sp = MOut.suspend; MOut.suspend = true;
+          A.tone(f * 1.005, { at: at + 0.03, vol: 0.03 * gate, dur: 3, attack: 0.6, type: 'triangle', pan: 0.2, rev: 0.7 });
+          MOut.suspend = sp;
+        }
+
+        /* ---- accents: a loop gained or lost, on its own side ----------- */
+        let ev, k = 0;
+        while ((ev = s.evq.shift()) && k < 4) {
+          k++;
+          const at = T.next(0.25);
+          if (ev.core < 0) {
+            // rings that enclose more than one core
+            if (ev.up) {
+              A.bell(H.chordTone(ev.n + 2, 1), { at, vol: 0.045 * gate, dur: 3.2, pan: 0, rev: 0.78 });
+              A.bassNote(H.chordTone(0, -1), { at, vol: 0.07 * gate, dur: 2.2 });
+            } else {
+              A.pluck2(H.chordTone(ev.n, 0), { at, vol: 0.025 * gate, dur: 1.1, pan: 0, rev: 0.5, role: 'lead' });
+            }
+            continue;
+          }
+          const c = s.cores[ev.core];
+          if (c.side === 0) {
+            // the floor moved
+            A.bassNote(warmTone(ev.core, -1), { at, vol: (ev.up ? 0.09 : 0.05) * gate, dur: ev.up ? 1.4 : 0.7 });
+          } else if (ev.core !== 3) {
+            A.pluck2(coolTone(ev.core, 0), {
+              at, vol: (ev.up ? 0.045 : 0.026) * gate, dur: ev.up ? 1.1 : 0.6,
+              pan: (c.hx * 2 - 1) * 0.8, rev: 0.5, del: 0.18, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('bass', clamp(s.nL / 3));
+          MOut.expr('lead', clamp(s.nR / 3));
+          MOut.expr('pad', clamp(s.ridges / 900));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-42.9 · RIDGE LOOM V9 (breath stays on the three colours) ---------- */
+reg({
+  id: 'SRC-42.9', family: 'SRC-42', ver: 9, title: 'Ridge Loom V9', tech: 'CONTOUR HEAT / THREE COLOURS, 6S BREATH',
+  music: {
+    bpm: 96, root: 49, mode: 'dorian', chordBars: 2,
+    chords: [
+      [0, 7, 15, 21, 26],   // C♯m13   — the dorian sixth
+      [0, 5, 12, 17, 21],   // F♯/C♯
+      [0, 7, 14, 19, 22],   // C♯m9
+      [0, 10, 15, 19, 24]   // C♯m7
+    ],
+    chordNames: ['C♯m13', 'F♯/C♯', 'C♯m9', 'C♯m7']
+  },
+  fx: { bloom: 0.45 },
+  tags: ['LEFT HAND = BASS', 'RIGHT HAND = LEADS', 'HEIGHT IS THE COLOUR', 'THREE COLOURS ONLY'],
+  desc: 'V8\'s six-second breath, but the transition now stays inside the three colours instead of touring the spectrum. Two states: violet (#4900ff) floor with orange (#f36c3b) summits, breathing into an orange floor with cyan (#00edff) summits, and back, forever. Between them every colour on screen sits on a straight gradient between two of those three — the floor walks violet, purple, magenta, pink, orange; the summits walk orange, salmon, pale, cyan. V8 rotated hue to dodge the grey that orange and cyan make when you blend them, which bought saturation at the price of yellow and green appearing mid-breath. Those were not colours anyone chose, so they are gone; the pale band the summits pass through is simply the middle of the orange-cyan gradient, and on black it reads as heat. Everything else is V7: one fine stroke, height picks the hue, proximity picks the burn, an empty frame stays dark.',
+  interact: 'The two hands are two different musicians. L is the RHYTHM SECTION: its three cores are the bassline, and every one you surface makes that line busier and more melodic — one core is a root on the downbeat, two is a walking pair, three is a full syncopated figure whose notes are chosen by how many loops each core has closed. R is the FRONT LINE: its three cores are three different leads, arriving one at a time — first a long singing tone, then a running eighth-note arpeggio beside it, then a high answering bell on top. So the left hand decides how the floor moves and the right hand decides who is soloing over it, and both stay readable: count the whorls on a side and you know what that side is playing, and read the colour at the middle of a whorl to know how hard that hand is pushing. Bring both hands home and the frame cools back to a violet flow.',
+  sound: 'Unchanged from V3 — this revision is colour and line weight only. Split down the middle by hand. LEFT = bass (MIDI role: bass): one core gives a root on the downbeat, a second adds the walking pair, a third opens a syncopated sixteenth figure — and the notes are taken from each left core\'s own loop count, so the bassline is literally written by the picture. RIGHT = leads (role: lead, plus bells): core one is a long bowed tone that re-sings whenever its loop count changes, core two is a running eighth arpeggio around its own loop count, core three is a sparse high bell answering off the beat. Every loop gained or lost is also an accent on its own side. When rings start enclosing more than one core the scene changes state: a bell and a sub bloom, and the lead voices converge toward one pitch, so a crowded frame resolves instead of clashing. Under it: a bowed loom bed whose brightness follows how much ridge is on screen, a quiet triangle glue pad, and a pedal on C♯ that never moves — no sawtooth, no horns. Ableton: bass ch3, lead ch1, bells ch5, pad ch2, texture ch6.',
+
+  init(P) {
+    const w = P.w, h = P.h;
+    // P.focused is false during init — size off the area. Wall tiles get a
+    // much coarser field; nobody counts ridges on a thumbnail.
+    const fine = areaScale(P) > 1.6 ? 1 : 0.38;
+    const CORES = [
+      { hx: 0.13, hy: 0.30, side: 0, slot: 0, deg: 0 },
+      { hx: 0.22, hy: 0.80, side: 0, slot: 1, deg: 2 },
+      { hx: 0.40, hy: 0.22, side: 0, slot: 2, deg: 4 },
+      { hx: 0.87, hy: 0.30, side: 1, slot: 0, deg: 1 },
+      { hx: 0.78, hy: 0.80, side: 1, slot: 1, deg: 3 },
+      { hx: 0.58, hy: 0.72, side: 1, slot: 2, deg: 5 }
+    ];
+    for (const c of CORES) {
+      c.x = c.hx * w; c.y = c.hy * h; c.w = 0; c.loops = 0; c.ph = P.rand() * TAU;
+    }
+    // finer grid + a smoothing pass = ridges that curve instead of faceting
+    const GX = Math.max(30, Math.round(112 * fine)), GY = Math.max(20, Math.round(70 * fine));
+    const N = (GX + 1) * (GY + 1);
+    const lo = -0.95, step = 0.42, NL = 26;
+    P.state = {
+      GX, GY, cores: CORES, pres: 0, ph: 0,
+      f: new Float32Array(N), fs: new Float32Array(N),
+      // how hard the nearest core owns each cell — V3's term, back again. This
+      // is what fades the open country and burns the middle of a whorl.
+      ownV: new Float32Array(N),
+      sig: w * 0.075, lo, step, NL, wMax: 5,
+      shared: 0, ridges: 0, live: 2, nL: 1, nR: 1, evq: [],
+      waves: [
+        { k: 3.1, a: 0.55, dir: 0.4, sp: 1 },
+        { k: 5.3, a: 0.33, dir: 2.1, sp: -0.62 },
+        { k: 8.7, a: 0.18, dir: 3.9, sp: 0.41 }
+      ],
+      // BUCKET = CONTOUR LEVEL × PROXIMITY TIER. The level picks the hue, the
+      // tier picks how hard it burns. V3 folded both into one 19-bucket list
+      // keyed on which core owned the ground; splitting them lets height and
+      // intensity say different things.
+      seg: [], NB: NL * 6,
+      // V3's own thresholds on ownV, subdivided: V3 stepped the burn in three
+      // jumps and hid the seams under a width change too, which this version
+      // doesn't have — six finer steps keep the falloff from ringing.
+      // The floor sits higher than V3's 0.4 because #4900ff is a far darker
+      // colour than V3's grey-purple far field; the same alpha would sink it
+      // below what the mesh can carry.
+      // V5's spread was 1.9x floor-to-summit, which matched V3 but read flat.
+      // 4.2x here: the open country has to be genuinely dark for a whorl to
+      // land as a knot of light rather than just a warmer patch of weave.
+      oTh: [0.12, 0.4, 0.9, 1.7, 2.8], tierA: [0.24, 0.34, 0.47, 0.64, 0.82, 1],
+      // HOW FULL THE FRAME IS decides how much light it gets. Normalised by
+      // grid size, not raw segment count — a wall tile marches a far coarser
+      // field and would otherwise be pinned dark forever.
+      dLo: 0.28, dSpan: 0.34, dFloor: 0.6, dens: 1,
+      // The heat ramp. rSpan is chosen so a fully-extended core (w = wMax)
+      // tops out at pure orange while the flowing background — which never
+      // gets above the wave ceiling — stays down in the violets.
+      rSpan: 5.65, lut: [], lutT: []
+    };
+    const s = P.state;
+    // TWO PALETTE STATES, six seconds apart. Endpoints blend STRAIGHT between
+    // the anchors — same gamma blend the ramp itself uses — so every colour the
+    // scene can show lies on a line between two of the three chosen colours.
+    // V8 rotated hue here to dodge the pale middle of the orange-cyan blend;
+    // that dodge is what put yellow and green on screen, and nobody chose those.
+    //   state 1: floor #4900ff  ->  peaks #f36c3b
+    //   state 2: floor #f36c3b  ->  peaks #00edff
+    s.stLo = [[0x49, 0x00, 0xff], [0xf3, 0x6c, 0x3b]];
+    s.stHi = [[0xf3, 0x6c, 0x3b], [0x00, 0xed, 0xff]];
+    s.cyc = 6;            // seconds per crossing; a full there-and-back is 12
+    s.mix = 0;
+    s.curLo = [0x49, 0x00, 0xff];
+    s.curHi = [0xf3, 0x6c, 0x3b];
+    // the ramp itself still blends in gamma space between whatever the two
+    // endpoints currently are — that is what keeps the mid-ramp saturated
+    s.ramp = u => {
+      const t = clamp(u), A = s.curLo, B = s.curHi;
+      return [
+        Math.sqrt(A[0] * A[0] * (1 - t) + B[0] * B[0] * t) | 0,
+        Math.sqrt(A[1] * A[1] * (1 - t) + B[1] * B[1] * t) | 0,
+        Math.sqrt(A[2] * A[2] * (1 - t) + B[2] * B[2] * t) | 0
+      ];
+    };
+    for (let k = 0; k < NL; k++) {
+      const t = clamp(k * step / s.rSpan);
+      s.lutT.push(t);
+      s.lut.push(s.ramp(t));
+    }
+    for (let b = 0; b < s.NB; b++) s.seg.push([]);
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const HV = [clamp(inp.L), clamp(inp.R)];
+    const TH = [[0, 0.28, 0.9], [0.32, 0.4, 0], [0.64, 0.36, 0]];
+    let liveN = 0, nL = 0, nR = 0;
+    for (const c of s.cores) {
+      const x = HV[c.side];
+      const th = TH[c.slot];
+      const want = (c.slot === 0 ? clamp(th[1] + x * th[2]) : clamp((x - th[0]) / th[1])) * s.wMax;
+      c.w += (want - c.w) * Math.min(1, dt * 4.5);
+      c.ph += dt * 0.3;
+      c.x = c.hx * w + Math.sin(c.ph) * w * 0.012;
+      c.y = c.hy * h + Math.cos(c.ph * 0.8) * h * 0.02;
+      if (c.w > 0.8) { liveN++; if (c.side) nR++; else nL++; }
+    }
+    s.live = liveN; s.nL = nL; s.nR = nR;
+    // ---- the palette breath: 6s across, 6s back, forever ------------------
+    // wall-clock, not beats — a continuous drift is not an event, and the
+    // design law only quantises events to the grid.
+    const ph = (t % (s.cyc * 2)) / s.cyc;
+    const tri = ph < 1 ? ph : 2 - ph;
+    s.mix = tri * tri * (3 - 2 * tri);   // smoothstep: dwell at each state
+    for (let e = 0; e < 2; e++) {
+      const A = (e ? s.stHi : s.stLo)[0], B = (e ? s.stHi : s.stLo)[1], d = e ? s.curHi : s.curLo;
+      for (let i = 0; i < 3; i++)
+        d[i] = Math.sqrt(A[i] * A[i] * (1 - s.mix) + B[i] * B[i] * s.mix) | 0;
+    }
+    for (let k = 0; k < s.NL; k++) {
+      const c = s.ramp(s.lutT[k]), d = s.lut[k];
+      d[0] = c[0]; d[1] = c[1]; d[2] = c[2];
+    }
+
     const beats = (typeof T !== 'undefined' && T.running) ? T.beats() : t * 1.6;
     s.ph = beats * TAU;
     const sig2 = 2 * s.sig * s.sig;
