@@ -75,6 +75,9 @@ music: {
 - **Triangle > sawtooth for beds.** Saw stacks read cheap and loud.
 - **Rolled > block.** Chords and births enter low-to-high like a harp;
   block chords are for accents only.
+- **No autonomous risers/sweeps.** A background sweep nobody's hands own
+  reads as drift, not music (Lance cut White Study's 30s riser). Every
+  continuous voice must be hand-coupled or chord-locked — or absent.
 - **Bright major-9 cadences read "Mario power-up"** on a colorful scene.
   Minor pedal color-shift reads tasteful and badass. When in doubt, darker.
 - **One voice per visual element** (a bloom = a pad voice, panned to its
@@ -99,8 +102,11 @@ music: {
 In `tick()`: horizon `A.t() + 0.15`; `while (nextT < horizon)` walk 16ths
 with `step16`; `T.next(0.25)` to re-sync. Quantize EVENTS to the grid,
 never the continuous hand response. Subdivision density is EARNED by
-intensity (whole → 8ths → 16ths). Groove patterns as arrays indexed by
-`st = step16 % 16` (son-clave bell `[0,3,6,10,12]` works).
+intensity (whole → 8ths → 16ths) — best as a RANKED step-fill (beats first,
+then offbeat 8ths, then 16ths, e.g. bit-reversed `[0,8,4,12,2,10,6,14,…]`)
+so mid-intensity is a syncopated groove and low intensity is real silence,
+not a slower metronome (White Study V4). Groove patterns as arrays indexed
+by `st = step16 % 16` (son-clave bell `[0,3,6,10,12]` works).
 
 ## MIDI out (MOut) — Ableton mirror
 
