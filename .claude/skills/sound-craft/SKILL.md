@@ -81,6 +81,15 @@ music: {
   side). Willing things in literally thickens the chord.
 - Bed voice gains ~0.007–0.011 each; bells 0.03–0.05; perc 0.01–0.02 × gate.
   The mix should leave a hole in the mids for live players.
+- **One gesture = one statement.** Never let a physics field trigger
+  per-element notes — a wave crossing 13 beads is ONE rolled run (≤ ~5
+  notes, per-side cooldown), and the trigger is the HAND's motion, never
+  the simulation's ringing. Element flares stay visual. (Cable Strum V2's
+  per-bead rake = Lance's "5000 notes" verdict.)
+- **For intensity, gate the bed — don't add events.** A tempo-synced gate/
+  tremolo on the sustained strings (depth grows with commitment, 8ths before
+  16ths) reads dramatic where more note-spam reads busy; stream the depth on
+  CC74 so a gate/filter plugin in Live can take over the same motion.
 
 ## Turning an inspiration MIDI into a scene's harmony
 
