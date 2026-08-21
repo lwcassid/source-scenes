@@ -121,7 +121,19 @@ the PANELS pill (or `H`) brings the MIDI/hands/console panels in for
 debugging. View mode and panels choice persist across scenes and visits.
 
 ### Verify BEFORE you ship (sighted iteration)
-Never ship a scene you haven't SEEN. In a cloud sandbox:
+Never ship anything you haven't SEEN — that includes the SHELL, not just
+scenes. A set list, a drawer, a rail control is as checkable as a picture and
+takes 30 seconds:
+- `bash tools/build.sh && python3 tools/build_preview.py` (~4s)
+- `node tools/shotui.mjs <prefix> --fresh` — shoots the library wall and the
+  queue drawer, and prints a QUEUE VERDICT: the queue in order, resolved to
+  scene titles, exiting 1 if any id resolves to no scene. `--fresh` wipes
+  localStorage first, which is the ONLY way to test what a show laptop that
+  has never run this build actually opens on. A typo in `setlists.json`
+  fails here instead of on playa.
+- then READ the png. Run `SCENE=QA node tools/playtest.js` after core changes.
+
+For a scene, in a cloud sandbox:
 - build the preview, open it in headless Chromium with
   `--enable-unsafe-swiftshader --autoplay-policy=no-user-gesture-required`,
   at viewport 1920×1200 with `?proj` (that's what the harnesses do)
@@ -178,8 +190,13 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
   scrim survey, Night Circuit look-dev direction.
 - Keep the site LIGHT: strip/decimate every asset (`tools/glbtool.py`,
   `tools/decimate.py`); target < ~2MB per new model.
-- Verify the deploy: after pushing, fetch the live site and confirm the new
-  version registered (version pill shows it).
+- Verify the deploy: the sandbox's network policy BLOCKS the netlify host
+  (403 on CONNECT), so `curl`ing the live site returns nothing and reads as
+  "not deployed yet" when it means "never connected". Use the Netlify MCP
+  instead: `get-projects` → `get-deploy-for-site`, and confirm `state: ready`
+  with `commit_ref` equal to the commit you just pushed. That proves the right
+  bytes shipped; it does NOT prove the page renders — do that locally, before
+  pushing, with the harness above.
 
 ## Working in parallel (multiple people / sessions)
 `index.html` is a BUILD ARTIFACT committed to the repo. Scene part files never

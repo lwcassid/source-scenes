@@ -2,7 +2,7 @@
 // spec entries: label:camMode:L:R:act:ms
 import { chromium } from 'playwright-core';
 import path from 'path';
-const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const EXE = process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const outPrefix = process.argv[2] || 'cam';
 const spec = (process.argv[3] || 'chase:0:0:0:0:9000').split(',');
 const b = await chromium.launch({ executablePath: EXE, headless: true, args: ['--enable-unsafe-swiftshader','--autoplay-policy=no-user-gesture-required','--use-gl=swiftshader','--no-sandbox'] });

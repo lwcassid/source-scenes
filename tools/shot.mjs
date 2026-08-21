@@ -10,7 +10,7 @@
 import { chromium } from 'playwright-core';
 import path from 'path';
 
-const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const EXE = process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const pieceId = process.argv[2] || 'SRC-18.16';
 const outPrefix = process.argv[3] || 'v16';
 const spec = (process.argv[4] || 'full:0:0:1:0:3500').split(',');
