@@ -161,6 +161,19 @@ the actual Live set** — read it before designing a scene's sound so you
 write for the rack that exists, and tell the user to update it when the
 Live set changes.
 
+## The rig is the finish (Lance, Aug 2026)
+
+- The WebAudio helpers are the SKETCH and the offline fallback; the Live rack
+  on the mirror is the finished sound. Write MIDI (role choice, velocity,
+  CC74 rides) as if a quality velocity-sensitive patch will expose it.
+- Reference shelf: beds like Tom Misch's looped guitar drone — rich,
+  reverbed, worth improvising over. Earned drums like Fred Again / Chet
+  Faker / Darkside: breaks and R&B pockets with SPACE, minimal before busy;
+  Daft Punk funk only where the scene's verb is funky.
+- A Live patch with its own arp/motion gets a HELD chord and lets the clock
+  drive it — never for the reactive layer, whose answers stay per-note.
+  Record the choice in `rig.json`. Fuller plan: `docs/SOUND-DESIGN-GOALS.md`.
+
 ## Velocity — where "professional" lives or dies
 
 Velocity is PER-NOTE and mirrors the browser-side `vol` of every event
