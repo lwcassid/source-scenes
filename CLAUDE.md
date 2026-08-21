@@ -124,7 +124,14 @@ debugging. View mode and panels choice persist across scenes and visits.
 Never ship anything you haven't SEEN — that includes the SHELL, not just
 scenes. A set list, a drawer, a rail control is as checkable as a picture and
 takes 30 seconds:
-- `bash tools/build.sh && python3 tools/build_preview.py` (~4s)
+- `bash tools/verify.sh` is the ONE COMMAND: build, preview, wall + queue
+  drawer on a fresh show laptop, and the 10-scene QA sweep. `--quick` skips
+  the sweep; `--scene SRC-XX.N` adds idle/full stills of that scene. It stamps
+  the index.html it rendered, and a push that changes index.html is BLOCKED
+  unless that stamp matches — so unseen work cannot reach the live site.
+  If a harness ERRORS, fix it; never fall back to guessing at pixels.
+- underneath, if you want the pieces: `bash tools/build.sh &&
+  python3 tools/build_preview.py` (~4s), then
 - `node tools/shotui.mjs <prefix> --fresh` — shoots the library wall and the
   queue drawer, and prints a QUEUE VERDICT: the queue in order, resolved to
   scene titles, exiting 1 if any id resolves to no scene. `--fresh` wipes

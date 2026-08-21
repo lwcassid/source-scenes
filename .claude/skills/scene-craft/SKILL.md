@@ -112,13 +112,19 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
    scene's state (count/spread/etc.) — it's the debug strip's best friend.
 5. Sound: voices follow the visual state 1:1 (a bloom = a voice; its side =
    its pan). If a thing lights up, it should sound; if it sounds, light it up.
-6. Assemble (`bash tools/build.sh`), then SIGHTED VERIFICATION (see CLAUDE.md):
-   screenshot idle / tight / one-sided / full states — in the 1920×1200
-   projector frame, which is what the harnesses shoot — and READ them. Iterate
-   until the stills match the intent — assumptions about rendered output are
-   wrong about half the time (fog, tonemapping, scale, and pivot bugs hide).
+6. `bash tools/verify.sh --scene SRC-XX.N` — one command: build, preview,
+   the wall, the QA sweep, and idle/full stills of your scene in the 1920×1200
+   projector frame. Then READ the pngs. Iterate until the stills match the
+   intent — assumptions about rendered output are wrong about half the time
+   (fog, tonemapping, scale, and pivot bugs hide). For states beyond idle/full,
+   drive `tools/shot.mjs` directly.
 7. Capture a short GIF of the money interaction for the group chat.
-8. Push. Confirm the live site shows the new version pill.
+8. Push. A push that touches index.html is BLOCKED unless verify.sh rendered
+   that exact build — that guard exists because the harness once failed
+   SILENTLY (ERR_MODULE_NOT_FOUND) and sessions shipped unseen work for weeks.
+   If a harness ever errors, FIX IT; never downgrade to reasoning about what
+   the pixels probably look like. Confirm the deploy with the Netlify MCP —
+   curling the live site is 403'd by the sandbox and looks like "not deployed".
 
 ## Asset rules (when a scene uses GLBs)
 Strip or shrink EVERYTHING (`tools/glbtool.py` strip|shrink, 512px textures);
