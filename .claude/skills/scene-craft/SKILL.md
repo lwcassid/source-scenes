@@ -44,6 +44,12 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
 6. **Bar-quantized structure.** Count changes, buds, entrances land on the
    downbeat (Schmitt thresholds + the audio tick commits at `st === 0`).
    Anticipation beats surprise: telegraph the downbeat (pre-glow the next gate).
+7. **Integration must be visible (Lance, AV2→AV3).** Drive sound from the
+   drawn thing itself, never from a hidden measurement (a Lyapunov exponent,
+   an occupancy stat) — a mapping the player can't see reads as random. AV3's
+   fix is the pattern: the same orbit that draws the figure plays the notes.
+   Corollary: no hand position may read as dead — turn collapse states into
+   designed payoffs (AV3's jewels) or curate them out of reach.
 
 ## Scrim rules (the projection surface is mosquito-net mesh)
 Black is invisible — only light exists, floating in the room. Thin lines and
