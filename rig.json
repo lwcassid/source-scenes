@@ -30,13 +30,13 @@
   "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
   "roles": {
     "lead":    { "ch": 1,  "instrument": "", "character": "", "use": "melodic triggers — plucks, tones, answers" },
-    "pad":     { "ch": 2,  "instrument": "", "character": "", "use": "sustained voice-led chords; glides on chord changes" },
+    "pad":     { "ch": 2,  "instrument": "", "character": "", "use": "sustained voice-led chords; glides on chord changes. Event Horizon (SRC-13) streams its rhythmic GATE DEPTH here as CC74 — map it to the string rack's gate/filter amount and the plugin throbs with the picture" },
     "bass":    { "ch": 3,  "instrument": "", "character": "", "use": "root movement; keep the sub for the wall" },
     "arp":     { "ch": 4,  "instrument": "", "character": "", "use": "sequenced 16th patterns (Night Circuit etc.)" },
     "bells":   { "ch": 5,  "instrument": "", "character": "", "use": "chimes, sparkles, rain-on-gong one-shots" },
     "texture": { "ch": 6,  "instrument": "", "character": "", "use": "the continuous-voice mirror: every scene's drones and films land here as held notes, CC74 = pooled voice energy" },
     "perc":    { "ch": 10, "instrument": "", "character": "", "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness" },
-    "sfx":     { "ch": 11, "instrument": "", "character": "", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain" },
+    "sfx":     { "ch": 11, "instrument": "", "character": "", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Event Horizon (SRC-13) streams its swallow charge/rise as CC74 here — map to a riser/impact send if the rack has one" },
     "bed":     { "ch": 12, "instrument": "", "character": "", "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades" }
   }
 }
