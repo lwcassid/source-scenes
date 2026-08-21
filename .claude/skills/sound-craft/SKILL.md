@@ -69,6 +69,10 @@ music: {
 
 ## Taste — learned the hard way, do not relearn
 
+- **Events must never bury the bed (Lance, AV3).** If discrete notes mask
+  the drone, the mix is upside down: event layers sit UNDER the bed — soft
+  attacks (≥0.1s where the verb allows), gains below the pad voices — and
+  surface from the hum's timbre rather than barge over it.
 - **No long glides on sustained stacks.** 13 voices gliding 1.6s = jet
   taking off. Chord changes snap with ≤ 0.2s glide; the TRANSITION moment
   is marked instead by a gentle low-to-high roll (60–90ms stagger).
