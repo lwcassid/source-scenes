@@ -35,13 +35,21 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    (bud/strike/note) to the grid, never the continuous response. A hand whose
    only effect lands at the NEXT grid event is illegible ("what does the left
    hand do?" — White Study V5): give every hand at least one continuous,
-   immediate coupling, visible AND audible.
+   immediate coupling, visible AND audible. An INVISIBLE force the objects
+   merely respond to (a pressure front, a field) is illegible — nobody could
+   name what a hand did on Sonora's invisible fronts (Kasia, V4→V5). Prefer
+   DIRECT coupling: the thing a hand controls VISIBLY FOLLOWS it (each hand
+   herds its own pile of stones across the tank; reach out, the pile slides
+   out; hands together, the piles crash at centre).
 3. **Dark mass, luminous edge.** True black background, always. Light is a
    spend. White reserved for actual light sources. Full-mesh wireframe is
    banned as a default — structure exposure is an EVENT (beats, transitions).
    Same for color floods: a full-canvas invert/tint is TOO EXTREME (Lance, on
    White Study's pink flip) — confine the treatment to a bounded window,
-   bar-lock it, and telegraph it a beat ahead.
+   bar-lock it, and telegraph it a beat ahead. A persistent STROKED rim around
+   a silhouette reads as a sticker (Kasia, Sonora V5): let form-shading carry
+   the thickness, and make any edge-glow an EVENT (heat, strike), never
+   always-on.
 4. **The side law.** Left hand = warm orange country, right = violet, in
    every scene. Reach outward = more (`inp` is already reversed; sphere = 0).
 5. **Presence gates everything.** `chan.X.mode === 'live'` → smooth `s.pres`.

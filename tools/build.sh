@@ -63,6 +63,7 @@ cd "$(dirname "$0")/.."
   cat parts/part53_av2.js
   cat parts/part54_sonora3.js
   cat parts/part55_sonora4.js
+  cat parts/part56_sonora5.js
   cat parts/part56_foam.js
   cat parts/part57_iris.js
   cat parts/part58_lumen.js
