@@ -81,6 +81,12 @@ music: {
   the way to bone-dry: with no bed at all there is no tooth for an
   improviser to bite on (Lance, same scene, one version later) — even the
   driest scene keeps a whisper-level chord-locked pedal.
+- **Quantize pitch, not weather.** A nature-driven event stream (rain,
+  sparks, embers) plays on its OWN clock — grid-snapping every event turns
+  rain into a machine gun, "again and again at the same speed" (Lance, Rain
+  Atrium V2→V3). Keep the ladder for pitch, let timing follow the
+  simulation (with a per-voice min-gap and velocity spread), and put the
+  grid in the earned groove layer underneath instead.
 - **Bright major-9 cadences read "Mario power-up"** on a colorful scene.
   Minor pedal color-shift reads tasteful and badass. When in doubt, darker.
 - **One voice per visual element** (a bloom = a pad voice, panned to its
