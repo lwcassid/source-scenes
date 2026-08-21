@@ -43,7 +43,15 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    White Study's pink flip) — confine the treatment to a bounded window,
    bar-lock it, and telegraph it a beat ahead.
 4. **The side law.** Left hand = warm orange country, right = violet, in
-   every scene. Reach outward = more (`inp` is already reversed; sphere = 0).
+   every scene. Intensity DIRECTION, though, is a judgement call, not a law
+   (Lance): `inp` arrives reach-outward = more (sphere = 0), but map
+   whichever polarity feels most natural for how the visuals move — invert
+   with `1 - inp` when approaching the source should intensify. The real
+   law is the FIELD EDGE: the boundary where tracking appears/disappears
+   must be a gentle state, never a cliff — a hand entering mid-field must
+   not slam the scene to max, a hand drifting out must not cut off at peak.
+   If a mapping parks maximum at the sensor's edge, slew entries and decay
+   losses.
 5. **Presence gates everything.** `chan.X.mode === 'live'` → smooth `s.pres`.
    Idle = ambient tease that hints the interaction without giving it away;
    abandoned scenes drift back to rest states.
