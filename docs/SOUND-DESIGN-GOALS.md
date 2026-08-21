@@ -51,9 +51,16 @@ have hard sonic identities that must not be violated: Lumen Film has NO
 percussion by design (it is the sit-in scene), Attractor Vespers is one
 continuous synth played by the light (scheduled hits are banned there), and
 Rain Atrium's rain lives on natural time, never the grid. Respecting those,
-the 5 dancey / 4 ambient split falls out on its own — nothing forced.
+the 4 dancey / 5 ambient split falls out on its own — nothing forced.
 
-**THE DANCEY FIVE** (every one still opens ambient; this is the ceiling):
+**Danceability follows interaction legibility (Lance, Aug 2026).** A scene
+only earns beats if its mapping can be commanded within seconds — flick,
+stab, drop. If the player needs minutes just to discover what their hands
+do (Weather Station: wind heading + gale intensity), the scene cannot be
+performed like a DJ set no matter how much energy the picture has. It's
+ambient, however high its visual ceiling.
+
+**THE DANCEY FOUR** (every one still opens ambient; this is the ceiling):
 
 - **Ferro Bloom — THE POCKET** (100 BPM, Cm pedal · Chet Faker / neo-soul).
   The soft-piano Cm7♭13 drone already jams; the earned groove (clave,
@@ -67,12 +74,6 @@ the 5 dancey / 4 ambient split falls out on its own — nothing forced.
   Moog-ish bass, clav-like arp, and an earned drum section — tight, dry,
   syncopated, disciplined — once both sides are busy. The two-player scene:
   one runs the rhythm section, one runs the front line.
-- **Weather Station — THE BREAK** (60 BPM, double-time feel · Fred Again).
-  Weather = breaks. Ambient wind and heading-bells at rest; past gale
-  threshold a chopped break assembles piece by piece — hats ride the gusts,
-  cracks land on hard heading turns — and it gusts and DIES WITH THE LULLS,
-  a beat that behaves like weather instead of a grid. Sidechained pads,
-  texture-heavy. Mastery = arranging the break by riding the gale.
 - **White Study — THE CLUB** (120 BPM, Am pedal · minimal techno). Already a
   club machine: gated grid, sidechained pumping bed, player-owned drop and
   summon. Vision: finish it as the set's peak — real kick weight, stab
@@ -84,7 +85,15 @@ the 5 dancey / 4 ambient split falls out on its own — nothing forced.
   biggest moment. Dancey in the BUILD sense — the gate is the pulse, not a
   drum kit. Ends the set with everything black but one string.
 
-**THE AMBIENT FOUR:**
+**THE AMBIENT FIVE:**
+
+- **Weather Station — THE GLIDE** (60 BPM, Gm · cinematic weather). Not a
+  banger (Lance): the wind-heading/gale mapping takes time to internalize,
+  so it can't be performed like a kit — it's the set's WIDE scene instead.
+  One wind body opening hard with the gale, heading-placed bells ticking
+  on the grid, and at full gale the intensity comes from the WEATHER —
+  filter thrown open, bells densening, maybe distant storm rumble — never
+  from a drum section. Big, textural, room-filling; ambient at heart.
 
 - **Chladni Court — THE TUNING** (58 BPM, D lydian). A tuning ritual: two
   glass/bowl plate tones, granular sand-rush, tam-tam bloom on lock, the
@@ -115,8 +124,8 @@ set. Energy 0–10, with the sonic role each scene plays:
 | 1 | Chladni Court | overture — tuning the room | D lyd | 58 | 2 |
 | 2 | Lumen Film | first light — musicians sit in | D dor | 66 | 3 |
 | 3 | Ferro Bloom | first groove — the pocket | Cm | 100 | 5 |
-| 4 | Ridge Loom | the band assembles — funk | C♯m | 96 | 6 |
-| 5 | Weather Station | FIRST PEAK — the break | Gm | 60×2 | 7 |
+| 4 | Ridge Loom | FIRST PEAK — the band | C♯m | 96 | 7 |
+| 5 | Weather Station | the glide — wide, cinematic, textural | Gm | 60 | 5 |
 | 6 | Attractor Vespers | the breather — pure drone | Gm | 56 | 3 |
 | 7 | White Study | SECOND PEAK — the drop | Am | 120 | 9 |
 | 8 | Rain Atrium | comedown — rain at 3am | Dm | 64 | 4 |
@@ -124,11 +133,11 @@ set. Energy 0–10, with the sonic role each scene plays:
 
 The key map is quietly coherent and worth preserving through revisions:
 D → D holds through the opening pair; C → C♯ is a half-step lift into the
-funk; Weather Station → Vespers is the SAME ROOT (G), so the post-peak
-comedown feels like the storm settling rather than a channel change; Gm → Am
+funk; Weather Station → Vespers is the SAME ROOT (G), so the long glide
+down from the Ridge Loom peak settles rather than channel-changes; Gm → Am
 lifts into the club; Am → Dm → Am is i → iv → i, the back half resolving
-home. Alternating dance/breathe from scene 5 on gives the night its wave
-shape: rise · peak · breathe · bigger peak · breathe · finale.
+home. The shape: rise to the band · a two-scene glide down through the
+weather and the smoke · the big club peak · rain comedown · finale.
 
 ## The process (phased, back-and-forth)
 

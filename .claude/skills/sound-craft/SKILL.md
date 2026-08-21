@@ -97,6 +97,11 @@ music: {
   Atrium V2→V3). Keep the ladder for pitch, let timing follow the
   simulation (with a per-voice min-gap and velocity spread), and put the
   grid in the earned groove layer underneath instead.
+- **Danceability follows interaction legibility (Lance).** Beats belong
+  only to scenes whose mapping is commanded within seconds (flick, stab,
+  drop). If discovering what the hands do takes minutes (Weather Station's
+  heading + gale), the scene can't be performed like a kit — it stays
+  ambient however high its visual energy ceiling.
 - **Bright major-9 cadences read "Mario power-up"** on a colorful scene.
   Minor pedal color-shift reads tasteful and badass. When in doubt, darker.
 - **One voice per visual element** (a bloom = a pad voice, panned to its
