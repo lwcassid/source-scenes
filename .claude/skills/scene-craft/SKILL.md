@@ -32,7 +32,10 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    point killed the magic of an earlier version. Revisions should SUBTRACT.
 2. **Vespers-tight coupling.** Hands couple to visuals continuously and fast
    (smoothing ≈ `dt*6`+). Nothing the hands do should wait — quantize EVENTS
-   (bud/strike/note) to the grid, never the continuous response.
+   (bud/strike/note) to the grid, never the continuous response. A hand whose
+   only effect lands at the NEXT grid event is illegible ("what does the left
+   hand do?" — White Study V5): give every hand at least one continuous,
+   immediate coupling, visible AND audible.
 3. **Dark mass, luminous edge.** True black background, always. Light is a
    spend. White reserved for actual light sources. Full-mesh wireframe is
    banned as a default — structure exposure is an EVENT (beats, transitions).

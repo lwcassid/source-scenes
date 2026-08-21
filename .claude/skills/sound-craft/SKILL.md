@@ -77,7 +77,10 @@ music: {
   block chords are for accents only.
 - **No autonomous risers/sweeps.** A background sweep nobody's hands own
   reads as drift, not music (Lance cut White Study's 30s riser). Every
-  continuous voice must be hand-coupled or chord-locked — or absent.
+  continuous voice must be hand-coupled or chord-locked. But don't cut all
+  the way to bone-dry: with no bed at all there is no tooth for an
+  improviser to bite on (Lance, same scene, one version later) — even the
+  driest scene keeps a whisper-level chord-locked pedal.
 - **Bright major-9 cadences read "Mario power-up"** on a colorful scene.
   Minor pedal color-shift reads tasteful and badass. When in doubt, darker.
 - **One voice per visual element** (a bloom = a pad voice, panned to its
