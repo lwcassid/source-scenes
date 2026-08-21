@@ -130,6 +130,7 @@ cd "$(dirname "$0")/.."
   cat parts/part109_whitestudy3.js
   cat parts/part110_whitestudy4.js
   cat parts/part111_whitestudy5.js
+  cat parts/part112_rainatrium2.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
