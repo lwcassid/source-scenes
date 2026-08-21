@@ -86,6 +86,11 @@ music: {
   notes, per-side cooldown), and the trigger is the HAND's motion, never
   the simulation's ringing. Element flares stay visual. (Cable Strum V2's
   per-bead rake = Lance's "5000 notes" verdict.)
+- **The featured layer must be mixed ABOVE the drone.** The bed-gain range
+  above is for a bed UNDER a scene; when the swell IS the instrument, ~2x it
+  and trim the hum beneath, and make each voice's entrance an audible event
+  (0.7s swell + an announcing tone). Cable Strum V3's crescendo was
+  inaudible because six chairs at 0.0105 sat under a 0.034 hum (Lance).
 - **For intensity, gate the bed — don't add events.** A tempo-synced gate/
   tremolo on the sustained strings (depth grows with commitment, 8ths before
   16ths) reads dramatic where more note-spam reads busy; stream the depth on
