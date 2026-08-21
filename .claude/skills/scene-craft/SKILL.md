@@ -45,6 +45,12 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    downbeat (Schmitt thresholds + the audio tick commits at `st === 0`).
    Anticipation beats surprise: telegraph the downbeat (pre-glow the next gate).
 
+7. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
+   off a shape = a single continuous gradient fill anchored to the shape's
+   edge; N discrete gradient strokes read as a bar chart (Cable Strum V1's
+   curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
+   resting state stays one clean object and the treatment never muddies it.
+
 ## Scrim rules (the projection surface is mosquito-net mesh)
 Black is invisible — only light exists, floating in the room. Thin lines and
 fine detail VANISH (fatten strokes 3×; band/ring width ≥ ~8px at 1080p).
