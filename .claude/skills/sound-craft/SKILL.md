@@ -73,6 +73,12 @@ music: {
   the drone, the mix is upside down: event layers sit UNDER the bed — soft
   attacks (≥0.1s where the verb allows), gains below the pad voices — and
   surface from the hum's timbre rather than barge over it.
+- **The sound is the LIGHT (Lance, AV4→AV5).** When the picture burns
+  brighter the sound must be more intense: measure per-frame brightness off
+  the rendered image and ride level/cutoff/edge on it continuously. And on a
+  scene whose visual verb is continuous, the instrument is the continuous
+  synth — scheduled hits read as bolted-on and lazy; reserve note events for
+  discrete visual events (strikes, births), else contort one voice.
 - **No long glides on sustained stacks.** 13 voices gliding 1.6s = jet
   taking off. Chord changes snap with ≤ 0.2s glide; the TRANSITION moment
   is marked instead by a gentle low-to-high roll (60–90ms stagger).
