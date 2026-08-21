@@ -41,7 +41,10 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    banned as a default — structure exposure is an EVENT (beats, transitions).
    Same for color floods: a full-canvas invert/tint is TOO EXTREME (Lance, on
    White Study's pink flip) — confine the treatment to a bounded window,
-   bar-lock it, and telegraph it a beat ahead.
+   bar-lock it, and telegraph it a beat ahead. And hue must come from the
+   FORM — a structural field (density band, freshness) — never from screen
+   position: a spatial gradient reads as a filter laid over the picture
+   (AV5's left-right split → AV6's organism palette, Lance).
 4. **The side law.** Left hand = warm orange country, right = violet, in
    every scene. Intensity DIRECTION, though, is a judgement call, not a law
    (Lance): `inp` arrives reach-outward = more (sphere = 0), but map
