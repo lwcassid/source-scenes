@@ -36,6 +36,9 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
 3. **Dark mass, luminous edge.** True black background, always. Light is a
    spend. White reserved for actual light sources. Full-mesh wireframe is
    banned as a default — structure exposure is an EVENT (beats, transitions).
+   Same for color floods: a full-canvas invert/tint is TOO EXTREME (Lance, on
+   White Study's pink flip) — confine the treatment to a bounded window,
+   bar-lock it, and telegraph it a beat ahead.
 4. **The side law.** Left hand = warm orange country, right = violet, in
    every scene. Reach outward = more (`inp` is already reversed; sphere = 0).
 5. **Presence gates everything.** `chan.X.mode === 'live'` → smooth `s.pres`.
