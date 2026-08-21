@@ -1,0 +1,54 @@
+#!/bin/bash
+# Refuse to push a site nobody looked at.
+#
+# Only fires when index.html — the actual artifact Netlify serves — is part of
+# what you are pushing. Docs, tools and part files that have not been rebuilt
+# push freely. The check is a HASH, not a timestamp: it asks "is this exact
+# index.html the one tools/verify.sh rendered?", which a stale stamp cannot
+# fake and a quick rebuild cannot accidentally satisfy.
+#
+# Override, when you genuinely mean it:  VERIFY_SKIP=1 git push ...
+set -uo pipefail
+[ "${VERIFY_SKIP:-0}" = "1" ] && exit 0
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+remote_sha=""
+while read -r _local_ref local_sha _remote_ref remote_sha_in; do
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+  remote_sha="$remote_sha_in"
+done
+
+# Is index.html in this push at all?
+if [ -n "$remote_sha" ] && [ "$remote_sha" != "0000000000000000000000000000000000000000" ]; then
+  changed=$(git diff --name-only "$remote_sha" HEAD -- index.html 2>/dev/null)
+else
+  changed=$(git diff --name-only HEAD~1 HEAD -- index.html 2>/dev/null || echo index.html)
+fi
+[ -z "$changed" ] && exit 0
+
+have=$( (shasum -a 256 index.html 2>/dev/null || sha256sum index.html) | cut -d' ' -f1 )
+seen=$(cat .verify-stamp 2>/dev/null || echo "")
+
+if [ "$have" = "$seen" ]; then exit 0; fi
+
+cat >&2 <<MSG
+
+  ✋ PUSH BLOCKED — this index.html has not been rendered and looked at.
+
+     You are pushing a change to the file Netlify serves. The last
+     tools/verify.sh run rendered a different build (or none at all),
+     so nobody — human or agent — has seen what this push puts on the
+     wall. That is exactly how a broken set list reaches playa.
+
+       bash tools/verify.sh          # ~1 min, shoots wall + drawer + QA sweep
+       bash tools/verify.sh --quick  # ~20s, shell-only changes
+
+     Then READ the pngs in scratchshots/ and push again.
+
+     Genuinely intentional (revert, hotfix you have already seen)?
+       VERIFY_SKIP=1 git push ...
+
+MSG
+exit 1
