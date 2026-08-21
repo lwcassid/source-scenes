@@ -67,7 +67,7 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    reach. Intensify the native marks (halo the dust); never swap in a
    different sprite (AV3's lantern orbs lost the dust's elegance — Lance).
 
-7. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
+8. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
    off a shape = a single continuous gradient fill anchored to the shape's
    edge; N discrete gradient strokes read as a bar chart (Cable Strum V1's
    curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
