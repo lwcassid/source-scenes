@@ -35,12 +35,15 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    (bud/strike/note) to the grid, never the continuous response. A hand whose
    only effect lands at the NEXT grid event is illegible ("what does the left
    hand do?" — White Study V5): give every hand at least one continuous,
-   immediate coupling, visible AND audible. An INVISIBLE force the objects
-   merely respond to (a pressure front, a field) is illegible — nobody could
-   name what a hand did on Sonora's invisible fronts (Kasia, V4→V5). Prefer
-   DIRECT coupling: the thing a hand controls VISIBLY FOLLOWS it (each hand
-   herds its own pile of stones across the tank; reach out, the pile slides
-   out; hands together, the piles crash at centre).
+   immediate coupling, visible AND audible. Couple the hand's SPEED, not only
+   its position: a fast gesture must visibly THROW the system and a slow one
+   merely roll it (Kasia, Sonora — "they should mimic the speed of the hand").
+   Hand the control's VELOCITY straight into the objects, bidirectionally, and
+   give a fast gesture real headroom (raise velocity caps) so it doesn't clip.
+   And match the sign to the hand — objects moving OPPOSITE the gesture read as
+   broken; if a side feels inverted, flip it. (An invisible force like a
+   pressure front is fine and legible once it's this responsive — the earlier
+   "replace fronts with a direct-follow herd" was a dead end Kasia rejected.)
 3. **Dark mass, luminous edge.** True black background, always. Light is a
    spend. White reserved for actual light sources. Full-mesh wireframe is
    banned as a default — structure exposure is an EVENT (beats, transitions).

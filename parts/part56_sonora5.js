@@ -1,22 +1,22 @@
-/* ---------- SRC-32.5 · SONORA V5 (stone pan · hands herd two piles) ---------- */
-/* V4's stone bed, its geologies, its heat solver and its handpan voicing are
-   all kept. What changes is the HAND. V4's fronts were invisible pressure you
-   read off the pile, and nobody could tell what a hand did. Now each hand OWNS
-   a pile and the pile FOLLOWS it: the left hand herds the west stones, the
-   right hand the east. Reach a hand out and its stones slide to that wall and
-   stack; bring the hands together and the two piles slide to the middle and
-   crash across the seam, bouncing off and falling back in to hit again. It is
-   the motion that plays it, and every contact still warms the stones it
-   touches until rock rings like a handpan. The always-on dark rim around each
-   stone — the sticker outline — is gone; the stones sit on their own form. */
+/* ---------- SRC-32.5 · SONORA V5 (stone pan · hand-speed) ---------- */
+/* This is V4's stone bed — the same grey field geologies, the same heat
+   solver that warms a knock into a handpan, the same grind under a held
+   lean — rebuilt around ONE idea: the bed should mimic the SPEED of your
+   hands. V4's pressure fronts still herd the stones, but now the front's
+   VELOCITY is coupled hard into the stones it touches, so a slow gather is a
+   soft roll and a fast sweep genuinely throws the pack. Two more changes from
+   Kasia: the LEFT side is flipped — reach the left hand out and the west
+   stones fling OUTWARD to the wall (they follow the hand) instead of herding
+   in — and the always-on dark outline around every stone is gone, with the
+   surface pushed to higher contrast so the rock reads as rock, not a disc. */
 reg({
-  id: 'SRC-32.5', family: 'SRC-32', ver: 5, title: 'Sonora', tech: 'STONE PAN / HANDS HERD',
+  id: 'SRC-32.5', family: 'SRC-32', ver: 5, title: 'Sonora', tech: 'STONE PAN / HAND SPEED',
   music: { bpm: 60, root: 48, mode: 'ionian', prog: [0, 5, 3, 4], chordBars: 4 },
   fx: { bloom: 0.32, edge: true },
-  tags: ['GREY STONE / FOUR GEOLOGIES', 'PILES FOLLOW THE HANDS', 'BRING HANDS IN TO CRASH', 'ROCK WARMS INTO HANDPAN'],
-  desc: 'A bed of light grey field stones in a dark tank — twenty-eight of them, five big, nine middling, fourteen small, split into a west pile and an east pile. Nothing is coloured. The only palette is value and temperature: cool slate through warm limestone, never more than a breath of saturation, so the whole plate reads as rock rather than as paint. Each stone is a geology, and the geology is the pitch — coarse dark granite on the root, sedimentary strata and slate cleavage through the middle of the register, pale quartz-veined stone at the top. You can look at the field and read the chord off it. Size is register: the big stones sit an octave below the middling ones, the pebbles an octave above. Every stone also carries a heat. Work it and it warms — the dry lithic knock lengthens, opens, and takes on partials, until a stone that started as a rock is ringing like a handpan. Leave it and it cools back to stone over a few seconds.',
-  interact: 'Two hands, two piles. The left hand owns the west stones, the right hand the east, and each pile FOLLOWS its hand. Reach a hand outward and its stones slide out to that wall and stack up, jostling and knocking as they pile. Bring your hands back in toward each other and the two piles slide to the middle and crash together across the seam — and the harder and faster you move, the harder they hit, bouncing off and falling back in to hit again. It is the MOTION that plays it: hold still and the bed just leans where you left it and grinds softly; a slow gather is a soft roll of contacts; a fast sweep inward is a full crash across the centre. Every strike warms the stones it touches — work a patch and the dry knock lengthens, opens, and rings, until rock that started knocking is singing like a handpan; leave it and it cools. The slow play is the sympathy: a stone in tune with something already sounding stays warm long after you stopped working it, so the field holds its brightness in patches you did not touch.',
-  sound: 'C major pentatonic — C D E G A — laid across three octaves by size, and tied to the harmony engine, so when the key moves the whole bed retunes and you hear it happen as a soft sweep from the low stones up. Five degrees, no fourth and no seventh, so any number of simultaneous collisions still agrees. Every strike is voiced by the striking stone\'s heat. Cold: a short filtered-noise knock and a stubby triangle body, twenty thousandths of a second, dry. Hot: the knock recedes, the body opens to four seconds, and the partials come in on the handpan stack — fundamental, octave, twelfth, then fourth, fifth, sixth — one more partial for every fifth of heat. Sympathy is unison, octave and twelfth only, which is exactly the handpan relationship, and it does not fire notes; it keeps stones warm and feeds a shimmer into the bed, so nothing can run away with itself. A held lean grinds instead of clattering — stone sliding on stone under the friction bed. Ableton: sub or round bass on the big stones, a soft mallet or lead on the middle, tuned glass or log drums on the pebbles.',
+  tags: ['GREY STONE / FOUR GEOLOGIES', 'ROCKS MIMIC HAND SPEED', 'LEFT FLINGS OUTWARD', 'ROCK WARMS INTO HANDPAN'],
+  desc: 'A bed of light grey field stones in a dark tank — twenty-eight of them, five big, nine middling, fourteen small. Nothing is coloured. The only palette is value and temperature: cool slate through warm limestone, never more than a breath of saturation, so the whole plate reads as rock rather than as paint. Each stone is a geology, and the geology is the pitch — coarse dark granite on the root, sedimentary strata and slate cleavage through the middle of the register, pale quartz-veined stone at the top. You can look at the field and read the chord off it. Size is register: the big stones sit an octave below the middling ones, the pebbles an octave above. Every stone also carries a heat. Work it and it warms — the dry lithic knock lengthens, opens, and takes on partials, until a stone that started as a rock is ringing like a handpan. Leave it and it cools back to stone over a few seconds.',
+  interact: 'Your hands are two pressure fronts you never see, and the bed MIMICS THEIR SPEED. Move a hand slowly and the stones roll with it; sweep it fast and the whole pack is thrown — the faster the gesture, the harder they fly and the louder they knock. The two sides are not the same. Reach the RIGHT hand out and the east front herds its stones inward, piling them toward the middle. Reach the LEFT hand out and the west stones FLING OUTWARD, following your hand to the wall and stacking there. Pull a hand back and the stones chase it the other way. Sustained pressure does not clatter faster, it GRINDS — stone sliding on stone — and every contact feeds heat into the stones it touches, so squeeze and hold and you hear the bed warm up: dry at first, then ringing, then singing. Let go and it cools. The slow play is the sympathy: a stone in tune with something already sounding stays warm long after you stopped working it, so the field holds its brightness in patches you did not touch.',
+  sound: 'C major pentatonic — C D E G A — laid across three octaves by size, and tied to the harmony engine, so when the key moves the whole bed retunes and you hear it happen as a soft sweep from the low stones up. Five degrees, no fourth and no seventh, so any number of simultaneous collisions still agrees. Every strike is voiced by the striking stone\'s heat. Cold: a short filtered-noise knock and a stubby triangle body, twenty thousandths of a second, dry. Hot: the knock recedes, the body opens to four seconds, and the partials come in on the handpan stack — fundamental, octave, twelfth, then fourth, fifth, sixth — one more partial for every fifth of heat. Sympathy is unison, octave and twelfth only, which is exactly the handpan relationship, and it does not fire notes; it keeps stones warm and feeds a shimmer into the bed, so nothing can run away with itself. Under pressure the friction bed carries the intensity instead of more notes. Ableton: sub or round bass on the big stones, a soft mallet or lead on the middle, tuned glass or log drums on the pebbles.',
 
   init(P) {
     const m = Math.min(P.w, P.h);
@@ -50,13 +50,8 @@ reg({
         // the bottom octave is always a complete chord
         const deg = ti === 0 ? i % 5 : (R() * 5) | 0;
         const D = DEG[deg];
-        // alternate side every stone so the two piles come out balanced — a
-        // west pile and an east pile, each herded by one hand
-        const side = rocks.length % 2 === 0 ? -1 : 1;
         const st = {
-          side,
-          x: side < 0 ? P.w * (0.10 + R() * 0.32) : P.w * (0.58 + R() * 0.32),
-          y: P.h * (0.14 + R() * 0.72),
+          x: P.w * (0.12 + R() * 0.76), y: P.h * (0.12 + R() * 0.76),
           vx: 0, vy: 0, ang: R() * TAU, va: 0,
           r: m * (T2.r0 + R() * T2.r1),
           tier: ti, deg, oct: T2.oct, role: T2.role, gain: T2.gain,
@@ -194,7 +189,7 @@ reg({
 
     P.state = {
       rocks, dust: [], rings: [], energy: 0, grind: 0, heat: 0, ring: 0,
-      lastRoot: H.root, retune: 0, presL: 0, presR: 0
+      lastRoot: H.root, retune: 0
     };
     // first tuning
     for (const st of rocks) st.freq = H.rootFreq(st.oct) * Math.pow(2, st.semi / 12);
@@ -226,52 +221,51 @@ reg({
     }
     s.retune *= Math.pow(0.25, dt);
 
-    /* ---- PRESENCE, per side. A hand only herds its pile while it is live;
-           when it leaves, that pile loosens and drifts back toward the middle
-           (the ambient tease), so an abandoned bed mills quietly at centre. */
-    const liveL = chan.L.mode === 'live' ? 1 : 0;
-    const liveR = chan.R.mode === 'live' ? 1 : 0;
-    s.presL += (liveL - s.presL) * Math.min(1, dt * 1.8);
-    s.presR += (liveR - s.presR) * Math.min(1, dt * 1.8);
-    // one activity gate — is ANYONE working the bed? An abandoned bed still
-    // drifts and its piles still touch, but that gentle jostle must not warm
-    // the stones or grind out loud; both are things a present player does.
-    const actGate = Math.max(s.presL, s.presR);
-    s.actv = actGate;
+    /* Two pressure fronts, invisible, one per hand — but now their SPEED is
+       what plays the bed. wallVL/wallVR are the fronts' velocities (∝ how fast
+       your hand is moving); coupling them hard into the stones is what makes a
+       fast sweep throw the pack and a slow gather merely roll it. */
+    const TRAVEL = 0.40;
+    const wallL = w * (0.02 + inp.L * TRAVEL);
+    const wallR = w * (0.98 - inp.R * TRAVEL);
+    const wallVL = (wallL - (s.prevWallL !== undefined ? s.prevWallL : wallL)) / Math.max(dt, 1e-4);
+    const wallVR = (wallR - (s.prevWallR !== undefined ? s.prevWallR : wallR)) / Math.max(dt, 1e-4);
+    s.prevWallL = wallL; s.prevWallR = wallR;
+    s.wallL = wallL; s.wallR = wallR;
+    s.handSpeed = (Math.abs(wallVL) + Math.abs(wallVR)) / w;   // for the HUD
 
-    /* ---- THE HANDS HERD THE PILES. Each hand sets a target column for its
-           half of the bed; the stones spring toward it. Reach outward (inp
-           high) drives the pile to that wall; hands together (inp low) drives
-           both piles to the seam at centre, where they crash. It is the MOTION
-           that plays it — a fast sweep yanks the spring hard and the stones
-           slam; a held reach just leans the pile against the wall. ---- */
-    const GAP = 0.055, SPREAD = 0.40;
-    // where each hand is asking its pile to sit (fraction of width)
-    const homeL = 0.5 - GAP - inp.L * SPREAD;   // inp.L 0 → .445  · 1 → .045
-    const homeR = 0.5 + GAP + inp.R * SPREAD;   // inp.R 0 → .555  · 1 → .955
-    // an abandoned bed rests with the two piles WIDE apart and quiet — the
-    // crush at centre is a thing a present player does by bringing hands in,
-    // not the resting state. So blend the target from a wide rest toward the
-    // hand's ask by presence, and keep the spring slack until a hand is live.
-    const REST_L = 0.28, REST_R = 0.72;
-    const txL = w * (REST_L + (homeL - REST_L) * s.presL);
-    const txR = w * (REST_R + (homeR - REST_R) * s.presR);
-    s.txL = txL; s.txR = txR;
+    // with the pressure off the bed wants the whole tank back
+    const press = Math.max(inp.L, inp.R);
+    let spread = 0, packCx = w / 2;
+    if (press < 0.85) {
+      let lo = 1e9, hi = -1e9;
+      for (const st of s.rocks) { if (st.x - st.r < lo) lo = st.x - st.r; if (st.x + st.r > hi) hi = st.x + st.r; }
+      packCx = (lo + hi) / 2;
+      const span = (hi - lo) / w;
+      if (span < 0.86) spread = (0.86 - span) * (1 - press / 0.85) * 150;
+    }
 
+    /* PRESS is the steady squeeze from a held reach; SWEEP is the whole point
+       of V5 — the front's velocity handed straight to the stones, so the pack
+       tracks the SPEED of the hand in both directions (push out, they fly out;
+       pull back, they chase the hand in). */
+    const PRESS = 22, SWEEP = 2.1;
     for (const st of s.rocks) {
-      // slow currents — the bed drifts, strongest where no hand is working it
-      const idle = 1 - (st.side < 0 ? s.presL : s.presR) * 0.7;
-      st.vx += (Math.sin(t * 0.13 + st.ph) + Math.sin(t * 0.06 + st.ph * 3)) * dt * 6 * idle;
-      st.vy += (Math.cos(t * 0.11 + st.ph * 2) + Math.cos(t * 0.17 + st.ph)) * dt * 7 * idle;
+      // slow currents — the bed drifts, it does not swim
+      st.vx += (Math.sin(t * 0.13 + st.ph) + Math.sin(t * 0.06 + st.ph * 3)) * dt * 13;
+      st.vy += (Math.cos(t * 0.11 + st.ph * 2) + Math.cos(t * 0.17 + st.ph)) * dt * 13;
+      if (spread > 0) st.vx += Math.sign(st.x - packCx) * spread * dt;
 
-      // the hand-spring: pull the stone toward its pile's target column. Stiff
-      // when the hand is present; at idle it still holds the two piles apart at
-      // their wide rest so an abandoned bed rests calm instead of drifting into
-      // a central grind — the wide rest means even this floor never crushes.
-      const tx = st.side < 0 ? txL : txR;
-      const pres = st.side < 0 ? s.presL : s.presR;
-      const K = 2.2 + 7.8 * pres;
-      st.vx += (tx - st.x) * K * dt;
+      // LEFT — FLIPPED. Reach the left hand out (wallL advances right, wallVL>0)
+      // and the west stones are flung OUTWARD to the left wall, following the
+      // hand; pull it back (wallVL<0) and they chase it inward. Speed is signed
+      // straight through, so the stones mimic exactly how fast the hand moves.
+      const penL = (wallL + st.r) - st.x;
+      if (penL > 0) st.vx -= (penL * PRESS + wallVL * SWEEP) * dt;
+      // RIGHT — as V4: the front herds inward (leftward), but now with the same
+      // hard, bidirectional speed coupling.
+      const penR = st.x - (wallR - st.r);
+      if (penR > 0) st.vx -= (penR * PRESS - wallVR * SWEEP) * dt;
 
       const drag = Math.pow(0.45, dt);
       st.vx *= drag; st.vy *= drag;
@@ -284,7 +278,8 @@ reg({
       if (st.x > w - pad) { st.x = w - pad; st.vx = -Math.abs(st.vx) * 0.3; }
       if (st.y < pad) { st.y = pad; st.vy = Math.abs(st.vy) * 0.3; }
       if (st.y > h - pad) { st.y = h - pad; st.vy = -Math.abs(st.vy) * 0.3; }
-      const sp = Math.hypot(st.vx, st.vy), CAP = 150;
+      // headroom for a fast gesture — the pack must be allowed to actually FLY
+      const sp = Math.hypot(st.vx, st.vy), CAP = 240;
       if (sp > CAP) { const k = CAP / sp; st.vx *= k; st.vy *= k; }
       energy += sp;
 
@@ -310,15 +305,10 @@ reg({
           grind += Math.abs(tangV);
 
           if (rel < 0) {
-            /* The stones BOUNCE now, where V4's pile only leaned. A knock
-               between two piles springs them apart and the hands pull them
-               back in to hit again — that rebound is the "more sound". Two
-               stones from OPPOSITE piles meeting at the seam bounce hardest;
-               stones within a pile settle sooner so a stack still reads as a
-               stack. Under a held lean it grinds instead of ringing. */
-            const cross = a.side !== b.side;
-            const resti = cross ? 0.72 : 0.48;
-            const imp = -rel * resti + 2;
+            /* A touch more life than V4's dead lean — a fast gesture should
+               land as an audible knock and a small rebound, but heavy stone
+               still mostly leans and parts rather than bouncing off. */
+            const imp = -rel * 0.42 + 3;
             const ia = imp * 2 * wa, ib = imp * 2 * wb;
             a.vx -= ia * nx; a.vy -= ia * ny;
             b.vx += ib * nx; b.vy += ib * ny;
@@ -432,7 +422,7 @@ reg({
         st.x = clamp(st.x, st.r + 4, w - st.r - 4);
         st.y = clamp(st.y, st.r + 4, h - st.r - 4);
         const v = Math.hypot(st.vx, st.vy);
-        if (v > 150) { const k = 150 / v; st.vx *= k; st.vy *= k; }
+        if (v > 240) { const k = 240 / v; st.vx *= k; st.vy *= k; }
       }
     }
 
@@ -472,13 +462,9 @@ reg({
     /* ---- HEAT. A first-order lag on how hard the stone is being worked right
            now, so the arc takes the seconds it should: about five to warm
            through, four to cool, as much as fourteen if something is singing
-           to it — a stone in tune with the bed holds its brightness long after
-           you stopped touching it, so the field keeps warm patches you never
-           worked. It cannot run away: sympathy never fires a note. ---- */
+           to it. It cannot run away: sympathy never fires a note. ---- */
     for (const st of s.rocks) {
-      // gate the heat DRIVE by presence — an abandoned bed cools back to cold
-      // stone; a stone the sympathy is holding still cools slowly (long tau).
-      const drive = clamp((st.work || 0) * actGate, 0, 1);
+      const drive = clamp(st.work || 0, 0, 1);
       const tau = drive > st.heat ? 5.0 : (4.0 + st.symp * 10);
       st.heat += (drive - st.heat) * Math.min(1, dt / tau);
       heatSum += st.heat;
@@ -500,8 +486,7 @@ reg({
     g.fillStyle = 'rgba(3,3,5,0.62)'; g.fillRect(0, 0, w, h);
 
     /* Near-monochrome. Value carries the register; temperature only separates
-       neighbours, and never gets past about 8% saturation, so the plate reads
-       as rock and not as a tinted photograph. */
+       neighbours, and never gets past about 8% saturation. */
     const mono = (L, temp, a) => {
       const b = 255 * clamp(L, 0, 1);
       const R = clamp(b * (1 + temp * 0.030), 0, 255) | 0;
@@ -545,7 +530,9 @@ reg({
         for (let i = 0; i < n; i++) {
           const x = rnd() * SZ, y = rnd() * SZ;
           const dark = rnd() < 0.52;
-          const a = 0.08 + rnd() * 0.22;
+          // deeper grain contrast than V4 — the tooth is what stops a worked
+          // stone reading as a flat grey disc under the bloom
+          const a = 0.10 + rnd() * 0.30;
           const col = dark ? `rgba(0,0,0,${a})` : `rgba(255,255,255,${a})`;
           const rad = rad0 * (0.5 + rnd());
           for (const [ox, oy] of [[0, 0], [SZ, 0], [-SZ, 0], [0, SZ], [0, -SZ]]) {
@@ -562,7 +549,7 @@ reg({
       const img = q.getImageData(0, 0, SZ, SZ);
       const d = img.data;
       for (let i = 0; i < d.length; i += 4) {
-        const n = (rnd() - 0.5) * 64;
+        const n = (rnd() - 0.5) * 82;
         d[i] += n; d[i + 1] += n; d[i + 2] += n;
       }
       q.putImageData(img, 0, 0);
@@ -586,17 +573,20 @@ reg({
       rockPath(q, st.shape, u, 1);
       q.clip();
 
-      // the body of the stone
-      q.fillStyle = mono(st.L, st.temp);
+      // the body of the stone — seated a touch darker than V4 so the stronger
+      // highlight below has somewhere to climb from (more contrast overall)
+      q.fillStyle = mono(st.L * 0.9, st.temp);
       q.fillRect(-size, -size, size * 2, size * 2);
 
+      // detail contrast multiplier — surface marks read harder than V4
+      const CD = 1.3;
       const sh = st.shape;
       // ---- GRANITE / QUARTZ HOST · speckle
       for (const f of st.flecks) {
         q.save();
         q.translate(f.cx * u, f.cy * u);
         q.rotate(f.ang); q.scale(1, f.sq);
-        q.fillStyle = mono(st.L + f.tone, st.temp, f.al);
+        q.fillStyle = mono(st.L + f.tone * CD, st.temp, Math.min(1, f.al * CD));
         q.beginPath(); q.arc(0, 0, Math.max(0.4, f.rr * u), 0, TAU); q.fill();
         q.restore();
       }
@@ -605,7 +595,7 @@ reg({
         q.save();
         q.rotate(st.bandAng);
         for (const b of st.bands) {
-          q.fillStyle = mono(st.L + b.tone, st.temp, b.al);
+          q.fillStyle = mono(st.L + b.tone * CD, st.temp, Math.min(1, b.al * CD));
           q.beginPath();
           q.moveTo(-1.6 * u, b.y * u);
           for (let k = 0; k <= 16; k++) {
@@ -625,7 +615,7 @@ reg({
         for (const f of st.facets) {
           q.save();
           q.translate(f.cx * u, f.cy * u); q.rotate(f.ang); q.scale(1, f.sq);
-          q.fillStyle = mono(st.L + f.tone, st.temp, f.al);
+          q.fillStyle = mono(st.L + f.tone * CD, st.temp, Math.min(1, f.al * CD));
           q.beginPath(); q.arc(0, 0, f.rr * u, 0, TAU); q.fill();
           q.restore();
         }
@@ -634,7 +624,7 @@ reg({
         q.save();
         q.rotate(st.cleaveAng);
         for (const cl of st.cleave) {
-          q.strokeStyle = mono(st.L + cl.tone, st.temp, cl.al);
+          q.strokeStyle = mono(st.L + cl.tone * CD, st.temp, Math.min(1, cl.al * CD));
           q.lineWidth = Math.max(0.5, cl.w * u);
           q.beginPath(); q.moveTo(-1.6 * u, cl.y * u); q.lineTo(1.6 * u, cl.y * u); q.stroke();
         }
@@ -644,13 +634,13 @@ reg({
       q.lineCap = 'round'; q.lineJoin = 'round';
       for (const v of st.veins) {
         for (const path of [v.pts, v.fork]) {
-          q.strokeStyle = mono(Math.min(0.97, st.L + 0.28), st.temp * 0.3, v.al);
+          q.strokeStyle = mono(Math.min(0.99, st.L + 0.34), st.temp * 0.3, Math.min(1, v.al * CD));
           q.lineWidth = Math.max(0.6, v.w * u);
           q.beginPath();
           path.forEach((p, k) => k === 0 ? q.moveTo(p[0] * u, p[1] * u) : q.lineTo(p[0] * u, p[1] * u));
           q.stroke();
           // the shadow side of a raised vein
-          q.strokeStyle = mono(st.L - 0.2, st.temp, v.al * 0.5);
+          q.strokeStyle = mono(st.L - 0.26, st.temp, Math.min(1, v.al * 0.5 * CD));
           q.lineWidth = Math.max(0.4, v.w * u * 0.45);
           q.beginPath();
           path.forEach((p, k) => k === 0 ? q.moveTo(p[0] * u + u * 0.012, p[1] * u + u * 0.014) : q.lineTo(p[0] * u + u * 0.012, p[1] * u + u * 0.014));
@@ -661,46 +651,43 @@ reg({
       for (const p of st.pits) {
         q.save();
         q.translate(p.cx * u, p.cy * u); q.rotate(p.ang); q.scale(1, p.sq);
-        q.fillStyle = mono(st.L - 0.26, st.temp, p.al);
+        q.fillStyle = mono(st.L - 0.32, st.temp, Math.min(1, p.al * CD));
         q.beginPath(); q.arc(0, 0, p.rr * u, 0, TAU); q.fill();
         // the lit lip on the far side of the pit
-        q.fillStyle = mono(st.L + 0.2, st.temp, p.al * 0.6);
+        q.fillStyle = mono(st.L + 0.26, st.temp, Math.min(1, p.al * 0.6 * CD));
         q.beginPath(); q.arc(-p.rr * u * 0.18, -p.rr * u * 0.2, p.rr * u * 0.6, 0, TAU); q.fill();
         q.restore();
       }
 
-      // mineral tooth over everything
+      // mineral tooth over everything — stronger than V4 for contrast
       const pat = q.createPattern(s.grain, 'repeat');
       if (pat) {
         q.save();
         q.globalCompositeOperation = 'overlay';
         q.fillStyle = pat;
         q.fillRect(-size, -size, size * 2, size * 2);
-        q.globalAlpha = 0.6;
+        q.globalAlpha = 0.8;
         q.scale(2.9, 2.9);
         q.fillRect(-size / 2.9, -size / 2.9, size * 2 / 2.9, size * 2 / 2.9);
         q.restore();
       }
 
       /* FORM. Everything above is surface; this is what makes it a solid.
-         One light from the upper left, a terminator falling away to the
-         lower right. NO outline: V5 drops V4's dark inner rim stroke, which
-         is the sticker edge Kasia flagged — the form gradients carry the
-         thickness, and a stone with no drawn rim sits IN the dark instead of
-         on it, which is exactly what black scrim wants. */
+         V5 pushes the light HARDER than V4 — a brighter catch on the upper
+         left, a deeper terminator into the lower right — and drops V4's dark
+         inner rim stroke entirely (that hard line was the "outline" Kasia
+         flagged). The gradients alone now carry the roundness and the edge. */
       const lg = q.createRadialGradient(-u * 0.42, -u * 0.5, u * 0.05, -u * 0.3, -u * 0.36, u * 1.7);
-      lg.addColorStop(0, 'rgba(255,253,247,0.26)');
-      lg.addColorStop(0.42, 'rgba(255,252,246,0.07)');
+      lg.addColorStop(0, 'rgba(255,254,250,0.46)');
+      lg.addColorStop(0.4, 'rgba(255,253,247,0.14)');
       lg.addColorStop(1, 'rgba(255,255,255,0)');
       q.fillStyle = lg;
       q.fillRect(-size, -size, size * 2, size * 2);
 
-      // a slightly deeper terminator, since the hard rim that used to seat the
-      // lower-right edge is gone — the shading now does all of that work
-      const dg = q.createRadialGradient(u * 0.22, u * 0.3, u * 0.1, u * 0.28, u * 0.34, u * 1.5);
+      const dg = q.createRadialGradient(u * 0.2, u * 0.28, u * 0.08, u * 0.28, u * 0.34, u * 1.5);
       dg.addColorStop(0, 'rgba(0,0,0,0)');
-      dg.addColorStop(0.5, 'rgba(6,6,9,0.24)');
-      dg.addColorStop(1, 'rgba(4,4,7,0.72)');
+      dg.addColorStop(0.45, 'rgba(6,6,9,0.34)');
+      dg.addColorStop(1, 'rgba(2,2,4,0.86)');
       q.fillStyle = dg;
       q.fillRect(-size, -size, size * 2, size * 2);
 
@@ -709,8 +696,8 @@ reg({
       st.pr = c; st.prSpan = R * 2.6;
     };
 
-    /* The piles are herded by invisible hands — nothing is drawn for the
-       controller itself; you read it entirely in where the stones go. */
+    /* The fronts are not drawn. They are pressure, and pressure is
+       invisible — you read it in what the stones do. */
 
     /* Contact rings — a dry shock through the bed, kept very faint and very
        short so a full crush's dozen contacts a second do not stack into moiré. */
@@ -731,8 +718,8 @@ reg({
       g.save();
       g.translate(st.x, st.y);
 
-      // the stone's own shadow on the bed
-      g.fillStyle = 'rgba(0,0,0,0.42)';
+      // the stone's own shadow on the bed — a touch deeper for contrast
+      g.fillStyle = 'rgba(0,0,0,0.5)';
       g.beginPath(); g.ellipse(r * 0.13, r * 0.2, r * 1.0, r * 0.92, 0, 0, TAU); g.fill();
 
       g.rotate(st.ang);
@@ -747,17 +734,15 @@ reg({
 
       /* HEAT, read on the stone. A cold stone is inert grey. A worked one
          picks up a pale ring along its rim and a standing bloom through the
-         body — the visual of the same thing you are hearing: rock warming
-         into an instrument. This rim is an EVENT (only a worked stone wears
-         it), not the always-on outline V4 drew on every stone. */
+         body. This rim is an EVENT (only a worked stone wears it), not the
+         always-on outline V4 drew on every stone. */
       if (heat > 0.02 || sym > 0.05 || st.shock > 0.03) {
         g.save();
         rockPath(g, st.shape, r, 1);
         g.clip();
 
-        /* Everything below is INSIDE the stone. Nothing draws a halo around
-           the silhouette — an outline is the single loudest tell that a thing
-           is a shape rather than an object. */
+        /* Everything below is INSIDE the stone — no halo around the
+           silhouette, ever. */
 
         // sympathy — the stone lightens from within, no edge, no ring
         if (sym > 0.12) {
@@ -799,8 +784,9 @@ reg({
 
     g.fillStyle = 'rgba(206,208,204,0.8)'; g.font = '10px ui-monospace,monospace';
     const chord = s.rocks.filter(r => r.tier === 0).sort((a, b) => b.r - a.r).map(r => r.note).join(' ');
-    g.fillText('WEST ' + Math.round(inp.L * 100) + '%  EAST ' + Math.round(inp.R * 100) +
-      '%  GRIND ' + Math.round(s.grind * 100) + '%  HEAT ' + Math.round(s.heat * 100) +
+    g.fillText('L(FLING) ' + Math.round(inp.L * 100) + '%  R(HERD) ' + Math.round(inp.R * 100) +
+      '%  SPEED ' + Math.round(clamp((s.handSpeed || 0) * 100, 0, 999) ) +
+      '  GRIND ' + Math.round(s.grind * 100) + '%  HEAT ' + Math.round(s.heat * 100) +
       '%  SYMPATHY ' + Math.round(s.ring * 100) + '%  ' + (H.keyLabel || '') +
       ' PENTATONIC  BED ' + chord + '  + ' + s.rocks.filter(r => r.tier === 2).length + ' PEBBLES', 10, h - 10);
   },
@@ -815,10 +801,9 @@ reg({
       A.set(o1.frequency, H.rootFreq(-1), 1.2);
       A.set(o2.frequency, H.rootFreq(-1) * 1.5, 1.4);
     });
-    /* GRIND. Under a held lean the stones are not knocking, they are sliding
-       on each other. Two bands: a low rumble of mass against mass and a dry
-       rasp of grit between them. This carries the intensity so the scene does
-       not have to fire more discrete notes at it. */
+    /* GRIND. Under sustained pressure the stones are not knocking, they are
+       sliding on each other. Two bands: a low rumble of mass against mass and
+       a dry rasp of grit between them. */
     const rum = v.noise();
     const rf = v.filter('lowpass', 240, 1.1);
     const rg = v.g(0);
@@ -840,18 +825,14 @@ reg({
       tick(inp) {
         const s = P.state;
         if (!s || !s.rocks) return;
-        // grind and shimmer only speak while a hand is actually working the
-        // bed — an abandoned pan drifts in silence but for the odd cold knock.
-        const act = s.actv || 0;
         A.set(og.gain, 0.014 + s.energy * 0.04, 0.4);
-        A.set(rg.gain, s.grind * 0.09 * act, 0.25);
-        A.set(ag.gain, s.grind * s.grind * 0.035 * act, 0.2);
+        A.set(rg.gain, s.grind * 0.09, 0.2);
+        A.set(ag.gain, s.grind * s.grind * 0.035, 0.18);
         // grit gets brighter as the stones warm
         A.set(af.frequency, 1400 + s.heat * 1800, 0.5);
-        A.set(sg.gain, ((s.symTotal || 0) * 0.028 + s.ring * 0.012) * (0.25 + 0.75 * act), 0.6);
+        A.set(sg.gain, (s.symTotal || 0) * 0.028 + s.ring * 0.012, 0.6);
         /* Publish the drone so other scenes' resonators can hear this one —
-           but an OCTAVE BELOW the lowest stone, and quietly, so it does not
-           pin the bottom stone's sympathy at full. */
+           but an OCTAVE BELOW the lowest stone, and quietly. */
         const now = A.t();
         if (A.SB && now - bedT > 1.4) {
           bedT = now;
