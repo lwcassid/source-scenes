@@ -54,6 +54,19 @@ the fabric punishes velocity. Two projectors overlap → bright elements get
 depth-echoed: fields, swarms, rings benefit; text and frames die. Saturated
 hues; mesh eats ~half the light.
 
+## PRESENCE GATES AMBIENCE, NEVER THE HAND (SRC-44.2)
+`chan.mode` falls back to `'drift'` six seconds after the last message, and a
+player who reaches up and HOLDS STILL sends no messages. So
+`v = hand * pres + idle * (1 - pres)` throws away a hand that is still in the
+air — the scene stops answering mid-gesture and goes back to breathing at
+itself. Blend idle UNDER the hand (`Math.max(hand, idle * (1 - pres))`), and
+count a raised hand as presence (`mode === 'live' || chan.L.v > 0.12`).
+And in any scene whose state ACCUMULATES, the hands must also drive a
+continuous whole-picture parameter — posture, height, brightness, openness —
+applied at draw time so the remembered structure is untouched. Without it
+only the growing tip answers, which is a twentieth of the frame, and the
+scene reads as unresponsive no matter how good the accumulation is.
+
 ## Airbrush, not line art (Lance's reference, SRC-44)
 The house look for organic scenes is the gradient-airbrush plate: NO strokes
 and no outlines anywhere, forms built as one metaball/SDF field so neighbours
