@@ -139,9 +139,24 @@ lifts into the club; Am → Dm → Am is i → iv → i, the back half resolving
 home. The shape: rise to the band · a two-scene glide down through the
 weather and the smoke · the big club peak · rain comedown · finale.
 
-## The process (phased, back-and-forth)
+## The process (revised, Lance Aug 2026 — concept before fidelity)
 
-**Phase 1 — Rack the rig (Lance in Live, one evening).** One Live set for the
+The browser's rough sound is the DESIGN PROOF: a scene must work as an
+instrument at low fidelity before any Ableton investment. The sequence:
+
+**Phase 0 — Audit** (`docs/SOUNDSCAPE-AUDIT.md`): every scene's current
+sound vs. the vision, with a proposal per scene. No building.
+
+**Phase 1 — Align + draft, one scene at a time.** For each scene: Claude
+presents the proposal → Lance gives feedback → only then a new version is
+built, verified, and committed. Nothing is written before the feedback.
+Goal: draft soundscapes that work as instruments in the crappy sound.
+
+**Phase 2 — Rack the rig.** Once the drafts are aligned, the Ableton phase
+begins (below). Some scenes may run in reverse — a plugin so distinctive it
+drives a redesign — but that is the exception, flagged per scene.
+
+**Racking the rig (Lance in Live, one evening).** One Live set for the
 whole show. Nine tracks matching the role channels (lead 1 · pad 2 · bass 3 ·
 arp 4 · bells 5 · texture 6 · perc 10 · sfx 11 · bed 12). Each track is an
 Instrument Rack with MACRO 1 mapped to the patch's brightness/cutoff and CC74
