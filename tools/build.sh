@@ -104,6 +104,9 @@ cd "$(dirname "$0")/.."
   cat parts/part92_lumen13.js
   cat parts/part93_lumen14.js
   cat parts/part94_lumen15.js
+  cat parts/part95_lumen16.js
+  cat parts/part96_lumen17.js
+  cat parts/part104_lumen18.js
   cat parts/part95_fb14.js
   cat parts/part96_fb15.js
   cat parts/part97_fb16.js
@@ -112,8 +115,18 @@ cd "$(dirname "$0")/.."
   cat parts/part100_ridge4.js
   cat parts/part101_ridge5.js
   cat parts/part102_ridge6.js
+  cat parts/part103_ridge7.js
+  cat parts/part104_ridge8.js
+  cat parts/part105_ridge9.js
+  cat parts/part106_ridge10.js
   cat parts/part100_chladni3.js
   cat parts/part101_chladni4.js
+  cat parts/part103_chladni5.js
+  cat parts/part104_chladni6.js
+  cat parts/part105_chladni7.js
+  cat parts/part106_chladni8.js
+  cat parts/part107_chladni9.js
+  cat parts/part108_chladni10.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
