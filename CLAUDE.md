@@ -183,6 +183,15 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
 - Mobile: bloom post-stack is gated off via `window.IS_MOBILE`; keep it that way.
 
 ## Working agreements
+- END EVERY ROUND WITH A CLICKABLE LINK (Lance's rule). Never hand back a
+  branch name or a file path and make someone hunt. The site deep-links:
+  `#scene=SRC-XX.N` opens that exact scene. In order of preference:
+  1. Work merged to `main` → `https://source-interaction-library.netlify.app/#scene=SRC-XX.N`
+  2. Work on a branch → open/update the PR and give BOTH the PR link and the
+     Netlify deploy preview `https://deploy-preview-<PR#>--source-interaction-library.netlify.app/#scene=SRC-XX.N`
+     (builds automatically when the PR opens; confirm via the Netlify MCP,
+     not curl — the sandbox 403s the host).
+  Merging the PR is one click for a human and puts it on the live URL.
 - THE SKILLS ARE THE STUDIO NOTEBOOK. When Lance, Kasia or Nima gives a
   creative verdict in a session — a taste call, a "never do X again", a
   "this is the reference" — distill it into the relevant skill (scene-craft /
