@@ -35618,24 +35618,24 @@ reg({
     };
   }
 });
-/* ---------- SRC-32.5 · SONORA V5 (stone pan · hand-speed) ---------- */
-/* This is V4's stone bed — the same grey field geologies, the same heat
-   solver that warms a knock into a handpan, the same grind under a held
-   lean — rebuilt around ONE idea: the bed should mimic the SPEED of your
-   hands. V4's pressure fronts still herd the stones, but now the front's
-   VELOCITY is coupled hard into the stones it touches, so a slow gather is a
-   soft roll and a fast sweep genuinely throws the pack. Two more changes from
-   Kasia: the LEFT side is flipped — reach the left hand out and the west
-   stones fling OUTWARD to the wall (they follow the hand) instead of herding
-   in — and the always-on dark outline around every stone is gone, with the
-   surface pushed to higher contrast so the rock reads as rock, not a disc. */
+/* ---------- SRC-32.5 · SONORA V5 (stone pan · magnet hands) ---------- */
+/* V4's stone bed — same grey geologies, same heat solver that warms a knock
+   into a handpan — rebuilt around ONE rule so the movement finally reads:
+   THE HANDS ARE MAGNETS AND THE ROCKS FOLLOW. The bed is strung between two
+   magnets, one per hand. Reach a hand out and its magnet slides to that wall,
+   dragging its end of the bed with it — the rocks go WHERE THE HAND GOES,
+   which is what V4 (a squeeze that shoved them the OTHER way) got backwards.
+   Each stone holds its own station on the line between the two hands, so the
+   whole bed is one connected sheet that stretches, gathers and slides as you
+   move. Fast hand = the rocks rush to catch it. The always-on outline is gone
+   and the surface is higher-contrast, both as Kasia asked. */
 reg({
-  id: 'SRC-32.5', family: 'SRC-32', ver: 5, title: 'Sonora', tech: 'STONE PAN / HAND SPEED',
+  id: 'SRC-32.5', family: 'SRC-32', ver: 5, title: 'Sonora', tech: 'STONE PAN / MAGNET HANDS',
   music: { bpm: 60, root: 48, mode: 'ionian', prog: [0, 5, 3, 4], chordBars: 4 },
   fx: { bloom: 0.32, edge: true },
-  tags: ['GREY STONE / FOUR GEOLOGIES', 'ROCKS MIMIC HAND SPEED', 'LEFT FLINGS OUTWARD', 'ROCK WARMS INTO HANDPAN'],
+  tags: ['GREY STONE / FOUR GEOLOGIES', 'HANDS ARE MAGNETS', 'ROCKS FOLLOW THE GESTURE', 'ROCK WARMS INTO HANDPAN'],
   desc: 'A bed of light grey field stones in a dark tank — twenty-eight of them, five big, nine middling, fourteen small. Nothing is coloured. The only palette is value and temperature: cool slate through warm limestone, never more than a breath of saturation, so the whole plate reads as rock rather than as paint. Each stone is a geology, and the geology is the pitch — coarse dark granite on the root, sedimentary strata and slate cleavage through the middle of the register, pale quartz-veined stone at the top. You can look at the field and read the chord off it. Size is register: the big stones sit an octave below the middling ones, the pebbles an octave above. Every stone also carries a heat. Work it and it warms — the dry lithic knock lengthens, opens, and takes on partials, until a stone that started as a rock is ringing like a handpan. Leave it and it cools back to stone over a few seconds.',
-  interact: 'Your hands are two pressure fronts you never see, and the bed MIMICS THEIR SPEED. Move a hand slowly and the stones roll with it; sweep it fast and the whole pack is thrown — the faster the gesture, the harder they fly and the louder they knock. The two sides are not the same. Reach the RIGHT hand out and the east front herds its stones inward, piling them toward the middle. Reach the LEFT hand out and the west stones FLING OUTWARD, following your hand to the wall and stacking there. Pull a hand back and the stones chase it the other way. Sustained pressure does not clatter faster, it GRINDS — stone sliding on stone — and every contact feeds heat into the stones it touches, so squeeze and hold and you hear the bed warm up: dry at first, then ringing, then singing. Let go and it cools. The slow play is the sympathy: a stone in tune with something already sounding stays warm long after you stopped working it, so the field holds its brightness in patches you did not touch.',
+  interact: 'Each hand is a magnet and the rocks FOLLOW it. The bed is strung between your two hands: the left hand holds its left end, the right hand its right end. Reach the left hand out and the left of the bed streams out to that wall, chasing your hand; reach the right out and the right end follows the other way; pull a hand back in and its stones come with it. Bring both hands in and the whole bed gathers to the middle, crowding and knocking; spread both out and it stretches wide across the tank. It is the MOTION that plays it — the rocks move at the speed of your hands, so a slow drift is a soft roll of contacts and a fast sweep makes them rush and clatter. Hold the bed crowded and it stops clattering and GRINDS — stone sliding on stone — and every contact feeds heat into the stones it touches, so the bed warms up: dry at first, then ringing, then singing. Let go and it cools. The slow play is the sympathy: a stone in tune with something already sounding stays warm long after you stopped working it, so the field holds its brightness in patches you did not touch.',
   sound: 'C major pentatonic — C D E G A — laid across three octaves by size, and tied to the harmony engine, so when the key moves the whole bed retunes and you hear it happen as a soft sweep from the low stones up. Five degrees, no fourth and no seventh, so any number of simultaneous collisions still agrees. Every strike is voiced by the striking stone\'s heat. Cold: a short filtered-noise knock and a stubby triangle body, twenty thousandths of a second, dry. Hot: the knock recedes, the body opens to four seconds, and the partials come in on the handpan stack — fundamental, octave, twelfth, then fourth, fifth, sixth — one more partial for every fifth of heat. Sympathy is unison, octave and twelfth only, which is exactly the handpan relationship, and it does not fire notes; it keeps stones warm and feeds a shimmer into the bed, so nothing can run away with itself. Under pressure the friction bed carries the intensity instead of more notes. Ableton: sub or round bass on the big stones, a soft mallet or lead on the middle, tuned glass or log drums on the pebbles.',
 
   init(P) {
@@ -35807,9 +35807,20 @@ reg({
       }
     }
 
+    /* THE BED IS STRUNG BETWEEN THE TWO HANDS. Give every stone a fixed
+       STATION in the bed: px is its place left-to-right (0 = the left hand's
+       end, 1 = the right hand's end), py its place top-to-bottom. The stone
+       keeps that station as the hands move it around — so the bed is one
+       connected sheet whose left edge follows the left hand and right edge the
+       right hand, not two herds. Rank by starting position so the bed keeps a
+       natural, non-crossing layout. */
+    const n = rocks.length;
+    [...rocks].sort((a, b) => a.x - b.x).forEach((st, i) => st.px = n > 1 ? i / (n - 1) : 0.5);
+    [...rocks].sort((a, b) => a.y - b.y).forEach((st, i) => st.py = n > 1 ? i / (n - 1) : 0.5);
+
     P.state = {
       rocks, dust: [], rings: [], energy: 0, grind: 0, heat: 0, ring: 0,
-      lastRoot: H.root, retune: 0
+      lastRoot: H.root, retune: 0, pres: 0
     };
     // first tuning
     for (const st of rocks) st.freq = H.rootFreq(st.oct) * Math.pow(2, st.semi / 12);
@@ -35841,53 +35852,48 @@ reg({
     }
     s.retune *= Math.pow(0.25, dt);
 
-    /* Two pressure fronts, invisible, one per hand — but now their SPEED is
-       what plays the bed. wallVL/wallVR are the fronts' velocities (∝ how fast
-       your hand is moving); coupling them hard into the stones is what makes a
-       fast sweep throw the pack and a slow gather merely roll it. */
-    const TRAVEL = 0.40;
-    const wallL = w * (0.02 + inp.L * TRAVEL);
-    const wallR = w * (0.98 - inp.R * TRAVEL);
-    const wallVL = (wallL - (s.prevWallL !== undefined ? s.prevWallL : wallL)) / Math.max(dt, 1e-4);
-    const wallVR = (wallR - (s.prevWallR !== undefined ? s.prevWallR : wallR)) / Math.max(dt, 1e-4);
-    s.prevWallL = wallL; s.prevWallR = wallR;
-    s.wallL = wallL; s.wallR = wallR;
-    s.handSpeed = (Math.abs(wallVL) + Math.abs(wallVR)) / w;   // for the HUD
+    /* ---- THE HANDS ARE MAGNETS. THE ROCKS FOLLOW. ----
+       Each hand is a magnet on a rail. Reach the LEFT hand out and its magnet
+       slides to the LEFT wall; reach the RIGHT out and its magnet slides to the
+       RIGHT wall; relax and both magnets ease back toward a calm spread near
+       the middle. The bed is STRUNG between the two magnets: each stone is
+       pulled to its own station on the line from the left magnet to the right
+       magnet, so the left end of the bed follows the left hand and the right
+       end follows the right hand. Move a hand and its stones go WITH it — the
+       thing V4 got backwards. */
+    const magL = w * (0.30 + (0.055 - 0.30) * inp.L);   // inp.L 0 → .30w  · 1 → .055w
+    const magR = w * (0.70 + (0.945 - 0.70) * inp.R);   // inp.R 0 → .70w  · 1 → .945w
+    const magLV = (magL - (s.pMagL !== undefined ? s.pMagL : magL)) / Math.max(dt, 1e-4);
+    const magRV = (magR - (s.pMagR !== undefined ? s.pMagR : magR)) / Math.max(dt, 1e-4);
+    s.pMagL = magL; s.pMagR = magR;
+    s.handSpeed = (Math.abs(magLV) + Math.abs(magRV)) / w;   // for the HUD
 
-    // with the pressure off the bed wants the whole tank back
-    const press = Math.max(inp.L, inp.R);
-    let spread = 0, packCx = w / 2;
-    if (press < 0.85) {
-      let lo = 1e9, hi = -1e9;
-      for (const st of s.rocks) { if (st.x - st.r < lo) lo = st.x - st.r; if (st.x + st.r > hi) hi = st.x + st.r; }
-      packCx = (lo + hi) / 2;
-      const span = (hi - lo) / w;
-      if (span < 0.86) spread = (0.86 - span) * (1 - press / 0.85) * 150;
-    }
+    // presence: a hand that is actually there (calibrated, away from rest) is
+    // 'live'. Gate the sound off an abandoned bed — it still gathers to centre
+    // and drifts, but it must not grind or warm with nobody working it.
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.8);
+    const actGate = s.pres;
 
-    /* PRESS is the steady squeeze from a held reach; SWEEP is the whole point
-       of V5 — the front's velocity handed straight to the stones, so the pack
-       tracks the SPEED of the hand in both directions (push out, they fly out;
-       pull back, they chase the hand in). */
-    const PRESS = 22, SWEEP = 2.1;
+    /* KX pulls a stone to its station; FF adds a shove in the direction the
+       station is MOVING, scaled by hand speed, so a fast sweep makes the rocks
+       genuinely rush to catch the hand instead of oozing. KY holds a loose
+       vertical station so the bed keeps its body. */
+    const KX = 9, FF = 0.42, KY = 3.4;
     for (const st of s.rocks) {
-      // slow currents — the bed drifts, it does not swim
-      st.vx += (Math.sin(t * 0.13 + st.ph) + Math.sin(t * 0.06 + st.ph * 3)) * dt * 13;
-      st.vy += (Math.cos(t * 0.11 + st.ph * 2) + Math.cos(t * 0.17 + st.ph)) * dt * 13;
-      if (spread > 0) st.vx += Math.sign(st.x - packCx) * spread * dt;
+      // the stone's target: its station on the line between the two magnets
+      const tx = magL + (magR - magL) * st.px;
+      const txv = magLV + (magRV - magLV) * st.px;   // how fast that station moves
+      const ty = h * (0.16 + 0.68 * st.py);
 
-      // LEFT — FLIPPED. Reach the left hand out (wallL advances right, wallVL>0)
-      // and the west stones are flung OUTWARD to the left wall, following the
-      // hand; pull it back (wallVL<0) and they chase it inward. Speed is signed
-      // straight through, so the stones mimic exactly how fast the hand moves.
-      const penL = (wallL + st.r) - st.x;
-      if (penL > 0) st.vx -= (penL * PRESS + wallVL * SWEEP) * dt;
-      // RIGHT — as V4: the front herds inward (leftward), but now with the same
-      // hard, bidirectional speed coupling.
-      const penR = st.x - (wallR - st.r);
-      if (penR > 0) st.vx -= (penR * PRESS - wallVR * SWEEP) * dt;
+      // FOLLOW — spring to the moving station, plus the speed feed-forward
+      st.vx += ((tx - st.x) * KX + txv * FF) * dt;
+      st.vy += (ty - st.y) * KY * dt;
+      // a breath of life so a held pose is not dead-still
+      st.vx += Math.sin(t * 0.5 + st.ph) * dt * 4;
+      st.vy += Math.cos(t * 0.4 + st.ph * 1.7) * dt * 4;
 
-      const drag = Math.pow(0.45, dt);
+      const drag = Math.pow(0.42, dt);
       st.vx *= drag; st.vy *= drag;
       // stone tumbles, unlike dye — but heavy stone in a pile barely turns
       st.va *= Math.pow(0.22, dt);
@@ -35898,8 +35904,8 @@ reg({
       if (st.x > w - pad) { st.x = w - pad; st.vx = -Math.abs(st.vx) * 0.3; }
       if (st.y < pad) { st.y = pad; st.vy = Math.abs(st.vy) * 0.3; }
       if (st.y > h - pad) { st.y = h - pad; st.vy = -Math.abs(st.vy) * 0.3; }
-      // headroom for a fast gesture — the pack must be allowed to actually FLY
-      const sp = Math.hypot(st.vx, st.vy), CAP = 240;
+      // headroom for a fast gesture — the bed must be allowed to actually RUSH
+      const sp = Math.hypot(st.vx, st.vy), CAP = 300;
       if (sp > CAP) { const k = CAP / sp; st.vx *= k; st.vy *= k; }
       energy += sp;
 
@@ -36042,7 +36048,7 @@ reg({
         st.x = clamp(st.x, st.r + 4, w - st.r - 4);
         st.y = clamp(st.y, st.r + 4, h - st.r - 4);
         const v = Math.hypot(st.vx, st.vy);
-        if (v > 240) { const k = 240 / v; st.vx *= k; st.vy *= k; }
+        if (v > 300) { const k = 300 / v; st.vx *= k; st.vy *= k; }
       }
     }
 
@@ -36084,7 +36090,8 @@ reg({
            through, four to cool, as much as fourteen if something is singing
            to it. It cannot run away: sympathy never fires a note. ---- */
     for (const st of s.rocks) {
-      const drive = clamp(st.work || 0, 0, 1);
+      // gate the drive by presence — an abandoned bed cools back to cold stone
+      const drive = clamp((st.work || 0) * actGate, 0, 1);
       const tau = drive > st.heat ? 5.0 : (4.0 + st.symp * 10);
       st.heat += (drive - st.heat) * Math.min(1, dt / tau);
       heatSum += st.heat;
@@ -36404,7 +36411,7 @@ reg({
 
     g.fillStyle = 'rgba(206,208,204,0.8)'; g.font = '10px ui-monospace,monospace';
     const chord = s.rocks.filter(r => r.tier === 0).sort((a, b) => b.r - a.r).map(r => r.note).join(' ');
-    g.fillText('L(FLING) ' + Math.round(inp.L * 100) + '%  R(HERD) ' + Math.round(inp.R * 100) +
+    g.fillText('L-END ' + Math.round(inp.L * 100) + '%  R-END ' + Math.round(inp.R * 100) +
       '%  SPEED ' + Math.round(clamp((s.handSpeed || 0) * 100, 0, 999) ) +
       '  GRIND ' + Math.round(s.grind * 100) + '%  HEAT ' + Math.round(s.heat * 100) +
       '%  SYMPATHY ' + Math.round(s.ring * 100) + '%  ' + (H.keyLabel || '') +
@@ -36445,12 +36452,13 @@ reg({
       tick(inp) {
         const s = P.state;
         if (!s || !s.rocks) return;
+        const act = s.pres || 0;   // silence the grind/shimmer on an empty bed
         A.set(og.gain, 0.014 + s.energy * 0.04, 0.4);
-        A.set(rg.gain, s.grind * 0.09, 0.2);
-        A.set(ag.gain, s.grind * s.grind * 0.035, 0.18);
+        A.set(rg.gain, s.grind * 0.09 * act, 0.25);
+        A.set(ag.gain, s.grind * s.grind * 0.035 * act, 0.2);
         // grit gets brighter as the stones warm
         A.set(af.frequency, 1400 + s.heat * 1800, 0.5);
-        A.set(sg.gain, (s.symTotal || 0) * 0.028 + s.ring * 0.012, 0.6);
+        A.set(sg.gain, ((s.symTotal || 0) * 0.028 + s.ring * 0.012) * (0.25 + 0.75 * act), 0.6);
         /* Publish the drone so other scenes' resonators can hear this one —
            but an OCTAVE BELOW the lowest stone, and quietly. */
         const now = A.t();

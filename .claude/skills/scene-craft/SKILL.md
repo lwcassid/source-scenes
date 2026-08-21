@@ -35,15 +35,17 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    (bud/strike/note) to the grid, never the continuous response. A hand whose
    only effect lands at the NEXT grid event is illegible ("what does the left
    hand do?" — White Study V5): give every hand at least one continuous,
-   immediate coupling, visible AND audible. Couple the hand's SPEED, not only
-   its position: a fast gesture must visibly THROW the system and a slow one
-   merely roll it (Kasia, Sonora — "they should mimic the speed of the hand").
-   Hand the control's VELOCITY straight into the objects, bidirectionally, and
-   give a fast gesture real headroom (raise velocity caps) so it doesn't clip.
-   And match the sign to the hand — objects moving OPPOSITE the gesture read as
-   broken; if a side feels inverted, flip it. (An invisible force like a
-   pressure front is fine and legible once it's this responsive — the earlier
-   "replace fronts with a direct-follow herd" was a dead end Kasia rejected.)
+   immediate coupling, visible AND audible. The control should be a MAGNET the
+   objects FOLLOW — reach a hand out, the stuff on that side comes WITH it —
+   not a force that shoves them the other way. Sonora spent three versions
+   failing because every model (pressure fronts, herds, flung piles) moved the
+   rocks AWAY from the hand; the fix was "hand = magnet, rocks follow" (Kasia).
+   Objects moving opposite the gesture read as broken. Couple position AND
+   speed (a fast gesture must visibly rush the objects, a slow one glide them;
+   give velocity real headroom so it doesn't clip). For TWO hands, string the
+   field BETWEEN them — each hand owns one end of one connected body (Sonora's
+   bed: left hand holds the left end, right the right; both in → it gathers,
+   both out → it stretches) — rather than splitting it into two herds.
 3. **Dark mass, luminous edge.** True black background, always. Light is a
    spend. White reserved for actual light sources. Full-mesh wireframe is
    banned as a default — structure exposure is an EVENT (beats, transitions).
