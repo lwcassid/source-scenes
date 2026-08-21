@@ -345,8 +345,11 @@ window.SCRIMVIEW = {
   render(fg, P, t) {
     if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); if (typeof setView === 'function') setView('flat'); return; } this._camSync(this.preset); }
     this._bindTex(P);
-    if (this.renderer.domElement.width !== P.w || this.renderer.domElement.height !== P.h) {
-      this.renderer.setSize(P.w, P.h, false);
+    // the 3D room fills the DISPLAY canvas full bleed — its aspect is the
+    // window's, not the projector frame's (the frame lives on in the throw)
+    const dw = fg.canvas.width, dh = fg.canvas.height;
+    if (this.renderer.domElement.width !== dw || this.renderer.domElement.height !== dh) {
+      this.renderer.setSize(dw, dh, false);
     }
     const R = SCRIMRIG;
     // rebuild the two throw matrices (registered on the main-wall row)
@@ -364,7 +367,7 @@ window.SCRIMVIEW = {
     // camera from the orbit state — the user's hands are on this
     const o = this.orb;
     this.camera.fov = 50;
-    this.camera.aspect = P.w / P.h; this.camera.updateProjectionMatrix();
+    this.camera.aspect = dw / dh; this.camera.updateProjectionMatrix();
     this.camera.position.set(
       o.tx + o.r * Math.sin(o.ph) * Math.sin(o.th),
       o.ty + o.r * Math.cos(o.ph),
@@ -373,12 +376,12 @@ window.SCRIMVIEW = {
     this.tex.needsUpdate = true;
     this.strips.forEach(s => { s.material.uniforms.uTime.value = t; });
     this.renderer.render(this.scene, this.camera);
-    fg.fillStyle = '#000'; fg.fillRect(0, 0, P.w, P.h);
+    fg.fillStyle = '#000'; fg.fillRect(0, 0, dw, dh);
     fg.drawImage(this.renderer.domElement, 0, 0);
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · Cave Layout 2026 (planner export) · 24×32 ft · 12 panels · ' +
-      'drag ORBIT · wheel/pinch ZOOM · CAM in the sidebar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel/pinch ZOOM · CAM in the sidebar (C cycles) · keys W/S ↑/↓ play the hands', 14, dh - 14);
   },
 };
 

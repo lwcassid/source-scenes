@@ -55,7 +55,7 @@
   select{font-family:var(--sans);font-size:10px;background:var(--panel);color:var(--txt);
     border:1px solid var(--line);border-radius:var(--rs);padding:5px 7px;max-width:170px}
   input[type=range]{width:74px;accent-color:var(--acc);background:transparent;cursor:pointer}
-  #midiMon{background:#0a0a0c;border:1px solid var(--line);border-radius:var(--rs);width:100%;height:104px}
+  #midiMon{background:#0a0a0c;border:1px solid var(--line);border-radius:var(--rs);width:100%;height:148px}
   @keyframes blink{50%{background:var(--acc);color:#000}}
 
   /* MAP popover — the source's own settings, with coaching */
@@ -114,11 +114,13 @@
   .qbox.on:hover{background:var(--acc);border-color:var(--acc);color:#fff}
 
   /* ---------- performance queue drawer ---------- */
-  #queuePop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;width:360px;max-height:78vh;overflow-y:auto;
+  #queuePop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;
+    width:min(600px,calc(100vw - var(--rail) - 28px));max-height:82vh;overflow-y:auto;
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.3)}
   #queuePop.open{display:block}
   #queuePop h4{font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--txt);margin-bottom:8px}
+  #btnQueueX{position:absolute;top:10px;right:10px}
   #queuePop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
   #queuePop b{color:var(--txt)}
   #queuePop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
@@ -130,6 +132,13 @@
   #queueList .qt{font-size:10.5px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #queueList button{padding:2px 6px;font-size:10px;line-height:1.1}
   #queueList button:disabled{opacity:.28;cursor:default}
+  /* per-scene show settings: minutes on stage + sound routing override */
+  #queueList .qmin{width:40px;font:10px var(--mono);background:var(--panel2);color:var(--txt);
+    border:1px solid var(--line);border-radius:5px;padding:2px 3px;text-align:right}
+  #queueList .qmin::-webkit-inner-spin-button{display:none}
+  #queueList .qunit{font:8px var(--mono);color:var(--txt-faint)}
+  #queueList .qout{font-size:8.5px;padding:2px 3px;border-radius:5px;max-width:64px;background:var(--panel2)}
+  #queueList .qout.ovr{border-color:var(--acc);color:var(--acc)}
   /* thumbnails: the set list is unreadable as SRC numbers at 3am */
   #queueList .qthumb{width:56px;height:35px;flex:none;border-radius:3px;background:#000;
     border:1px solid rgba(255,255,255,.10);display:block}
@@ -187,22 +196,30 @@
   .sgroup .srow > input[type=range]{flex:1;min-width:0}
   .sgroup .sinfo{font-size:9.5px;line-height:1.6;letter-spacing:.04em;color:var(--txt-faint);margin:6px 0 0}
   .sgroup .sinfo b{color:var(--txt-dim)}
-  /* the scene's own notes live at the top of the same column as its controls —
-     one place to look, instead of a panel that slid in over the picture */
+  /* the scene's notes live WITH the controls they describe: the experience
+     summary heads the column, the input paradigm folds under SOURCE INPUT,
+     the Ableton build notes fold under MUSIC — read up where you act */
   .sgroup .snote{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:0 0 8px}
   .sgroup .snote b{color:var(--txt)}
-  .sgroup h6{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt-faint);
-    font-weight:700;margin:12px 0 4px}
   .stoggle{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--acc);cursor:pointer;
-    text-transform:uppercase;user-select:none}
+    text-transform:uppercase;user-select:none;display:inline-block;margin:0 0 6px}
   .stoggle:hover{text-decoration:underline}
-  #sNotes{display:none}
-  #sceneNotes.open #sNotes{display:block}
-  /* collapsed, the interaction line is a teaser — the controls below it stay
-     above the fold no matter how long a scene's paradigm reads */
-  #ipInt{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
-  #sceneNotes.open #ipInt{-webkit-line-clamp:unset}
-  #sceneNotes .chips{margin-top:10px}
+  /* collapsed, the summary is a teaser — the controls stay above the fold */
+  #ipDesc{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  #sceneNotes.open #ipDesc{-webkit-line-clamp:unset}
+  #sceneNotes .chips{margin:2px 0 0}
+  /* the fold-away notes under SOURCE INPUT / MUSIC */
+  .snfold{display:none}
+  .snfold.open{display:block}
+  /* ---------- HISTORY — every version, newest first, click to open ---------- */
+  #histList .hrow{padding:6px 8px;border:1px solid var(--line2);border-radius:6px;margin:0 0 4px;
+    cursor:pointer;transition:border-color .15s}
+  #histList .hrow:hover{border-color:var(--tile-hov)}
+  #histList .hrow.on{border-color:var(--acc);background:var(--acc-faint)}
+  #histList .hv{font:10px var(--mono);font-weight:700;color:var(--txt)}
+  #histList .hrow.on .hv{color:var(--acc)}
+  #histList .hd{font:9px var(--mono);color:var(--txt-faint);margin-left:6px}
+  #histList .hm{display:block;font-size:10px;line-height:1.5;color:var(--txt-dim);margin-top:2px}
   #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
   #sidebar .scrimonly{display:none}
   #overlay.scrimmode #sidebar .scrimonly{display:flex}
@@ -274,7 +291,19 @@
   .conBox.grow{flex:1;min-width:0}
   .whint{font-size:9.5px;line-height:1.65;letter-spacing:.04em;color:var(--txt-dim);max-width:640px}
   .whint b{color:var(--txt)}
-  .conBox:first-child .whint{max-width:280px}
+  /* THE RIG rack — what each role is, which channel it rides, what answers in
+     Live (rig.json, baked). Rows light while their lane is playing. */
+  #rackBox{width:300px;flex:none}
+  #roleRack{display:flex;flex-direction:column;gap:2px;cursor:pointer}
+  .rkrow{display:flex;align-items:center;gap:6px;padding:2px 6px;border:1px solid transparent;
+    border-radius:5px;font-size:9px;color:var(--txt-faint);line-height:1.5}
+  .rkrow i{width:7px;height:7px;flex:none;border-radius:50%;opacity:.35;transition:opacity .2s,box-shadow .2s}
+  .rkrow b{width:46px;flex:none;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .rkrow .rkch{width:32px;flex:none;font-family:var(--mono);color:var(--txt-faint)}
+  .rkrow .rki{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rkrow.on{border-color:var(--line)}
+  .rkrow.on i{opacity:1}
+  .rkrow.on b,.rkrow.on .rkch{color:var(--txt)}
   .monHead{display:flex;gap:14px;align-items:baseline;font-size:10px;letter-spacing:.14em;font-family:var(--mono)}
   .monHead #oChord{color:var(--acc)}
   .monHead .mflag{color:var(--txt-dim)}
@@ -285,6 +314,8 @@
     transition:opacity .5s}
   #useHint.gone{opacity:0}
   #widgetFocus{cursor:ns-resize;touch-action:none;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:var(--rs)}
+  /* the live source sits at the top of SOURCE INPUT — same column, both views */
+  #sidebar #widgetFocus{width:100%;height:auto;margin:0 0 8px;display:block}
 
   /* modals */
   #helpModal,#rigModal,#preModal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
@@ -306,6 +337,10 @@
   .prow .pstat{font-size:11px;color:var(--txt-dim);flex:1;line-height:1.45}
   .prow.bad .pstat{color:#f87171}
   .prow button,.prow select{padding:3px 9px;font-size:9.5px;flex:none}
+  /* the check reads in two tiers: what every show needs, then the hardware rig */
+  .psec{font-size:9px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase;font-weight:700;margin:14px 0 2px}
+  .psec:first-child{margin-top:4px}
+  .psec span{color:var(--txt-faint);font-weight:400;letter-spacing:.06em;text-transform:none}
   #btnPreStart{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:800}
   #btnPreStart:hover{background:var(--acc);border-color:var(--acc);color:#fff}
   #preScreenNote{font-size:10px;color:var(--txt-faint);border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
@@ -380,8 +415,7 @@
     .obar .otitle h2{font-size:12px;letter-spacing:.16em}
     .obar .otitle .tid{display:none}
     .oconsole{padding:8px 8px 10px;gap:10px}
-    .conBox:first-child .whint{display:none} /* coaching text yields the space to the monitor */
-    #widgetFocus{width:120px;height:80px}
+    #rackBox{width:100%}
     #midiMon{height:78px}
     .whint{font-size:9px}
     #useHint{top:10px;font-size:9px;padding:7px 12px;white-space:nowrap}
@@ -403,7 +437,6 @@
     .conBox{width:100%}
     .conBox.grow{flex:none}
     .oconsole .monHead{flex-wrap:wrap;row-gap:4px}
-    #widgetFocus{width:100%;max-width:340px;height:96px}
     #midiMon{width:100%;height:78px}
     .whint{max-width:none}
     #sidebar select{max-width:none}
@@ -475,8 +508,9 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
 
 <!-- ================= PERFORMANCE QUEUE ================= -->
 <div id="queuePop">
+  <button id="btnQueueX" class="icon" title="Close — or just click anywhere outside">✕</button>
   <h4>Performance queue</h4>
-  <p>Tick a scene on the wall to add it. This list <b>is</b> the set — membership and running order both. SHOWTIME walks it in this order, and the screen edges step through it.</p>
+  <p>Tick a scene on the wall to add it. This list <b>is</b> the set — membership, running order, and each scene's show settings: <b>MIN</b> is how many minutes it holds the stage before SHOWTIME auto-advances, <b>OUT</b> overrides the sound routing for that scene (SET = whatever the global OUT toggle says). Everything here saves itself in this browser as you change it.</p>
   <ol id="queueList"></ol>
   <p id="queueEmpty">Nothing queued yet. With an empty queue the show falls back to playing the whole wall in library order — which is how you end up performing 43 scenes sorted by number.</p>
   <div class="row">
@@ -484,16 +518,15 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <button id="btnQueueCheck">SHOW CHECK</button>
     <button id="btnQueueLink">COPY LINK</button>
     <button id="btnQueueClear">CLEAR</button>
-    <button id="btnQueueClose">CLOSE</button>
   </div>
   <div id="setShelf">
     <h4>Shared sets</h4>
     <p>Committed in <b>setlists.json</b>, baked into the build — so these travel to the show laptop and onto playa. Your queue above is your own scratch pad until you publish it.</p>
     <div id="setList"></div>
     <div class="row">
-      <button id="btnSetPublish" title="Copy this queue as a setlists.json block — paste it in, or hand it to Claude">COPY FOR REPO</button>
+      <button id="btnSetPublish" title="Copy this queue — order, minutes and sound routing — as a setlists.json block; paste it in, or hand it to Claude">COPY FOR REPO</button>
     </div>
-    <p id="setHint">To publish: COPY FOR REPO → paste into <b>setlists.json</b> (or tell Claude in a session which set it is) → commit and push. Git is the memory; the diff is the history of what the show became.</p>
+    <p id="setHint">Your queue and its timing/sound settings persist in this browser on their own. To make them travel — to the repo, the other laptops, the show machine — COPY FOR REPO → paste into <b>setlists.json</b> (or tell Claude in a session which set it is) → commit and push. Git is the memory; the diff is the history of what the show became.</p>
   </div>
 </div>
 <main>
@@ -584,17 +617,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     </div>
   </div>
   <div id="sidebar">
+    <!-- the notes live where you act on them: the EXPERIENCE summary heads the
+         column; the input paradigm folds under SOURCE INPUT; the Ableton build
+         notes fold under MUSIC. One summary, then read up where you're working. -->
     <section class="sgroup" id="sceneNotes">
       <h5>This scene</h5>
-      <p class="snote" id="ipInt"></p>
-      <span class="stoggle" id="sNotesTog">full notes</span>
-      <div id="sNotes">
-        <h6>Field notes</h6>
-        <p class="snote" id="ipDesc"></p>
-        <h6>Sound — ableton build notes</h6>
-        <p class="snote" id="ipSound"></p>
-        <div class="chips" id="ipChips"></div>
-      </div>
+      <p class="snote" id="ipDesc"></p>
+      <span class="stoggle" id="sNotesTog">more</span>
+      <div class="chips" id="ipChips"></div>
     </section>
     <section class="sgroup">
       <h5>View</h5>
@@ -616,7 +646,13 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     </section>
     <section class="sgroup">
       <h5>Source input</h5>
-      <div class="srow"><button id="fMap" title="Bind your hardware controller — range-based learn">MAP CONTROLLER</button></div>
+      <canvas id="widgetFocus" width="280" height="150" title="The source, live — click or drag the beams to play"></canvas>
+      <div class="srow">
+        <button id="fGhosts" class="off" title="Ghost hands drift on this scene when nobody is playing — scenes still open still">GHOSTS</button>
+        <button id="fMap" title="Bind your hardware controller — range-based learn">MAP</button>
+      </div>
+      <span class="stoggle sntog" data-for="ipInt">▸ how it plays</span>
+      <p class="snote snfold" id="ipInt"></p>
       <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · reach outward = more · <b>R</b> reseeds the scene</p>
     </section>
     <section class="sgroup">
@@ -625,7 +661,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <div class="srow"><button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button></div>
       <div class="srow"><button id="fClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM (Live: port Sync on, EXT lit)">CLOCK OUT: ON</button></div>
       <div class="srow"><button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">MIDI RIG</button></div>
-      <p class="sinfo">roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · perc 10</p>
+      <span class="stoggle sntog" data-for="ipSound">▸ ableton build notes</span>
+      <p class="snote snfold" id="ipSound"></p>
+      <p class="sinfo">the rig rack below the stage shows role → channel → instrument, live</p>
+    </section>
+    <section class="sgroup" id="histGroup">
+      <h5>History</h5>
+      <p class="sinfo" id="histWho" style="margin:0 0 8px"></p>
+      <div id="histList"></div>
     </section>
   </div>
   <div class="ostage">
@@ -646,15 +689,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     </div>
   </div>
   <div class="oconsole">
-    <div class="conBox">
-      <h5 class="conTitle">Source · live</h5>
-      <canvas id="widgetFocus" width="280" height="150" title="Virtual theremin — click or drag the beams"></canvas>
-      <div class="whint">hands at the sphere = rest · <b>reach outward = more</b> · idle 6s → hands hold</div>
+    <div class="conBox" id="rackBox">
+      <div class="monHead"><h5 class="conTitle">The rig</h5><span class="mflag" id="oOutState"></span></div>
+      <div id="roleRack" title="Role → channel → what answers in Live (rig.json) — rows light while their lane plays. Click to remap."></div>
     </div>
     <div class="conBox grow">
-      <div class="monHead"><h5 class="conTitle">MIDI out</h5><span id="oChord">—</span><span class="mflag" id="oOutState"></span><span id="oRoles" title="lanes playing right now"></span></div>
-      <canvas id="midiMon" width="1240" height="104"></canvas>
-      <div class="whint">every role on its own channel (remap in MIDI RIG) · <b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy</div>
+      <div class="monHead"><h5 class="conTitle">MIDI out</h5><span id="oChord">—</span></div>
+      <canvas id="midiMon" width="1240" height="148"></canvas>
+      <div class="whint"><b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy (map to filter cutoff) · fill <b>rig.json</b> and the rack names your Live instruments</div>
     </div>
   </div>
 </div>
@@ -679,7 +721,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <h3>Hero assets</h3>
     <p>Akira Motorcycle by s.navajon (CC-BY) · palm trees via Sketchfab — thank you, artists.</p>
     <h3>For artists</h3>
-    <p>Each piece carries its interaction paradigm and Ableton sound-design notes at the top of the scene's left column — the same column that holds its controls. <b>R</b> reseeds a scene while it is open, <b>←/→</b> walk the wall, <b>P</b> toggles the projector frame. Steal any of these paradigms for your own source piece.</p>
+    <p>Each scene's notes live in its left column, next to what they describe: the experience summary up top, HOW IT PLAYS folded under SOURCE INPUT, the Ableton build notes folded under MUSIC, and its full version HISTORY at the bottom. <b>R</b> reseeds a scene while it is open, <b>←/→</b> walk the wall, <b>P</b> toggles the projector frame. Steal any of these paradigms for your own source piece.</p>
     <p style="margin-top:14px"><button id="btnHelpClose">CLOSE</button></p>
   </div>
 </div>
@@ -716,6 +758,12 @@ const SETLISTS = {
     "say which set it is), then commit and push. Order matters — it IS the",
     "running order.",
     "",
+    "A scenes[] entry is either a bare id (\"SRC-15\") or an object carrying that",
+    "scene's show settings: {\"id\":\"SRC-15\",\"min\":6,\"out\":\"midi\"}. `min` is",
+    "minutes on stage before SHOWTIME auto-advances (default 10); `out` pins the",
+    "sound routing while that scene is up (web | both | midi — omit to follow",
+    "the global OUT toggle). Bare ids leave a browser's local settings alone.",
+    "",
     "`default: true` marks the set a browser with no queue of its own loads.",
     "",
     "Every set in here should be one somebody actually built and stands behind.",
@@ -731,6 +779,51 @@ const SETLISTS = {
     }
   ]
 }
+;
+const RIGDOC = {
+  "_readme": [
+    "THE RIG — what is actually on the other end of each MIDI channel.",
+    "",
+    "The browser's contract is fixed: nine ROLES on nine channels, CC74 per",
+    "channel as that layer's energy, CC1/CC2 the raw hands, MIDI clock for",
+    "tempo. This file is the OTHER half of the contract: what instrument sits",
+    "on each channel in the Live set, how it sounds, and when a scene should",
+    "reach for it. It is design-time knowledge, not runtime — nothing in the",
+    "page reads it. It exists so a Claude session designing a scene's sound",
+    "can write for YOUR rack instead of an imaginary one, and so the three of",
+    "you agree on what channel 5 IS.",
+    "",
+    "Fill in `instrument` (device/preset name as it appears in Live),",
+    "`character` (how it actually sounds — dark/glassy/plucky/breathy...),",
+    "and `use` (when a scene should want it). Honest beats aspirational:",
+    "describe the patch you have, not the one you plan.",
+    "",
+    "Keep it current the cheap way: change the Live set → update this file in",
+    "the same breath, commit both. A Claude session can also scaffold this",
+    "file from the .als itself (it is gzipped XML — drop it in the repo and",
+    "ask), or eventually via an Ableton MCP link. Until then, hand-edited.",
+    "",
+    "Per-track convention that makes CC74 work everywhere: each track is an",
+    "Instrument Rack whose MACRO 1 is mapped to the patch's brightness/cutoff,",
+    "and CC74 on that channel drives Macro 1. Swap the instrument inside the",
+    "rack freely — the mapping survives."
+  ],
+  "port": "IAC Driver Bus 1",
+  "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
+  "roles": {
+    "lead":    { "ch": 1,  "instrument": "", "character": "", "use": "melodic triggers — plucks, tones, answers" },
+    "pad":     { "ch": 2,  "instrument": "", "character": "", "use": "sustained voice-led chords; glides on chord changes. Event Horizon (SRC-13) streams its rhythmic GATE DEPTH here as CC74 — map it to the string rack's gate/filter amount and the plugin throbs with the picture" },
+    "bass":    { "ch": 3,  "instrument": "", "character": "", "use": "root movement; keep the sub for the wall" },
+    "arp":     { "ch": 4,  "instrument": "", "character": "", "use": "sequenced 16th patterns (Night Circuit etc.)" },
+    "bells":   { "ch": 5,  "instrument": "", "character": "", "use": "chimes, sparkles, rain-on-gong one-shots" },
+    "texture": { "ch": 6,  "instrument": "", "character": "", "use": "the continuous-voice mirror: every scene's drones and films land here as held notes, CC74 = pooled voice energy" },
+    "perc":    { "ch": 10, "instrument": "", "character": "", "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness" },
+    "sfx":     { "ch": 11, "instrument": "", "character": "", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Event Horizon (SRC-13) streams its swallow charge/rise as CC74 here — map to a riser/impact send if the rack has one" },
+    "bed":     { "ch": 12, "instrument": "", "character": "", "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades" }
+  }
+}
+;
+const SCENELOG = {"owners":{"SRC-15":"Kasia","SRC-10":"Kasia","SRC-01":"Kasia","SRC-34":"Nima","SRC-32":"Nima","SRC-09":"Nima","SRC-36":"Nima","SRC-37":"Nima","SRC-38":"Nima","SRC-39":"Nima","SRC-40":"Nima","SRC-41":"Nima","SRC-42":"Nima","SRC-18":"Lance","SRC-30":"Lance","SRC-04":"Lance"},"log":{"SRC-28.3":{"d":"Aug 17 2026","m":"mirrored triptych, bigger persistent grains"},"SRC-42.4":{"d":"Aug 17 2026","m":"elevation is the colour, one line weight"},"SRC-28.4":{"d":"Aug 17 2026","m":"remove driver circles, tame on-lock grain swell"},"SRC-42.5":{"d":"Aug 17 2026","m":"V4's heat ramp with V3's proximity fade restored"},"SRC-42.6":{"d":"Aug 17 2026","m":"deeper proximity fade, and an empty frame is a dark frame"},"SRC-28.5":{"d":"Aug 20 2026","m":"fill the whole view (no letterbox)"},"SRC-42.7":{"d":"Aug 20 2026","m":"V6 with the stroke pulled 30% finer"},"SRC-28.6":{"d":"Aug 20 2026","m":"fill the 16:10 projector frame as a mirrored kaleidoscope"},"SRC-38.18":{"d":"Aug 20 2026","m":"Lumen Field \u2014 drop the two smallest stone sizes"},"SRC-42.8":{"d":"Aug 20 2026","m":"the palette breathes between two states"},"SRC-28.7":{"d":"Aug 20 2026","m":"keep the field full over time, slightly bigger grains"},"SRC-42.9":{"d":"Aug 20 2026","m":"the breath stays on the three chosen colours"},"SRC-28.8":{"d":"Aug 20 2026","m":"two-square variant"},"SRC-42.10":{"d":"Aug 20 2026","m":"V8's palette chosen over V9's, kept as current"},"SRC-28.9":{"d":"Aug 20 2026","m":"two-square layout with sharp, grainy particles"},"SRC-28.10":{"d":"Aug 20 2026","m":"smaller grains, looser spaced lines"},"SRC-13.2":{"d":"Aug 21 2026","m":"bead rake, string-section swell, one-fill wash"},"SRC-34.3":{"d":"Aug 21 2026","m":"the metronome learns harmony; the pink flood becomes a window"},"SRC-30":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-13.3":{"d":"Aug 21 2026","m":"the conductor, dark \u2014 gated section, one-flick runs"},"SRC-34.4":{"d":"Aug 21 2026","m":"gate the grid, arm the hands, kill the riser"},"SRC-13.4":{"d":"Aug 21 2026","m":"audible crescendo, no beads, the swallow"},"SRC-34.5":{"d":"Aug 21 2026","m":"color means a human, a bed with tooth, a left hand that reads"},"SRC-09.3":{"d":"Aug 21 2026","m":"scene-craft: law 7 \u2014 integration must be visible, no dead positions"},"SRC-13.5":{"d":"Aug 21 2026","m":"the wall wins, the sky holds its light"},"SRC-16.2":{"d":"Aug 21 2026","m":"ripples 25% smaller, more rings per drop"},"SRC-16.4":{"d":"Aug 21 2026","m":"Rain Atrium V2: sunset storm, felt piano rain, earned thunder"},"SRC-34.6":{"d":"Aug 21 2026","m":"the drop; six-chord motion; the field-edge principle"},"SRC-09.4":{"d":"Aug 21 2026","m":"the hum is the instrument"},"SRC-13.6":{"d":"Aug 21 2026","m":"the rim below the line runs deep"},"SRC-16.3":{"d":"Aug 21 2026","m":"bird's-eye pool, L=rippling R=rain"},"SRC-16.5":{"d":"Aug 21 2026","m":"Rain Atrium V3: nature keeps time, the grid moves underneath"},"SRC-13.7":{"d":"Aug 21 2026","m":"smooth void gradient, continuous horizon, dark sky"},"SRC-16.6":{"d":"Aug 21 2026","m":"note economy, real lulls, flick-placed drops"},"SRC-34.7":{"d":"Aug 21 2026","m":"pink is yours; the drop learns manners; verbs that survive hardware"},"SRC-09.5":{"d":"Aug 21 2026","m":"the light is the sound"},"SRC-13.8":{"d":"Aug 21 2026","m":"scrim pass + the flick obeys the throw"},"SRC-13.9":{"d":"Aug 21 2026","m":"the swallow's manners"},"SRC-09.6":{"d":"Aug 21 2026","m":"the organism palette"},"SRC-31":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-32":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-33":{"d":"Aug 14 2026"},"SRC-34":{"d":"Aug 14 2026"},"SRC-35":{"d":"Aug 14 2026"},"SRC-04.2":{"d":"Aug 14 2026"},"SRC-10.2":{"d":"Aug 14 2026"},"SRC-30.2":{"d":"Aug 14 2026"},"SRC-15.2":{"d":"Aug 14 2026"},"SRC-18.2":{"d":"Aug 14 2026"},"SRC-18.3":{"d":"Aug 14 2026"},"SRC-18.4":{"d":"Aug 14 2026"},"SRC-18.5":{"d":"Aug 14 2026"},"SRC-18.6":{"d":"Aug 14 2026"},"SRC-01.1h":{"d":"Aug 14 2026"},"SRC-01.2h":{"d":"Aug 14 2026"},"SRC-02.1h":{"d":"Aug 14 2026"},"SRC-04.1h":{"d":"Aug 14 2026"},"SRC-05.1h":{"d":"Aug 14 2026"},"SRC-07.1h":{"d":"Aug 14 2026"},"SRC-08.1h":{"d":"Aug 14 2026"},"SRC-10.1h":{"d":"Aug 14 2026"},"SRC-28.1h":{"d":"Aug 14 2026"},"SRC-30.1h":{"d":"Aug 14 2026"},"SRC-32.1h":{"d":"Aug 14 2026"},"SRC-18.7":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.8":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.9":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.10":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.11":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.12":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.13":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.14":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.15":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.3":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.4":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.5":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.6":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.7":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.8":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.9":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.10":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.11":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.12":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-15.13":{"d":"Aug 16 2026","m":"right hand grows the garden, left hand drives the flow"},"SRC-30.3":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-30.4":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-30.5":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-30.6":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-10.3":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-01":{"d":"Aug 14 2026"},"SRC-02":{"d":"Aug 14 2026"},"SRC-03":{"d":"Aug 14 2026"},"SRC-04":{"d":"Aug 14 2026"},"SRC-05":{"d":"Aug 14 2026"},"SRC-06":{"d":"Aug 14 2026"},"SRC-07":{"d":"Aug 14 2026"},"SRC-08":{"d":"Aug 14 2026"},"SRC-18.16":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-10.4":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-18.17":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-10.12":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-09":{"d":"Aug 14 2026"},"SRC-10":{"d":"Aug 14 2026"},"SRC-11":{"d":"Aug 14 2026"},"SRC-12":{"d":"Aug 14 2026"},"SRC-13":{"d":"Aug 14 2026"},"SRC-14":{"d":"Aug 14 2026"},"SRC-15":{"d":"Aug 14 2026"},"SRC-16":{"d":"Aug 14 2026"},"SRC-30.7":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-10.13":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-10.14":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-09.2":{"d":"Aug 14 2026","m":"the ooze, the fig tunnel, six focal points"},"SRC-32.3":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-32.4":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-36":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-37":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-38":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-39":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-40":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-41":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-42":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-36.2":{"d":"Aug 14 2026","m":"the ooze, the fig tunnel, six focal points"},"SRC-37.2":{"d":"Aug 14 2026","m":"the ooze, the fig tunnel, six focal points"},"SRC-42.2":{"d":"Aug 14 2026","m":"the ooze, the fig tunnel, six focal points"},"SRC-36.3":{"d":"Aug 14 2026","m":"Foam Bloom V3, Pour Cells V2, Iris Engine V5"},"SRC-37.3":{"d":"Aug 14 2026","m":"Iris Engine V3 and Ridge Loom V3"},"SRC-42.3":{"d":"Aug 14 2026","m":"Iris Engine V3 and Ridge Loom V3"},"SRC-37.4":{"d":"Aug 14 2026","m":"Iris Engine V4 \u2014 one gradient per chord, in G lydian"},"SRC-17":{"d":"Aug 14 2026"},"SRC-18":{"d":"Aug 14 2026"},"SRC-19":{"d":"Aug 14 2026"},"SRC-20":{"d":"Aug 14 2026"},"SRC-21":{"d":"Aug 14 2026"},"SRC-22":{"d":"Aug 14 2026"},"SRC-41.2":{"d":"Aug 14 2026","m":"Foam Bloom V3, Pour Cells V2, Iris Engine V5"},"SRC-37.5":{"d":"Aug 14 2026","m":"Foam Bloom V3, Pour Cells V2, Iris Engine V5"},"SRC-41.3":{"d":"Aug 14 2026","m":"Pour Cells V3 \u2014 the right hand is the harmony, every cell carries a note"},"SRC-41.4":{"d":"Aug 14 2026","m":"Pour Cells V4 \u2014 D phrygian, a tuned room, and one burst = one sound"},"SRC-41.5":{"d":"Aug 14 2026","m":"Pour Cells V5 \u2014 the bursts are notes, and the queue plays in order"},"SRC-41.6":{"d":"Aug 14 2026","m":"Pour Cells V6 \u2014 the note now beats its own attack"},"SRC-41.7":{"d":"Aug 14 2026","m":"Pour Cells V7 \u2014 soft lit domes in the poured palette"},"SRC-43":{"d":"Aug 14 2026","m":"Pour Cells V7 \u2014 soft lit domes in the poured palette"},"SRC-41.8":{"d":"Aug 14 2026","m":"Cell Front (SRC-43) \u2014 a pour where the colour mixes at cell resolution"},"SRC-43.2":{"d":"Aug 14 2026","m":"Cell Front V2 (SRC-43.2) \u2014 the material rebuilt as islands in a ground"},"SRC-43.3":{"d":"Aug 14 2026","m":"Cell Front V3 (SRC-43.3) \u2014 the film moves"},"SRC-34.2":{"d":"Aug 15 2026","m":"etched-plate photo fill + full-range R remap"},"SRC-23":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-10.15":{"d":"Aug 15 2026","m":"Weather Station: bring V15 to the live app"},"SRC-38.2":{"d":"Aug 15 2026","m":"Lumen Film \u2014 diamonds instead of bubbles"},"SRC-38.3":{"d":"Aug 15 2026","m":"Lumen Field \u2014 corner-aligned rays, dispersion palette, absolute rotation"},"SRC-38.4":{"d":"Aug 15 2026","m":"Lumen Field \u2014 six-facet spectrum stones, corner-pinned sparks, RGB halo"},"SRC-38.5":{"d":"Aug 15 2026","m":"Lumen Field \u2014 locked to reference SVG palette, narrow RGB-fringed beams"},"SRC-38.6":{"d":"Aug 15 2026","m":"Lumen Field \u2014 exact reference cut, per-stone variation, grain shader"},"SRC-38.7":{"d":"Aug 15 2026","m":"Lumen Field \u2014 drop the shader, pin light to a fixed corner"},"SRC-38.8":{"d":"Aug 15 2026","m":"Lumen Field \u2014 performance pass + restrained gradients + scattered sparks"},"SRC-38.9":{"d":"Aug 15 2026","m":"Lumen Field \u2014 exact SVG gradients via affine mapping"},"SRC-38.10":{"d":"Aug 15 2026","m":"Lumen Field \u2014 V5 diamonds and beams on V9 motion"},"SRC-24":{"d":"Aug 14 2026"},"SRC-25":{"d":"Aug 14 2026"},"SRC-26":{"d":"Aug 14 2026"},"SRC-27":{"d":"Aug 14 2026"},"SRC-38.11":{"d":"Aug 15 2026","m":"Lumen Field \u2014 no outline, light bound to a real edge, exact SVG facets"},"SRC-38.12":{"d":"Aug 16 2026","m":"Lumen Field \u2014 V10 cut, split-channel rays, overlay at crossings"},"SRC-38.13":{"d":"Aug 16 2026","m":"Lumen Field \u2014 one big beam per stone, no overlay, L bends the gradients"},"SRC-38.14":{"d":"Aug 16 2026","m":"Lumen Field \u2014 rays back 50%, cross rays refract and fade out"},"SRC-38.15":{"d":"Aug 16 2026","m":"Lumen Field \u2014 rays given weight, same size"},"SRC-15.14":{"d":"Aug 16 2026","m":"keep randomized clusters, free the gradient from the hands"},"SRC-38.16":{"d":"Aug 20 2026","m":"Lumen Field \u2014 stones 40% smaller"},"SRC-15.15":{"d":"Aug 16 2026","m":"accent blooms break the mood window"},"SRC-38.17":{"d":"Aug 20 2026","m":"Lumen Field \u2014 proportions made shape-independent"},"SRC-15.16":{"d":"Aug 16 2026","m":"three color scenes \u2014 warm, green, blue"},"SRC-15.17":{"d":"Aug 16 2026","m":"restore V9's ring-stepped color inside the three scenes"},"SRC-15.18":{"d":"Aug 17 2026","m":"V14 with a hand that settles when held"},"SRC-28":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"},"SRC-29":{"d":"Aug 14 2026","m":"V2 round on three scenes: the ooze, the fig tunnel, six focal points"}}}
 ;
 'use strict';
 /* ============================================================
@@ -937,10 +1030,11 @@ function handPresent(side) {
   }
   return (hi - lo) > CAL.MOVE_EPS;
 }
-let ghostsOn = true; // the library wall breathes by default — a focused scene starts still
+let ghostsOn = true;      // the library wall breathes by default
+let sceneGhosts = false;  // a focused scene STARTS still — GHOSTS in its sidebar opts in
 function updateChannels(t, dt) {
   nowT = t;
-  const ambient = ghostsOn && focus.idx < 0; // ghosts only roam the wall, never a focused scene
+  const ambient = focus.idx < 0 ? ghostsOn : sceneGhosts;
   for (const side of ['L', 'R']) {
     const c = chan[side];
     if (c.mode === 'live') {
@@ -1245,9 +1339,10 @@ function drawWidget(cv, t) {
   g.beginPath(); g.arc(cx, sy, r, 0, TAU); g.fill();
   if (LT) { g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, sy, r, 0, TAU); g.stroke(); }
 }
-// the focus widget IS the virtual theremin — drag a hand toward the sphere
-(function () {
-  const wf = document.getElementById('widgetFocus');
+// the source widget IS the virtual theremin — drag a hand toward the sphere.
+// Wired on BOTH views: the scene sidebar's live source AND the library rail's,
+// so the wall itself can be played without opening a scene.
+function wireSourceWidget(wf) {
   if (!wf) return;
   let drag = false;
   const drive = e => {
@@ -1257,11 +1352,14 @@ function drawWidget(cv, t) {
     if (x < 0.5) setChan('L', 1 - clamp((x - 0.05) / (0.44 - 0.05)));
     else setChan('R', 1 - clamp(((1 - x) - 0.05) / (0.44 - 0.05)));
   };
+  wf.style.touchAction = 'none'; wf.style.cursor = 'ew-resize';
   wf.addEventListener('pointerdown', e => { drag = true; wf.setPointerCapture(e.pointerId); drive(e); e.preventDefault(); });
   wf.addEventListener('pointermove', e => { if (drag) drive(e); });
   wf.addEventListener('pointerup', () => drag = false);
   wf.addEventListener('pointercancel', () => drag = false);
-})();
+}
+wireSourceWidget(document.getElementById('widgetFocus'));
+wireSourceWidget(document.getElementById('widgetTop'));
 
 /* ============================================================
    PIECE REGISTRY + INSTANCES
@@ -1351,26 +1449,32 @@ function setView(mode) {
   if (sel && sel.value !== mode) sel.value = mode;
   const ov = document.getElementById('overlay');
   if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
+  // the scrim view is full bleed, the frame views are letterboxed — refit
+  if (typeof focus !== 'undefined' && focus.P) syncStage();
 }
+// the scrim view is the ROOM, not the frame: it always fills the stage full
+// bleed (aspect belongs to the 3D camera there), while the SCENE keeps
+// rendering offscreen in the pinned show frame that feeds the virtual throw
+function scrimBleed() { return typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' && typeof THREE !== 'undefined'; }
 function stageMetrics() {
   const stage = focusCanvas.parentElement;
   const cw = stage.clientWidth, ch = stage.clientHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  const dw = Math.floor(cw * dpr) || 1280, dh = Math.floor(ch * dpr) || 720;
   if (PROJ.on) {
     let bw = cw, bh = Math.round(cw * PROJ.h / PROJ.w);
     if (bh > ch) { bh = ch; bw = Math.round(ch * PROJ.w / PROJ.h); }
     return { cssW: bw, cssH: bh, left: Math.round((cw - bw) / 2), top: Math.round((ch - bh) / 2),
-             pw: PROJ.w, ph: PROJ.h };
+             pw: PROJ.w, ph: PROJ.h, dw, dh };
   }
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  return { cssW: cw, cssH: ch, left: 0, top: 0,
-           pw: Math.floor(cw * dpr) || 1280, ph: Math.floor(ch * dpr) || 720 };
+  return { cssW: cw, cssH: ch, left: 0, top: 0, pw: dw, ph: dh, dw, dh };
 }
 function applyStageBox(m) {
   // letterbox color comes from CSS: --letterbox (white in the light theme so
   // the frame boundary is visible; black in dark). Fullscreen forces black —
   // on the projector the bars must be invisible.
   const s = focusCanvas.style;
-  if (PROJ.on) {
+  if (PROJ.on && !scrimBleed()) {
     s.inset = 'auto'; s.left = m.left + 'px'; s.top = m.top + 'px';
     s.width = m.cssW + 'px'; s.height = m.cssH + 'px';
   } else {
@@ -1382,6 +1486,11 @@ function applyStageBox(m) {
 function syncStage(force) {
   const m = stageMetrics();
   applyStageBox(m);
+  // the DISPLAY canvas: full-bleed in the scrim view, the scene frame otherwise
+  const dw = scrimBleed() ? m.dw : m.pw, dh = scrimBleed() ? m.dh : m.ph;
+  if (focusCanvas.width !== dw || focusCanvas.height !== dh) {
+    focusCanvas.width = dw; focusCanvas.height = dh;
+  }
   if (!focus.P || m.pw <= 0 || m.ph <= 0) return;
   if (m.pw === focus.P.w && m.ph === focus.P.h) return;
   if (!force) {
@@ -1396,7 +1505,6 @@ function syncStage(force) {
     // the aspect ~3-4x and still lands outside this window
     if (ar > 0.68 && ar < 1.47 && area > 0.45 && area < 2.2) return;
   }
-  focusCanvas.width = m.pw; focusCanvas.height = m.ph;
   focus.P.w = focus.P.canvas.width = m.pw;
   focus.P.h = focus.P.canvas.height = m.ph;
   focus.P.reinit(focus.P.seed); // scenes cache geometry in init()
@@ -1435,6 +1543,7 @@ function openFocus(i) {
   chipbox.innerHTML = def.tags.map(x => `<span class="chip">${x}</span>`).join('');
   if (typeof FAV !== 'undefined') FAV.refresh();
   if (typeof renderFocusVersions === 'function') renderFocusVersions(i);
+  if (typeof renderFocusHistory === 'function') renderFocusHistory(i);
   if (typeof renderFocusActs === 'function') renderFocusActs(i);
   // scene atmosphere: hold this scene's bed note while it is open
   if (typeof MOut !== 'undefined') {
@@ -1531,11 +1640,18 @@ function applyKeys(dt) {
 // late-bound: part5_tail wraps closeFocus for deep-link cleanup — a direct
 // reference here would skip the wrapper and leave #scene= stuck in the URL
 document.getElementById('btnClose').addEventListener('click', () => closeFocus());
-// the scene's notes open in place, at the top of the sidebar
+// the experience summary un-clamps in place at the top of the sidebar
 document.getElementById('sNotesTog').addEventListener('click', e => {
   const on = document.getElementById('sceneNotes').classList.toggle('open');
-  e.target.textContent = on ? 'less' : 'full notes';
+  e.target.textContent = on ? 'less' : 'more';
 });
+// the section notes fold under the group they describe (input / music)
+document.querySelectorAll('.sntog').forEach(tog => tog.addEventListener('click', () => {
+  const body = document.getElementById(tog.dataset.for);
+  if (!body) return;
+  const on = body.classList.toggle('open');
+  tog.textContent = (on ? '▾' : '▸') + tog.textContent.slice(1);
+}));
 // R reseeds the open scene — the only part of REGEN worth a control
 window.addEventListener('keydown', e => {
   if (e.key !== 'r' && e.key !== 'R') return;
@@ -2189,9 +2305,21 @@ const MOut = {
       try { for (let ch = 0; ch < 16; ch++) this.port.send([0xB0 | ch, 123, 0]); } catch (e) {}
     }
   },
+  // the operator's persistent choice — per-scene queue overrides applyMode()
+  // around it and fall back to it, so a show never strands the global toggle
+  baseMode: 'web',
   setMode(m) {
-    this.mode = m;
+    this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
+    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (m !== 'web' && !midi.access) connectMidi();
+    this.refreshUI();
+  },
+  // transient routing (a queued scene's OUT override) — same plumbing, no save
+  applyMode(m) {
+    if (!m) m = this.baseMode;
+    if (m === this.mode) return;
+    this.mode = m;
     if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
     if (m !== 'web' && !midi.access) connectMidi();
     this.refreshUI();
@@ -2819,8 +2947,11 @@ window.SCRIMVIEW = {
   render(fg, P, t) {
     if (!this.renderer) { try { this._init(P); } catch (e) { console.error('scrimview', e); if (typeof setView === 'function') setView('flat'); return; } this._camSync(this.preset); }
     this._bindTex(P);
-    if (this.renderer.domElement.width !== P.w || this.renderer.domElement.height !== P.h) {
-      this.renderer.setSize(P.w, P.h, false);
+    // the 3D room fills the DISPLAY canvas full bleed — its aspect is the
+    // window's, not the projector frame's (the frame lives on in the throw)
+    const dw = fg.canvas.width, dh = fg.canvas.height;
+    if (this.renderer.domElement.width !== dw || this.renderer.domElement.height !== dh) {
+      this.renderer.setSize(dw, dh, false);
     }
     const R = SCRIMRIG;
     // rebuild the two throw matrices (registered on the main-wall row)
@@ -2838,7 +2969,7 @@ window.SCRIMVIEW = {
     // camera from the orbit state — the user's hands are on this
     const o = this.orb;
     this.camera.fov = 50;
-    this.camera.aspect = P.w / P.h; this.camera.updateProjectionMatrix();
+    this.camera.aspect = dw / dh; this.camera.updateProjectionMatrix();
     this.camera.position.set(
       o.tx + o.r * Math.sin(o.ph) * Math.sin(o.th),
       o.ty + o.r * Math.cos(o.ph),
@@ -2847,12 +2978,12 @@ window.SCRIMVIEW = {
     this.tex.needsUpdate = true;
     this.strips.forEach(s => { s.material.uniforms.uTime.value = t; });
     this.renderer.render(this.scene, this.camera);
-    fg.fillStyle = '#000'; fg.fillRect(0, 0, P.w, P.h);
+    fg.fillStyle = '#000'; fg.fillRect(0, 0, dw, dh);
     fg.drawImage(this.renderer.domElement, 0, 0);
     fg.fillStyle = 'rgba(200,210,225,0.55)';
     fg.font = '12px monospace'; fg.textAlign = 'left';
     fg.fillText('SCRIM · Cave Layout 2026 (planner export) · 24×32 ft · 12 panels · ' +
-      'drag ORBIT · wheel/pinch ZOOM · CAM in the sidebar (C cycles) · keys W/S ↑/↓ play the hands', 14, P.h - 14);
+      'drag ORBIT · wheel/pinch ZOOM · CAM in the sidebar (C cycles) · keys W/S ↑/↓ play the hands', 14, dh - 14);
   },
 };
 
@@ -69895,7 +70026,15 @@ const famOf = def => def.family || def.id;
 
 const QUEUE = {
   list: [], shared: null,
+  /* Per-scene SHOW SETTINGS, keyed by family id:
+       min — minutes on stage before SHOWTIME auto-advances (default DWELL_MIN)
+       out — sound routing override for that scene ('web'|'both'|'midi');
+             absent = follow the global OUT toggle.
+     They live beside the list (srcQueueCfg), persist on every change, travel
+     inside COPY FOR REPO, and load back in from setlists.json entries. */
+  cfg: {}, DWELL_MIN: 10,
   load() {
+    try { this.cfg = JSON.parse(localStorage.getItem('srcQueueCfg') || '{}') || {}; } catch (e) { this.cfg = {}; }
     try {
       const s = window.localStorage && localStorage.getItem('srcQueue');
       if (s) { this.list = JSON.parse(s).filter(Boolean); return; }
@@ -69907,9 +70046,26 @@ const QUEUE = {
     // from nothing. This is what stops a fresh show laptop performing all 43
     // scenes in SRC order because nobody remembered to build a queue on it.
     const def = this.sets().find(s2 => s2.default);
-    if (def) this.list = def.scenes.slice();
+    if (def) this.adoptSet(def);
   },
-  save() { try { window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list)); } catch (e) {} },
+  save() {
+    try {
+      window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list));
+      window.localStorage && localStorage.setItem('srcQueueCfg', JSON.stringify(this.cfg));
+    } catch (e) {}
+  },
+  cfgFor(id) { return this.cfg[id] || {}; },
+  setCfg(id, patch) {
+    const c = { ...this.cfgFor(id), ...patch };
+    for (const k in c) if (c[k] === undefined || c[k] === '' || c[k] === null) delete c[k];
+    if (Object.keys(c).length) this.cfg[id] = c; else delete this.cfg[id];
+    this.save();
+  },
+  dwellMs(id) {
+    const m = +this.cfgFor(id).min;
+    return (m > 0 ? Math.min(m, 120) : this.DWELL_MIN) * 60 * 1000;
+  },
+  outFor(id) { return this.cfgFor(id).out || null; },
   has(id) { return this.list.indexOf(id) >= 0; },
   pos(id) { return this.list.indexOf(id) + 1; },   // 1-based, 0 = not queued
   toggle(id) {
@@ -69980,20 +70136,45 @@ const QUEUE = {
     const ol = document.getElementById('queueList');
     if (!ol) return;
     document.getElementById('queuePop').classList.toggle('empty', !this.list.length);
-    ol.innerHTML = this.list.map((id, i) => `<li data-qid="${id}">
+    ol.innerHTML = this.list.map((id, i) => {
+      const c = this.cfgFor(id);
+      return `<li data-qid="${id}">
       <span class="qn">${i + 1}</span>
       <canvas class="qthumb" width="56" height="35"></canvas>
       <span class="qid">${id}</span>
       <span class="qt">${this.titleOf(id)}</span>
+      <input class="qmin" type="number" min="1" max="120" step="1" value="${c.min || this.DWELL_MIN}"
+        title="Minutes on stage before SHOWTIME auto-advances (any manual step resets the clock)">
+      <span class="qunit">min</span>
+      <select class="qout${c.out ? ' ovr' : ''}" title="Sound routing while this scene is up — SET follows the global OUT toggle">
+        <option value=""${!c.out ? ' selected' : ''}>SET</option>
+        <option value="web"${c.out === 'web' ? ' selected' : ''}>WEB</option>
+        <option value="both"${c.out === 'both' ? ' selected' : ''}>W+M</option>
+        <option value="midi"${c.out === 'midi' ? ' selected' : ''}>MIDI</option>
+      </select>
       <button data-q="up" title="earlier in the set"${i === 0 ? ' disabled' : ''}>↑</button>
       <button data-q="dn" title="later in the set"${i === this.list.length - 1 ? ' disabled' : ''}>↓</button>
       <button data-q="rm" title="drop from the set">✕</button>
-    </li>`).join('');
+    </li>`; }).join('');
     ol.querySelectorAll('button').forEach(b => b.addEventListener('click', e => {
       const id = e.target.closest('li').dataset.qid, act = e.target.dataset.q;
       if (act === 'up') this.move(id, -1);
       else if (act === 'dn') this.move(id, 1);
       else this.toggle(id);
+    }));
+    ol.querySelectorAll('.qmin').forEach(inp => inp.addEventListener('change', e => {
+      const id = e.target.closest('li').dataset.qid;
+      const v = Math.max(1, Math.min(120, Math.round(+e.target.value || 0)));
+      e.target.value = v;
+      this.setCfg(id, { min: v === this.DWELL_MIN ? undefined : v });
+    }));
+    ol.querySelectorAll('.qout').forEach(sel => sel.addEventListener('change', e => {
+      const id = e.target.closest('li').dataset.qid;
+      this.setCfg(id, { out: e.target.value || undefined });
+      e.target.classList.toggle('ovr', !!e.target.value);
+      // a routing change on the OPEN scene should be audible right now
+      if (focus.idx >= 0 && famOf(PIECES[focus.idx]) === id && typeof MOut !== 'undefined')
+        MOut.applyMode(this.outFor(id));
     }));
     this.renderSets();
     this.paintThumbs();
@@ -70036,20 +70217,38 @@ const QUEUE = {
   },
 
   /* SHARED SETS — setlists.json, committed and baked into the build. The queue
-     above is personal scratch; these are what the camp agreed on. */
+     above is personal scratch; these are what the camp agreed on.
+     A scenes[] entry is either a plain id ("SRC-15") or an object carrying
+     that scene's show settings ({"id":"SRC-15","min":6,"out":"midi"}). */
   sets() { return (typeof SETLISTS !== 'undefined' && SETLISTS.sets) ? SETLISTS.sets : []; },
+  setIds(set) { return set.scenes.map(e => (typeof e === 'string' ? e : e && e.id)).filter(Boolean); },
+  adoptSet(set) {
+    this.list = this.setIds(set);
+    set.scenes.forEach(e => {
+      if (typeof e !== 'object' || !e || !e.id) return;  // a bare id keeps your local settings
+      this.setCfg(e.id, {
+        min: +e.min > 0 ? +e.min : undefined,
+        out: ['web', 'both', 'midi'].includes(e.out) ? e.out : undefined
+      });
+    });
+  },
   sameAs(set) {
-    return set.scenes.length === this.list.length && set.scenes.every((id, i) => this.list[i] === id);
+    const ids = this.setIds(set);
+    return ids.length === this.list.length && ids.every((id, i) => this.list[i] === id);
   },
   loadSet(name) {
     const set = this.sets().find(s2 => s2.name === name);
     if (!set) return;
-    this.list = set.scenes.slice();
+    this.adoptSet(set);
     this.save(); this.refresh();
   },
   publish() {
     const block = JSON.stringify({
-      name: 'MY SET', note: 'what this set is for', scenes: this.list
+      name: 'MY SET', note: 'what this set is for',
+      scenes: this.list.map(id => {
+        const c = this.cfgFor(id);
+        return (c.min || c.out) ? { id, ...(c.min ? { min: c.min } : {}), ...(c.out ? { out: c.out } : {}) } : id;
+      })
     }, null, 2);
     const done = () => {
       const b = document.getElementById('btnSetPublish');
@@ -70107,7 +70306,13 @@ const QUEUE = {
       this.wake(open);
       if (open) this.paintThumbs();
     });
-    document.getElementById('btnQueueClose').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); });
+    document.getElementById('btnQueueX').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); });
+    // clicking anywhere off the drawer closes it — like every other popover
+    document.addEventListener('pointerdown', e => {
+      if (!pop.classList.contains('open')) return;
+      if (pop.contains(e.target) || e.target.closest && e.target.closest('#btnQueue')) return;
+      pop.classList.remove('open'); this.wake(false);
+    });
     document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
@@ -70181,10 +70386,14 @@ SCREENS.load();
 /* Enter the show: picture only, on the chosen display.
    PLAY forces performance mode — the PANELS preference persists between
    sessions, and starting a show with the MIDI console sitting over the
-   picture is never what "play" meant. H (or the PANELS pill) brings it back. */
+   picture is never what "play" meant. H (or the PANELS pill) brings it back.
+   It also forces the FLAT projector view: the scrim 3D room and the ghost
+   overlay are design tools, and whichever one you were rehearsing in must
+   never be what the projectors get. */
 function enterShow() {
   const ov = document.getElementById('overlay');
   if (typeof setPanels === 'function') setPanels(false);
+  if (typeof setView === 'function' && typeof VIEW !== 'undefined' && VIEW.mode !== 'flat') setView('flat');
   if (typeof PROJ !== 'undefined' && !PROJ.on && typeof setProj === 'function') setProj(true);
   if (document.fullscreenElement) return Promise.resolve(true);
   const scr = SCREENS.target();
@@ -70219,11 +70428,15 @@ const PRE = {
   },
   /* Severity is deliberate: BAD is "the show will not work", WARN is "this is
      probably not what you meant". Nobody rehearsing with a mouse should get a
-     wall of red for having no theremin plugged in. */
+     wall of red for having no theremin plugged in.
+     Two tiers: THE SHOW is what a newbie must get right on any laptop —
+     sound, a set list, the right display, hands. THE RIG only matters when
+     Ableton or hardware sensors are in the loop. (The frame row is gone:
+     PLAY pins the 1920×1200 show frame itself, so there is nothing to check.) */
   rows() {
     const r = [];
     const ctxOn = AE.ctx && AE.ctx.state === 'running';
-    r.push({ k: 'audio', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
+    r.push({ k: 'audio', sec: 'show', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
       txt: !AE.on ? 'muted — SOUND is OFF in the left rail'
         : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
         : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
@@ -70236,13 +70449,17 @@ const PRE = {
       }] });
 
     const nq = QUEUE.list.length;
-    r.push({ k: 'queue', label: 'Set list', lvl: nq ? 'ok' : 'warn',
+    r.push({ k: 'queue', sec: 'show', label: 'Set list', lvl: nq ? 'ok' : 'warn',
       txt: nq ? nq + (nq === 1 ? ' scene queued · ' : ' scenes queued · ') + 'opens with ' + QUEUE.titleOf(QUEUE.list[0])
         : 'empty — the show would fall back to all ' + FAMS.length + ' scenes in library order',
       fix: ['OPEN QUEUE', () => { this.close(); document.getElementById('queuePop').classList.add('open'); }] });
 
+    r.push({ k: 'screen', sec: 'show', label: 'Display',
+      lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
+      txt: this.screenText(), screenPicker: true });
+
     const bound = (midi.map.L ? 1 : 0) + (midi.map.R ? 1 : 0);
-    r.push({ k: 'hands', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
+    r.push({ k: 'hands', sec: 'show', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
       txt: !midi.access ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
         : bound === 2 ? 'L and R both bound (' + mapLabel(midi.map.L) + ' · ' + mapLabel(midi.map.R) + ')'
         : bound === 1 ? 'only ' + (midi.map.L ? 'L' : 'R') + ' is bound — the other hand is dead'
@@ -70252,35 +70469,25 @@ const PRE = {
 
     const cal = ['L', 'R'].map(sd => midi.cal[sd]);
     const rested = cal.filter(c => c && c.rest !== null && c.rest !== undefined).length;
-    r.push({ k: 'cal', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
+    r.push({ k: 'cal', sec: 'rig', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
       txt: !midi.access ? 'not needed without hardware'
         : rested === 2 ? 'both hands ranged and rested — idle detection is live'
         : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle',
       fix: midi.access ? ['SET REST', () => startRest()] : null });
 
     const out = MOut.mode !== 'web';
-    r.push({ k: 'out', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
+    r.push({ k: 'out', sec: 'rig', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
       txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
         : !MOut.port ? 'MIDI out on, but no port selected'
         : 'sending to ' + MOut.port.name,
       fix: out ? null : ['SEND MIDI', () => { AE.ensure(); MOut.setMode('both'); }] });
 
-    r.push({ k: 'clock', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
+    r.push({ k: 'clock', sec: 'rig', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
       txt: !out ? 'browser transport only' :
         !MOut.clock.on ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
         : MOut.clock.running ? 'driving Live at ' + T.bpm + ' BPM — this app is the tempo master'
         : 'clock out armed — drives Live from the moment a scene opens (Live: port Sync on, EXT lit)',
       fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
-
-    const projOn = typeof PROJ !== 'undefined' && PROJ.on;
-    r.push({ k: 'frame', label: 'Frame', lvl: projOn ? 'ok' : 'warn',
-      txt: projOn ? '1920×1200 · 1.60 — the frame the projectors get'
-        : 'window frame — scenes are composed in a shape the wall never plays',
-      fix: projOn ? null : ['USE SHOW FRAME', () => { if (typeof setProj === 'function') setProj(true); }] });
-
-    r.push({ k: 'screen', label: 'Display',
-      lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
-      txt: this.screenText(), screenPicker: true });
     return r;
   },
   screenText() {
@@ -70299,12 +70506,17 @@ const PRE = {
     const box = document.getElementById('preRows');
     if (!box) return;
     const rows = this.rows();
-    box.innerHTML = rows.map(row => `<div class="prow ${row.lvl}" data-k="${row.k}">
+    const rowHtml = row => `<div class="prow ${row.lvl}" data-k="${row.k}">
       <span class="dot"></span><span class="plabel">${row.label}</span>
       <span class="pstat">${row.txt}</span>
       ${row.screenPicker ? '<select id="preScreenSel"></select>' : ''}
       ${row.fix ? `<button data-fix="${row.k}">${row.fix[0]}</button>` : ''}
-    </div>`).join('');
+    </div>`;
+    box.innerHTML =
+      '<h3 class="psec">The show <span>— every laptop, every time</span></h3>' +
+      rows.filter(r => r.sec === 'show').map(rowHtml).join('') +
+      '<h3 class="psec">The rig <span>— only if Ableton / hardware sensors are in the loop</span></h3>' +
+      rows.filter(r => r.sec === 'rig').map(rowHtml).join('');
     box.querySelectorAll('button[data-fix]').forEach(b => b.addEventListener('click', () => {
       const row = rows.find(x => x.k === b.dataset.fix);
       if (row && row.fix) { row.fix[1](); this.render(); }
@@ -70461,6 +70673,39 @@ document.getElementById('oVers').addEventListener('change', e => {
   if (idx !== focus.idx) { closeFocus(); openFocus(idx); }
 });
 
+/* ============================================================
+   HISTORY — the scene's change log, in its sidebar.
+   Every version is a part file, and SCENELOG (baked at build
+   time by tools/scenelog.py) carries each file's birth commit:
+   date + the round's summary. Owners come from the CLAUDE.md
+   coordination list — git can't tell, every session commits as
+   Claude. Click a row to open that version on the stage.
+   ============================================================ */
+function renderFocusHistory(i) {
+  const box = document.getElementById('histList');
+  if (!box) return;
+  const F = FAMS.find(x => x.fam === famOf(PIECES[i]));
+  if (!F) { box.innerHTML = ''; return; }
+  const LOG = (typeof SCENELOG !== 'undefined') ? SCENELOG : { owners: {}, log: {} };
+  const who = document.getElementById('histWho');
+  if (who) {
+    const owner = LOG.owners && LOG.owners[F.fam];
+    who.textContent = F.entries.length + (F.entries.length === 1 ? ' version' : ' versions') +
+      (owner ? ' · kept by ' + owner : '');
+  }
+  box.innerHTML = F.entries.slice().reverse().map(en => {
+    const e = (LOG.log && LOG.log[en.def.id]) || {};
+    return `<div class="hrow${en.idx === i ? ' on' : ''}" data-idx="${en.idx}" title="open V${en.def.ver || 1} on the stage">
+      <span class="hv">V${en.def.ver || 1}</span><span class="hd">${e.d || ''}</span>
+      ${e.m ? `<span class="hm">${esc(e.m)}</span>` : ''}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.hrow').forEach(row => row.addEventListener('click', () => {
+    const idx = +row.dataset.idx;
+    if (idx !== focus.idx) { closeFocus(); openFocus(idx); }
+  }));
+}
+
 // MIDI OUT wiring
 document.getElementById('btnOut').addEventListener('click', () => {
   const next = { web: 'both', both: 'midi', midi: 'web' }[MOut.mode];
@@ -70487,7 +70732,7 @@ window.addEventListener('keydown', e => {
   let m = null, hasMap = false;
   try { m = localStorage.getItem('srcOutMode'); hasMap = !!localStorage.getItem('srcMidiMap'); } catch (e) {}
   if (m === 'both' || m === 'midi') {
-    MOut.mode = m; // set directly; setMode would re-save (harmless but redundant)
+    MOut.mode = MOut.baseMode = m; // set directly; setMode would re-save (harmless but redundant)
     MOut.refreshUI();
   }
   // reconnect MIDI IN too if the theremin was ever learned — bindings are already restored
@@ -70556,6 +70801,12 @@ document.getElementById('volSlider').addEventListener('input', e => {
   document.getElementById('btnGhosts').addEventListener('click', () => {
     ghostsOn = !ghostsOn;
     document.getElementById('btnGhosts').classList.toggle('off', !ghostsOn);
+  });
+  // ghost hands INSIDE a focused scene — off by default (a scene starts still),
+  // handy when you want the scene to demo itself while you work the rig
+  document.getElementById('fGhosts').addEventListener('click', () => {
+    sceneGhosts = !sceneGhosts;
+    document.getElementById('fGhosts').classList.toggle('off', !sceneGhosts);
   });
   document.getElementById('fVol').addEventListener('input', e => {
     const v = document.getElementById('volSlider');
@@ -70743,6 +70994,20 @@ document.getElementById('oActs').addEventListener('click', e => {
   // (no LINK button: the URL carries #scene= on its own, and the address bar
   // is where anyone copying a link already looks)
 })();
+/* Per-scene sound routing: a queued scene can pin OUT to WEB / WEB+MIDI /
+   MIDI ONLY for its stay on stage (set in the queue drawer). Scenes without
+   an override — and every scene on close — fall back to the global toggle. */
+(() => {
+  const _open = window.openFocus, _close = window.closeFocus;
+  window.openFocus = function (i) {
+    _open(i);
+    if (typeof MOut !== 'undefined' && PIECES[i]) MOut.applyMode(QUEUE.outFor(famOf(PIECES[i])));
+  };
+  window.closeFocus = function () {
+    _close();
+    if (typeof MOut !== 'undefined') MOut.applyMode(null); // back to the operator's choice
+  };
+})();
 /* ============================================================
    SHOWTIME — installation player mode.
    Hover the stage → ⛶ appears → true fullscreen. In fullscreen:
@@ -70787,14 +71052,15 @@ document.getElementById('oActs').addEventListener('click', e => {
   };
   document.getElementById('edgeL').addEventListener('click', () => step(-1));
   document.getElementById('edgeR').addEventListener('click', () => step(1));
-  // ten minutes per scene, reset by any manual navigation
-  const ROT_MS = 10 * 60 * 1000;
+  // each scene holds the stage for ITS OWN minutes (MIN in the queue drawer,
+  // default 10) — any manual navigation resets the clock
   let rotT = null, rotAt = 0;
   function resetRotation() {
     clearTimeout(rotT); rotT = null; rotAt = 0;
     if (document.fullscreenElement && focus.idx >= 0) {
-      rotAt = Date.now() + ROT_MS;
-      rotT = setTimeout(() => step(1), ROT_MS);
+      const ms = QUEUE.dwellMs(famOf(PIECES[focus.idx]));
+      rotAt = Date.now() + ms;
+      rotT = setTimeout(() => step(1), ms);
     }
   }
   window.SHOW = { next: () => step(1), prev: () => step(-1), resetRotation };
@@ -70854,21 +71120,47 @@ setInterval(() => {
     const a2 = focus.P.state.act || 0;
     [...el.children].forEach((b, bi) => b.classList.toggle('on', bi === a2));
   }
-  const rr = document.getElementById('oRoles');
-  if (rr && typeof MOut !== 'undefined') {
-    if (!rr.children.length) {
-      rr.innerHTML = Object.keys(MOut.roles).map(role =>
-        `<i data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}" title="${role}"></i>`).join('');
-    }
-    const now = performance.now();
-    [...rr.children].forEach(dot => {
-      const role = dot.dataset.role;
-      const on = MOut.lastByRole[role] && now - MOut.lastByRole[role] < 1200;
-      dot.classList.toggle('on', !!on);
-      dot.style.boxShadow = on ? `0 0 6px 1px ${MOut.ROLE_COLORS[role]}` : '';
-    });
-  }
 }, 300);
+
+/* ============================================================
+   THE RIG RACK — the music work surface under the stage.
+   One row per role: color · role · channel · what answers in the
+   Live set (rig.json, baked as RIGDOC — fill in `instrument` and
+   the rack names your actual patches). Rows light while their
+   lane is playing, so with a scene open you can SEE which
+   instruments it is using and on which channels. Click to remap.
+   ============================================================ */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+(function () {
+  const rack = document.getElementById('roleRack');
+  if (!rack || typeof MOut === 'undefined') return;
+  const DOCS = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) ? RIGDOC.roles : {};
+  const rows = {};
+  for (const role of Object.keys(MOut.roles)) {
+    const doc = DOCS[role] || {};
+    const div = document.createElement('div');
+    div.className = 'rkrow';
+    div.title = (doc.instrument ? doc.instrument + ' — ' : '') + (doc.use || '');
+    div.innerHTML = `<i style="background:${MOut.ROLE_COLORS[role]}"></i>
+      <b>${role}</b><span class="rkch">CH${MOut.roles[role]}</span>
+      <span class="rki">${esc(doc.instrument || doc.use || '')}</span>`;
+    rack.appendChild(div);
+    rows[role] = div;
+  }
+  rack.addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
+  setInterval(() => {
+    if (!overlay.classList.contains('open')) return;
+    const now = performance.now();
+    for (const role in rows) {
+      const on = MOut.lastByRole[role] && now - MOut.lastByRole[role] < 1200;
+      rows[role].classList.toggle('on', !!on);
+      rows[role].querySelector('i').style.boxShadow = on ? `0 0 6px 1px ${MOut.ROLE_COLORS[role]}` : '';
+      const ch = 'CH' + MOut.roles[role]; // live: the RIG modal can remap
+      const el = rows[role].querySelector('.rkch');
+      if (el.textContent !== ch) el.textContent = ch;
+    }
+  }, 300);
+})();
 
 QUEUE.boot();
 // VIEW dropdown — the discoverable face of the view modes (V still cycles)

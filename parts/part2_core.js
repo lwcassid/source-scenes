@@ -203,10 +203,11 @@ function handPresent(side) {
   }
   return (hi - lo) > CAL.MOVE_EPS;
 }
-let ghostsOn = true; // the library wall breathes by default — a focused scene starts still
+let ghostsOn = true;      // the library wall breathes by default
+let sceneGhosts = false;  // a focused scene STARTS still — GHOSTS in its sidebar opts in
 function updateChannels(t, dt) {
   nowT = t;
-  const ambient = ghostsOn && focus.idx < 0; // ghosts only roam the wall, never a focused scene
+  const ambient = focus.idx < 0 ? ghostsOn : sceneGhosts;
   for (const side of ['L', 'R']) {
     const c = chan[side];
     if (c.mode === 'live') {
@@ -511,9 +512,10 @@ function drawWidget(cv, t) {
   g.beginPath(); g.arc(cx, sy, r, 0, TAU); g.fill();
   if (LT) { g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, sy, r, 0, TAU); g.stroke(); }
 }
-// the focus widget IS the virtual theremin — drag a hand toward the sphere
-(function () {
-  const wf = document.getElementById('widgetFocus');
+// the source widget IS the virtual theremin — drag a hand toward the sphere.
+// Wired on BOTH views: the scene sidebar's live source AND the library rail's,
+// so the wall itself can be played without opening a scene.
+function wireSourceWidget(wf) {
   if (!wf) return;
   let drag = false;
   const drive = e => {
@@ -523,11 +525,14 @@ function drawWidget(cv, t) {
     if (x < 0.5) setChan('L', 1 - clamp((x - 0.05) / (0.44 - 0.05)));
     else setChan('R', 1 - clamp(((1 - x) - 0.05) / (0.44 - 0.05)));
   };
+  wf.style.touchAction = 'none'; wf.style.cursor = 'ew-resize';
   wf.addEventListener('pointerdown', e => { drag = true; wf.setPointerCapture(e.pointerId); drive(e); e.preventDefault(); });
   wf.addEventListener('pointermove', e => { if (drag) drive(e); });
   wf.addEventListener('pointerup', () => drag = false);
   wf.addEventListener('pointercancel', () => drag = false);
-})();
+}
+wireSourceWidget(document.getElementById('widgetFocus'));
+wireSourceWidget(document.getElementById('widgetTop'));
 
 /* ============================================================
    PIECE REGISTRY + INSTANCES
@@ -617,26 +622,32 @@ function setView(mode) {
   if (sel && sel.value !== mode) sel.value = mode;
   const ov = document.getElementById('overlay');
   if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
+  // the scrim view is full bleed, the frame views are letterboxed — refit
+  if (typeof focus !== 'undefined' && focus.P) syncStage();
 }
+// the scrim view is the ROOM, not the frame: it always fills the stage full
+// bleed (aspect belongs to the 3D camera there), while the SCENE keeps
+// rendering offscreen in the pinned show frame that feeds the virtual throw
+function scrimBleed() { return typeof VIEW !== 'undefined' && VIEW.mode === 'scrim' && typeof THREE !== 'undefined'; }
 function stageMetrics() {
   const stage = focusCanvas.parentElement;
   const cw = stage.clientWidth, ch = stage.clientHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  const dw = Math.floor(cw * dpr) || 1280, dh = Math.floor(ch * dpr) || 720;
   if (PROJ.on) {
     let bw = cw, bh = Math.round(cw * PROJ.h / PROJ.w);
     if (bh > ch) { bh = ch; bw = Math.round(ch * PROJ.w / PROJ.h); }
     return { cssW: bw, cssH: bh, left: Math.round((cw - bw) / 2), top: Math.round((ch - bh) / 2),
-             pw: PROJ.w, ph: PROJ.h };
+             pw: PROJ.w, ph: PROJ.h, dw, dh };
   }
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  return { cssW: cw, cssH: ch, left: 0, top: 0,
-           pw: Math.floor(cw * dpr) || 1280, ph: Math.floor(ch * dpr) || 720 };
+  return { cssW: cw, cssH: ch, left: 0, top: 0, pw: dw, ph: dh, dw, dh };
 }
 function applyStageBox(m) {
   // letterbox color comes from CSS: --letterbox (white in the light theme so
   // the frame boundary is visible; black in dark). Fullscreen forces black —
   // on the projector the bars must be invisible.
   const s = focusCanvas.style;
-  if (PROJ.on) {
+  if (PROJ.on && !scrimBleed()) {
     s.inset = 'auto'; s.left = m.left + 'px'; s.top = m.top + 'px';
     s.width = m.cssW + 'px'; s.height = m.cssH + 'px';
   } else {
@@ -648,6 +659,11 @@ function applyStageBox(m) {
 function syncStage(force) {
   const m = stageMetrics();
   applyStageBox(m);
+  // the DISPLAY canvas: full-bleed in the scrim view, the scene frame otherwise
+  const dw = scrimBleed() ? m.dw : m.pw, dh = scrimBleed() ? m.dh : m.ph;
+  if (focusCanvas.width !== dw || focusCanvas.height !== dh) {
+    focusCanvas.width = dw; focusCanvas.height = dh;
+  }
   if (!focus.P || m.pw <= 0 || m.ph <= 0) return;
   if (m.pw === focus.P.w && m.ph === focus.P.h) return;
   if (!force) {
@@ -662,7 +678,6 @@ function syncStage(force) {
     // the aspect ~3-4x and still lands outside this window
     if (ar > 0.68 && ar < 1.47 && area > 0.45 && area < 2.2) return;
   }
-  focusCanvas.width = m.pw; focusCanvas.height = m.ph;
   focus.P.w = focus.P.canvas.width = m.pw;
   focus.P.h = focus.P.canvas.height = m.ph;
   focus.P.reinit(focus.P.seed); // scenes cache geometry in init()
@@ -701,6 +716,7 @@ function openFocus(i) {
   chipbox.innerHTML = def.tags.map(x => `<span class="chip">${x}</span>`).join('');
   if (typeof FAV !== 'undefined') FAV.refresh();
   if (typeof renderFocusVersions === 'function') renderFocusVersions(i);
+  if (typeof renderFocusHistory === 'function') renderFocusHistory(i);
   if (typeof renderFocusActs === 'function') renderFocusActs(i);
   // scene atmosphere: hold this scene's bed note while it is open
   if (typeof MOut !== 'undefined') {
@@ -797,11 +813,18 @@ function applyKeys(dt) {
 // late-bound: part5_tail wraps closeFocus for deep-link cleanup — a direct
 // reference here would skip the wrapper and leave #scene= stuck in the URL
 document.getElementById('btnClose').addEventListener('click', () => closeFocus());
-// the scene's notes open in place, at the top of the sidebar
+// the experience summary un-clamps in place at the top of the sidebar
 document.getElementById('sNotesTog').addEventListener('click', e => {
   const on = document.getElementById('sceneNotes').classList.toggle('open');
-  e.target.textContent = on ? 'less' : 'full notes';
+  e.target.textContent = on ? 'less' : 'more';
 });
+// the section notes fold under the group they describe (input / music)
+document.querySelectorAll('.sntog').forEach(tog => tog.addEventListener('click', () => {
+  const body = document.getElementById(tog.dataset.for);
+  if (!body) return;
+  const on = body.classList.toggle('open');
+  tog.textContent = (on ? '▾' : '▸') + tog.textContent.slice(1);
+}));
 // R reseeds the open scene — the only part of REGEN worth a control
 window.addEventListener('keydown', e => {
   if (e.key !== 'r' && e.key !== 'R') return;
