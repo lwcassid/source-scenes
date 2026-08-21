@@ -43,22 +43,92 @@ fallback when Live isn't up, and in every dev session it is the monitor.
   visual verb is actually funky.
 - When in doubt: darker, sparser, more space for a live player to sit in.
 
-## Ambient ↔ dancey — starting positions for the nine
+## Sonic visions — the nine (guidelines, not laws)
 
-To be argued with by playing them; the earned-percussion gate means every
-scene still OPENS ambient — this is about how far the ceiling goes.
+These are directions to grow each scene toward, drawn from what each scene
+already IS — never force a scene to be something it's not. Three of the nine
+have hard sonic identities that must not be violated: Lumen Film has NO
+percussion by design (it is the sit-in scene), Attractor Vespers is one
+continuous synth played by the light (scheduled hits are banned there), and
+Rain Atrium's rain lives on natural time, never the grid. Respecting those,
+the 5 dancey / 4 ambient split falls out on its own — nothing forced.
 
-| Scene | Ceiling |
-|---|---|
-| Chladni Court | Ambient. Sand and silent lines; percussion near zero. |
-| Lumen Film | Ambient. Aperture organ swells; maybe a late soft pulse. |
-| Ferro Bloom | Mid. Sub wobble wants a slow, spacious R&B pocket at full bloom. |
-| Ridge Loom | Mid. Loom = a groove that can weave in. |
-| Weather Station | Wide. Full-commitment state can take a break beat. |
-| Attractor Vespers | Ambient. Smoke; events stay under the bed (AV3 rule). |
-| White Study | THE dancey one. V7 is already GATED GRID + DROP at 120 — push it toward a real break. |
-| Rain Atrium | Ambient. Natural time; quantize pitch, not weather. |
-| Event Horizon | Slow-build closer. The gate-depth CC74 stream is the build; one string left in the air. |
+**THE DANCEY FIVE** (every one still opens ambient; this is the ceiling):
+
+- **Ferro Bloom — THE POCKET** (100 BPM, Cm pedal · Chet Faker / neo-soul).
+  The soft-piano Cm7♭13 drone already jams; the earned groove (clave,
+  shaker, sparse kick past 55% spread) grows into a real half-time neo-soul
+  pocket: side-stick, sub that moves late in the bar, log-drum call-and-
+  response, everything lazy and behind the beat via velocity. Warm, spacious,
+  vocal-shaped hole in the mids. First groove of the night.
+- **Ridge Loom — THE BAND** (96 BPM, C♯ dorian · Daft Punk funk / Darkside).
+  The scene is already a band: left hand literally writes the bassline
+  (loops = notes), right hand hires three soloists. Vision: round rubbery
+  Moog-ish bass, clav-like arp, and an earned drum section — tight, dry,
+  syncopated, disciplined — once both sides are busy. The two-player scene:
+  one runs the rhythm section, one runs the front line.
+- **Weather Station — THE BREAK** (60 BPM, double-time feel · Fred Again).
+  Weather = breaks. Ambient wind and heading-bells at rest; past gale
+  threshold a chopped break assembles piece by piece — hats ride the gusts,
+  cracks land on hard heading turns — and it gusts and DIES WITH THE LULLS,
+  a beat that behaves like weather instead of a grid. Sidechained pads,
+  texture-heavy. Mastery = arranging the break by riding the gale.
+- **White Study — THE CLUB** (120 BPM, Am pedal · minimal techno). Already a
+  club machine: gated grid, sidechained pumping bed, player-owned drop and
+  summon. Vision: finish it as the set's peak — real kick weight, stab
+  velocity, the six-chord trance-minor cycle on a serious patch. Ikeda
+  severity meets the dancefloor. The mastery script is already written.
+- **Event Horizon — THE FINALE** (64 BPM, Am · Darkside / Jon Hopkins). The
+  crescendo is the instrument: chair-by-chair string wall, tempo gate
+  deepening 8ths→16ths, taiko booms, the swallow as the night's single
+  biggest moment. Dancey in the BUILD sense — the gate is the pulse, not a
+  drum kit. Ends the set with everything black but one string.
+
+**THE AMBIENT FOUR:**
+
+- **Chladni Court — THE TUNING** (58 BPM, D lydian). A tuning ritual: two
+  glass/bowl plate tones, granular sand-rush, tam-tam bloom on lock, the
+  interval left ringing. Mastery = playing intervals through geometry
+  (2:3 locks a fifth in sand and sound). No drums, ever. The overture.
+- **Lumen Film — THE SIT-IN** (66 BPM, D dorian). The aperture organ: one
+  held glass voice per lit burst, rolled entrances, bells on commit, no
+  percussion, no rhythmic space filled — DELIBERATELY the place a live
+  player solos. Mastery = voice-leading with light, breathing the chord
+  like a pipe-organ crescendo. Protect its emptiness.
+- **Attractor Vespers — THE DRONE** (56 BPM, Gm). The set's pure drone and
+  the Tom Misch reference embodied: one synth played by the picture's
+  brightness, the beam voice as slow melody, chord color drifting
+  underneath. Mastery = performing swells like a bowed instrument. Never
+  add beats; never add events.
+- **Rain Atrium — THE COMEDOWN** (64 BPM, Dm · Darkside at 3am). Felt piano
+  on a note budget, rain on natural time, and a downpour groove that leans
+  bluesy — walking bass, breathing backbeat — but stays WEATHER-FIRST: rain
+  with a memory of a band, never a beat scene.
+
+## The performance arc — the order already works
+
+Lance's running order, kept: the visual arc he chose IS a two-peak musical
+set. Energy 0–10, with the sonic role each scene plays:
+
+| # | Scene | Role | Key | BPM | Energy |
+|---|---|---|---|---|---|
+| 1 | Chladni Court | overture — tuning the room | D lyd | 58 | 2 |
+| 2 | Lumen Film | first light — musicians sit in | D dor | 66 | 3 |
+| 3 | Ferro Bloom | first groove — the pocket | Cm | 100 | 5 |
+| 4 | Ridge Loom | the band assembles — funk | C♯m | 96 | 6 |
+| 5 | Weather Station | FIRST PEAK — the break | Gm | 60×2 | 7 |
+| 6 | Attractor Vespers | the breather — pure drone | Gm | 56 | 3 |
+| 7 | White Study | SECOND PEAK — the drop | Am | 120 | 9 |
+| 8 | Rain Atrium | comedown — rain at 3am | Dm | 64 | 4 |
+| 9 | Event Horizon | finale — build → swallow → one string | Am | 64 | 6→10→1 |
+
+The key map is quietly coherent and worth preserving through revisions:
+D → D holds through the opening pair; C → C♯ is a half-step lift into the
+funk; Weather Station → Vespers is the SAME ROOT (G), so the post-peak
+comedown feels like the storm settling rather than a channel change; Gm → Am
+lifts into the club; Am → Dm → Am is i → iv → i, the back half resolving
+home. Alternating dance/breathe from scene 5 on gives the night its wave
+shape: rise · peak · breathe · bigger peak · breathe · finale.
 
 ## The process (phased, back-and-forth)
 
