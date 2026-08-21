@@ -8,3 +8,5 @@ package-lock.json
 
 # agent worktrees (transient, never part of the site)
 .claude/worktrees/
+.verify-stamp
+.claude/.cache/
