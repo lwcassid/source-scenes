@@ -43,13 +43,35 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    White Study's pink flip) — confine the treatment to a bounded window,
    bar-lock it, and telegraph it a beat ahead.
 4. **The side law.** Left hand = warm orange country, right = violet, in
-   every scene. Reach outward = more (`inp` is already reversed; sphere = 0).
+   every scene. Intensity DIRECTION, though, is a judgement call, not a law
+   (Lance): `inp` arrives reach-outward = more (sphere = 0), but map
+   whichever polarity feels most natural for how the visuals move — invert
+   with `1 - inp` when approaching the source should intensify. The real
+   law is the FIELD EDGE: the boundary where tracking appears/disappears
+   must be a gentle state, never a cliff — a hand entering mid-field must
+   not slam the scene to max, a hand drifting out must not cut off at peak.
+   If a mapping parks maximum at the sensor's edge, slew entries and decay
+   losses.
 5. **Presence gates everything.** `chan.X.mode === 'live'` → smooth `s.pres`.
    Idle = ambient tease that hints the interaction without giving it away;
    abandoned scenes drift back to rest states.
 6. **Bar-quantized structure.** Count changes, buds, entrances land on the
    downbeat (Schmitt thresholds + the audio tick commits at `st === 0`).
    Anticipation beats surprise: telegraph the downbeat (pre-glow the next gate).
+7. **Integration must be visible (Lance, AV2→AV3).** Drive sound from the
+   drawn thing itself, never from a hidden measurement (a Lyapunov exponent,
+   an occupancy stat) — a mapping the player can't see reads as random. AV3's
+   fix is the pattern: the same orbit that draws the figure plays the notes.
+   Corollary: no hand position may read as dead — turn collapse states into
+   designed payoffs IN THE SCENE'S OWN MARK LANGUAGE, or curate them out of
+   reach. Intensify the native marks (halo the dust); never swap in a
+   different sprite (AV3's lantern orbs lost the dust's elegance — Lance).
+
+7. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
+   off a shape = a single continuous gradient fill anchored to the shape's
+   edge; N discrete gradient strokes read as a bar chart (Cable Strum V1's
+   curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
+   resting state stays one clean object and the treatment never muddies it.
 
 ## Scrim rules (the projection surface is mosquito-net mesh)
 Black is invisible — only light exists, floating in the room. Thin lines and

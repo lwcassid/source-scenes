@@ -1,6 +1,7 @@
-/* ---------- SRC-16.2 · RAIN ATRIUM V2 ---------- */
+/* ---------- SRC-16.4 · RAIN ATRIUM V4 (sunset-storm line; renumbered from
+   16.2 after another session's V2/V3 merged to main first) ---------- */
 reg({
-  id: 'SRC-16.2', family: 'SRC-16', ver: 2, title: 'Rain Atrium V2', tech: 'TWO-FIELD WATER / SUNSET STORM',
+  id: 'SRC-16.4', family: 'SRC-16', ver: 4, title: 'Rain Atrium V4', tech: 'TWO-FIELD WATER / SUNSET STORM',
   music: {
     bpm: 64, root: 50, mode: 'aeolian', chordBars: 2,
     // D pedal the whole storm — the root never moves, the color shifts over it.

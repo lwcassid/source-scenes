@@ -69,6 +69,10 @@ music: {
 
 ## Taste — learned the hard way, do not relearn
 
+- **Events must never bury the bed (Lance, AV3).** If discrete notes mask
+  the drone, the mix is upside down: event layers sit UNDER the bed — soft
+  attacks (≥0.1s where the verb allows), gains below the pad voices — and
+  surface from the hum's timbre rather than barge over it.
 - **No long glides on sustained stacks.** 13 voices gliding 1.6s = jet
   taking off. Chord changes snap with ≤ 0.2s glide; the TRANSITION moment
   is marked instead by a gentle low-to-high roll (60–90ms stagger).
@@ -93,6 +97,20 @@ music: {
   side). Willing things in literally thickens the chord.
 - Bed voice gains ~0.007–0.011 each; bells 0.03–0.05; perc 0.01–0.02 × gate.
   The mix should leave a hole in the mids for live players.
+- **One gesture = one statement.** Never let a physics field trigger
+  per-element notes — a wave crossing 13 beads is ONE rolled run (≤ ~5
+  notes, per-side cooldown), and the trigger is the HAND's motion, never
+  the simulation's ringing. Element flares stay visual. (Cable Strum V2's
+  per-bead rake = Lance's "5000 notes" verdict.)
+- **The featured layer must be mixed ABOVE the drone.** The bed-gain range
+  above is for a bed UNDER a scene; when the swell IS the instrument, ~2x it
+  and trim the hum beneath, and make each voice's entrance an audible event
+  (0.7s swell + an announcing tone). Cable Strum V3's crescendo was
+  inaudible because six chairs at 0.0105 sat under a 0.034 hum (Lance).
+- **For intensity, gate the bed — don't add events.** A tempo-synced gate/
+  tremolo on the sustained strings (depth grows with commitment, 8ths before
+  16ths) reads dramatic where more note-spam reads busy; stream the depth on
+  CC74 so a gate/filter plugin in Live can take over the same motion.
 
 ## Turning an inspiration MIDI into a scene's harmony
 

@@ -1,6 +1,7 @@
-/* ---------- SRC-16.3 · RAIN ATRIUM V3 ---------- */
+/* ---------- SRC-16.5 · RAIN ATRIUM V5 (natural-time revision of the
+   sunset-storm line; renumbered from 16.3 — see part112_rainatrium2.js) ---------- */
 reg({
-  id: 'SRC-16.3', family: 'SRC-16', ver: 3, title: 'Rain Atrium V3', tech: 'TWO-FIELD WATER / NATURAL TIME',
+  id: 'SRC-16.5', family: 'SRC-16', ver: 5, title: 'Rain Atrium V5', tech: 'TWO-FIELD WATER / NATURAL TIME',
   music: {
     bpm: 64, root: 50, mode: 'aeolian', chordBars: 2,
     chords: [

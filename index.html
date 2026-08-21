@@ -61855,9 +61855,3732 @@ reg({
     };
   }
 });
-/* ---------- SRC-16.2 · RAIN ATRIUM V2 ---------- */
+/* ---------- SRC-34.6 · WHITE STUDY V6 ---------- */
 reg({
-  id: 'SRC-16.2', family: 'SRC-16', ver: 2, title: 'Rain Atrium V2', tech: 'TWO-FIELD WATER / SUNSET STORM',
+  id: 'SRC-34.6', family: 'SRC-34', ver: 6, title: 'White Study V6', tech: 'DATA MINIMAL / GATED GRID + DROP',
+  music: {
+    bpm: 120, root: 45, mode: 'aeolian', chordBars: 2,
+    // A pedal the whole time — the root never moves, but the color now walks a
+    // 6-chord trance-minor cycle (i · i9 · bVI · i11 · bVII · i b13), 2 bars each.
+    chords: [
+      [0, 12, 15, 19, 22],   // Am7    · A A C E G
+      [0, 12, 15, 22, 26],   // Am9    · A A C G B
+      [0, 8, 15, 20, 24],    // F/A    · A F C F A — the bVI lift
+      [0, 12, 17, 22, 27],   // Am11   · A A D G C
+      [0, 10, 14, 22, 26],   // G/A    · A G B G B — the bVII pull home
+      [0, 12, 15, 20, 26]    // Am b13 · A A C F B
+    ],
+    chordNames: ['Am7', 'Am9', 'F/A', 'Am11', 'G/A', 'Am♭13']
+  },
+  tags: ['SEVERE', 'ETCHED PLATES', 'GATED GRID', 'SINE + CLICK', 'THE DROP'],
+  desc: 'The study earns its drop. Everything V5 built stays — the gated grid, the amber/violet stabs, the pedal bed, the continuous left hand — and two things deepen. The harmony now MOVES: six chord colors over the same unmoving A pedal, changing every two bars (the bVI and bVII lean in and resolve home — trance changes, spelled in sine), with a sparse two-note hook singing on the offbeat eighths once the groove is committed. And at the very top of the instrument there is now a DROP: throw BOTH hands wide and HOLD them there, and the machine starts to build — clicks accelerating, a tone rising, the lattice vibrating faster and faster — for a bar or two, then one silent sixteenth, then a root-tuned KICK lands on the downbeat and runs four-on-the-floor for as long as you stay wide. Back your hands off and it is gone. The kick exists nowhere else in the scene: maximum commitment is the only way in.',
+  interact: 'L = structural density, continuous (1 bar → 48) AND brightness — lattice, lowpass and bed all open with L, instantly. R = groove density: how many of the bar\'s 16 steps sound, beats-first (1 → all 16). FLICK either hand outward = stab on the next sixteenth (LEFT amber + low tone, RIGHT violet + high ping; speed = force). NEW — THE DROP: hold BOTH hands wide (past ~80% reach) and a build starts, quantized to land on a bar head: accelerating clicks, a rising tone, the lattice re-cutting faster and faster, then one sixteenth of dead silence and the kick drops, four-on-the-floor, pumping the whole lattice on every beat. It runs while you hold both hands committed and collapses when you come down. Dropping your hands mid-build aborts it — the drop must be HELD into existence. The pink window still breathes on its own bar-locked clock, telegraphed a beat early. Idle: one quiet tick every two seconds over a barely-there drone.',
+  sound: 'Ikeda goes to the club, reduced. Harmony: six-chord pedal cycle every 2 bars (Am7 → Am9 → F/A → Am11 → G/A → Am♭13) — the bed\'s color tones glide through it and a quiet chord roll marks each change, so the motion is audible without a single pad swell. Melody: steps 6 and 14 of the grid carry an authored two-note hook (longer, slightly louder dual-sine) that recolors with every chord — a figure, not a pattern. THE DROP: sustained both-hands commitment past 80% starts a build — 16th clicks crescendo and double to 32nds, a dual sine rises an octave — cut one sixteenth BEFORE the bar head (the silence is the trigger being pulled), then a pitch-dropping root-tuned kick (165→54Hz in 55ms, tight 0.3s tail) lands four-on-the-floor with the bar heads accented, layered over the beat sub. Abort the build by unclenching; the kick dies when commitment drops. MIDI: kick → perc ch10 note 36, everything else as V5; the build riser stays browser-side. In Ableton: the drop reads as note-36 four-on-the-floor arriving out of silence — sidechain the bed to it and the whole rig breathes.',
+  // step-fill order: beats first, then offbeat 8ths, then 16ths (bit-reversed) —
+  // any R value yields a machine-plausible groove, low R yields real silence
+  _FILL: [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15],
+  _BR8: [0, 4, 2, 6, 1, 5, 3, 7],   // per-step walk of the chord ladder
+  _nSteps(r) { return 1 + Math.round(clamp(r) * 15); },
+  init(P) {
+    P.state = {
+      bars: [], lastStep: -1, seed: P.seed, imgs: [], imgsReady: false,
+      beats: 0, cutoff: 450, rank: [], stabs: [], age: 0,
+      pL: undefined, pR: undefined, coolL: 0, coolR: 0,
+      // the drop state machine: off → build (held commitment) → kick → off
+      mode: 'off', buildStartBeat: 0, dropAtBeat: null, kickOn: false,
+      dropCool: 0, lastKickBeat: -1, pump: 0, flash: 0, riser: null
+    };
+    this._FILL.forEach((st, i) => { P.state.rank[st] = i; });
+    this._loadImages(P);
+    this._recut(P, 6);
+  },
+  _loadImages(P) {
+    const s = P.state;
+    const files = [
+      'assets/white-study/portrait-etching.jpg',
+      'assets/white-study/cave-etching.jpg',
+      'assets/white-study/asteroid-woodcut.jpg'
+    ];
+    let remaining = files.length;
+    files.forEach(fp => {
+      const img = new Image();
+      const done = () => { if (--remaining === 0) s.imgsReady = s.imgs.length > 0; };
+      img.onload = () => {
+        const maxDim = 900;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const norm = document.createElement('canvas');
+        norm.width = Math.max(1, Math.round(img.width * scale));
+        norm.height = Math.max(1, Math.round(img.height * scale));
+        const ng = norm.getContext('2d');
+        ng.filter = 'grayscale(1) contrast(1.25) brightness(1.05)';
+        ng.drawImage(img, 0, 0, norm.width, norm.height);
+        const inv = document.createElement('canvas');
+        inv.width = norm.width; inv.height = norm.height;
+        const ig = inv.getContext('2d');
+        ig.filter = 'invert(1)';
+        ig.drawImage(norm, 0, 0);
+        s.imgs.push({ c: norm, ci: inv, w: norm.width, h: norm.height });
+        done();
+      };
+      img.onerror = done;
+      img.src = fp;
+    });
+  },
+  // dual detuned sine through a lowpass + one slap-back repeat; mirrors to MIDI.
+  // `at` is an offset in seconds from now (0 = immediately).
+  _playTone(A, freq, { vol = 0.05, dur = 0.05, cutoff = 4000, role = 'lead', at = 0 } = {}) {
+    if (!A.ctx) return;
+    const t0 = A.t() + at;
+    MOut.evNote(role, freq, vol, t0, dur);
+    const build = (att, v) => {
+      const o1 = A.ctx.createOscillator(); o1.type = 'sine'; o1.frequency.value = freq;
+      const o2 = A.ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = freq; o2.detune.value = 6;
+      const f = A.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cutoff; f.Q.value = 0.5;
+      const g = A.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, att);
+      g.gain.linearRampToValueAtTime(v, att + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, att + dur);
+      o1.connect(f); o2.connect(f); f.connect(g); g.connect(A.master);
+      o1.start(att); o2.start(att); o1.stop(att + dur + 0.05); o2.stop(att + dur + 0.05);
+    };
+    build(t0, vol);
+    build(t0 + 0.055, vol * 0.4); // slap-back: one quiet repeat, no feedback tail
+  },
+  _mkBar(P) {
+    const s = P.state;
+    const nImgs = (s.imgs && s.imgs.length) || 1;
+    return {
+      x: P.rand(), w2: 0.002 + P.rand() * P.rand() * 0.05,
+      y0: P.rand() < 0.75 ? 0 : P.rand() * 0.5,
+      y1: 1 - (P.rand() < 0.75 ? 0 : P.rand() * 0.5),
+      neg: P.rand() < 0.12,
+      img: Math.floor(P.rand() * nImgs),
+      samp: 0.18 + P.rand() * 0.35, ax: P.rand(), ay: P.rand()
+    };
+  },
+  _recut(P, n) {
+    const s = P.state;
+    s.bars = [];
+    for (let i = 0; i < n; i++) s.bars.push(this._mkBar(P));
+  },
+  // a hand flicked outward = the player strikes: stab on the NEXT 16th.
+  // The stab bar carries the SIDE LAW's color — amber left, violet right:
+  // color on this wall means a human put it there.
+  _stab(P, side, speed) {
+    const s = P.state;
+    const vel = Math.min(1, speed / 6);
+    const atBeat = T.running ? Math.ceil(s.beats * 4 + 1e-3) / 4 : s.beats;
+    s.stabs.push({
+      side, atBeat,
+      x: side === 'L' ? 0.05 + P.rand() * 0.40 : 0.55 + P.rand() * 0.40
+    });
+    P.ping(A => {
+      const at = T.running ? Math.max(0, T.next(0.25) - A.t()) : 0;
+      if (side === 'L') {
+        // the human gets the hole: the low-mid band the machine leaves empty
+        this._playTone(A, H.chordTone(0, 0), {
+          vol: 0.10 + 0.06 * vel, dur: 0.35, cutoff: Math.max(900, s.cutoff), role: 'lead', at
+        });
+      } else {
+        this._playTone(A, H.chordTone(2, 3), {
+          vol: 0.07 + 0.05 * vel, dur: 0.12, cutoff: 6000, role: 'lead', at
+        });
+      }
+    });
+  },
+  // the build's rising tone: scheduled once with hard ramps to the drop moment,
+  // so it lands sample-exact; killed early if the player unclenches
+  _startRiser(P) {
+    const s = P.state;
+    P.ping(A => {
+      if (!T.running) return;
+      const t0 = A.t(), tDrop = T.t0 + s.dropAtBeat * T.beat;
+      if (tDrop <= t0) return;
+      const o1 = A.ctx.createOscillator(); o1.type = 'sine'; o1.frequency.setValueAtTime(110, t0);
+      const o2 = A.ctx.createOscillator(); o2.type = 'sine'; o2.frequency.setValueAtTime(110, t0); o2.detune.value = 7;
+      o1.frequency.exponentialRampToValueAtTime(440, tDrop);
+      o2.frequency.exponentialRampToValueAtTime(440, tDrop);
+      const g = A.ctx.createGain();
+      g.gain.setValueAtTime(0.012, t0);
+      g.gain.linearRampToValueAtTime(0.055, tDrop - 0.13);
+      g.gain.setValueAtTime(0.0001, tDrop - 0.12); // the last 16th is SILENT — that's the trigger being pulled
+      o1.connect(g); o2.connect(g); g.connect(A.master);
+      o1.start(t0); o2.start(t0); o1.stop(tDrop); o2.stop(tDrop);
+      s.riser = { o1, o2, g };
+    });
+  },
+  _killRiser(P) {
+    const s = P.state;
+    if (!s.riser) return;
+    P.ping(A => {
+      try {
+        s.riser.g.gain.cancelScheduledValues(A.t());
+        s.riser.g.gain.setValueAtTime(s.riser.g.gain.value, A.t());
+        s.riser.g.gain.linearRampToValueAtTime(0.0001, A.t() + 0.1);
+        s.riser.o1.stop(A.t() + 0.15); s.riser.o2.stop(A.t() + 0.15);
+      } catch (e) {}
+    });
+    s.riser = null;
+  },
+  step(P, dt, t, inp) {
+    const s = P.state;
+    s.age += dt;
+    const density = Math.max(1, Math.round(1 + inp.L * 47));
+    const n = this._nSteps(inp.R);
+    s.nSteps = n;
+    s.cutoff = 450 * Math.pow(13, inp.L);
+    const beats = (P.focused && T.running) ? T.beats() : t * 2;
+    s.beats = beats;
+    // THE DROP state machine: both hands held wide = build → kick; unclench = gone
+    const commit = Math.min(inp.L, inp.R);
+    s.dropCool -= dt;
+    if (P.focused && T.running && s.age > 0.7) {
+      if (s.mode === 'off' && commit > 0.78 && s.dropCool <= 0) {
+        s.mode = 'build';
+        s.buildStartBeat = beats;
+        const nextBar = Math.ceil(beats / 4) * 4;
+        // land on a bar head at least 3 beats out — a build needs room to mean it
+        s.dropAtBeat = (nextBar - beats < 3) ? nextBar + 4 : nextBar;
+        this._startRiser(P);
+      } else if (s.mode === 'build') {
+        if (commit < 0.5) {          // unclenched mid-build: the drop is denied
+          this._killRiser(P);
+          s.mode = 'off'; s.dropAtBeat = null; s.dropCool = 1;
+        } else if (beats >= s.dropAtBeat) {
+          s.mode = 'kick'; s.kickOn = true; s.riser = null;
+          s.flash = 1;               // the drop hits the room as one white blast
+          this._recut(P, density);
+        }
+      } else if (s.mode === 'kick' && commit < 0.45) {
+        s.mode = 'off'; s.kickOn = false; s.dropAtBeat = null; s.dropCool = 2;
+      }
+    } else if (s.mode !== 'off') {
+      this._killRiser(P);
+      s.mode = 'off'; s.kickOn = false; s.dropAtBeat = null;
+    }
+    // the kick pumps the whole lattice on every beat
+    if (s.kickOn) {
+      const kb = Math.floor(beats);
+      if (kb !== s.lastKickBeat) { s.lastKickBeat = kb; s.pump = 1; }
+    }
+    s.pump *= Math.pow(0.001, dt);
+    s.flash *= Math.pow(0.0001, dt);
+    // L reads IMMEDIATELY: the lattice grows/prunes live between re-cuts,
+    // so the left hand answers now instead of at the next sounding step
+    if (s.bars.length < density) {
+      const add = Math.min(3, density - s.bars.length);
+      for (let i = 0; i < add; i++) s.bars.push(this._mkBar(P));
+    } else if (s.bars.length > density + 1) {
+      s.bars.length = density;
+    }
+    // rhythmic pulse: the full re-cut still lands only on steps that SOUND —
+    // except during a build, where the lattice vibrates on every 16th
+    const stv = Math.floor(beats * 4);
+    if (stv !== s.lastStep) {
+      s.lastStep = stv;
+      const st = ((stv % 16) + 16) % 16;
+      if (s.mode === 'build' || s.rank[st] < n) this._recut(P, density);
+    }
+    // flick detection (outward = strike); guarded against the open-scene inp jump
+    if (s.pL === undefined) { s.pL = inp.L; s.pR = inp.R; }
+    const dtc = Math.max(dt, 1e-3);
+    const vlL = (inp.L - s.pL) / dtc, vlR = (inp.R - s.pR) / dtc;
+    s.pL = inp.L; s.pR = inp.R;
+    s.coolL -= dt; s.coolR -= dt;
+    if (s.age > 0.7 && P.focused) {
+      if (vlL > 2.0 && inp.L > 0.25 && s.coolL <= 0) { s.coolL = 0.5; this._stab(P, 'L', vlL); }
+      if (vlR > 2.0 && inp.R > 0.25 && s.coolR <= 0) { s.coolR = 0.5; this._stab(P, 'R', vlR); }
+    }
+  },
+  // one full pass of the composition; flipped = inside the inversion window
+  _pass(P, g, w, h, flipped) {
+    const s = P.state;
+    g.fillStyle = flipped ? '#fff' : '#000'; g.fillRect(0, 0, w, h);
+    const solidFill = flipped ? '#000' : '#fff';
+    const texMinPx = Math.max(6, w * 0.006);
+    for (const b of s.bars) {
+      if (b.neg && !flipped) continue; // negatives live only inside the window
+      const bx = b.x * w, by = b.y0 * h, bh = (b.y1 - b.y0) * h;
+      const bw = Math.max(1, b.w2 * w * (1 + 0.16 * (s.pump || 0))); // kick pump breathes the lattice
+      const img = s.imgsReady ? s.imgs[b.img % s.imgs.length] : null;
+      if (img && bw >= texMinPx && bh >= texMinPx) {
+        const src = flipped ? img.ci : img.c;
+        // crop aspect always matches the bar's aspect — thin bars pull a thin sliver
+        const ar = bw / bh;
+        let cropH = b.samp * img.h, cropW = cropH * ar;
+        const fit = Math.min(1, img.w / cropW, img.h / cropH);
+        cropW *= fit; cropH *= fit;
+        const sx = b.ax * (img.w - cropW), sy = b.ay * (img.h - cropH);
+        g.drawImage(src, sx, sy, cropW, cropH, bx, by, bw, bh);
+      } else {
+        g.fillStyle = solidFill;
+        g.fillRect(bx, by, bw, bh);
+      }
+    }
+    // data strip
+    g.fillStyle = flipped ? '#000' : 'rgba(255,255,255,0.8)';
+    g.font = '9px ui-monospace,monospace';
+    let str = '';
+    const rr = mulberry32(s.lastStep * 7 + 3);
+    for (let i = 0; i < 48; i++) str += (rr() * 16 | 0).toString(16).toUpperCase() + ' ';
+    g.fillText(str, 8, h - 22);
+    g.fillText('STEPS ' + (s.nSteps || 1) + '/16  N ' + s.bars.length + '  T ' + (s.lastStep || 0) + '  ' + (H.label || ''), 8, h - 8);
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    this._pass(P, g, w, h, false);
+    // The window keeps its own 16-beat clock (chords now change every 8): bar 4
+    // of every 4 is the inverted phase, still releasing exactly on a chord-change
+    // downbeat. The inversion is a WINDOW (~1/3 of the frame), never a flood.
+    const cyc = 16;
+    const bb = ((s.beats % cyc) + cyc) % cyc;
+    const cycN = Math.floor(s.beats / cyc);
+    const wr = mulberry32((cycN * 131 + 17) >>> 0);
+    const bandW = (0.30 + wr() * 0.14) * w;
+    const bandX = wr() * (w - bandW);
+    if (bb >= 11 && bb < 12) {
+      // telegraph: one beat before the flip, the window's edges pre-glow pink
+      const k = bb - 11;
+      g.fillStyle = 'rgba(255,20,147,' + (0.10 * k).toFixed(3) + ')';
+      g.fillRect(bandX, 0, bandW, h);
+      g.fillStyle = 'rgba(255,20,147,' + (0.35 + 0.5 * k).toFixed(3) + ')';
+      const rail = Math.max(4, w * 0.003);
+      g.fillRect(bandX - rail / 2, 0, rail, h);
+      g.fillRect(bandX + bandW - rail / 2, 0, rail, h);
+    } else if (bb >= 12) {
+      g.save();
+      g.beginPath(); g.rect(bandX, 0, bandW, h); g.clip();
+      this._pass(P, g, w, h, true);
+      // hot-pink multiply keeps the negative from blasting white through the mesh
+      g.globalCompositeOperation = 'multiply';
+      g.fillStyle = '#ff1493';
+      g.fillRect(bandX, 0, bandW, h);
+      g.globalCompositeOperation = 'source-over';
+      g.restore();
+    }
+    // the player's stabs — drawn LAST so they punch through the pink window
+    // (V4 drew them under it and they vanished mid-flip). Amber = left hand,
+    // violet = right: the side law, reserved for marks a human made.
+    for (const sb of s.stabs) {
+      const age = s.beats - sb.atBeat;
+      if (age < 0 || age > 0.9) continue;
+      const a = 1 - age / 0.9;
+      g.fillStyle = (sb.side === 'L'
+        ? 'rgba(255,154,60,' : 'rgba(167,110,255,') + (a * 0.95).toFixed(3) + ')';
+      const bw = Math.max(6, w * 0.008) * (0.6 + a * 0.4);
+      g.fillRect(sb.x * w - bw / 2, 0, bw, h);
+    }
+    s.stabs = s.stabs.filter(sb => s.beats - sb.atBeat < 1);
+    // the drop lands as one white blast (~100ms) — a strobe EVENT, not a strobe
+    if (s.flash > 0.02) {
+      g.fillStyle = 'rgba(255,255,255,' + (s.flash * 0.85).toFixed(3) + ')';
+      g.fillRect(0, 0, w, h);
+    }
+  },
+  audio(A, P) {
+    const self = this, s = P.state;
+    // THE BED — the tooth for improvisers to bite on. Four whisper-level
+    // triangle voices: pedal root at 55 and 110Hz plus two chord colors,
+    // behind one gentle lowpass. Chord-locked (colors re-glide on every
+    // change, root never moves) and hand-coupled (level + filter follow L)
+    // — not autonomous, per the no-risers law.
+    const v = A.voice();
+    const filt = A.ctx.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.value = 600; filt.Q.value = 0.4;
+    filt.connect(v.group);
+    const DR = [
+      { i: 0, o: -1, g: 0.012 },  // root, 55Hz
+      { i: 0, o: 0,  g: 0.006 },  // root, 110Hz — the reference pitch
+      { i: 2, o: -1, g: 0.007 },  // chord color
+      { i: 4, o: -1, g: 0.007 }   // chord color — this one moves the most
+    ];
+    const drones = DR.map(d => {
+      const o = v.osc('triangle', H.chordTone(d.i, d.o));
+      const g = v.g(0.0001);
+      o.connect(g); g.connect(filt);
+      return { o, g, d };
+    });
+    H.onChord(() => {
+      // colors glide to the new chord over the pedal (≤0.2s, per the taste law)
+      for (const dr of drones) A.set(dr.o.frequency, H.chordTone(dr.d.i, dr.d.o), 0.18);
+      // and the change is audible as a moment: quiet low-to-high roll
+      [0, 2, 4].forEach((ci, i) => {
+        self._playTone(A, H.chordTone(ci, 0), {
+          vol: 0.04, dur: 0.25, cutoff: (s.cutoff || 900) * 0.8, role: 'bells', at: i * 0.07
+        });
+      });
+    });
+    v.fadeIn(1, 1.5);
+    // the pattern is scheduled on the AUDIO clock with a lookahead horizon —
+    // a precision scene must not flam against its own MIDI clock
+    let nextT = 0, lastIdx = -1;
+    return {
+      tick(inp) {
+        // the bed answers the LEFT hand immediately, even between ticks:
+        // reach out and it swells and brightens, come back and it recedes
+        const open = 0.35 + 0.65 * clamp(inp.L);
+        for (const dr of drones) A.set(dr.g.gain, dr.d.g * open, 0.25);
+        A.set(filt.frequency, 300 + (s.cutoff || 450) * 0.45, 0.2);
+        if (!T.running || !A.ctx) return;
+        const stepDur = T.beat * 0.25;
+        if (!nextT || nextT < A.t() - 0.05) nextT = T.next(0.25);
+        const horizon = A.t() + 0.15;
+        while (nextT < horizon) {
+          const idx = Math.round((nextT - T.t0) / stepDur);
+          if (idx > lastIdx) {
+            lastIdx = idx;
+            const st = ((idx % 16) + 16) % 16;
+            const b = idx * 0.25;
+            const tt = nextT, at = tt - A.t();
+            const cutoff = 450 * Math.pow(13, clamp(inp.L));
+            const building = s.mode === 'build' && s.dropAtBeat != null && b < s.dropAtBeat;
+            if (building) {
+              // THE BUILD: 16th clicks crescendo and double to 32nds late —
+              // and the last 16th before the drop is dead silence
+              if (s.dropAtBeat - b > 0.26) {
+                const prog = clamp((b - s.buildStartBeat) / Math.max(0.25, s.dropAtBeat - s.buildStartBeat));
+                A.hit({ vol: 0.05 + prog * 0.07, dur: 0.006, freq: 8000, q: 0.4, at: tt });
+                if (prog > 0.55) A.hit({ vol: 0.03 + prog * 0.05, dur: 0.005, freq: 9500, q: 0.4, at: tt + stepDur / 2 });
+              }
+            } else if (s.rank[st] < self._nSteps(inp.R)) {
+              A.hit({ vol: 0.09, dur: 0.006, freq: 8000, q: 0.4, at: tt }); // machine-flat, by design
+              if (st === 6 || st === 14) {
+                // the hook: an authored figure on the offbeat 8ths — longer, a
+                // touch louder, recolored by every chord. A melody, not a pattern.
+                const hookDeg = [5, 6, 8, 6][((idx / 16) | 0) % 4];
+                self._playTone(A, H.chordTone(hookDeg, 2), { vol: 0.06, dur: 0.13, cutoff, role: 'arp', at });
+              } else {
+                const vol = st === 0 ? 0.085 : st % 4 === 0 ? 0.062 : 0.045;
+                // an octave above V3: the pattern lives up top, the mids stay empty
+                self._playTone(A, H.chordTone(self._BR8[st % 8], 2), { vol, dur: 0.05, cutoff, role: 'arp', at });
+              }
+              if (st % 4 === 0) self._playTone(A, H.rootFreq(-2), { vol: 0.16, dur: 0.1, cutoff: cutoff * 0.5, role: 'bass', at });
+            }
+            // THE KICK: root-tuned pitch-drop, four-on-the-floor, only while the
+            // drop is held open. (Beats at/past dropAtBeat inside the build's
+            // lookahead also fire, so the landing kick is never late.)
+            const kicking = s.kickOn || (s.mode === 'build' && s.dropAtBeat != null && b >= s.dropAtBeat);
+            if (kicking && st % 4 === 0) {
+              const kvol = st === 0 ? 0.32 : 0.27;
+              const bf = H.rootFreq(-2);
+              const o = A.ctx.createOscillator(); o.type = 'sine';
+              o.frequency.setValueAtTime(bf * 3.1, tt);
+              o.frequency.exponentialRampToValueAtTime(Math.max(30, bf * 0.98), tt + 0.055);
+              const kg = A.ctx.createGain();
+              kg.gain.setValueAtTime(0.0001, tt);
+              kg.gain.linearRampToValueAtTime(kvol, tt + 0.0025);
+              kg.gain.exponentialRampToValueAtTime(0.0001, tt + 0.3);
+              o.connect(kg); kg.connect(A.master); o.start(tt); o.stop(tt + 0.38);
+              MOut.evDrum(36, kvol, tt);
+            }
+          }
+          nextT += stepDur;
+        }
+        MOut.expr('lead', inp.L); // L = brightness → Ableton filter on the player's channel
+        MOut.expr('arp', inp.R);  // R = groove density → energy on the pattern's channel
+      },
+      stop() { self._killRiser(P); v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-09.3 · ATTRACTOR VESPERS V3 (the orbit is the sequencer) ---------- */
+reg({
+  id: 'SRC-09.3', family: 'SRC-09', ver: 3, title: 'Attractor Vespers V3', tech: 'CLIFFORD MAP / FLAME DENSITY',
+  music: {
+    bpm: 56, root: 43, mode: 'aeolian', chordBars: 4, prog: [0, 1, 2, 3],
+    // A PEDAL, not a ladder: G never moves, the color over it breathes.
+    // One full cycle ≈ 68 seconds — the slow chord change is the point.
+    chords: [
+      [0, 7, 14, 15, 19],   // Gm(add9)  — open fifth, ninth
+      [0, 7, 15, 22, 26],   // Gm9       — color, still consonant
+      [0, 15, 17, 20, 22],  // Cm11/G    — subdominant lean over the pedal
+      [0, 8, 15, 19, 22]    // E♭maj9/G  — the softest place in the key
+    ],
+    chordNames: ['Gm(add9)', 'Gm9', 'Cm11/G', 'E♭maj9/G']
+  }, fx: { bloom: 0.5 },
+  tags: ['STRANGE ATTRACTOR', 'FLAME DENSITY', 'ORBIT ARPEGGIO', 'RIFF HUNTING'],
+  desc: 'Four constants and a spark. The same point is thrown a hundred thousand times and lands as smoke — now rendered the way flame fractals are rendered: fold density becomes light, so the caustic anatomy burns instead of hiding. And the point that draws the figure also PLAYS it: the orbit is sampled on the grid and every landing is a note. Where the map goes chaotic the melody never repeats; find a window where the figure collapses to a blazing filament and the melody locks into a riff you discovered.',
+  interact: 'L bends constant a, R bends constant b — the figure obeys instantly and totally, and reach outward = more: hands at the sphere the map rests as a still burning jewel, full stretch on both sides is the torn smoke at its most chaotic. The same orbit that draws the smoke is sampled on the beat: its position picks the pitch (left-right = chord tone, height = octave, side = pan), so a broad apparition cascades and never repeats, while a collapsed one plays a locked ostinato — periodic windows in parameter space ARE riffs, and hunting them between rest and full reach is the game. A fast flick fires a run.',
+  sound: 'One instrument, three layers, all of it the figure. DRONE: a G pedal that never moves — sub root, quiet triangle bed whose upper extensions only ring as the apparition fills out (thin figure = bare fifth, full smoke = the whole Gm9 stack), chord color drifting Gm(add9) → Gm9 → Cm11 → E♭maj9 every four bars. QUANTIZED: the orbit arpeggio — the map itself is sampled on the grid and each landing is a plucked note in key, velocity from how dense the smoke is where it lands, sparse at rest, cascading when the figure is full and hands are in. Every note flashes a spark at the exact point that played it. REACTIVE: a fast hand bends the bed down and it crawls back, and a flick answers with a run on the next 16th. Ableton: arp ch4, pad ch2, bells ch5 on chord turns, sub on texture ch6; CC74 arp = drive, pad = figure.',
+  init(P) {
+    // CURATED SEED: try a handful of (c,d) draws and keep one whose figure is
+    // rich where the hands actually spend their reach — full stretch and the
+    // one-handed edges must be alive (transients skipped, so a slow spiral
+    // into a fixed point can't fake richness). The rest corner is ALLOWED to
+    // collapse: that jewel is the design. Interior periodic windows survive
+    // too — those are the riffs, not the bug.
+    let c = 0.95, d = 0.8, bestScore = -1;
+    for (let tr = 0; tr < 8; tr++) {
+      const cc = 0.7 + P.rand() * 0.5, dd = 0.55 + P.rand() * 0.5;
+      let score = 0, pass = true;
+      for (const [a, b, floor] of [[-1.9, 2.0, 45], [-1.475, 1.575, 28], [-1.9, 1.15, 10], [-1.05, 2.0, 10]]) {
+        let x = 0.1, y = 0.1;
+        const seen = new Set();
+        for (let i = 0; i < 480; i++) {
+          const nx = Math.sin(a * y) + cc * Math.cos(a * x);
+          const ny = Math.sin(b * x) + dd * Math.cos(b * y);
+          x = nx; y = ny;
+          if (i > 220) seen.add((((x + 3) * 4) | 0) * 32 + (((y + 3) * 4) | 0));
+        }
+        if (seen.size < floor) pass = false;
+        score += Math.min(seen.size, floor * 2);
+      }
+      if (score > bestScore) { bestScore = score; c = cc; d = dd; }
+      if (pass) break;
+    }
+    P.state = {
+      x: 0.1, y: 0.1, c, d,
+      mx: 0.31, my: 0.17,              // the musical walker — same map, its own orbit
+      spreadX: 1, spreadY: 1,
+      pres: 0, occ: 0, vel: 0, pL: 0, pR: 0, tilt: 0, drive: 0,
+      den: null, img: null, dcv: null, dg: null, dw: 0, dh: 0, bandOf: null,
+      lut: null, lutPeak: -1, lutMix: -1, peak: 60, tail: new Float32Array(16),
+      sparks: [], histM: [], lockP: 0, lockN: 0, dt: 0.016
+    };
+  },
+  step(P, dt, t, inp) {
+    const s = P.state;
+    // REACH OUTWARD = MORE: at the sphere the map rests near a still point —
+    // a quiet jewel — and full reach on both sides is the torn smoke at
+    // (-1.9, 2.0). The dead zones now live only at rest, where they are the
+    // design, not scattered across the reach.
+    s.a = -1.05 - inp.L * 0.85;
+    s.b = 1.15 + inp.R * 0.85;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * (live ? 3 : 0.4));
+    s.vel = s.vel * Math.max(0, 1 - dt * 2.2) + (Math.abs(inp.L - s.pL) + Math.abs(inp.R - s.pR)) * 6;
+    s.pL = inp.L; s.pR = inp.R;
+    s.tilt = inp.L - inp.R;
+    s.dt = dt;
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    /* ---- FLAME-DENSITY RENDER ------------------------------------------
+       Hits accumulate into a half-res density buffer with temporal decay;
+       a log tone-map through a warm↔violet palette turns fold density into
+       light. Faint wisps get lifted, dense caustics burn white — and a
+       collapsed periodic orbit concentrates every hit into a few cells, so
+       the old "dead" states now read as a blazing filament. */
+    const bw = Math.max(8, w >> 1), bh = Math.max(8, h >> 1);
+    if (s.dw !== bw || s.dh !== bh) {
+      s.dw = bw; s.dh = bh;
+      s.den = new Float32Array(bw * bh);
+      s.img = new ImageData(bw, bh);
+      const d = s.img.data;
+      for (let i = 3; i < d.length; i += 4) d[i] = 255;
+      s.dcv = document.createElement('canvas');
+      s.dcv.width = bw; s.dcv.height = bh;
+      s.dg = s.dcv.getContext('2d');
+      // which of the 9 palette bands each column sits in (byte offset into lut)
+      s.bandOf = new Uint32Array(bw);
+      for (let col = 0; col < bw; col++) s.bandOf[col] = (((col * 9) / bw) | 0) * 4096 * 3;
+      s.lutPeak = -1;
+    }
+    const den = s.den;
+    // fill the 16:10 frame — the figure has no canonical aspect, so stretch it
+    const cx = w / 2, cy = h / 2, scx = w * 0.215, scy = h * 0.265;
+    let { x, y } = s;
+    let sx = 0, sy = 0;
+    const n = P.focused ? (window.IS_MOBILE ? 7000 : 16000) : 3000;
+    for (let i = 0; i < n; i++) {
+      const nx = Math.sin(s.a * y) + s.c * Math.cos(s.a * x);
+      const ny = Math.sin(s.b * x) + s.d * Math.cos(s.b * y);
+      x = nx; y = ny;
+      sx += Math.abs(x); sy += Math.abs(y);
+      const bx = (cx + x * scx) >> 1, by = (cy + y * scy) >> 1;
+      if (bx >= 0 && bx < bw && by >= 0 && by < bh) den[by * bw + bx] += 1;
+      if (i >= n - 8) { const q = (i - (n - 8)) * 2; s.tail[q] = x; s.tail[q + 1] = y; }
+    }
+    s.x = x; s.y = y;
+    s.spreadX = sx / n; s.spreadY = sy / n;
+    /* palette LUT — indexed by density ×16, log curve baked in. NINE BANDS
+       across the frame: the left country burns warm orange, the right violet
+       (the side law painted into the picture itself), blending through
+       magenta at the seam; the hands' balance slides the crossover. */
+    if (!s.lut || Math.abs(s.peak - s.lutPeak) > s.lutPeak * 0.1 || Math.abs(s.tilt - s.lutMix) > 0.04) {
+      s.lutPeak = s.peak; s.lutMix = s.tilt;
+      const lut = s.lut || (s.lut = new Uint8ClampedArray(9 * 4096 * 3));
+      // both ramps multi-hue (lows lifted by the 0.72 pow — mesh eats faint wisps)
+      // stop 0 is IDENTICAL in both ramps — the background must not band
+      const VIO = [[3, 2, 6], [26, 14, 90], [110, 50, 170], [220, 120, 190], [250, 240, 255]];
+      const WRM = [[3, 2, 6], [70, 20, 40], [210, 80, 80], [255, 170, 60], [255, 248, 225]];
+      const inv = 1 / Math.log1p(s.peak);
+      for (let band = 0; band < 9; band++) {
+        const colFrac = (band + 0.5) / 9;
+        const mixW = clamp(0.5 + (0.5 - colFrac) * 1.4 + s.tilt * 0.35);
+        for (let i = 0; i < 4096; i++) {
+          const tt = Math.pow(clamp(Math.log1p(i / 16) * inv), 0.72) * 3.999;
+          const k = tt | 0, f = tt - k, k1 = k + 1 > 4 ? 4 : k + 1;
+          for (let ch = 0; ch < 3; ch++) {
+            const a0 = VIO[k][ch] + (WRM[k][ch] - VIO[k][ch]) * mixW;
+            const a1 = VIO[k1][ch] + (WRM[k1][ch] - VIO[k1][ch]) * mixW;
+            lut[(band * 4096 + i) * 3 + ch] = a0 + (a1 - a0) * f;
+          }
+        }
+      }
+    }
+    // one pass: decay + tone-map + occupancy + peak
+    const dec = Math.exp(-(s.dt || 0.016) * 2.4);
+    const d8 = s.img.data, lut = s.lut, bandOf = s.bandOf;
+    let rawMax = 0, lit = 0, col = 0;
+    for (let i = 0, j = 0; i < den.length; i++, j += 4) {
+      const v = den[i] * dec;
+      den[i] = v;
+      if (v > rawMax) rawMax = v;
+      if (v > 0.6) lit++;
+      const idx = bandOf[col] + (v >= 255 ? 4095 : (v * 16) | 0) * 3;
+      d8[j] = lut[idx]; d8[j + 1] = lut[idx + 1]; d8[j + 2] = lut[idx + 2];
+      col++; if (col === bw) col = 0;
+    }
+    s.peak = Math.max(30, s.peak + (rawMax - s.peak) * 0.08);
+    s.occ += (lit / den.length - s.occ) * 0.12;
+    s.dg.putImageData(s.img, 0, 0);
+    g.drawImage(s.dcv, 0, 0, w, h);
+    const k = Math.min(w, h) / 1200;
+    /* THE JEWELS — a collapsed orbit lands on a handful of points; raw they
+       are four-pixel specks, invisible at 41ft. Below a sliver of occupancy
+       each landing point becomes a burning orb breathing with the beat: the
+       rest state and every periodic window read as vesper lamps, not as a
+       dead screen. */
+    const jewel = clamp((0.004 - s.occ) / 0.0035);
+    if (jewel > 0.05) {
+      const pulse = (typeof T !== 'undefined' && T.running) ? T.beatPulse() : 0.5;
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      const done = [];
+      for (let iP = 0; iP < 8; iP++) {
+        const fx = s.tail[iP * 2], fy = s.tail[iP * 2 + 1];
+        if (!isFinite(fx)) continue;
+        let dup = false;
+        for (let q = 0; q < done.length; q++) {
+          const dx = fx - done[q][0], dy = fy - done[q][1];
+          if (dx * dx + dy * dy < 0.004) { dup = true; break; }
+        }
+        if (dup) continue;
+        done.push([fx, fy]);
+        const px = cx + fx * scx, py = cy + fy * scy;
+        const r = (34 + pulse * 14) * k;
+        const col2 = fx < 0 ? '255,190,120' : '190,140,255';
+        const gr = g.createRadialGradient(px, py, 0, px, py, r);
+        gr.addColorStop(0, `rgba(255,252,244,${0.85 * jewel})`);
+        gr.addColorStop(0.25, `rgba(${col2},${0.5 * jewel})`);
+        gr.addColorStop(1, `rgba(${col2},0)`);
+        g.fillStyle = gr;
+        g.fillRect(px - r, py - r, r * 2, r * 2);
+      }
+      g.restore();
+    }
+    // NOTE SPARKS — each arp note flashes at the exact point that played it
+    if (s.sparks.length) {
+      const now = (typeof AE !== 'undefined' && AE.ctx) ? AE.t() : t;
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      for (let i = s.sparks.length - 1; i >= 0; i--) {
+        const sp = s.sparks[i];
+        const age = now - sp.at;
+        if (age > 0.8) { s.sparks.splice(i, 1); continue; }
+        if (age < -0.02) continue;                 // scheduled, not sounding yet
+        const px = cx + sp.fx * scx, py = cy + sp.fy * scy;
+        const r = (14 + age * 40) * k * (0.8 + sp.v * 4);
+        const al = Math.max(0, 1 - age / 0.8) * (0.28 + sp.v * 3);
+        const gr = g.createRadialGradient(px, py, 0, px, py, r);
+        const col = sp.fx < 0 ? '255,190,120' : '190,140,255';
+        gr.addColorStop(0, `rgba(${col},${Math.min(0.9, al)})`);
+        gr.addColorStop(1, `rgba(${col},0)`);
+        g.fillStyle = gr;
+        g.fillRect(px - r, py - r, r * 2, r * 2);
+      }
+      g.restore();
+    }
+    g.fillStyle = 'rgba(140,190,110,0.8)'; g.font = '10px ui-monospace,monospace';
+    g.fillText('A ' + s.a.toFixed(3) + '  B ' + s.b.toFixed(3) + '  C ' + s.c.toFixed(2) + '  D ' + s.d.toFixed(2), 10, h - 10);
+    if (P.focused) {
+      g.fillStyle = 'rgba(140,190,110,0.55)';
+      g.fillText('FIGURE ' + Math.round(clamp(s.occ / 0.09) * 100) + '   DRIVE ' + Math.round(s.drive * 100) +
+        (s.lockP ? '   RIFF ×' + s.lockP : ''), 10, h - 24);
+    }
+  },
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- the air: V1's cathedral breath, kept quiet under everything ----- */
+    const n1 = v.noise(), n2 = v.noise();
+    const f1 = v.filter('bandpass', 800, 6), f2 = v.filter('bandpass', 1400, 6);
+    const g1 = v.g(0.010), g2 = v.g(0.010);
+    n1.connect(f1); f1.connect(g1); g1.connect(v.group);
+    n2.connect(f2); f2.connect(g2); g2.connect(v.group);
+
+    /* --- the pedal: sub root, never moves ------------------------------- */
+    const sub = v.osc('sine', H.rootFreq(-1));
+    const sg = v.g(0.05);
+    sub.connect(sg); sg.connect(v.group);
+
+    /* --- the bed: one triangle voice per chord tone; upper extensions only
+           ring as the figure fills out ----------------------------------- */
+    const pads = A.padVoices(v, 5, { type: 'triangle', gain: 0.0001, cutoff: 300, q: 0.7 });
+    const setPads = (gl) => { for (let i = 0; i < 5; i++) pads[i].set(H.chordTone(i, 0), gl); };
+    setPads(0.05);
+    let fig = 0;
+    H.onChord(() => {
+      setPads(0.18);                                 // snap, don't smear
+      // mark the turn with a gentle low-to-high roll off the new chord's crown
+      [2, 3, 4].forEach((ci, i) => {
+        A.bell(H.chordTone(ci, 1), { at: A.t() + i * 0.08, vol: 0.016 + fig * 0.018, pan: (i - 1) * 0.4, rev: 0.6 });
+      });
+    });
+    v.fadeIn(1, 1.6);
+
+    let nextT = T.next(0.25), burst = 0, coolT = -9, swoop = 0;
+    return {
+      tick(inp, dt) {
+        const s = P.state;
+        dt = Math.min(0.1, dt || 0.016);
+        const now = A.t();
+        fig = clamp(s.occ / 0.09);
+        const drive = s.drive = s.pres * (0.25 + 0.75 * fig);
+
+        // REACTIVE — a fast hand bends the bed down and it crawls back
+        swoop = Math.max(swoop * Math.pow(0.12, dt), Math.min(1, s.vel * 0.35));
+        pads.forEach((p, i) => {
+          A.set(p.o1.detune, -4 - i * 1.8 - 170 * swoop, 0.06);
+          A.set(p.o2.detune, 5 + i * 2.4 - 170 * swoop, 0.06);
+        });
+        // a flick answers with a run on the next 16th
+        if (s.vel > 1.4 && now - coolT > 0.6) { burst = 5; coolT = now; }
+
+        // DRONE — extensions are EARNED by how much figure there is
+        const bedAmp = 0.55 + 0.45 * s.pres;
+        pads[0].level(0.011 * bedAmp, 0.4);
+        pads[1].level(0.009 * bedAmp * clamp(fig * 4), 0.4);
+        pads[2].level(0.009 * bedAmp * clamp((fig - 0.2) / 0.3), 0.5);
+        pads[3].level(0.008 * bedAmp * clamp((fig - 0.35) / 0.3), 0.5);
+        pads[4].level(0.008 * bedAmp * clamp((fig - 0.5) / 0.3), 0.5);
+        pads.forEach(p => p.bright(220 + fig * 260 + (s.spreadX + s.spreadY) * 120, 0.4));
+        A.set(sg.gain, 0.035 + fig * 0.025, 0.5);
+        const air = 1 - fig * 0.6;
+        A.set(f1.frequency, 300 + s.spreadX * 900, 0.2);
+        A.set(f2.frequency, 500 + s.spreadY * 1400, 0.2);
+        A.set(g1.gain, 0.006 + air * 0.014, 0.4);
+        A.set(g2.gain, 0.006 + air * 0.014, 0.4);
+
+        /* QUANTIZED — THE ORBIT IS THE SEQUENCER. The walker rides the same
+           map; on each sounding 16th it advances a fixed stride and the
+           landing point IS the note: x picks the chord tone, height the
+           octave, side the pan, local smoke density the velocity. Chaotic
+           figure = cascades that never repeat; periodic window = a locked
+           riff. The music can't help but match the picture — same orbit. */
+        const horizon = now + 0.15;
+        while (nextT < horizon) {
+          const tt = nextT;
+          // bar-aligned grid position, so accents land on real downbeats
+          const stAbs = Math.round((tt - T.t0) / (T.beat * 0.25));
+          const st = ((stAbs % 16) + 16) % 16, barAt = Math.floor(stAbs / 16);
+          let play = false, vol = 0;
+          if (burst > 0) { play = true; burst--; vol = 0.065; }
+          else if (drive < 0.08) {                       // idle tease: one toll every 2 bars
+            if (st === 0 && barAt % 2 === 0) { play = true; vol = 0.035; }
+          } else if (s.lockP === 1) {                    // fixed point: a slow toll, not a stuck 16th
+            if (st % 8 === 0) { play = true; vol = 0.05; }
+          } else if (drive < 0.35) { if (st % 4 === 0) { play = true; vol = 0.042; } }
+          else if (drive < 0.65) { if (st % 2 === 0) { play = true; vol = 0.048; } }
+          else if (st % 4 !== 3) { play = true; vol = 0.05; }   // 16ths with a breath before each beat
+          if (play) {
+            for (let k = 0; k < 3; k++) {
+              const nx = Math.sin(s.a * s.my) + s.c * Math.cos(s.a * s.mx);
+              const ny = Math.sin(s.b * s.mx) + s.d * Math.cos(s.b * s.my);
+              s.mx = nx; s.my = ny;
+            }
+            if (!isFinite(s.mx) || !isFinite(s.my)) { s.mx = 0.31; s.my = 0.17; }
+            // RIFF DETECTION — does the sampled orbit repeat?
+            s.histM.push([s.mx, s.my]);
+            if (s.histM.length > 13) s.histM.shift();
+            let lp = 0;
+            for (let p = 1; p <= 6 && !lp; p++) {
+              const q = s.histM.length - 1 - p;
+              if (q < 0) break;
+              const hx = s.histM[q][0] - s.mx, hy = s.histM[q][1] - s.my;
+              if (hx * hx + hy * hy < 1.5e-3) lp = p;
+            }
+            s.lockN = lp ? Math.min(9, s.lockN + 1) : 0;
+            s.lockP = s.lockN >= 3 ? lp : 0;
+            // pitch from position: x = which rung of the ladder, height = octave
+            const lad = Math.max(0, Math.min(7, Math.round(((s.mx / 2.2) + 1) * 3.5)));
+            const oct = 1 + (s.my < -0.35 ? 1 : 0);
+            // velocity from the smoke where it lands, accented on the beat
+            let local = 0;
+            if (s.den && s.dw) {
+              const bx = ((s.dw + s.mx * s.dw * 0.43) / 2) | 0, by = ((s.dh + s.my * s.dh * 0.53) / 2) | 0;
+              if (bx >= 0 && bx < s.dw && by >= 0 && by < s.dh) local = clamp(Math.log1p(s.den[by * s.dw + bx]) / Math.log1p(s.peak));
+            }
+            vol = (vol + local * 0.04) * (st === 0 ? 1.35 : st % 4 === 0 ? 1.15 : 1);
+            const dur = drive < 0.35 ? 1.5 : drive < 0.65 ? 1.0 : 0.65;
+            A.pluck2(H.chordTone(lad, oct), { at: tt, vol, dur, pan: clamp(s.mx / 2.2, -1, 1) * 0.7, rev: 0.45, del: 0.18, role: 'arp' });
+            s.sparks.push({ fx: s.mx, fy: s.my, at: tt, v: vol });
+            if (s.sparks.length > 24) s.sparks.shift();
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('arp', drive);
+          MOut.expr('pad', fig);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+})
+/* ---------- SRC-09.4 · ATTRACTOR VESPERS V4 (the hum is the instrument) ---------- */
+reg({
+  id: 'SRC-09.4', family: 'SRC-09', ver: 4, title: 'Attractor Vespers V4', tech: 'CLIFFORD MAP / FLAME DENSITY',
+  music: {
+    bpm: 56, root: 43, mode: 'aeolian', chordBars: 4, prog: [0, 1, 2, 3],
+    chords: [
+      [0, 7, 14, 15, 19],   // Gm(add9)  — open fifth, ninth
+      [0, 7, 15, 22, 26],   // Gm9       — color, still consonant
+      [0, 15, 17, 20, 22],  // Cm11/G    — subdominant lean over the pedal
+      [0, 8, 15, 19, 22]    // E♭maj9/G  — the softest place in the key
+    ],
+    chordNames: ['Gm(add9)', 'Gm9', 'Cm11/G', 'E♭maj9/G']
+  }, fx: { bloom: 0.5 },
+  tags: ['STRANGE ATTRACTOR', 'FLAME DENSITY', 'THE HUM PLAYS', 'RIFF HUNTING'],
+  desc: 'Four constants and a spark, rendered as flame: fold density becomes light, so the caustic anatomy burns instead of hiding. V4 turns the mix right side up — the humming IS the instrument now. The bed and the cathedral air swell, brighten and beat continuously with the apparition itself, and the orbit\'s sampled notes surface from inside that hum as soft swells instead of barging over it. Collapsed orbits condense into glowing dust — the smoke\'s own material, brightened — not lanterns.',
+  interact: 'L bends constant a, R bends constant b — the figure obeys instantly, and reach outward = more: at the sphere the map rests as condensed embers, full stretch on both sides is the torn smoke at its most chaotic. The hum answers every millimeter continuously — level, brightness and beating all ride the figure — while the orbit is still sampled on the beat for melody: position picks the pitch and pan, a collapsed orbit locks into a riff, a fast flick swells a run. Hunt the periodic windows between rest and full reach.',
+  sound: 'One instrument: a hum you play with the shape of the smoke. DRONE, promoted to the lead voice: sub root on a G pedal, five triangle voices (extensions earned as the figure fills), and the bandpassed cathedral air whose formants track the apparition\'s spread — all of it coupled continuously, so the hum swells, opens and beats wider the moment the figure does. Chord color drifts Gm(add9) → Gm9 → Cm11 → E♭maj9 every four bars, marked by a quiet low-to-high roll. QUANTIZED, demoted to texture: the orbit\'s landings become slow-attack swells well under the bed — they surface from the hum, they never bury it; sparse at rest, eighths at most, a locked orbit tolls its riff. REACTIVE: fast hands bend the whole hum down and it crawls back; a flick answers with a soft run. Ableton: arp ch4, pad ch2, bells ch5, sub on texture ch6; CC74 arp = drive, pad = figure.',
+  init(P) {
+    // CURATED SEED (same as V3): the figure must be rich where the hands
+    // actually reach; the rest corner may collapse — that is the design.
+    let c = 0.95, d = 0.8, bestScore = -1;
+    for (let tr = 0; tr < 8; tr++) {
+      const cc = 0.7 + P.rand() * 0.5, dd = 0.55 + P.rand() * 0.5;
+      let score = 0, pass = true;
+      for (const [a, b, floor] of [[-1.9, 2.0, 45], [-1.475, 1.575, 28], [-1.9, 1.15, 10], [-1.05, 2.0, 10]]) {
+        let x = 0.1, y = 0.1;
+        const seen = new Set();
+        for (let i = 0; i < 480; i++) {
+          const nx = Math.sin(a * y) + cc * Math.cos(a * x);
+          const ny = Math.sin(b * x) + dd * Math.cos(b * y);
+          x = nx; y = ny;
+          if (i > 220) seen.add((((x + 3) * 4) | 0) * 32 + (((y + 3) * 4) | 0));
+        }
+        if (seen.size < floor) pass = false;
+        score += Math.min(seen.size, floor * 2);
+      }
+      if (score > bestScore) { bestScore = score; c = cc; d = dd; }
+      if (pass) break;
+    }
+    P.state = {
+      x: 0.1, y: 0.1, c, d,
+      mx: 0.31, my: 0.17,              // the musical walker — same map, its own orbit
+      spreadX: 1, spreadY: 1,
+      pres: 0, occ: 0, vel: 0, pL: 0, pR: 0, tilt: 0, drive: 0,
+      den: null, img: null, dcv: null, dg: null, dw: 0, dh: 0, bandOf: null,
+      lut: null, lutPeak: -1, lutMix: -1, peak: 60,
+      sparks: [], histM: [], lockP: 0, lockN: 0, dt: 0.016
+    };
+  },
+  step(P, dt, t, inp) {
+    const s = P.state;
+    // REACH OUTWARD = MORE: sphere = rest (embers), full stretch = torn smoke
+    s.a = -1.05 - inp.L * 0.85;
+    s.b = 1.15 + inp.R * 0.85;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * (live ? 3 : 0.4));
+    s.vel = s.vel * Math.max(0, 1 - dt * 2.2) + (Math.abs(inp.L - s.pL) + Math.abs(inp.R - s.pR)) * 6;
+    s.pL = inp.L; s.pR = inp.R;
+    s.tilt = inp.L - inp.R;
+    s.dt = dt;
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state;
+    /* ---- FLAME-DENSITY RENDER (see V3) ---------------------------------
+       V4 drops the lantern sprites: a collapsing orbit instead deposits its
+       hits with a small halo kernel into the density field itself, so
+       condensed states read as brightened DUST — the same material as the
+       smoke, breathing on the beat — never as a different picture. */
+    const bw = Math.max(8, w >> 1), bh = Math.max(8, h >> 1);
+    if (s.dw !== bw || s.dh !== bh) {
+      s.dw = bw; s.dh = bh;
+      s.den = new Float32Array(bw * bh);
+      s.img = new ImageData(bw, bh);
+      const d = s.img.data;
+      for (let i = 3; i < d.length; i += 4) d[i] = 255;
+      s.dcv = document.createElement('canvas');
+      s.dcv.width = bw; s.dcv.height = bh;
+      s.dg = s.dcv.getContext('2d');
+      s.bandOf = new Uint32Array(bw);
+      for (let col = 0; col < bw; col++) s.bandOf[col] = (((col * 9) / bw) | 0) * 4096 * 3;
+      s.lutPeak = -1;
+    }
+    const den = s.den;
+    const cx = w / 2, cy = h / 2, scx = w * 0.215, scy = h * 0.265;
+    let { x, y } = s;
+    let sx = 0, sy = 0;
+    // condensation: how collapsed the figure is (from last frame's occupancy)
+    const jw = clamp((0.012 - s.occ) / 0.010);
+    const pulse = (typeof T !== 'undefined' && T.running) ? T.beatPulse() : 0.5;
+    const halo = jw > 0.05;
+    const n = P.focused ? (window.IS_MOBILE ? 7000 : (jw > 0.5 ? 6000 : 16000)) : 3000;
+    // ember radius (half-res cells) — breathes with the beat
+    const rr1 = jw * (3.2 + 1.2 * pulse), rr2 = jw * (9 + 4 * pulse);
+    for (let i = 0; i < n; i++) {
+      const nx = Math.sin(s.a * y) + s.c * Math.cos(s.a * x);
+      const ny = Math.sin(s.b * x) + s.d * Math.cos(s.b * y);
+      x = nx; y = ny;
+      sx += Math.abs(x); sy += Math.abs(y);
+      const bx = (cx + x * scx) >> 1, by = (cy + y * scy) >> 1;
+      if (bx >= 0 && bx < bw && by >= 0 && by < bh) {
+        den[by * bw + bx] += 1;
+        if (halo) {
+          // condensed orbits scatter extra hits into soft embers of DUST
+          // around each landing point — the smoke's own material, no sprites
+          const a1 = P.rand() * TAU, r1 = (P.rand() + P.rand()) * 0.5 * rr1;
+          const j1x = bx + Math.round(Math.cos(a1) * r1), j1y = by + Math.round(Math.sin(a1) * r1);
+          if (j1x >= 0 && j1x < bw && j1y >= 0 && j1y < bh) den[j1y * bw + j1x] += 0.7;
+          const a2 = P.rand() * TAU, r2 = (P.rand() + P.rand()) * 0.5 * rr2;
+          const j2x = bx + Math.round(Math.cos(a2) * r2), j2y = by + Math.round(Math.sin(a2) * r2);
+          if (j2x >= 0 && j2x < bw && j2y >= 0 && j2y < bh) den[j2y * bw + j2x] += 0.55;
+        }
+      }
+    }
+    s.x = x; s.y = y;
+    s.spreadX = sx / n; s.spreadY = sy / n;
+    /* palette LUT — nine bands across the frame, warm left → violet right
+       (the side law painted into the picture), hands slide the crossover.
+       V4: lighter ramps + a stronger low lift for visibility on mesh. */
+    if (!s.lut || Math.abs(s.peak - s.lutPeak) > s.lutPeak * 0.1 || Math.abs(s.tilt - s.lutMix) > 0.04) {
+      s.lutPeak = s.peak; s.lutMix = s.tilt;
+      const lut = s.lut || (s.lut = new Uint8ClampedArray(9 * 4096 * 3));
+      // stop 0 is IDENTICAL in both ramps — the background must not band
+      const VIO = [[3, 2, 6], [40, 26, 120], [140, 80, 210], [230, 150, 235], [252, 246, 255]];
+      const WRM = [[3, 2, 6], [90, 32, 52], [235, 110, 95], [255, 190, 90], [255, 250, 232]];
+      const inv = 1 / Math.log1p(s.peak);
+      for (let band = 0; band < 9; band++) {
+        const colFrac = (band + 0.5) / 9;
+        const mixW = clamp(0.5 + (0.5 - colFrac) * 1.4 + s.tilt * 0.35);
+        for (let i = 0; i < 4096; i++) {
+          const tt = Math.pow(clamp(Math.log1p(i / 16) * inv), 0.62) * 3.999;
+          const k = tt | 0, f = tt - k, k1 = k + 1 > 4 ? 4 : k + 1;
+          for (let ch = 0; ch < 3; ch++) {
+            const a0 = VIO[k][ch] + (WRM[k][ch] - VIO[k][ch]) * mixW;
+            const a1 = VIO[k1][ch] + (WRM[k1][ch] - VIO[k1][ch]) * mixW;
+            lut[(band * 4096 + i) * 3 + ch] = a0 + (a1 - a0) * f;
+          }
+        }
+      }
+    }
+    // one pass: decay + tone-map + occupancy + peak
+    const dec = Math.exp(-(s.dt || 0.016) * 2.4);
+    const d8 = s.img.data, lut = s.lut, bandOf = s.bandOf;
+    let rawMax = 0, lit = 0, col = 0;
+    for (let i = 0, j = 0; i < den.length; i++, j += 4) {
+      const v = den[i] * dec;
+      den[i] = v;
+      if (v > rawMax) rawMax = v;
+      if (v > 0.6) lit++;
+      const idx = bandOf[col] + (v >= 255 ? 4095 : (v * 16) | 0) * 3;
+      d8[j] = lut[idx]; d8[j + 1] = lut[idx + 1]; d8[j + 2] = lut[idx + 2];
+      col++; if (col === bw) col = 0;
+    }
+    s.peak = Math.max(30, s.peak + (rawMax - s.peak) * 0.08);
+    s.occ += (lit / den.length - s.occ) * 0.12;
+    s.dg.putImageData(s.img, 0, 0);
+    g.drawImage(s.dcv, 0, 0, w, h);
+    const k = Math.min(w, h) / 1200;
+    // NOTE SPARKS — each swell glows softly at the exact point that played it
+    if (s.sparks.length) {
+      const now = (typeof AE !== 'undefined' && AE.ctx) ? AE.t() : t;
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      for (let i = s.sparks.length - 1; i >= 0; i--) {
+        const sp = s.sparks[i];
+        const age = now - sp.at;
+        if (age > 1.0) { s.sparks.splice(i, 1); continue; }
+        if (age < -0.02) continue;
+        const px = cx + sp.fx * scx, py = cy + sp.fy * scy;
+        const r = (10 + age * 30) * k * (0.8 + sp.v * 3);
+        const al = Math.max(0, 1 - age / 1.0) * (0.16 + sp.v * 2.2);
+        const gr = g.createRadialGradient(px, py, 0, px, py, r);
+        const col2 = sp.fx < 0 ? '255,200,140' : '200,160,255';
+        gr.addColorStop(0, `rgba(${col2},${Math.min(0.6, al)})`);
+        gr.addColorStop(1, `rgba(${col2},0)`);
+        g.fillStyle = gr;
+        g.fillRect(px - r, py - r, r * 2, r * 2);
+      }
+      g.restore();
+    }
+    g.fillStyle = 'rgba(140,190,110,0.8)'; g.font = '10px ui-monospace,monospace';
+    g.fillText('A ' + s.a.toFixed(3) + '  B ' + s.b.toFixed(3) + '  C ' + s.c.toFixed(2) + '  D ' + s.d.toFixed(2), 10, h - 10);
+    if (P.focused) {
+      g.fillStyle = 'rgba(140,190,110,0.55)';
+      g.fillText('FIGURE ' + Math.round(clamp(s.occ / 0.09) * 100) + '   DRIVE ' + Math.round(s.drive * 100) +
+        (s.lockP ? '   RIFF ×' + s.lockP : ''), 10, h - 24);
+    }
+  },
+  audio(A, P) {
+    const v = A.voice();
+
+    /* --- THE HUM, promoted to the instrument -----------------------------
+       Three bandpassed airs (the cathedral breath), a sub pedal, and five
+       triangle voices. Everything here is coupled CONTINUOUSLY to the
+       figure: level, brightness, formants and beating all move the moment
+       the smoke does — this layer is what a hand plays first. */
+    const n1 = v.noise(), n2 = v.noise(), n3 = v.noise();
+    const f1 = v.filter('bandpass', 800, 6), f2 = v.filter('bandpass', 1400, 6), f3 = v.filter('bandpass', 480, 8);
+    const g1 = v.g(0.014), g2 = v.g(0.014), g3 = v.g(0.008);
+    n1.connect(f1); f1.connect(g1); g1.connect(v.group);
+    n2.connect(f2); f2.connect(g2); g2.connect(v.group);
+    n3.connect(f3); f3.connect(g3); g3.connect(v.group);
+
+    const sub = v.osc('sine', H.rootFreq(-1));
+    const sg = v.g(0.05);
+    sub.connect(sg); sg.connect(v.group);
+
+    const pads = A.padVoices(v, 5, { type: 'triangle', gain: 0.0001, cutoff: 320, q: 0.8 });
+    const setPads = (gl) => { for (let i = 0; i < 5; i++) pads[i].set(H.chordTone(i, 0), gl); };
+    setPads(0.05);
+    let fig = 0;
+    H.onChord(() => {
+      setPads(0.18);
+      // a quiet low-to-high roll marks the turn — under the hum, not over it
+      [2, 3, 4].forEach((ci, i) => {
+        A.bell(H.chordTone(ci, 1), { at: A.t() + i * 0.09, vol: 0.011 + fig * 0.012, pan: (i - 1) * 0.4, rev: 0.7 });
+      });
+    });
+    v.fadeIn(1, 1.6);
+
+    let nextT = T.next(0.25), burst = 0, coolT = -9, swoop = 0;
+    return {
+      tick(inp, dt) {
+        const s = P.state;
+        dt = Math.min(0.1, dt || 0.016);
+        const now = A.t();
+        fig = clamp(s.occ / 0.09);
+        const drive = s.drive = s.pres * (0.25 + 0.75 * fig);
+
+        // REACTIVE — a fast hand bends the whole hum down and it crawls back
+        swoop = Math.max(swoop * Math.pow(0.12, dt), Math.min(1, s.vel * 0.35));
+        pads.forEach((p, i) => {
+          A.set(p.o1.detune, -4 - i * 1.8 - 170 * swoop - drive * 6, 0.06);
+          A.set(p.o2.detune, 5 + i * 2.4 - 170 * swoop + drive * 6, 0.06);
+        });
+        if (s.vel > 1.4 && now - coolT > 0.6) { burst = 4; coolT = now; }
+
+        // THE HUM — louder than V3 by design, extensions earned by the figure,
+        // brightness and formants opening as the smoke fills the frame
+        const bedAmp = 0.7 + 0.3 * s.pres;
+        pads[0].level(0.016 * bedAmp, 0.4);
+        pads[1].level(0.014 * bedAmp * clamp(fig * 4), 0.4);
+        pads[2].level(0.013 * bedAmp * clamp((fig - 0.15) / 0.3), 0.5);
+        pads[3].level(0.012 * bedAmp * clamp((fig - 0.3) / 0.3), 0.5);
+        pads[4].level(0.012 * bedAmp * clamp((fig - 0.45) / 0.3), 0.5);
+        pads.forEach(p => p.bright(240 + fig * 420 + (s.spreadX + s.spreadY) * 160, 0.4));
+        A.set(sg.gain, 0.04 + fig * 0.035, 0.5);
+        A.set(f1.frequency, 300 + s.spreadX * 900, 0.2);
+        A.set(f2.frequency, 500 + s.spreadY * 1400, 0.2);
+        A.set(f3.frequency, 420 + fig * 260, 0.3);
+        A.set(g1.gain, 0.012 + (1 - fig * 0.5) * 0.014, 0.4);
+        A.set(g2.gain, 0.012 + (1 - fig * 0.5) * 0.014, 0.4);
+        A.set(g3.gain, 0.006 + fig * 0.007, 0.4);
+
+        /* QUANTIZED — the orbit still writes the melody, but as SLOW-ATTACK
+           SWELLS well under the bed: they surface from inside the hum and
+           sink back into it. Eighths at most; a locked orbit tolls its riff. */
+        const horizon = now + 0.15;
+        while (nextT < horizon) {
+          const tt = nextT;
+          const stAbs = Math.round((tt - T.t0) / (T.beat * 0.25));
+          const st = ((stAbs % 16) + 16) % 16, barAt = Math.floor(stAbs / 16);
+          let play = false, vol = 0;
+          if (burst > 0) { play = true; burst--; vol = 0.04; }
+          else if (drive < 0.08) {
+            if (st === 0 && barAt % 2 === 0) { play = true; vol = 0.02; }
+          } else if (s.lockP === 1) {
+            if (st % 8 === 0) { play = true; vol = 0.028; }
+          } else if (drive < 0.4) { if (st % 4 === 0) { play = true; vol = 0.026; } }
+          else { if (st % 2 === 0 || st === 14) { play = true; vol = 0.03; } }
+          if (play) {
+            for (let k = 0; k < 3; k++) {
+              const nx = Math.sin(s.a * s.my) + s.c * Math.cos(s.a * s.mx);
+              const ny = Math.sin(s.b * s.mx) + s.d * Math.cos(s.b * s.my);
+              s.mx = nx; s.my = ny;
+            }
+            if (!isFinite(s.mx) || !isFinite(s.my)) { s.mx = 0.31; s.my = 0.17; }
+            s.histM.push([s.mx, s.my]);
+            if (s.histM.length > 13) s.histM.shift();
+            let lp = 0;
+            for (let p = 1; p <= 6 && !lp; p++) {
+              const q = s.histM.length - 1 - p;
+              if (q < 0) break;
+              const hx = s.histM[q][0] - s.mx, hy = s.histM[q][1] - s.my;
+              if (hx * hx + hy * hy < 1.5e-3) lp = p;
+            }
+            s.lockN = lp ? Math.min(9, s.lockN + 1) : 0;
+            s.lockP = s.lockN >= 3 ? lp : 0;
+            const lad = Math.max(0, Math.min(7, Math.round(((s.mx / 2.2) + 1) * 3.5)));
+            const oct = 1 + (s.my < -0.35 ? 1 : 0);
+            let local = 0;
+            if (s.den && s.dw) {
+              const bx = ((s.dw + s.mx * s.dw * 0.43) / 2) | 0, by = ((s.dh + s.my * s.dh * 0.53) / 2) | 0;
+              if (bx >= 0 && bx < s.dw && by >= 0 && by < s.dh) local = clamp(Math.log1p(s.den[by * s.dw + bx]) / Math.log1p(s.peak));
+            }
+            vol = (vol + local * 0.02) * (st === 0 ? 1.5 : st % 4 === 0 ? 1.2 : 1);
+            const dur = drive < 0.4 ? 2.2 : 1.5;
+            A.tone(H.chordTone(lad, oct), {
+              at: tt, vol, dur, attack: 0.18, type: 'triangle',
+              pan: clamp(s.mx / 2.2, -1, 1) * 0.7, rev: 0.6, del: 0.1, role: 'arp'
+            });
+            s.sparks.push({ fx: s.mx, fy: s.my, at: tt, v: vol });
+            if (s.sparks.length > 24) s.sparks.shift();
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('arp', drive);
+          MOut.expr('pad', fig);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+})
+/* ---------- SRC-13.2 · CABLE STRUM V2 — the wave you see is the arpeggio you hear ---------- */
+reg({
+  id: 'SRC-13.2', family: 'SRC-13', ver: 2, title: 'Cable Strum V2', tech: 'VERLET ROPE / BEAD RAKE',
+  music: {
+    bpm: 76, root: 45, mode: 'dorian', chordBars: 2,
+    chords: [
+      [0, 15, 19, 22, 26],   // Am13 — the dorian sixth, warm home
+      [0, 14, 17, 21, 24],   // D/A  — the lift, still on the pedal
+      [0, 15, 19, 24, 29],   // Am11 — suspension
+      [0, 10, 15, 19, 26]    // Am9  — settle
+    ],
+    chordNames: ['Am13', 'D/A', 'Am11', 'Am9']
+  },
+  fx: { bloom: 0.5 },
+  tags: ['SOFT BODY', 'BEAD RAKE', 'WAVE = ARPEGGIO', 'STRING SECTION SWELL', 'PHYSICAL STRING'],
+  desc: 'The slack cable, restrung as a harp. Thirteen luminous beads sit on the span, each one a tone of the current chord — low and orange at the left mast, high and violet at the right. Jerk a hand and the wave you launch rakes the beads as it travels: the ripple you watch cross the cable IS the arpeggio you hear cross the room. Behind it the cable sheds light — a warm orange-to-pink wash pooling below the catenary, and ghost echoes of where the wire just was.',
+  interact: 'L = height of the left anchor, R = right. Fast moves strum — the traveling wave plays each bead it passes, left hand launches runs that climb, right hand launches runs that fall. Slow moves conduct: raising both arms pulls the cable taut and a string section swells in voice by voice, left arm the low strings, right arm the high. Tension also slides the whole bead ladder up — taut is higher and brighter. Asymmetry tilts the catenary and the voicing with it.',
+  sound: 'Three layers. DRONE: the AC-line hum on the root pedal, plus six triangle string voices that join one at a time as each arm rises — left arm admits the low trio (cellos, an octave down), right arm the high trio — so raising both arms builds the wall of sound by hand. QUANTIZED: past two-thirds tension a bead-shimmer tremolo fades in on 8ths, 16ths above 85% — earned, never default. REACTIVE: every bead the wave crosses fires a Karplus-style pluck on the chord ladder, velocity from wave amplitude, panned to where the bead hangs; simultaneous hits are rolled 50ms apart so a hard strum is a harp rake, not a chord slab. All of it is the chord ladder of an A-dorian pedal (Am13 · D/A · Am11 · Am9), so any cascade is musical. Ableton: plucks ch1 (lead), shimmer ch4 (arp), strings via texture ch6, CC74 per role = that layer\'s energy.',
+
+  init(P) {
+    const N = 40, NB = 13;
+    const nodes = [];
+    for (let i = 0; i < N; i++) nodes.push({ x: 0, y: 0, ox: 0, oy: 0 });
+    const beads = [];
+    // beads live on interior nodes — the anchor nodes are pinned and never move
+    for (let k = 0; k < NB; k++) {
+      beads.push({ ni: 2 + Math.round(k * (N - 5) / (NB - 1)), flare: 0, armed: true, lastT: -9 });
+    }
+    P.state = {
+      N, NB, nodes, beads, seg: 0, tension: 0, wave: 0, pres: 0,
+      uL: 0, uR: 0, vL: 0, vR: 0, rakes: 0, lastRakeAt: 0,
+      hist: [], histAcc: 0, idleKick: 0, shimmer: 0, init: false
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, { N, nodes } = s, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    // idle = the cable breathes on a slow swell; live hands take over smoothly
+    const idL = 0.16 + 0.09 * Math.sin(t * 0.21), idR = 0.16 + 0.09 * Math.sin(t * 0.26 + 2.1);
+    s.uL = clamp(inp.L) * s.pres + idL * (1 - s.pres);
+    s.uR = clamp(inp.R) * s.pres + idR * (1 - s.pres);
+    const ax = w * 0.08, bx = w * 0.92;
+    const ay = h * (0.62 - s.uL * 0.46), by = h * (0.62 - s.uR * 0.46);
+    if (!s.init) {
+      s.init = true; s.born = t;
+      // seed at (approximately) the natural hang for the current rest length,
+      // so opening the scene is a settle, not a bounce that strums everything
+      const span = bx - ax;
+      const extra = Math.max(8, (1.16 - 0.22 * ((s.uL + s.uR) / 2)) * span - span);
+      const sag = Math.sqrt(3 * span * extra / 8);
+      for (let i = 0; i < N; i++) {
+        const tt = i / (N - 1);
+        nodes[i].x = nodes[i].ox = lerp(ax, bx, tt);
+        nodes[i].y = nodes[i].oy = lerp(ay, by, tt) + Math.sin(tt * Math.PI) * sag;
+      }
+    }
+    // idle tease: every so often the wind plucks the wire, softly
+    if (s.pres < 0.2 && t - s.idleKick > 8) {
+      s.idleKick = t + P.rand() * 5;
+      const ni = 6 + Math.floor(P.rand() * (N - 12));
+      for (let i = -2; i <= 2; i++) nodes[ni + i].oy -= (3 - Math.abs(i)) * 4;
+    }
+    // raising hands also winches the cable in: high hands = taut + high pitch.
+    // Slack range is capped so the crown of the sag never leaves the frame.
+    s.seg = (bx - ax) * (1.16 - 0.22 * ((s.uL + s.uR) / 2)) / (N - 1);
+    const sub = 2;
+    for (let ss = 0; ss < sub; ss++) {
+      const sdt = dt / sub;
+      for (let i = 1; i < N - 1; i++) {
+        const nd = nodes[i];
+        const vx = (nd.x - nd.ox) * 0.996, vy = (nd.y - nd.oy) * 0.996;
+        nd.ox = nd.x; nd.oy = nd.y;
+        nd.x += vx; nd.y += vy + 1300 * sdt * sdt;
+      }
+      nodes[0].x = ax; nodes[0].y = ay;
+      nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      for (let it = 0; it < 22; it++) {
+        for (let i = 0; i < N - 1; i++) {
+          const a = nodes[i], b = nodes[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy) || 1e-5;
+          const diff = (d - s.seg) / d * 0.5;
+          const mA = i === 0 ? 0 : 1, mB = i === N - 2 ? 0 : 1;
+          const tot = mA + mB || 1;
+          a.x += dx * diff * 2 * mA / tot; a.y += dy * diff * 2 * mA / tot;
+          b.x -= dx * diff * 2 * mB / tot; b.y -= dy * diff * 2 * mB / tot;
+        }
+        nodes[0].x = ax; nodes[0].y = ay;
+        nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      }
+    }
+    // tension is GEOMETRY, not solver residual: how much longer the rope's
+    // path is than the straight line between its anchors. Slack sag = 0,
+    // winched straight = 1 — monotonic, and honest about a tilted catenary
+    // (a rope hung from one high hand really is tighter).
+    let pathLen = 0;
+    for (let i = 0; i < N - 1; i++) pathLen += Math.hypot(nodes[i + 1].x - nodes[i].x, nodes[i + 1].y - nodes[i].y);
+    const chord = Math.hypot(bx - ax, by - ay);
+    s.tension += (clamp(1 - (pathLen / chord - 1) / 0.12) - s.tension) * Math.min(1, dt * 4);
+    let wave = 0;
+    for (let i = 1; i < N - 1; i++) wave += Math.abs(nodes[i].y - nodes[i].oy);
+    s.wave += (wave / N - s.wave) * 0.25;
+
+    // THE RAKE — each bead is a chord tone; the wave crossing it plays it.
+    // Schmitt per bead so one crest = one note, cooldown so a standing
+    // oscillation can't machine-gun.
+    // the settle after (re)seed is not a performance — no rakes until the
+    // rope has found its hang
+    const gate = (t - s.born < 3) ? 0 : 0.3 + s.pres * 0.7;
+    for (let k = 0; k < s.NB; k++) {
+      const b = s.beads[k], nd = nodes[b.ni];
+      const amp = Math.abs(nd.y - nd.oy);
+      b.flare *= Math.exp(-dt * 2.8);
+      if (gate > 0 && b.armed && amp > 2.3 && t - b.lastT > 0.22) {
+        b.armed = false; b.lastT = t; b.flare = 1; s.rakes++;
+        const idx = k + Math.floor(s.tension * 4);   // taut slides the ladder up
+        const freq = H.chordTone(Math.min(idx, 16), 0);
+        const vol = clamp(amp / 26, 0.05, 0.26) * gate;
+        const pan = ((nd.x / w) * 2 - 1) * 0.8;
+        P.ping(A => {
+          // quantize to the 16th, but roll simultaneous hits ~50ms apart —
+          // a hard strum is a harp rake, not a chord slab
+          let at = A.q();
+          if (at < s.lastRakeAt + 0.05) at = s.lastRakeAt + 0.05;
+          s.lastRakeAt = at;
+          A.pluck2(freq, { at, vol, dur: 1.7, pan, rev: 0.42, del: 0.18, role: 'lead' });
+          if (vol > 0.14) A.hit({ at, vol: vol * 0.3, dur: 0.03, freq: freq * 6, q: 2 });
+        });
+      } else if (!b.armed && amp < 0.9) b.armed = true;
+    }
+
+    // echo history — a snapshot of the wire every 55ms, kept short
+    s.histAcc += dt;
+    if (s.histAcc > 0.055) {
+      s.histAcc = 0;
+      const snap = new Float32Array(N * 2);
+      for (let i = 0; i < N; i++) { snap[i * 2] = nodes[i].x; snap[i * 2 + 1] = nodes[i].y; }
+      s.hist.push(snap);
+      if (s.hist.length > 5) s.hist.shift();
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { N, nodes } = s;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(6,5,8,0.5)'; g.fillRect(0, 0, w, h);
+
+    const ax = nodes[0].x, bx = nodes[N - 1].x;
+
+    // THE WASH — one continuous gradient pooling under the catenary,
+    // orange at the wire falling through pink to nothing. Its top edge is
+    // the cable curve itself, so there are no bars and no seams.
+    let topY = h;
+    for (let i = 0; i < N; i++) if (nodes[i].y < topY) topY = nodes[i].y;
+    const glow = clamp(0.10 + s.tension * 0.16 + Math.min(0.16, s.wave * 0.035)) * (0.45 + s.pres * 0.55);
+    const gr = g.createLinearGradient(0, topY, 0, h * 0.99);
+    gr.addColorStop(0, `rgba(255,150,72,${glow})`);
+    gr.addColorStop(0.4, `rgba(255,96,132,${glow * 0.42})`);
+    gr.addColorStop(0.78, 'rgba(255,60,150,0)');
+    gr.addColorStop(1, 'rgba(255,60,150,0)');
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.lineTo(bx, h); g.lineTo(ax, h); g.closePath();
+    g.fill();
+    // a soft bloom hugging the wire so the wash reads as light the cable sheds
+    g.globalCompositeOperation = 'lighter';
+    g.strokeStyle = `rgba(255,130,90,${0.04 + s.tension * 0.05})`;
+    g.lineWidth = Math.min(w, h) * 0.05;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.stroke();
+    g.globalCompositeOperation = 'source-over';
+
+    // ECHOES — ghosts of where the wire just was. Only motion leaves them:
+    // a still cable is one clean line, a strummed one trails its own past.
+    const echoA = clamp(s.wave / 1.6);
+    if (echoA > 0.04) {
+      for (let e2 = 0; e2 < s.hist.length; e2++) {
+        const snap = s.hist[e2];
+        const a = ((e2 + 1) / s.hist.length) * 0.11 * echoA;
+        g.strokeStyle = `rgba(236,120,200,${a})`;
+        g.lineWidth = 2.4 * ms;
+        g.beginPath();
+        g.moveTo(snap[0], snap[1]);
+        for (let i = 1; i < N; i++) g.lineTo(snap[i * 2], snap[i * 2 + 1]);
+        g.stroke();
+      }
+    }
+
+    // masts — side law: left is the warm country, right the violet
+    const MC = ['#ffb266', '#b48aff'];
+    [[nodes[0], MC[0]], [nodes[N - 1], MC[1]]].forEach(([nd, col]) => {
+      g.strokeStyle = 'rgba(140,125,110,0.5)'; g.lineWidth = 2.2 * ms;
+      g.beginPath(); g.moveTo(nd.x, h * 0.97); g.lineTo(nd.x, nd.y - 8 * ms); g.stroke();
+      g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 12 * ms;
+      g.beginPath(); g.arc(nd.x, nd.y, 4 * ms, 0, TAU); g.fill();
+      g.shadowBlur = 0;
+    });
+
+    // THE CABLE — fat enough for mesh, orange fading to violet across the span
+    const cg = g.createLinearGradient(ax, 0, bx, 0);
+    cg.addColorStop(0, '#ffb266'); cg.addColorStop(0.5, '#ff8fa8'); cg.addColorStop(1, '#b48aff');
+    g.strokeStyle = cg;
+    g.lineWidth = (3.4 + s.tension * 1.2) * ms;
+    g.shadowColor = '#ff9d76'; g.shadowBlur = (5 + s.tension * 9 + s.wave * 2) * ms;
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    // THE BEADS — the chord ladder made visible; a raked bead flares
+    for (let k = 0; k < s.NB; k++) {
+      const b = s.beads[k], nd = nodes[b.ni];
+      const u = (nd.x - ax) / (bx - ax || 1);
+      const r0 = 255 - u * 75, g0 = 178 - u * 40, b0 = 102 + u * 153;
+      const r = (4.6 + b.flare * 3.6) * ms;
+      g.shadowColor = `rgb(${r0 | 0},${g0 | 0},${b0 | 0})`;
+      g.shadowBlur = (6 + b.flare * 22) * ms;
+      g.fillStyle = `rgba(${(r0 + b.flare * (255 - r0)) | 0},${(g0 + b.flare * (255 - g0)) | 0},${(b0 + b.flare * (255 - b0)) | 0},${0.55 + b.flare * 0.45})`;
+      g.beginPath(); g.arc(nd.x, nd.y, r, 0, TAU); g.fill();
+    }
+    g.shadowBlur = 0;
+
+    g.fillStyle = '#060508'; g.fillRect(0, h - 24, 340, 24);
+    g.fillStyle = 'rgba(255,170,140,0.85)'; g.font = `${Math.round(10 * Math.min(ms, 1.4))}px ui-monospace,monospace`;
+    g.fillText('TENSION ' + (s.tension * 100).toFixed(0) + '%  ·  ' + (H.label || '') +
+      '  ·  STRINGS ' + s.vL + '+' + s.vR + '/6  ·  RAKE ' + s.rakes +
+      (s.pres < 0.3 ? '  ·  RESTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    // the AC-line hum — V1's identity, kept: the wire is electric
+    const hum = v.osc('sine', H.rootFreq(-2)), hum2 = v.osc('sine', H.rootFreq(-1));
+    const hg = v.g(0.012);
+    hum.connect(hg); hum2.connect(hg); hg.connect(v.group);
+
+    // THE SECTION — six triangle strings. Left arm admits the low trio an
+    // octave down, right arm the high trio; each voice has its own admission
+    // threshold so raising an arm is players joining one by one.
+    const bedLo = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 300, q: 0.7 });
+    const bedHi = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 620, q: 0.7 });
+    const place = glide => {
+      bedLo.forEach((b, i) => b.set(H.chordTone(i, -1), glide));
+      bedHi.forEach((b, i) => b.set(H.chordTone(i + 2, 0), glide));
+    };
+    place(0.05);
+    H.onChord(() => {
+      place(0.18);   // snap, no jet takeoff — the roll marks the moment instead
+      const s = P.state;
+      if (s.tension > 0.3) {
+        const gate = 0.3 + s.pres * 0.7;
+        for (let i = 0; i < 3; i++) {
+          A.pluck2(H.chordTone(i * 2, 0), {
+            at: A.t() + 0.05 + i * 0.07, vol: (0.018 + s.tension * 0.02) * gate,
+            dur: 1.3, pan: -0.3 + i * 0.3, rev: 0.6, del: 0.1, role: 'lead'
+          });
+        }
+      }
+    });
+    v.fadeIn(1, 0.8);
+
+    const TH = [0.18, 0.45, 0.72];   // admission height per chair
+    let nextT = T.next(0.25), shimI = 0;
+    return {
+      tick(inp) {
+        const s = P.state, now = A.t();
+        const gate = 0.3 + s.pres * 0.7;
+        A.set(hg.gain, (0.006 + s.tension * 0.03) * gate, 0.3);
+
+        let vL = 0, vR = 0;
+        for (let j = 0; j < 3; j++) {
+          const ll = clamp((s.uL - TH[j]) / 0.14), lr = clamp((s.uR - TH[j]) / 0.14);
+          if (ll > 0.5) vL++;
+          if (lr > 0.5) vR++;
+          const body = 0.55 + s.tension * 0.45;
+          bedLo[j].level(0.0095 * ll * body * gate, 0.5);
+          bedHi[j].level(0.008 * lr * body * gate, 0.5);
+          bedLo[j].bright(240 + s.tension * 420, 0.4);
+          bedHi[j].bright(480 + s.tension * 900, 0.4);
+        }
+        s.vL = vL; s.vR = vR;
+
+        // THE SHIMMER — earned tremolo across the beads, only when taut.
+        // 8ths past 62% tension, 16ths past 85%; downbeats accented.
+        const amp = clamp((s.tension - 0.62) / 0.38) * s.pres;
+        s.shimmer = amp;
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+          if (amp > 0 && (st % 2 === 0 || s.tension > 0.85)) {
+            shimI++;
+            const p = shimI % 24, k = p < 13 ? p : 24 - p;   // ping-pong the span
+            const acc = st === 0 ? 1.3 : st % 4 === 0 ? 1.12 : 1;
+            A.pluck2(H.chordTone(Math.min(k + Math.floor(s.tension * 4), 16), 0), {
+              at: nextT, vol: (0.012 + amp * 0.02) * acc * gate,
+              dur: 0.5, pan: (k / 12 * 2 - 1) * 0.7, rev: 0.5, del: 0.25, role: 'arp'
+            });
+            const bd = s.beads[k];
+            if (bd) bd.flare = Math.max(bd.flare, 0.45);
+          }
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('lead', clamp(s.wave / 4));
+          MOut.expr('arp', amp);
+          MOut.expr('texture', s.tension);
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-13.3 · CABLE STRUM V3 — the conductor, dark ---------- */
+/* Lance's V2 verdicts: the per-bead rake machine-gunned ("5000 notes") — one
+   gesture must be ONE statement; the conductor swell is the core, gate it
+   rhythmically; echoes should be the visual feature (main line crisp);
+   darker, dramatic, Zimmer. */
+reg({
+  id: 'SRC-13.3', family: 'SRC-13', ver: 3, title: 'Cable Strum V3', tech: 'VERLET ROPE / GATED SECTION',
+  music: {
+    bpm: 68, root: 45, mode: 'aeolian', chordBars: 2,
+    chords: [
+      [0, 12, 19, 24, 26],   // Am9 (open — no third, all weight)
+      [0, 8, 15, 19, 24],    // F/A — the bVI lift
+      [0, 10, 14, 17, 24],   // G/A — bVII
+      [0, 10, 15, 19, 27]    // Am7 — home, C on top
+    ],
+    chordNames: ['Am9', 'F/A', 'G/A', 'Am7']
+  },
+  fx: { bloom: 0.55 },
+  tags: ['CONDUCTOR', 'GATED STRINGS', 'RIBBON ECHO', 'EPIC MINOR', 'ONE GESTURE ONE STATEMENT'],
+  desc: 'The cable as a baton. Raise your arms and a dark string section assembles voice by voice over a pulsing root — and as the tension climbs the whole wall of sound starts to GATE, throbbing on the grid like a sequenced orchestra, taiko booms landing on the bar. Jerk a hand and the wave you launch is one rolled run across the beads, not a hail of notes; the wire itself just whooshes. Behind the crisp cable, every shape it has recently held hangs in the air as fading ribbons.',
+  interact: 'L = left arm of the conductor, R = right. Height builds the orchestra: low strings enter on the left arm, high strings on the right, the pulse and the booms arrive as the cable tightens, and the rhythmic gate deepens with tension. A fast flick throws a wave — one dark run in the direction you threw it, whoosh from the wire, ribbons in the air. Asymmetry tilts the catenary and the voicing.',
+  sound: 'Zimmer logic: an epic-minor pedal (Am9 · F/A · G/A · Am7, i–bVI–bVII–i at 68), six triangle string chairs joining one at a time as the arms rise, a sub root and AC hum underneath. Past half tension an 8th-note root pulse starts driving; the string bed runs through a tempo-synced GATE whose depth grows with tension (8ths, then 16ths near full) — CC74 on the pad channel streams the gate depth, so map it to the gate/filter amount of the string plugin in Live and the rack breathes with the picture. Bar-downbeat taiko booms past half tension, a second hit past three-quarters, one big arrival boom when the sixth chair sits down. A flick = ONE rolled five-note run on the low chord ladder (ascending from the left hand, descending from the right, 0.8s cooldown per side); the wave itself is a pitched-noise whoosh, not notes. Ableton: runs ch1, pulse ch3, pad ch2/6, booms ch10.',
+
+  init(P) {
+    const N = 40, NB = 13;
+    const nodes = [];
+    for (let i = 0; i < N; i++) nodes.push({ x: 0, y: 0, ox: 0, oy: 0 });
+    const beads = [];
+    for (let k = 0; k < NB; k++) {
+      beads.push({ ni: 2 + Math.round(k * (N - 5) / (NB - 1)), flare: 0 });
+    }
+    P.state = {
+      N, NB, nodes, beads, seg: 0, tension: 0, wave: 0, pres: 0,
+      uL: 0, uR: 0, vL: 0, vR: 0, gate: 0, runs: 0,
+      prevAy: 0, prevBy: 0, cdL: 0, cdR: 0, strumQ: [],
+      hist: [], histAcc: 0, idleKick: 0, born: 0, init: false
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, { N, nodes } = s, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const idL = 0.16 + 0.09 * Math.sin(t * 0.21), idR = 0.16 + 0.09 * Math.sin(t * 0.26 + 2.1);
+    s.uL = clamp(inp.L) * s.pres + idL * (1 - s.pres);
+    s.uR = clamp(inp.R) * s.pres + idR * (1 - s.pres);
+    const ax = w * 0.08, bx = w * 0.92;
+    const ay = h * (0.62 - s.uL * 0.46), by = h * (0.62 - s.uR * 0.46);
+    if (!s.init) {
+      s.init = true; s.born = t; s.prevAy = ay; s.prevBy = by;
+      const span = bx - ax;
+      const extra = Math.max(8, (1.16 - 0.22 * ((s.uL + s.uR) / 2)) * span - span);
+      const sag = Math.sqrt(3 * span * extra / 8);
+      for (let i = 0; i < N; i++) {
+        const tt = i / (N - 1);
+        nodes[i].x = nodes[i].ox = lerp(ax, bx, tt);
+        nodes[i].y = nodes[i].oy = lerp(ay, by, tt) + Math.sin(tt * Math.PI) * sag;
+      }
+    }
+    if (s.pres < 0.2 && t - s.idleKick > 9) {
+      s.idleKick = t + P.rand() * 5;
+      const ni = 6 + Math.floor(P.rand() * (N - 12));
+      for (let i = -2; i <= 2; i++) nodes[ni + i].oy -= (3 - Math.abs(i)) * 4;
+    }
+
+    // THE STRUM — the trigger is the HAND's jerk, never the rope's ringing.
+    // One flick = one statement: a single rolled run, fired into the audio
+    // tick's queue, per-side cooldown. Gravity-swinging the cable just makes
+    // it whoosh and ribbon; it cannot machine-gun.
+    const settled = t - s.born > 3;
+    if (settled && s.pres > 0.3 && dt > 0) {
+      const vA = Math.abs(ay - s.prevAy) / (h * dt), vB = Math.abs(by - s.prevBy) / (h * dt);
+      if (vA > 0.9 && t > s.cdL) { s.cdL = t + 0.8; s.runs++; s.strumQ.push({ dir: 1, sp: vA }); }
+      if (vB > 0.9 && t > s.cdR) { s.cdR = t + 0.8; s.runs++; s.strumQ.push({ dir: -1, sp: vB }); }
+      if (s.strumQ.length > 3) s.strumQ.length = 3;
+    }
+    s.prevAy = ay; s.prevBy = by;
+
+    s.seg = (bx - ax) * (1.16 - 0.22 * ((s.uL + s.uR) / 2)) / (N - 1);
+    const sub = 2;
+    for (let ss = 0; ss < sub; ss++) {
+      const sdt = dt / sub;
+      for (let i = 1; i < N - 1; i++) {
+        const nd = nodes[i];
+        const vx = (nd.x - nd.ox) * 0.996, vy = (nd.y - nd.oy) * 0.996;
+        nd.ox = nd.x; nd.oy = nd.y;
+        nd.x += vx; nd.y += vy + 1300 * sdt * sdt;
+      }
+      nodes[0].x = ax; nodes[0].y = ay;
+      nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      for (let it = 0; it < 22; it++) {
+        for (let i = 0; i < N - 1; i++) {
+          const a = nodes[i], b = nodes[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy) || 1e-5;
+          const diff = (d - s.seg) / d * 0.5;
+          const mA = i === 0 ? 0 : 1, mB = i === N - 2 ? 0 : 1;
+          const tot = mA + mB || 1;
+          a.x += dx * diff * 2 * mA / tot; a.y += dy * diff * 2 * mA / tot;
+          b.x -= dx * diff * 2 * mB / tot; b.y -= dy * diff * 2 * mB / tot;
+        }
+        nodes[0].x = ax; nodes[0].y = ay;
+        nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      }
+    }
+    let pathLen = 0;
+    for (let i = 0; i < N - 1; i++) pathLen += Math.hypot(nodes[i + 1].x - nodes[i].x, nodes[i + 1].y - nodes[i].y);
+    const chord = Math.hypot(bx - ax, by - ay);
+    s.tension += (clamp(1 - (pathLen / chord - 1) / 0.12) - s.tension) * Math.min(1, dt * 4);
+
+    let wave = 0;
+    for (let i = 1; i < N - 1; i++) wave += Math.abs(nodes[i].y - nodes[i].oy);
+    s.wave += (wave / N - s.wave) * 0.25;
+
+    // beads flare as the wave passes them — VISUAL ONLY, the light show of
+    // the run, decoupled from note triggering
+    for (let k = 0; k < s.NB; k++) {
+      const b = s.beads[k], nd = nodes[b.ni];
+      const amp = Math.abs(nd.y - nd.oy);
+      b.flare *= Math.exp(-dt * 2.6);
+      if (settled && amp > 2.0) b.flare = Math.max(b.flare, Math.min(1, amp / 7));
+    }
+
+    // ribbon history — long enough to hang in the air (the feature now)
+    s.histAcc += dt;
+    if (s.histAcc > 0.045) {
+      s.histAcc = 0;
+      const snap = new Float32Array(N * 2);
+      for (let i = 0; i < N; i++) { snap[i * 2] = nodes[i].x; snap[i * 2 + 1] = nodes[i].y; }
+      s.hist.push(snap);
+      if (s.hist.length > 22) s.hist.shift();
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { N, nodes } = s;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(5,4,7,0.5)'; g.fillRect(0, 0, w, h);
+
+    const ax = nodes[0].x, bx = nodes[N - 1].x;
+
+    // the wash — one continuous fill under the catenary, darker at rest
+    let topY = h;
+    for (let i = 0; i < N; i++) if (nodes[i].y < topY) topY = nodes[i].y;
+    const glow = clamp(0.06 + s.tension * 0.15 + Math.min(0.12, s.wave * 0.03)) * (0.4 + s.pres * 0.6);
+    const gr = g.createLinearGradient(0, topY, 0, h * 0.99);
+    gr.addColorStop(0, `rgba(255,140,66,${glow})`);
+    gr.addColorStop(0.4, `rgba(255,90,128,${glow * 0.4})`);
+    gr.addColorStop(0.75, 'rgba(200,60,160,0)');
+    gr.addColorStop(1, 'rgba(200,60,160,0)');
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.lineTo(bx, h); g.lineTo(ax, h); g.closePath();
+    g.fill();
+
+    // THE RIBBONS — every shape the wire has recently held, hanging in the
+    // air. Additive, hue drifting orange-pink into deep violet as they age,
+    // motion-gated so a still cable is one clean line (law #7).
+    const echoA = clamp(s.wave / 1.2);
+    if (echoA > 0.03 && s.hist.length > 1) {
+      g.globalCompositeOperation = 'lighter';
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      for (let e2 = 0; e2 < s.hist.length; e2++) {
+        const snap = s.hist[e2];
+        const age = (e2 + 1) / s.hist.length;          // 0 old → 1 newest
+        const a = Math.pow(age, 1.7) * 0.20 * echoA;
+        if (a < 0.004) continue;
+        // newest ribbons pink-white, older sinking into violet-blue dark
+        const r = 120 + age * 135, gg = 60 + age * 80, bb = 190 + age * 40;
+        g.strokeStyle = `rgba(${r | 0},${gg | 0},${bb | 0},${a})`;
+        g.lineWidth = (1.4 + age * 1.8) * ms;
+        g.beginPath();
+        g.moveTo(snap[0], snap[1]);
+        for (let i = 1; i < N; i++) g.lineTo(snap[i * 2], snap[i * 2 + 1]);
+        g.stroke();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    // masts
+    const MC = ['#ffb266', '#b48aff'];
+    [[nodes[0], MC[0]], [nodes[N - 1], MC[1]]].forEach(([nd, col]) => {
+      g.strokeStyle = 'rgba(140,125,110,0.5)'; g.lineWidth = 2.2 * ms;
+      g.beginPath(); g.moveTo(nd.x, h * 0.97); g.lineTo(nd.x, nd.y - 8 * ms); g.stroke();
+      g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 12 * ms;
+      g.beginPath(); g.arc(nd.x, nd.y, 4 * ms, 0, TAU); g.fill();
+      g.shadowBlur = 0;
+    });
+
+    // THE CABLE — crisp on top of everything it sheds
+    const cg = g.createLinearGradient(ax, 0, bx, 0);
+    cg.addColorStop(0, '#ffb266'); cg.addColorStop(0.5, '#ff8fa8'); cg.addColorStop(1, '#b48aff');
+    g.strokeStyle = cg;
+    g.lineWidth = (3.4 + s.tension * 1.2) * ms;
+    g.shadowColor = '#ff9d76'; g.shadowBlur = (5 + s.tension * 9 + s.wave * 2) * ms;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    // beads — the chord ladder made visible; the pulse of the gate breathes
+    // through them when the section is throbbing
+    const gpulse = s.gate;
+    for (let k = 0; k < s.NB; k++) {
+      const b = s.beads[k], nd = nodes[b.ni];
+      const u = (nd.x - ax) / (bx - ax || 1);
+      const r0 = 255 - u * 75, g0 = 178 - u * 40, b0 = 102 + u * 153;
+      const lit = Math.max(b.flare, gpulse * 0.45);
+      const r = (4.6 + lit * 3.2) * ms;
+      g.shadowColor = `rgb(${r0 | 0},${g0 | 0},${b0 | 0})`;
+      g.shadowBlur = (6 + lit * 20) * ms;
+      g.fillStyle = `rgba(${(r0 + lit * (255 - r0)) | 0},${(g0 + lit * (255 - g0)) | 0},${(b0 + lit * (255 - b0)) | 0},${0.5 + lit * 0.5})`;
+      g.beginPath(); g.arc(nd.x, nd.y, r, 0, TAU); g.fill();
+    }
+    g.shadowBlur = 0;
+
+    g.fillStyle = '#050407'; g.fillRect(0, h - 24, 360, 24);
+    g.fillStyle = 'rgba(255,170,140,0.85)'; g.font = `${Math.round(10 * Math.min(ms, 1.4))}px ui-monospace,monospace`;
+    g.fillText('TENSION ' + (s.tension * 100).toFixed(0) + '%  ·  ' + (H.label || '') +
+      '  ·  STRINGS ' + s.vL + '+' + s.vR + '/6  ·  GATE ' + (s.gate * 100).toFixed(0) + '%  ·  RUNS ' + s.runs +
+      (s.pres < 0.3 ? '  ·  RESTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    // the AC hum — the wire is electric, still
+    const hum = v.osc('sine', H.rootFreq(-2)), hum2 = v.osc('sine', H.rootFreq(-1));
+    const hg = v.g(0.012);
+    hum.connect(hg); hum2.connect(hg); hg.connect(v.group);
+    // the whoosh — the wave itself, pitched noise instead of notes
+    const wn = v.noise(), wf = v.filter('bandpass', 400, 1.1), wg = v.g(0);
+    wn.connect(wf); wf.connect(wg); wg.connect(v.group);
+
+    // six chairs, dark: low trio an octave down, high trio kept dim and low-cut
+    const bedLo = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 260, q: 0.7 });
+    const bedHi = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 520, q: 0.7 });
+    const place = glide => {
+      bedLo.forEach((b, i) => b.set(H.chordTone(i, -1), glide));
+      bedHi.forEach((b, i) => b.set(H.chordTone(i + 2, 0), glide));
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 0.8);
+
+    const TH = [0.18, 0.45, 0.72];
+    let nextT = T.next(0.25), wasFull = false, arriveCD = 0;
+    return {
+      tick(inp) {
+        const s = P.state, now = A.t();
+        const gate = 0.3 + s.pres * 0.7;
+        A.set(hg.gain, (0.006 + s.tension * 0.028) * gate, 0.3);
+        // whoosh follows wave energy — instant agency for a swing, no notes
+        A.set(wg.gain, clamp(s.wave / 6) * 0.05 * gate, 0.08);
+        A.set(wf.frequency, 260 + s.tension * 700 + s.wave * 120, 0.15);
+
+        // ---- THE GATE — the Zimmer throb. Depth grows with tension, rate
+        // doubles near full. Streamed to CC74 (pad) so the string plugin's
+        // own gate/filter can take over in Live.
+        const depth = clamp((s.tension - 0.35) / 0.5) * 0.85 * s.pres;
+        const rate = s.tension > 0.8 ? 4 : 2;   // 8ths → 16ths
+        const ph = (T.beats() * rate) % 1;
+        const lfo = 0.5 + 0.5 * Math.cos(ph * TAU);       // peak ON the grid
+        const gv = 1 - depth * (1 - lfo * lfo);
+        s.gate = depth * (1 - gv);
+
+        let vL = 0, vR = 0;
+        for (let j = 0; j < 3; j++) {
+          const ll = clamp((s.uL - TH[j]) / 0.14), lr = clamp((s.uR - TH[j]) / 0.14);
+          if (ll > 0.5) vL++;
+          if (lr > 0.5) vR++;
+          const body = 0.55 + s.tension * 0.45;
+          bedLo[j].level(0.0105 * ll * body * gate * gv, 0.06);
+          bedHi[j].level(0.008 * lr * body * gate * gv, 0.06);
+          bedLo[j].bright(220 + s.tension * 380, 0.4);
+          bedHi[j].bright(420 + s.tension * 800, 0.4);
+        }
+        s.vL = vL; s.vR = vR;
+
+        // ---- arrival: the sixth chair sits down — one boom, one sub bloom
+        const full = vL + vR >= 6;
+        if (full && !wasFull && now > arriveCD && s.tension > 0.4) {
+          arriveCD = now + 8;
+          A.kick(T.next(0.25), 0.4);
+          A.tone(H.rootFreq(-2), { at: T.next(0.25), vol: 0.12, dur: 3.2, attack: 0.25, type: 'sine', rev: 0.4 });
+          s.beads.forEach(b => { b.flare = 1; });
+        }
+        wasFull = full;
+
+        // ---- the grid: pulse and booms, earned by tension ----------------
+        const horizon = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+          // 8th-note root pulse — the dark engine under the gate
+          if (s.tension > 0.5 && st % 2 === 0) {
+            const acc = st === 0 ? 1.35 : st % 4 === 0 ? 1.1 : 1;
+            A.bassNote(H.chordTone(0, -1), {
+              at: nextT, vol: (0.035 + (s.tension - 0.5) * 0.09) * acc * gate, dur: 0.24
+            });
+          }
+          // taiko: the bar gets a boom, the half-bar earns a second
+          if (s.tension > 0.5 && st === 0) {
+            A.kick(nextT, (0.16 + (s.tension - 0.5) * 0.35) * gate);
+            A.hit({ at: nextT, vol: 0.05 * gate, dur: 0.3, freq: 90, q: 0.8 });
+          }
+          if (s.tension > 0.75 && st === 8) A.kick(nextT, 0.12 * gate);
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        // ---- the flick: ONE rolled run per gesture, from the strum queue --
+        let ev, k = 0;
+        while ((ev = s.strumQ.shift()) && k < 2) {
+          k++;
+          const base = Math.floor(s.tension * 4);
+          const at0 = Math.max(now + 0.02, T.next(0.25));
+          const vol0 = clamp(0.07 + ev.sp * 0.06, 0.08, 0.2) * gate;
+          for (let i = 0; i < 5; i++) {
+            const idx = ev.dir > 0 ? base + i * 2 : base + 8 - i * 2;
+            A.pluck2(H.chordTone(idx, -1), {
+              at: at0 + i * 0.085, vol: vol0 * (1 - i * 0.09), dur: 2.4,
+              pan: (ev.dir > 0 ? -0.7 : 0.7) + i * (ev.dir > 0 ? 0.35 : -0.35),
+              rev: 0.55, del: 0.2, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', depth);                    // the gate — map in Live
+          MOut.expr('lead', clamp(s.wave / 4));
+          MOut.expr('bass', clamp((s.tension - 0.5) * 2));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-13.4 · EVENT HORIZON (Cable Strum V4) ---------- */
+/* Lance's V3 verdicts: the swell was inaudible (bed peaked barely above the
+   hum, chairs joined with nothing marking the entrance) — make the crescendo
+   THE sound; the beads annoyed him — gone; and the scene becomes the edge of
+   a black hole: the cable is the last line of light, everything falls in. */
+reg({
+  id: 'SRC-13.4', family: 'SRC-13', ver: 4, title: 'Event Horizon', tech: 'VERLET ROPE / ACCRETION',
+  music: {
+    bpm: 64, root: 45, mode: 'aeolian', chordBars: 2,
+    chords: [
+      [0, 12, 19, 24, 26],   // Am9 (open — no third, all weight)
+      [0, 8, 15, 19, 24],    // F/A — the bVI lift
+      [0, 10, 14, 17, 24],   // G/A — bVII
+      [0, 10, 15, 19, 27]    // Am7 — home, C on top
+    ],
+    chordNames: ['Am9', 'F/A', 'G/A', 'Am7']
+  },
+  fx: { bloom: 0.6 },
+  tags: ['THE LAST LINE OF LIGHT', 'AUDIBLE CRESCENDO', 'REDSHIFT ECHO', 'STARFALL', 'THE SWALLOW'],
+  desc: 'The cable is the event horizon: one burning line between the sky and the void. Stars drift down, accelerate, and are eaten; nothing below the line ever comes back. Raise your arms and an organ-dark string section assembles CHAIR BY CHAIR — each entrance announced, the whole wall swelling and brightening under your hands, throbbing on the grid as it tightens. Throw a wave and its ghosts fall into the hole, stretching and redshifting as they go. Hold both arms high and the void starts to RISE: six seconds of warning, then it swallows the room — everything goes black except the line, one enormous boom, and the sky is given back.',
+  interact: 'L = left arm of the conductor, R = right. Height is the crescendo: every chair you add is announced and audibly thickens the wall; the filter opens as you rise, the pulse and the booms arrive as the line tightens, the gate throbs deeper. A fast flick = one dark run in the direction you threw it, and its ribbons fall into the void. HOLD BOTH ARMS HIGH: the horizon charges — keep holding and it swallows everything but the line. That is the button you should be scared of.',
+  sound: 'The crescendo is the instrument now. Six string chairs at real volume (the V3 bed sat under the hum — fixed): each chair crossing its height threshold swells in over ~0.7s AND is announced by a low rolled tone on its own pitch, so you HEAR the orchestra assemble. Filter opens with the arms, sub-octave organ stop slides in past 70% tension, everything runs through the tempo gate (deepens with tension, 8ths then 16ths; depth on pad CC74 for the string plugin\'s gate in Live). 8th-note root pulse and taiko booms earned past half tension. A flick = one rolled five-note run, low ladder, 0.8s per-side cooldown; the wave itself is a whoosh. THE SWALLOW: hold both arms > 85% — a riser charges for ~6s (you hear it coming), the band ducks to nothing as the void climbs, one enormous sub boom at totality, then the section re-blooms. Ableton: runs ch1, pulse ch3, pad ch2/6, booms ch10, riser sfx ch11.',
+
+  init(P) {
+    const N = 40;
+    const nodes = [];
+    for (let i = 0; i < N; i++) nodes.push({ x: 0, y: 0, ox: 0, oy: 0 });
+    const NS = Math.round(70 * Math.max(0.5, areaScale(P)));
+    const stars = [];
+    for (let i = 0; i < NS; i++) {
+      stars.push({ x: P.rand(), y: P.rand() * 0.75, vy: 0, px: 0, py: 0 });
+    }
+    P.state = {
+      N, nodes, seg: 0, tension: 0, wave: 0, pres: 0,
+      uL: 0, uR: 0, vL: 0, vR: 0, gate: 0, runs: 0,
+      prevAy: 0, prevBy: 0, cdL: 0, cdR: 0, strumQ: [],
+      hist: [], histAcc: 0, idleKick: 0, born: 0, init: false,
+      stars, chg: 0, act: 0, rise: 0, cdT: 0
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, { N, nodes } = s, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const idL = 0.16 + 0.09 * Math.sin(t * 0.21), idR = 0.16 + 0.09 * Math.sin(t * 0.26 + 2.1);
+    s.uL = clamp(inp.L) * s.pres + idL * (1 - s.pres);
+    s.uR = clamp(inp.R) * s.pres + idR * (1 - s.pres);
+    const ax = w * 0.08, bx = w * 0.92;
+    const ay = h * (0.62 - s.uL * 0.46), by = h * (0.62 - s.uR * 0.46);
+    if (!s.init) {
+      s.init = true; s.born = t; s.prevAy = ay; s.prevBy = by;
+      const span = bx - ax;
+      const extra = Math.max(8, (1.16 - 0.22 * ((s.uL + s.uR) / 2)) * span - span);
+      const sag = Math.sqrt(3 * span * extra / 8);
+      for (let i = 0; i < N; i++) {
+        const tt = i / (N - 1);
+        nodes[i].x = nodes[i].ox = lerp(ax, bx, tt);
+        nodes[i].y = nodes[i].oy = lerp(ay, by, tt) + Math.sin(tt * Math.PI) * sag;
+      }
+    }
+    if (s.pres < 0.2 && t - s.idleKick > 9) {
+      s.idleKick = t + P.rand() * 5;
+      const ni = 6 + Math.floor(P.rand() * (N - 12));
+      for (let i = -2; i <= 2; i++) nodes[ni + i].oy -= (3 - Math.abs(i)) * 4;
+    }
+
+    const settled = t - s.born > 3;
+    if (settled && s.pres > 0.3 && dt > 0) {
+      const vA = Math.abs(ay - s.prevAy) / (h * dt), vB = Math.abs(by - s.prevBy) / (h * dt);
+      if (vA > 0.9 && t > s.cdL) { s.cdL = t + 0.8; s.runs++; s.strumQ.push({ dir: 1, sp: vA }); }
+      if (vB > 0.9 && t > s.cdR) { s.cdR = t + 0.8; s.runs++; s.strumQ.push({ dir: -1, sp: vB }); }
+      if (s.strumQ.length > 3) s.strumQ.length = 3;
+    }
+    s.prevAy = ay; s.prevBy = by;
+
+    s.seg = (bx - ax) * (1.16 - 0.22 * ((s.uL + s.uR) / 2)) / (N - 1);
+    const sub = 2;
+    for (let ss = 0; ss < sub; ss++) {
+      const sdt = dt / sub;
+      for (let i = 1; i < N - 1; i++) {
+        const nd = nodes[i];
+        const vx = (nd.x - nd.ox) * 0.996, vy = (nd.y - nd.oy) * 0.996;
+        nd.ox = nd.x; nd.oy = nd.y;
+        nd.x += vx; nd.y += vy + 1300 * sdt * sdt;
+      }
+      nodes[0].x = ax; nodes[0].y = ay;
+      nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      for (let it = 0; it < 22; it++) {
+        for (let i = 0; i < N - 1; i++) {
+          const a = nodes[i], b = nodes[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy) || 1e-5;
+          const diff = (d - s.seg) / d * 0.5;
+          const mA = i === 0 ? 0 : 1, mB = i === N - 2 ? 0 : 1;
+          const tot = mA + mB || 1;
+          a.x += dx * diff * 2 * mA / tot; a.y += dy * diff * 2 * mA / tot;
+          b.x -= dx * diff * 2 * mB / tot; b.y -= dy * diff * 2 * mB / tot;
+        }
+        nodes[0].x = ax; nodes[0].y = ay;
+        nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      }
+    }
+    let pathLen = 0;
+    for (let i = 0; i < N - 1; i++) pathLen += Math.hypot(nodes[i + 1].x - nodes[i].x, nodes[i + 1].y - nodes[i].y);
+    const chord = Math.hypot(bx - ax, by - ay);
+    s.tension += (clamp(1 - (pathLen / chord - 1) / 0.12) - s.tension) * Math.min(1, dt * 4);
+
+    let wave = 0;
+    for (let i = 1; i < N - 1; i++) wave += Math.abs(nodes[i].y - nodes[i].oy);
+    s.wave += (wave / N - s.wave) * 0.25;
+
+    // ---- THE SWALLOW state machine -------------------------------------
+    // hold both arms high: 6s of charging you can hear and see, then the
+    // void takes the room. Rare by construction (25s cooldown + the hold).
+    if (s.act === 0 && settled && s.pres > 0.5 && s.uL > 0.85 && s.uR > 0.85 && t > s.cdT) {
+      s.chg = Math.min(1, s.chg + dt / 6);
+      if (s.chg >= 1) { s.act = 0.0001; s.chg = 0; }
+    } else if (s.act === 0) {
+      s.chg = Math.max(0, s.chg - dt * 0.5);
+    }
+    if (s.act > 0) {
+      s.act = Math.min(1, s.act + dt / 3.2);
+      s.rise = s.act < 0.5 ? s.act * 2 : (1 - s.act) * 2;   // up, hold nothing, back
+      if (s.act >= 1) { s.act = 0; s.rise = 0; s.cdT = t + 25; }
+    }
+
+    // ---- starfall: everything above the line is falling toward it ------
+    const cableYat = x => {
+      const i = clamp((x * w - ax) / (bx - ax)) * (N - 1);
+      const i0 = Math.floor(i), fr = i - i0;
+      return lerp(nodes[i0].y, nodes[Math.min(N - 1, i0 + 1)].y, fr);
+    };
+    const hunger = 1 + s.chg * 2 + s.rise * 6;
+    for (const st of s.stars) {
+      st.px = st.x; st.py = st.y;
+      const cy = cableYat(st.x) / h;
+      const d = Math.max(0.04, cy - st.y);
+      st.vy += (0.0022 / (d * d)) * dt * hunger;
+      st.vy = Math.min(st.vy, 0.55 * hunger);
+      st.y += st.vy * dt;
+      st.x += Math.sin(st.y * 17 + st.x * 31) * dt * 0.004;   // faint shear
+      if (st.y >= cy - 0.004) {
+        st.x = P.rand(); st.y = P.rand() * 0.12; st.vy = 0; st.px = st.x; st.py = st.y;
+      }
+    }
+
+    s.histAcc += dt;
+    if (s.histAcc > 0.045) {
+      s.histAcc = 0;
+      const snap = new Float32Array(N * 2);
+      for (let i = 0; i < N; i++) { snap[i * 2] = nodes[i].x; snap[i * 2 + 1] = nodes[i].y; }
+      s.hist.push(snap);
+      if (s.hist.length > 22) s.hist.shift();
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { N, nodes } = s;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(4,3,7,0.45)'; g.fillRect(0, 0, w, h);
+
+    const ax = nodes[0].x, bx = nodes[N - 1].x;
+    let cavg = 0, topY = h;
+    for (let i = 0; i < N; i++) { cavg += nodes[i].y; if (nodes[i].y < topY) topY = nodes[i].y; }
+    cavg /= N;
+
+    // ---- the sky: stars falling toward the line, streaking as they go --
+    for (const st of s.stars) {
+      const sp = Math.min(1, st.vy * 6);
+      const a = 0.25 + sp * 0.6;
+      g.strokeStyle = `rgba(${200 + sp * 55},${205 - sp * 60},${255 - sp * 120},${a})`;
+      g.lineWidth = (1 + sp * 1.4) * ms;
+      g.beginPath();
+      g.moveTo(st.px * w, st.py * h);
+      g.lineTo(st.x * w, st.y * h + 1.5 * ms);
+      g.stroke();
+    }
+
+    // ---- the sky: soft ambient light escaping upward (full-frame, no
+    // hard shapes — the glow that FOLLOWS the line comes next) -----------
+    const gpulse = s.gate;
+    const glow = (0.10 + s.tension * 0.18 + gpulse * 0.10 + s.chg * 0.25) * (0.4 + s.pres * 0.6);
+    const skyBot = Math.min(h, topY + h * 0.15);
+    const sky = g.createLinearGradient(0, topY - h * 0.38, 0, skyBot);
+    sky.addColorStop(0, 'rgba(255,80,90,0)');
+    sky.addColorStop(0.72, `rgba(255,110,55,${glow * 0.5})`);   // peak at the crest
+    sky.addColorStop(1, 'rgba(255,110,55,0)');                  // fade out — no hard edge
+    g.fillStyle = sky; g.fillRect(0, 0, w, skyBot);
+
+    // ---- glow that hugs the curve: photon ring above, dying red rim
+    // below. Layered full-span strokes with heavy overlap — the falloff
+    // follows the LINE, not an absolute height (a gradient anchored to the
+    // average y paints a flat slab wherever the curve leaves the average).
+    const ridge = (off, style, lw) => {
+      g.strokeStyle = style; g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(0, nodes[0].y + off);
+      for (let i = 0; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y + off);
+      g.lineTo(w, nodes[N - 1].y + off);
+      g.stroke();
+    };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let k = 4; k >= 1; k--) {
+      ridge(-k * 7 * ms, `rgba(255,140,70,${glow * 0.28 * (1 - k / 4.6)})`, 10 * ms);
+    }
+    const rimA = 0.24 + s.tension * 0.14 + s.chg * 0.3;
+    for (let k = 8; k >= 1; k--) {
+      ridge(k * 9 * ms, `rgba(${255 - k * 14},${42 - k * 4},20,${rimA * Math.pow(1 - k / 9, 1.6)})`, 12 * ms);
+    }
+
+    // ---- the ribbons FALL IN: displaced down with age, redshifting -----
+    const echoA = clamp(s.wave / 1.2);
+    if (echoA > 0.03 && s.hist.length > 1) {
+      g.globalCompositeOperation = 'lighter';
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      for (let e2 = 0; e2 < s.hist.length; e2++) {
+        const snap = s.hist[e2];
+        const age = (e2 + 1) / s.hist.length;          // 0 old → 1 newest
+        const a = Math.pow(age, 1.7) * 0.20 * echoA;
+        if (a < 0.004) continue;
+        const fall = (1 - age) * (1 - age) * h * 0.13;  // older = deeper in
+        const r = 90 + age * 165, gg = 25 + age * 115, bb = 20 + age * 160;
+        g.strokeStyle = `rgba(${r | 0},${gg | 0},${bb | 0},${a})`;
+        g.lineWidth = (1.4 + age * 1.8) * ms;
+        g.beginPath();
+        g.moveTo(snap[0], snap[1] + fall);
+        for (let i = 1; i < N; i++) g.lineTo(snap[i * 2], snap[i * 2 + 1] + fall);
+        g.stroke();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    // ---- THE SWALLOW: the void climbs over everything but the line -----
+    if (s.rise > 0.001) {
+      const riseY = h * (1.02 - s.rise * 1.12);
+      const edge = g.createLinearGradient(0, riseY - h * 0.06, 0, riseY);
+      edge.addColorStop(0, 'rgba(255,40,15,0)');
+      edge.addColorStop(1, `rgba(255,60,20,${0.35 * s.rise})`);
+      g.fillStyle = edge; g.fillRect(0, riseY - h * 0.06, w, h * 0.06);
+      g.fillStyle = '#000'; g.fillRect(0, riseY, w, h - riseY);
+    }
+
+    // ---- the line itself: crisp, burning, last ------------------------
+    const cg = g.createLinearGradient(ax, 0, bx, 0);
+    cg.addColorStop(0, '#ffb266'); cg.addColorStop(0.5, '#ff8fa8'); cg.addColorStop(1, '#b48aff');
+    g.strokeStyle = cg;
+    g.lineWidth = (3.6 + s.tension * 1.4 + gpulse * 1.2) * ms;
+    g.shadowColor = '#ff8d5e'; g.shadowBlur = (7 + s.tension * 10 + s.wave * 2 + s.chg * 14) * ms;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    // anchors: two star-points, no masts out here
+    [[nodes[0], '#ffb266'], [nodes[N - 1], '#b48aff']].forEach(([nd, col]) => {
+      g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 16 * ms;
+      g.beginPath(); g.arc(nd.x, nd.y, 4.5 * ms, 0, TAU); g.fill();
+      g.shadowBlur = 0;
+    });
+
+    g.fillStyle = '#040307'; g.fillRect(0, h - 24, 400, 24);
+    g.fillStyle = 'rgba(255,150,120,0.85)'; g.font = `${Math.round(10 * Math.min(ms, 1.4))}px ui-monospace,monospace`;
+    g.fillText('TENSION ' + (s.tension * 100).toFixed(0) + '%  ·  ' + (H.label || '') +
+      '  ·  STRINGS ' + s.vL + '+' + s.vR + '/6  ·  GATE ' + (s.gate * 100).toFixed(0) + '%' +
+      (s.rise > 0.001 ? '  ·  SWALLOWED' : s.chg > 0.01 ? '  ·  HORIZON ' + (s.chg * 100).toFixed(0) + '%' : '') +
+      (s.pres < 0.3 ? '  ·  RESTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const hum = v.osc('sine', H.rootFreq(-2)), hum2 = v.osc('sine', H.rootFreq(-1));
+    const hg = v.g(0.012);
+    hum.connect(hg); hum2.connect(hg); hg.connect(v.group);
+    const wn = v.noise(), wf = v.filter('bandpass', 400, 1.1), wg = v.g(0);
+    wn.connect(wf); wf.connect(wg); wg.connect(v.group);
+    // the swallow riser — its own noise, rising and narrowing
+    const rn = v.noise(), rf = v.filter('bandpass', 300, 3), rg = v.g(0);
+    rn.connect(rf); rf.connect(rg); rg.connect(v.group);
+
+    // SIX CHAIRS AT REAL VOLUME (the V3 mix bug: 0.0105/voice sat under the
+    // 0.034 hum — the crescendo was inaudible). Chairs are the lead voice of
+    // this scene: ~2x the bed guideline, hum trimmed beneath them, and each
+    // chair gets its own slow entrance envelope so joining is a swell you
+    // hear, not a crossfade you miss.
+    const bedLo = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 260, q: 0.7 });
+    const bedHi = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 520, q: 0.7 });
+    const subLo = A.padVoices(v, 2, { type: 'triangle', gain: 0.0001, cutoff: 160, q: 0.6 });
+    const place = glide => {
+      bedLo.forEach((b, i) => b.set(H.chordTone(i, -1), glide));
+      bedHi.forEach((b, i) => b.set(H.chordTone(i + 2, 0), glide));
+      subLo.forEach((b, i) => b.set(H.chordTone(i * 2, -2), glide));
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 0.8);
+
+    const TH = [0.18, 0.45, 0.72];
+    const env = [0, 0, 0, 0, 0, 0];      // entrance envelope per chair (L0..2, R0..2)
+    const was = [false, false, false, false, false, false];
+    let nextT = T.next(0.25), lastNow = A.t(), boomed = false;
+    return {
+      tick(inp) {
+        const s = P.state, now = A.t();
+        const adt = Math.min(0.1, Math.max(0.001, now - lastNow)); lastNow = now;
+        const gate = 0.3 + s.pres * 0.7;
+        const duck = 1 - s.rise * 0.9;    // the swallow empties the band
+
+        A.set(hg.gain, (0.005 + s.tension * 0.02) * gate * duck, 0.3);
+        A.set(wg.gain, clamp(s.wave / 6) * 0.05 * gate * duck, 0.08);
+        A.set(wf.frequency, 260 + s.tension * 700 + s.wave * 120, 0.15);
+        // the riser: you HEAR the horizon charging
+        A.set(rg.gain, s.chg * s.chg * 0.055 * gate, 0.15);
+        A.set(rf.frequency, 300 + s.chg * 3600, 0.2);
+
+        const depth = clamp((s.tension - 0.4) / 0.45) * 0.85 * s.pres;
+        const rate = s.tension > 0.8 ? 4 : 2;
+        const ph = (T.beats() * rate) % 1;
+        const lfo = 0.5 + 0.5 * Math.cos(ph * TAU);
+        const gv = 1 - depth * (1 - lfo * lfo);
+        s.gate = depth * (1 - gv);
+
+        // ---- the crescendo: chairs enter as EVENTS -----------------------
+        let vL = 0, vR = 0;
+        for (let j = 0; j < 6; j++) {
+          const side = j < 3 ? s.uL : s.uR;
+          const th = TH[j % 3];
+          const want = clamp((side - th) / 0.1);
+          // slow swell in (~0.7s), faster out — the entrance is audible
+          env[j] += (want - env[j]) * Math.min(1, adt * (want > env[j] ? 1.6 : 3));
+          if (want > 0.5) { if (j < 3) vL++; else vR++; }
+          // announce the chair the moment it commits
+          if (want > 0.5 && !was[j]) {
+            was[j] = true;
+            const f = j < 3 ? H.chordTone(j, -1) : H.chordTone((j % 3) + 2, 0);
+            A.tone(f, { at: T.next(0.5), vol: 0.075 * gate * duck, dur: 1.8, attack: 0.1, type: 'triangle', pan: j < 3 ? -0.4 : 0.4, rev: 0.55, role: 'pad' });
+          } else if (want < 0.3 && was[j]) was[j] = false;
+          const body = 0.6 + s.tension * 0.4;
+          const lvl = (j < 3 ? 0.021 : 0.016) * env[j] * body * gate * gv * duck;
+          (j < 3 ? bedLo[j] : bedHi[j % 3]).level(lvl, 0.06);
+        }
+        s.vL = vL; s.vR = vR;
+        // filter opens with the arms — the biggest "it is swelling" cue
+        bedLo.forEach(b => b.bright(200 + s.uL * 900 + s.tension * 500, 0.3));
+        bedHi.forEach(b => b.bright(360 + s.uR * 1400 + s.tension * 600, 0.3));
+        // the organ's 16-foot stop slides in when it is really tight
+        const subLvl = clamp((s.tension - 0.7) / 0.3) * 0.017 * gate * gv * duck;
+        subLo.forEach(b => b.level(subLvl, 0.3));
+
+        // ---- the grid: pulse and booms ----------------------------------
+        const horizon2 = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon2 && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+          if (s.tension > 0.5 && st % 2 === 0 && duck > 0.4) {
+            const acc = st === 0 ? 1.35 : st % 4 === 0 ? 1.1 : 1;
+            A.bassNote(H.chordTone(0, -1), {
+              at: nextT, vol: (0.035 + (s.tension - 0.5) * 0.09) * acc * gate * duck, dur: 0.24
+            });
+          }
+          if (s.tension > 0.5 && st === 0 && duck > 0.4) {
+            A.kick(nextT, (0.16 + (s.tension - 0.5) * 0.35) * gate * duck);
+            A.hit({ at: nextT, vol: 0.05 * gate * duck, dur: 0.3, freq: 90, q: 0.8 });
+          }
+          if (s.tension > 0.75 && st === 8 && duck > 0.4) A.kick(nextT, 0.12 * gate * duck);
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        // ---- totality: one enormous boom out of the silence -------------
+        if (s.rise > 0.9 && !boomed) {
+          boomed = true;
+          A.kick(now, 0.5);
+          A.hit({ at: now, vol: 0.12, dur: 0.5, freq: 60, q: 0.7 });
+          A.tone(H.rootFreq(-2), { at: now, vol: 0.16, dur: 5, attack: 0.02, type: 'sine', rev: 0.5, role: 'sfx' });
+        }
+        if (s.rise < 0.1) boomed = false;
+
+        // ---- the flick: one rolled run per gesture ----------------------
+        let ev, k = 0;
+        while ((ev = s.strumQ.shift()) && k < 2) {
+          k++;
+          const base = Math.floor(s.tension * 4);
+          const at0 = Math.max(now + 0.02, T.next(0.25));
+          const vol0 = clamp(0.07 + ev.sp * 0.06, 0.08, 0.2) * gate * duck;
+          for (let i = 0; i < 5; i++) {
+            const idx = ev.dir > 0 ? base + i * 2 : base + 8 - i * 2;
+            A.pluck2(H.chordTone(idx, -1), {
+              at: at0 + i * 0.085, vol: vol0 * (1 - i * 0.09), dur: 2.4,
+              pan: (ev.dir > 0 ? -0.7 : 0.7) + i * (ev.dir > 0 ? 0.35 : -0.35),
+              rev: 0.55, del: 0.2, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', depth);
+          MOut.expr('lead', clamp(s.wave / 4));
+          MOut.expr('bass', clamp((s.tension - 0.5) * 2));
+          MOut.expr('sfx', Math.max(s.chg, s.rise));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-13.5 · EVENT HORIZON V5 ---------- */
+/* Lance's V4 verdicts: the WALL must win — in V4 the transient hits (pulse,
+   announces, runs) out-shouted the sustained wall, and the gate chopped the
+   bed to 15% exactly when it should be huge. Wall ~2x again, every transient
+   halved, gate depth capped at 0.6. And when the rope is high the glow holds
+   instead of dissipating — the space itself brightens. */
+reg({
+  id: 'SRC-13.5', family: 'SRC-13', ver: 5, title: 'Event Horizon', tech: 'VERLET ROPE / ACCRETION',
+  music: {
+    bpm: 64, root: 45, mode: 'aeolian', chordBars: 2,
+    chords: [
+      [0, 12, 19, 24, 26],   // Am9 (open — no third, all weight)
+      [0, 8, 15, 19, 24],    // F/A — the bVI lift
+      [0, 10, 14, 17, 24],   // G/A — bVII
+      [0, 10, 15, 19, 27]    // Am7 — home, C on top
+    ],
+    chordNames: ['Am9', 'F/A', 'G/A', 'Am7']
+  },
+  fx: { bloom: 0.6 },
+  tags: ['THE LAST LINE OF LIGHT', 'AUDIBLE CRESCENDO', 'REDSHIFT ECHO', 'STARFALL', 'THE SWALLOW'],
+  desc: 'The cable is the event horizon: one burning line between the sky and the void. Stars drift down, accelerate, and are eaten; nothing below the line ever comes back. Raise your arms and an organ-dark string section assembles CHAIR BY CHAIR — each entrance announced, the whole wall swelling and brightening under your hands, throbbing on the grid as it tightens. Throw a wave and its ghosts fall into the hole, stretching and redshifting as they go. Hold both arms high and the void starts to RISE: six seconds of warning, then it swallows the room — everything goes black except the line, one enormous boom, and the sky is given back.',
+  interact: 'L = left arm of the conductor, R = right. Height is the crescendo: every chair you add is announced and audibly thickens the wall; the filter opens as you rise, the pulse and the booms arrive as the line tightens, the gate throbs deeper. A fast flick = one dark run in the direction you threw it, and its ribbons fall into the void. HOLD BOTH ARMS HIGH: the horizon charges — keep holding and it swallows everything but the line. That is the button you should be scared of.',
+  sound: 'The crescendo is the instrument, and in V5 the WALL outweighs every transient: chairs roughly doubled again, the pulse, chair-announces, booms and runs all halved beneath it, and the rhythmic gate capped at 60% depth so the throb never guts the sustain. Each chair crossing its height threshold swells in over ~0.7s AND is announced by a low rolled tone on its own pitch, so you HEAR the orchestra assemble. Filter opens with the arms, sub-octave organ stop slides in past 70% tension, everything runs through the tempo gate (deepens with tension, 8ths then 16ths; depth on pad CC74 for the string plugin\'s gate in Live). 8th-note root pulse and taiko booms earned past half tension. A flick = one rolled five-note run, low ladder, 0.8s per-side cooldown; the wave itself is a whoosh. THE SWALLOW: hold both arms > 85% — a riser charges for ~6s (you hear it coming), the band ducks to nothing as the void climbs, one enormous sub boom at totality, then the section re-blooms. Ableton: runs ch1, pulse ch3, pad ch2/6, booms ch10, riser sfx ch11.',
+
+  init(P) {
+    const N = 40;
+    const nodes = [];
+    for (let i = 0; i < N; i++) nodes.push({ x: 0, y: 0, ox: 0, oy: 0 });
+    const NS = Math.round(70 * Math.max(0.5, areaScale(P)));
+    const stars = [];
+    for (let i = 0; i < NS; i++) {
+      stars.push({ x: P.rand(), y: P.rand() * 0.75, vy: 0, px: 0, py: 0 });
+    }
+    P.state = {
+      N, nodes, seg: 0, tension: 0, wave: 0, pres: 0,
+      uL: 0, uR: 0, vL: 0, vR: 0, gate: 0, runs: 0,
+      prevAy: 0, prevBy: 0, cdL: 0, cdR: 0, strumQ: [],
+      hist: [], histAcc: 0, idleKick: 0, born: 0, init: false,
+      stars, chg: 0, act: 0, rise: 0, cdT: 0
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, { N, nodes } = s, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const idL = 0.16 + 0.09 * Math.sin(t * 0.21), idR = 0.16 + 0.09 * Math.sin(t * 0.26 + 2.1);
+    s.uL = clamp(inp.L) * s.pres + idL * (1 - s.pres);
+    s.uR = clamp(inp.R) * s.pres + idR * (1 - s.pres);
+    const ax = w * 0.08, bx = w * 0.92;
+    const ay = h * (0.62 - s.uL * 0.46), by = h * (0.62 - s.uR * 0.46);
+    if (!s.init) {
+      s.init = true; s.born = t; s.prevAy = ay; s.prevBy = by;
+      const span = bx - ax;
+      const extra = Math.max(8, (1.16 - 0.22 * ((s.uL + s.uR) / 2)) * span - span);
+      const sag = Math.sqrt(3 * span * extra / 8);
+      for (let i = 0; i < N; i++) {
+        const tt = i / (N - 1);
+        nodes[i].x = nodes[i].ox = lerp(ax, bx, tt);
+        nodes[i].y = nodes[i].oy = lerp(ay, by, tt) + Math.sin(tt * Math.PI) * sag;
+      }
+    }
+    if (s.pres < 0.2 && t - s.idleKick > 9) {
+      s.idleKick = t + P.rand() * 5;
+      const ni = 6 + Math.floor(P.rand() * (N - 12));
+      for (let i = -2; i <= 2; i++) nodes[ni + i].oy -= (3 - Math.abs(i)) * 4;
+    }
+
+    const settled = t - s.born > 3;
+    if (settled && s.pres > 0.3 && dt > 0) {
+      const vA = Math.abs(ay - s.prevAy) / (h * dt), vB = Math.abs(by - s.prevBy) / (h * dt);
+      if (vA > 0.9 && t > s.cdL) { s.cdL = t + 0.8; s.runs++; s.strumQ.push({ dir: 1, sp: vA }); }
+      if (vB > 0.9 && t > s.cdR) { s.cdR = t + 0.8; s.runs++; s.strumQ.push({ dir: -1, sp: vB }); }
+      if (s.strumQ.length > 3) s.strumQ.length = 3;
+    }
+    s.prevAy = ay; s.prevBy = by;
+
+    s.seg = (bx - ax) * (1.16 - 0.22 * ((s.uL + s.uR) / 2)) / (N - 1);
+    const sub = 2;
+    for (let ss = 0; ss < sub; ss++) {
+      const sdt = dt / sub;
+      for (let i = 1; i < N - 1; i++) {
+        const nd = nodes[i];
+        const vx = (nd.x - nd.ox) * 0.996, vy = (nd.y - nd.oy) * 0.996;
+        nd.ox = nd.x; nd.oy = nd.y;
+        nd.x += vx; nd.y += vy + 1300 * sdt * sdt;
+      }
+      nodes[0].x = ax; nodes[0].y = ay;
+      nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      for (let it = 0; it < 22; it++) {
+        for (let i = 0; i < N - 1; i++) {
+          const a = nodes[i], b = nodes[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy) || 1e-5;
+          const diff = (d - s.seg) / d * 0.5;
+          const mA = i === 0 ? 0 : 1, mB = i === N - 2 ? 0 : 1;
+          const tot = mA + mB || 1;
+          a.x += dx * diff * 2 * mA / tot; a.y += dy * diff * 2 * mA / tot;
+          b.x -= dx * diff * 2 * mB / tot; b.y -= dy * diff * 2 * mB / tot;
+        }
+        nodes[0].x = ax; nodes[0].y = ay;
+        nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      }
+    }
+    let pathLen = 0;
+    for (let i = 0; i < N - 1; i++) pathLen += Math.hypot(nodes[i + 1].x - nodes[i].x, nodes[i + 1].y - nodes[i].y);
+    const chord = Math.hypot(bx - ax, by - ay);
+    s.tension += (clamp(1 - (pathLen / chord - 1) / 0.12) - s.tension) * Math.min(1, dt * 4);
+
+    let wave = 0;
+    for (let i = 1; i < N - 1; i++) wave += Math.abs(nodes[i].y - nodes[i].oy);
+    s.wave += (wave / N - s.wave) * 0.25;
+
+    // ---- THE SWALLOW state machine -------------------------------------
+    // hold both arms high: 6s of charging you can hear and see, then the
+    // void takes the room. Rare by construction (25s cooldown + the hold).
+    if (s.act === 0 && settled && s.pres > 0.5 && s.uL > 0.85 && s.uR > 0.85 && t > s.cdT) {
+      s.chg = Math.min(1, s.chg + dt / 6);
+      if (s.chg >= 1) { s.act = 0.0001; s.chg = 0; }
+    } else if (s.act === 0) {
+      s.chg = Math.max(0, s.chg - dt * 0.5);
+    }
+    if (s.act > 0) {
+      s.act = Math.min(1, s.act + dt / 3.2);
+      s.rise = s.act < 0.5 ? s.act * 2 : (1 - s.act) * 2;   // up, hold nothing, back
+      if (s.act >= 1) { s.act = 0; s.rise = 0; s.cdT = t + 25; }
+    }
+
+    // ---- starfall: everything above the line is falling toward it ------
+    const cableYat = x => {
+      const i = clamp((x * w - ax) / (bx - ax)) * (N - 1);
+      const i0 = Math.floor(i), fr = i - i0;
+      return lerp(nodes[i0].y, nodes[Math.min(N - 1, i0 + 1)].y, fr);
+    };
+    const hunger = 1 + s.chg * 2 + s.rise * 6;
+    for (const st of s.stars) {
+      st.px = st.x; st.py = st.y;
+      const cy = cableYat(st.x) / h;
+      const d = Math.max(0.04, cy - st.y);
+      st.vy += (0.0022 / (d * d)) * dt * hunger;
+      st.vy = Math.min(st.vy, 0.55 * hunger);
+      st.y += st.vy * dt;
+      st.x += Math.sin(st.y * 17 + st.x * 31) * dt * 0.004;   // faint shear
+      if (st.y >= cy - 0.004) {
+        st.x = P.rand(); st.y = P.rand() * 0.12; st.vy = 0; st.px = st.x; st.py = st.y;
+      }
+    }
+
+    s.histAcc += dt;
+    if (s.histAcc > 0.045) {
+      s.histAcc = 0;
+      const snap = new Float32Array(N * 2);
+      for (let i = 0; i < N; i++) { snap[i * 2] = nodes[i].x; snap[i * 2 + 1] = nodes[i].y; }
+      s.hist.push(snap);
+      if (s.hist.length > 22) s.hist.shift();
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { N, nodes } = s;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(4,3,7,0.45)'; g.fillRect(0, 0, w, h);
+
+    const ax = nodes[0].x, bx = nodes[N - 1].x;
+    let cavg = 0, topY = h;
+    for (let i = 0; i < N; i++) { cavg += nodes[i].y; if (nodes[i].y < topY) topY = nodes[i].y; }
+    cavg /= N;
+
+    // ---- the sky: stars falling toward the line, streaking as they go --
+    for (const st of s.stars) {
+      const sp = Math.min(1, st.vy * 6);
+      const a = 0.25 + sp * 0.6;
+      g.strokeStyle = `rgba(${200 + sp * 55},${205 - sp * 60},${255 - sp * 120},${a})`;
+      g.lineWidth = (1 + sp * 1.4) * ms;
+      g.beginPath();
+      g.moveTo(st.px * w, st.py * h);
+      g.lineTo(st.x * w, st.y * h + 1.5 * ms);
+      g.stroke();
+    }
+
+    // ---- the sky: soft ambient light escaping upward (full-frame, no
+    // hard shapes — the glow that FOLLOWS the line comes next) -----------
+    const gpulse = s.gate;
+    const glow = (0.10 + s.tension * 0.28 + gpulse * 0.10 + s.chg * 0.25) * (0.4 + s.pres * 0.6);
+    // a high, taut rope LIGHTS THE SPACE: the glow reaches further and holds
+    // instead of dissipating — at full it washes the whole sky
+    const reach = 0.38 + s.tension * 0.5;
+    const skyBot = Math.min(h, topY + h * 0.15);
+    const sky = g.createLinearGradient(0, topY - h * reach, 0, skyBot);
+    sky.addColorStop(0, `rgba(255,80,90,${glow * 0.18 * s.tension})`);
+    sky.addColorStop(0.72, `rgba(255,110,55,${glow * (0.5 + s.tension * 0.4)})`);
+    sky.addColorStop(1, 'rgba(255,110,55,0)');
+    g.fillStyle = sky; g.fillRect(0, 0, w, skyBot);
+
+    // ---- glow that hugs the curve: photon ring above, dying red rim
+    // below. Layered full-span strokes with heavy overlap — the falloff
+    // follows the LINE, not an absolute height (a gradient anchored to the
+    // average y paints a flat slab wherever the curve leaves the average).
+    const ridge = (off, style, lw) => {
+      g.strokeStyle = style; g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(0, nodes[0].y + off);
+      for (let i = 0; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y + off);
+      g.lineTo(w, nodes[N - 1].y + off);
+      g.stroke();
+    };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let k = 4; k >= 1; k--) {
+      ridge(-k * 7 * ms, `rgba(255,140,70,${glow * 0.28 * (1 + s.tension * 0.5) * (1 - k / 4.6)})`, 10 * ms);
+    }
+    const rimA = 0.24 + s.tension * 0.14 + s.chg * 0.3;
+    for (let k = 8; k >= 1; k--) {
+      ridge(k * 9 * ms, `rgba(${255 - k * 14},${42 - k * 4},20,${rimA * Math.pow(1 - k / 9, 1.6)})`, 12 * ms);
+    }
+
+    // ---- the ribbons FALL IN: displaced down with age, redshifting -----
+    const echoA = clamp(s.wave / 1.2);
+    if (echoA > 0.03 && s.hist.length > 1) {
+      g.globalCompositeOperation = 'lighter';
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      for (let e2 = 0; e2 < s.hist.length; e2++) {
+        const snap = s.hist[e2];
+        const age = (e2 + 1) / s.hist.length;          // 0 old → 1 newest
+        const a = Math.pow(age, 1.7) * 0.20 * echoA;
+        if (a < 0.004) continue;
+        const fall = (1 - age) * (1 - age) * h * 0.13;  // older = deeper in
+        const r = 90 + age * 165, gg = 25 + age * 115, bb = 20 + age * 160;
+        g.strokeStyle = `rgba(${r | 0},${gg | 0},${bb | 0},${a})`;
+        g.lineWidth = (1.4 + age * 1.8) * ms;
+        g.beginPath();
+        g.moveTo(snap[0], snap[1] + fall);
+        for (let i = 1; i < N; i++) g.lineTo(snap[i * 2], snap[i * 2 + 1] + fall);
+        g.stroke();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    // ---- THE SWALLOW: the void climbs over everything but the line -----
+    if (s.rise > 0.001) {
+      const riseY = h * (1.02 - s.rise * 1.12);
+      const edge = g.createLinearGradient(0, riseY - h * 0.06, 0, riseY);
+      edge.addColorStop(0, 'rgba(255,40,15,0)');
+      edge.addColorStop(1, `rgba(255,60,20,${0.35 * s.rise})`);
+      g.fillStyle = edge; g.fillRect(0, riseY - h * 0.06, w, h * 0.06);
+      g.fillStyle = '#000'; g.fillRect(0, riseY, w, h - riseY);
+    }
+
+    // ---- the line itself: crisp, burning, last ------------------------
+    const cg = g.createLinearGradient(ax, 0, bx, 0);
+    cg.addColorStop(0, '#ffb266'); cg.addColorStop(0.5, '#ff8fa8'); cg.addColorStop(1, '#b48aff');
+    g.strokeStyle = cg;
+    g.lineWidth = (3.6 + s.tension * 1.4 + gpulse * 1.2) * ms;
+    g.shadowColor = '#ff8d5e'; g.shadowBlur = (7 + s.tension * 10 + s.wave * 2 + s.chg * 14) * ms;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    // anchors: two star-points, no masts out here
+    [[nodes[0], '#ffb266'], [nodes[N - 1], '#b48aff']].forEach(([nd, col]) => {
+      g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 16 * ms;
+      g.beginPath(); g.arc(nd.x, nd.y, 4.5 * ms, 0, TAU); g.fill();
+      g.shadowBlur = 0;
+    });
+
+    g.fillStyle = '#040307'; g.fillRect(0, h - 24, 400, 24);
+    g.fillStyle = 'rgba(255,150,120,0.85)'; g.font = `${Math.round(10 * Math.min(ms, 1.4))}px ui-monospace,monospace`;
+    g.fillText('TENSION ' + (s.tension * 100).toFixed(0) + '%  ·  ' + (H.label || '') +
+      '  ·  STRINGS ' + s.vL + '+' + s.vR + '/6  ·  GATE ' + (s.gate * 100).toFixed(0) + '%' +
+      (s.rise > 0.001 ? '  ·  SWALLOWED' : s.chg > 0.01 ? '  ·  HORIZON ' + (s.chg * 100).toFixed(0) + '%' : '') +
+      (s.pres < 0.3 ? '  ·  RESTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const hum = v.osc('sine', H.rootFreq(-2)), hum2 = v.osc('sine', H.rootFreq(-1));
+    const hg = v.g(0.012);
+    hum.connect(hg); hum2.connect(hg); hg.connect(v.group);
+    const wn = v.noise(), wf = v.filter('bandpass', 400, 1.1), wg = v.g(0);
+    wn.connect(wf); wf.connect(wg); wg.connect(v.group);
+    // the swallow riser — its own noise, rising and narrowing
+    const rn = v.noise(), rf = v.filter('bandpass', 300, 3), rg = v.g(0);
+    rn.connect(rf); rf.connect(rg); rg.connect(v.group);
+
+    // SIX CHAIRS AT REAL VOLUME (the V3 mix bug: 0.0105/voice sat under the
+    // 0.034 hum — the crescendo was inaudible). Chairs are the lead voice of
+    // this scene: ~2x the bed guideline, hum trimmed beneath them, and each
+    // chair gets its own slow entrance envelope so joining is a swell you
+    // hear, not a crossfade you miss.
+    const bedLo = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 260, q: 0.7 });
+    const bedHi = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 520, q: 0.7 });
+    const subLo = A.padVoices(v, 2, { type: 'triangle', gain: 0.0001, cutoff: 160, q: 0.6 });
+    const place = glide => {
+      bedLo.forEach((b, i) => b.set(H.chordTone(i, -1), glide));
+      bedHi.forEach((b, i) => b.set(H.chordTone(i + 2, 0), glide));
+      subLo.forEach((b, i) => b.set(H.chordTone(i * 2, -2), glide));
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 0.8);
+
+    const TH = [0.18, 0.45, 0.72];
+    const env = [0, 0, 0, 0, 0, 0];      // entrance envelope per chair (L0..2, R0..2)
+    const was = [false, false, false, false, false, false];
+    let nextT = T.next(0.25), lastNow = A.t(), boomed = false;
+    return {
+      tick(inp) {
+        const s = P.state, now = A.t();
+        const adt = Math.min(0.1, Math.max(0.001, now - lastNow)); lastNow = now;
+        const gate = 0.3 + s.pres * 0.7;
+        const duck = 1 - s.rise * 0.9;    // the swallow empties the band
+
+        A.set(hg.gain, (0.005 + s.tension * 0.02) * gate * duck, 0.3);
+        A.set(wg.gain, clamp(s.wave / 6) * 0.05 * gate * duck, 0.08);
+        A.set(wf.frequency, 260 + s.tension * 700 + s.wave * 120, 0.15);
+        // the riser: you HEAR the horizon charging
+        A.set(rg.gain, s.chg * s.chg * 0.055 * gate, 0.15);
+        A.set(rf.frequency, 300 + s.chg * 3600, 0.2);
+
+        // gate capped at 0.6: the throb must never gut the wall — at V4's
+        // 0.85 depth the bed spent most of each cycle at 15% exactly when
+        // it should be enormous
+        const depth = clamp((s.tension - 0.4) / 0.45) * 0.6 * s.pres;
+        const rate = s.tension > 0.8 ? 4 : 2;
+        const ph = (T.beats() * rate) % 1;
+        const lfo = 0.5 + 0.5 * Math.cos(ph * TAU);
+        const gv = 1 - depth * (1 - lfo * lfo);
+        s.gate = depth * (1 - gv);
+
+        // ---- the crescendo: chairs enter as EVENTS -----------------------
+        let vL = 0, vR = 0;
+        for (let j = 0; j < 6; j++) {
+          const side = j < 3 ? s.uL : s.uR;
+          const th = TH[j % 3];
+          const want = clamp((side - th) / 0.1);
+          // slow swell in (~0.7s), faster out — the entrance is audible
+          env[j] += (want - env[j]) * Math.min(1, adt * (want > env[j] ? 1.6 : 3));
+          if (want > 0.5) { if (j < 3) vL++; else vR++; }
+          // announce the chair the moment it commits
+          if (want > 0.5 && !was[j]) {
+            was[j] = true;
+            const f = j < 3 ? H.chordTone(j, -1) : H.chordTone((j % 3) + 2, 0);
+            A.tone(f, { at: T.next(0.5), vol: 0.045 * gate * duck, dur: 1.8, attack: 0.1, type: 'triangle', pan: j < 3 ? -0.4 : 0.4, rev: 0.55, role: 'pad' });
+          } else if (want < 0.3 && was[j]) was[j] = false;
+          const body = 0.6 + s.tension * 0.4;
+          const lvl = (j < 3 ? 0.045 : 0.03) * env[j] * body * gate * gv * duck;
+          (j < 3 ? bedLo[j] : bedHi[j % 3]).level(lvl, 0.06);
+        }
+        s.vL = vL; s.vR = vR;
+        // filter opens with the arms — the biggest "it is swelling" cue
+        bedLo.forEach(b => b.bright(200 + s.uL * 900 + s.tension * 500, 0.3));
+        bedHi.forEach(b => b.bright(360 + s.uR * 1400 + s.tension * 600, 0.3));
+        // the organ's 16-foot stop slides in when it is really tight
+        const subLvl = clamp((s.tension - 0.7) / 0.3) * 0.035 * gate * gv * duck;
+        subLo.forEach(b => b.level(subLvl, 0.3));
+
+        // ---- the grid: pulse and booms ----------------------------------
+        const horizon2 = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon2 && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+          if (s.tension > 0.5 && st % 2 === 0 && duck > 0.4) {
+            const acc = st === 0 ? 1.35 : st % 4 === 0 ? 1.1 : 1;
+            A.bassNote(H.chordTone(0, -1), {
+              at: nextT, vol: (0.018 + (s.tension - 0.5) * 0.05) * acc * gate * duck, dur: 0.24
+            });
+          }
+          if (s.tension > 0.5 && st === 0 && duck > 0.4) {
+            A.kick(nextT, (0.13 + (s.tension - 0.5) * 0.25) * gate * duck);
+            A.hit({ at: nextT, vol: 0.04 * gate * duck, dur: 0.3, freq: 90, q: 0.8 });
+          }
+          if (s.tension > 0.75 && st === 8 && duck > 0.4) A.kick(nextT, 0.09 * gate * duck);
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        // ---- totality: one enormous boom out of the silence -------------
+        if (s.rise > 0.9 && !boomed) {
+          boomed = true;
+          A.kick(now, 0.5);
+          A.hit({ at: now, vol: 0.12, dur: 0.5, freq: 60, q: 0.7 });
+          A.tone(H.rootFreq(-2), { at: now, vol: 0.16, dur: 5, attack: 0.02, type: 'sine', rev: 0.5, role: 'sfx' });
+        }
+        if (s.rise < 0.1) boomed = false;
+
+        // ---- the flick: one rolled run per gesture ----------------------
+        let ev, k = 0;
+        while ((ev = s.strumQ.shift()) && k < 2) {
+          k++;
+          const base = Math.floor(s.tension * 4);
+          const at0 = Math.max(now + 0.02, T.next(0.25));
+          const vol0 = clamp(0.055 + ev.sp * 0.05, 0.06, 0.14) * gate * duck;
+          for (let i = 0; i < 5; i++) {
+            const idx = ev.dir > 0 ? base + i * 2 : base + 8 - i * 2;
+            A.pluck2(H.chordTone(idx, -1), {
+              at: at0 + i * 0.085, vol: vol0 * (1 - i * 0.09), dur: 2.4,
+              pan: (ev.dir > 0 ? -0.7 : 0.7) + i * (ev.dir > 0 ? 0.35 : -0.35),
+              rev: 0.55, del: 0.2, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', depth);
+          MOut.expr('lead', clamp(s.wave / 4));
+          MOut.expr('bass', clamp((s.tension - 0.5) * 2));
+          MOut.expr('sfx', Math.max(s.chg, s.rise));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-13.6 · EVENT HORIZON V6 ---------- */
+/* Lance's V5 clarification: the gradient he wanted longer was the RIM BELOW
+   the line (V5 brightened the sky above instead). The dying red bleed into
+   the void now reaches ~2.5x deeper, and stretches further as the rope
+   rises. */
+reg({
+  id: 'SRC-13.6', family: 'SRC-13', ver: 6, title: 'Event Horizon', tech: 'VERLET ROPE / ACCRETION',
+  music: {
+    bpm: 64, root: 45, mode: 'aeolian', chordBars: 2,
+    chords: [
+      [0, 12, 19, 24, 26],   // Am9 (open — no third, all weight)
+      [0, 8, 15, 19, 24],    // F/A — the bVI lift
+      [0, 10, 14, 17, 24],   // G/A — bVII
+      [0, 10, 15, 19, 27]    // Am7 — home, C on top
+    ],
+    chordNames: ['Am9', 'F/A', 'G/A', 'Am7']
+  },
+  fx: { bloom: 0.6 },
+  tags: ['THE LAST LINE OF LIGHT', 'AUDIBLE CRESCENDO', 'REDSHIFT ECHO', 'STARFALL', 'THE SWALLOW'],
+  desc: 'The cable is the event horizon: one burning line between the sky and the void. Stars drift down, accelerate, and are eaten; nothing below the line ever comes back. Raise your arms and an organ-dark string section assembles CHAIR BY CHAIR — each entrance announced, the whole wall swelling and brightening under your hands, throbbing on the grid as it tightens. Throw a wave and its ghosts fall into the hole, stretching and redshifting as they go. Hold both arms high and the void starts to RISE: six seconds of warning, then it swallows the room — everything goes black except the line, one enormous boom, and the sky is given back.',
+  interact: 'L = left arm of the conductor, R = right. Height is the crescendo: every chair you add is announced and audibly thickens the wall; the filter opens as you rise, the pulse and the booms arrive as the line tightens, the gate throbs deeper. A fast flick = one dark run in the direction you threw it, and its ribbons fall into the void. HOLD BOTH ARMS HIGH: the horizon charges — keep holding and it swallows everything but the line. That is the button you should be scared of.',
+  sound: 'The crescendo is the instrument, and in V5 the WALL outweighs every transient: chairs roughly doubled again, the pulse, chair-announces, booms and runs all halved beneath it, and the rhythmic gate capped at 60% depth so the throb never guts the sustain. Each chair crossing its height threshold swells in over ~0.7s AND is announced by a low rolled tone on its own pitch, so you HEAR the orchestra assemble. Filter opens with the arms, sub-octave organ stop slides in past 70% tension, everything runs through the tempo gate (deepens with tension, 8ths then 16ths; depth on pad CC74 for the string plugin\'s gate in Live). 8th-note root pulse and taiko booms earned past half tension. A flick = one rolled five-note run, low ladder, 0.8s per-side cooldown; the wave itself is a whoosh. THE SWALLOW: hold both arms > 85% — a riser charges for ~6s (you hear it coming), the band ducks to nothing as the void climbs, one enormous sub boom at totality, then the section re-blooms. Ableton: runs ch1, pulse ch3, pad ch2/6, booms ch10, riser sfx ch11.',
+
+  init(P) {
+    const N = 40;
+    const nodes = [];
+    for (let i = 0; i < N; i++) nodes.push({ x: 0, y: 0, ox: 0, oy: 0 });
+    const NS = Math.round(70 * Math.max(0.5, areaScale(P)));
+    const stars = [];
+    for (let i = 0; i < NS; i++) {
+      stars.push({ x: P.rand(), y: P.rand() * 0.75, vy: 0, px: 0, py: 0 });
+    }
+    P.state = {
+      N, nodes, seg: 0, tension: 0, wave: 0, pres: 0,
+      uL: 0, uR: 0, vL: 0, vR: 0, gate: 0, runs: 0,
+      prevAy: 0, prevBy: 0, cdL: 0, cdR: 0, strumQ: [],
+      hist: [], histAcc: 0, idleKick: 0, born: 0, init: false,
+      stars, chg: 0, act: 0, rise: 0, cdT: 0
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, { N, nodes } = s, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const idL = 0.16 + 0.09 * Math.sin(t * 0.21), idR = 0.16 + 0.09 * Math.sin(t * 0.26 + 2.1);
+    s.uL = clamp(inp.L) * s.pres + idL * (1 - s.pres);
+    s.uR = clamp(inp.R) * s.pres + idR * (1 - s.pres);
+    const ax = w * 0.08, bx = w * 0.92;
+    const ay = h * (0.62 - s.uL * 0.46), by = h * (0.62 - s.uR * 0.46);
+    if (!s.init) {
+      s.init = true; s.born = t; s.prevAy = ay; s.prevBy = by;
+      const span = bx - ax;
+      const extra = Math.max(8, (1.16 - 0.22 * ((s.uL + s.uR) / 2)) * span - span);
+      const sag = Math.sqrt(3 * span * extra / 8);
+      for (let i = 0; i < N; i++) {
+        const tt = i / (N - 1);
+        nodes[i].x = nodes[i].ox = lerp(ax, bx, tt);
+        nodes[i].y = nodes[i].oy = lerp(ay, by, tt) + Math.sin(tt * Math.PI) * sag;
+      }
+    }
+    if (s.pres < 0.2 && t - s.idleKick > 9) {
+      s.idleKick = t + P.rand() * 5;
+      const ni = 6 + Math.floor(P.rand() * (N - 12));
+      for (let i = -2; i <= 2; i++) nodes[ni + i].oy -= (3 - Math.abs(i)) * 4;
+    }
+
+    const settled = t - s.born > 3;
+    if (settled && s.pres > 0.3 && dt > 0) {
+      const vA = Math.abs(ay - s.prevAy) / (h * dt), vB = Math.abs(by - s.prevBy) / (h * dt);
+      if (vA > 0.9 && t > s.cdL) { s.cdL = t + 0.8; s.runs++; s.strumQ.push({ dir: 1, sp: vA }); }
+      if (vB > 0.9 && t > s.cdR) { s.cdR = t + 0.8; s.runs++; s.strumQ.push({ dir: -1, sp: vB }); }
+      if (s.strumQ.length > 3) s.strumQ.length = 3;
+    }
+    s.prevAy = ay; s.prevBy = by;
+
+    s.seg = (bx - ax) * (1.16 - 0.22 * ((s.uL + s.uR) / 2)) / (N - 1);
+    const sub = 2;
+    for (let ss = 0; ss < sub; ss++) {
+      const sdt = dt / sub;
+      for (let i = 1; i < N - 1; i++) {
+        const nd = nodes[i];
+        const vx = (nd.x - nd.ox) * 0.996, vy = (nd.y - nd.oy) * 0.996;
+        nd.ox = nd.x; nd.oy = nd.y;
+        nd.x += vx; nd.y += vy + 1300 * sdt * sdt;
+      }
+      nodes[0].x = ax; nodes[0].y = ay;
+      nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      for (let it = 0; it < 22; it++) {
+        for (let i = 0; i < N - 1; i++) {
+          const a = nodes[i], b = nodes[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy) || 1e-5;
+          const diff = (d - s.seg) / d * 0.5;
+          const mA = i === 0 ? 0 : 1, mB = i === N - 2 ? 0 : 1;
+          const tot = mA + mB || 1;
+          a.x += dx * diff * 2 * mA / tot; a.y += dy * diff * 2 * mA / tot;
+          b.x -= dx * diff * 2 * mB / tot; b.y -= dy * diff * 2 * mB / tot;
+        }
+        nodes[0].x = ax; nodes[0].y = ay;
+        nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      }
+    }
+    let pathLen = 0;
+    for (let i = 0; i < N - 1; i++) pathLen += Math.hypot(nodes[i + 1].x - nodes[i].x, nodes[i + 1].y - nodes[i].y);
+    const chord = Math.hypot(bx - ax, by - ay);
+    s.tension += (clamp(1 - (pathLen / chord - 1) / 0.12) - s.tension) * Math.min(1, dt * 4);
+
+    let wave = 0;
+    for (let i = 1; i < N - 1; i++) wave += Math.abs(nodes[i].y - nodes[i].oy);
+    s.wave += (wave / N - s.wave) * 0.25;
+
+    // ---- THE SWALLOW state machine -------------------------------------
+    // hold both arms high: 6s of charging you can hear and see, then the
+    // void takes the room. Rare by construction (25s cooldown + the hold).
+    if (s.act === 0 && settled && s.pres > 0.5 && s.uL > 0.85 && s.uR > 0.85 && t > s.cdT) {
+      s.chg = Math.min(1, s.chg + dt / 6);
+      if (s.chg >= 1) { s.act = 0.0001; s.chg = 0; }
+    } else if (s.act === 0) {
+      s.chg = Math.max(0, s.chg - dt * 0.5);
+    }
+    if (s.act > 0) {
+      s.act = Math.min(1, s.act + dt / 3.2);
+      s.rise = s.act < 0.5 ? s.act * 2 : (1 - s.act) * 2;   // up, hold nothing, back
+      if (s.act >= 1) { s.act = 0; s.rise = 0; s.cdT = t + 25; }
+    }
+
+    // ---- starfall: everything above the line is falling toward it ------
+    const cableYat = x => {
+      const i = clamp((x * w - ax) / (bx - ax)) * (N - 1);
+      const i0 = Math.floor(i), fr = i - i0;
+      return lerp(nodes[i0].y, nodes[Math.min(N - 1, i0 + 1)].y, fr);
+    };
+    const hunger = 1 + s.chg * 2 + s.rise * 6;
+    for (const st of s.stars) {
+      st.px = st.x; st.py = st.y;
+      const cy = cableYat(st.x) / h;
+      const d = Math.max(0.04, cy - st.y);
+      st.vy += (0.0022 / (d * d)) * dt * hunger;
+      st.vy = Math.min(st.vy, 0.55 * hunger);
+      st.y += st.vy * dt;
+      st.x += Math.sin(st.y * 17 + st.x * 31) * dt * 0.004;   // faint shear
+      if (st.y >= cy - 0.004) {
+        st.x = P.rand(); st.y = P.rand() * 0.12; st.vy = 0; st.px = st.x; st.py = st.y;
+      }
+    }
+
+    s.histAcc += dt;
+    if (s.histAcc > 0.045) {
+      s.histAcc = 0;
+      const snap = new Float32Array(N * 2);
+      for (let i = 0; i < N; i++) { snap[i * 2] = nodes[i].x; snap[i * 2 + 1] = nodes[i].y; }
+      s.hist.push(snap);
+      if (s.hist.length > 22) s.hist.shift();
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { N, nodes } = s;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(4,3,7,0.45)'; g.fillRect(0, 0, w, h);
+
+    const ax = nodes[0].x, bx = nodes[N - 1].x;
+    let cavg = 0, topY = h;
+    for (let i = 0; i < N; i++) { cavg += nodes[i].y; if (nodes[i].y < topY) topY = nodes[i].y; }
+    cavg /= N;
+
+    // ---- the sky: stars falling toward the line, streaking as they go --
+    for (const st of s.stars) {
+      const sp = Math.min(1, st.vy * 6);
+      const a = 0.25 + sp * 0.6;
+      g.strokeStyle = `rgba(${200 + sp * 55},${205 - sp * 60},${255 - sp * 120},${a})`;
+      g.lineWidth = (1 + sp * 1.4) * ms;
+      g.beginPath();
+      g.moveTo(st.px * w, st.py * h);
+      g.lineTo(st.x * w, st.y * h + 1.5 * ms);
+      g.stroke();
+    }
+
+    // ---- the sky: soft ambient light escaping upward (full-frame, no
+    // hard shapes — the glow that FOLLOWS the line comes next) -----------
+    const gpulse = s.gate;
+    const glow = (0.10 + s.tension * 0.28 + gpulse * 0.10 + s.chg * 0.25) * (0.4 + s.pres * 0.6);
+    // a high, taut rope LIGHTS THE SPACE: the glow reaches further and holds
+    // instead of dissipating — at full it washes the whole sky
+    const reach = 0.38 + s.tension * 0.5;
+    const skyBot = Math.min(h, topY + h * 0.15);
+    const sky = g.createLinearGradient(0, topY - h * reach, 0, skyBot);
+    sky.addColorStop(0, `rgba(255,80,90,${glow * 0.18 * s.tension})`);
+    sky.addColorStop(0.72, `rgba(255,110,55,${glow * (0.5 + s.tension * 0.4)})`);
+    sky.addColorStop(1, 'rgba(255,110,55,0)');
+    g.fillStyle = sky; g.fillRect(0, 0, w, skyBot);
+
+    // ---- glow that hugs the curve: photon ring above, dying red rim
+    // below. Layered full-span strokes with heavy overlap — the falloff
+    // follows the LINE, not an absolute height (a gradient anchored to the
+    // average y paints a flat slab wherever the curve leaves the average).
+    const ridge = (off, style, lw) => {
+      g.strokeStyle = style; g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(0, nodes[0].y + off);
+      for (let i = 0; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y + off);
+      g.lineTo(w, nodes[N - 1].y + off);
+      g.stroke();
+    };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let k = 4; k >= 1; k--) {
+      ridge(-k * 7 * ms, `rgba(255,140,70,${glow * 0.28 * (1 + s.tension * 0.5) * (1 - k / 4.6)})`, 10 * ms);
+    }
+    // the rim below the line — LONG. The red bleeds deep into the void and
+    // reaches deeper still as the rope rises.
+    const rimA = 0.24 + s.tension * 0.14 + s.chg * 0.3;
+    const NL2 = 16, rstep = (9 + s.tension * 9) * ms;
+    for (let k = NL2; k >= 1; k--) {
+      const f = k / (NL2 + 1);
+      // stroke width rides the step so the layers always overlap — a gap
+      // between them reads as stripes, and stripes are the old bar chart
+      ridge(k * rstep, `rgba(${255 - f * 130 | 0},${42 - f * 30 | 0},20,${rimA * Math.pow(1 - f, 1.5)})`, rstep * 1.5);
+    }
+
+    // ---- the ribbons FALL IN: displaced down with age, redshifting -----
+    const echoA = clamp(s.wave / 1.2);
+    if (echoA > 0.03 && s.hist.length > 1) {
+      g.globalCompositeOperation = 'lighter';
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      for (let e2 = 0; e2 < s.hist.length; e2++) {
+        const snap = s.hist[e2];
+        const age = (e2 + 1) / s.hist.length;          // 0 old → 1 newest
+        const a = Math.pow(age, 1.7) * 0.20 * echoA;
+        if (a < 0.004) continue;
+        const fall = (1 - age) * (1 - age) * h * 0.13;  // older = deeper in
+        const r = 90 + age * 165, gg = 25 + age * 115, bb = 20 + age * 160;
+        g.strokeStyle = `rgba(${r | 0},${gg | 0},${bb | 0},${a})`;
+        g.lineWidth = (1.4 + age * 1.8) * ms;
+        g.beginPath();
+        g.moveTo(snap[0], snap[1] + fall);
+        for (let i = 1; i < N; i++) g.lineTo(snap[i * 2], snap[i * 2 + 1] + fall);
+        g.stroke();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    // ---- THE SWALLOW: the void climbs over everything but the line -----
+    if (s.rise > 0.001) {
+      const riseY = h * (1.02 - s.rise * 1.12);
+      const edge = g.createLinearGradient(0, riseY - h * 0.06, 0, riseY);
+      edge.addColorStop(0, 'rgba(255,40,15,0)');
+      edge.addColorStop(1, `rgba(255,60,20,${0.35 * s.rise})`);
+      g.fillStyle = edge; g.fillRect(0, riseY - h * 0.06, w, h * 0.06);
+      g.fillStyle = '#000'; g.fillRect(0, riseY, w, h - riseY);
+    }
+
+    // ---- the line itself: crisp, burning, last ------------------------
+    const cg = g.createLinearGradient(ax, 0, bx, 0);
+    cg.addColorStop(0, '#ffb266'); cg.addColorStop(0.5, '#ff8fa8'); cg.addColorStop(1, '#b48aff');
+    g.strokeStyle = cg;
+    g.lineWidth = (3.6 + s.tension * 1.4 + gpulse * 1.2) * ms;
+    g.shadowColor = '#ff8d5e'; g.shadowBlur = (7 + s.tension * 10 + s.wave * 2 + s.chg * 14) * ms;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    // anchors: two star-points, no masts out here
+    [[nodes[0], '#ffb266'], [nodes[N - 1], '#b48aff']].forEach(([nd, col]) => {
+      g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 16 * ms;
+      g.beginPath(); g.arc(nd.x, nd.y, 4.5 * ms, 0, TAU); g.fill();
+      g.shadowBlur = 0;
+    });
+
+    g.fillStyle = '#040307'; g.fillRect(0, h - 24, 400, 24);
+    g.fillStyle = 'rgba(255,150,120,0.85)'; g.font = `${Math.round(10 * Math.min(ms, 1.4))}px ui-monospace,monospace`;
+    g.fillText('TENSION ' + (s.tension * 100).toFixed(0) + '%  ·  ' + (H.label || '') +
+      '  ·  STRINGS ' + s.vL + '+' + s.vR + '/6  ·  GATE ' + (s.gate * 100).toFixed(0) + '%' +
+      (s.rise > 0.001 ? '  ·  SWALLOWED' : s.chg > 0.01 ? '  ·  HORIZON ' + (s.chg * 100).toFixed(0) + '%' : '') +
+      (s.pres < 0.3 ? '  ·  RESTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const hum = v.osc('sine', H.rootFreq(-2)), hum2 = v.osc('sine', H.rootFreq(-1));
+    const hg = v.g(0.012);
+    hum.connect(hg); hum2.connect(hg); hg.connect(v.group);
+    const wn = v.noise(), wf = v.filter('bandpass', 400, 1.1), wg = v.g(0);
+    wn.connect(wf); wf.connect(wg); wg.connect(v.group);
+    // the swallow riser — its own noise, rising and narrowing
+    const rn = v.noise(), rf = v.filter('bandpass', 300, 3), rg = v.g(0);
+    rn.connect(rf); rf.connect(rg); rg.connect(v.group);
+
+    // SIX CHAIRS AT REAL VOLUME (the V3 mix bug: 0.0105/voice sat under the
+    // 0.034 hum — the crescendo was inaudible). Chairs are the lead voice of
+    // this scene: ~2x the bed guideline, hum trimmed beneath them, and each
+    // chair gets its own slow entrance envelope so joining is a swell you
+    // hear, not a crossfade you miss.
+    const bedLo = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 260, q: 0.7 });
+    const bedHi = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 520, q: 0.7 });
+    const subLo = A.padVoices(v, 2, { type: 'triangle', gain: 0.0001, cutoff: 160, q: 0.6 });
+    const place = glide => {
+      bedLo.forEach((b, i) => b.set(H.chordTone(i, -1), glide));
+      bedHi.forEach((b, i) => b.set(H.chordTone(i + 2, 0), glide));
+      subLo.forEach((b, i) => b.set(H.chordTone(i * 2, -2), glide));
+    };
+    place(0.05);
+    H.onChord(() => place(0.18));
+    v.fadeIn(1, 0.8);
+
+    const TH = [0.18, 0.45, 0.72];
+    const env = [0, 0, 0, 0, 0, 0];      // entrance envelope per chair (L0..2, R0..2)
+    const was = [false, false, false, false, false, false];
+    let nextT = T.next(0.25), lastNow = A.t(), boomed = false;
+    return {
+      tick(inp) {
+        const s = P.state, now = A.t();
+        const adt = Math.min(0.1, Math.max(0.001, now - lastNow)); lastNow = now;
+        const gate = 0.3 + s.pres * 0.7;
+        const duck = 1 - s.rise * 0.9;    // the swallow empties the band
+
+        A.set(hg.gain, (0.005 + s.tension * 0.02) * gate * duck, 0.3);
+        A.set(wg.gain, clamp(s.wave / 6) * 0.05 * gate * duck, 0.08);
+        A.set(wf.frequency, 260 + s.tension * 700 + s.wave * 120, 0.15);
+        // the riser: you HEAR the horizon charging
+        A.set(rg.gain, s.chg * s.chg * 0.055 * gate, 0.15);
+        A.set(rf.frequency, 300 + s.chg * 3600, 0.2);
+
+        // gate capped at 0.6: the throb must never gut the wall — at V4's
+        // 0.85 depth the bed spent most of each cycle at 15% exactly when
+        // it should be enormous
+        const depth = clamp((s.tension - 0.4) / 0.45) * 0.6 * s.pres;
+        const rate = s.tension > 0.8 ? 4 : 2;
+        const ph = (T.beats() * rate) % 1;
+        const lfo = 0.5 + 0.5 * Math.cos(ph * TAU);
+        const gv = 1 - depth * (1 - lfo * lfo);
+        s.gate = depth * (1 - gv);
+
+        // ---- the crescendo: chairs enter as EVENTS -----------------------
+        let vL = 0, vR = 0;
+        for (let j = 0; j < 6; j++) {
+          const side = j < 3 ? s.uL : s.uR;
+          const th = TH[j % 3];
+          const want = clamp((side - th) / 0.1);
+          // slow swell in (~0.7s), faster out — the entrance is audible
+          env[j] += (want - env[j]) * Math.min(1, adt * (want > env[j] ? 1.6 : 3));
+          if (want > 0.5) { if (j < 3) vL++; else vR++; }
+          // announce the chair the moment it commits
+          if (want > 0.5 && !was[j]) {
+            was[j] = true;
+            const f = j < 3 ? H.chordTone(j, -1) : H.chordTone((j % 3) + 2, 0);
+            A.tone(f, { at: T.next(0.5), vol: 0.045 * gate * duck, dur: 1.8, attack: 0.1, type: 'triangle', pan: j < 3 ? -0.4 : 0.4, rev: 0.55, role: 'pad' });
+          } else if (want < 0.3 && was[j]) was[j] = false;
+          const body = 0.6 + s.tension * 0.4;
+          const lvl = (j < 3 ? 0.045 : 0.03) * env[j] * body * gate * gv * duck;
+          (j < 3 ? bedLo[j] : bedHi[j % 3]).level(lvl, 0.06);
+        }
+        s.vL = vL; s.vR = vR;
+        // filter opens with the arms — the biggest "it is swelling" cue
+        bedLo.forEach(b => b.bright(200 + s.uL * 900 + s.tension * 500, 0.3));
+        bedHi.forEach(b => b.bright(360 + s.uR * 1400 + s.tension * 600, 0.3));
+        // the organ's 16-foot stop slides in when it is really tight
+        const subLvl = clamp((s.tension - 0.7) / 0.3) * 0.035 * gate * gv * duck;
+        subLo.forEach(b => b.level(subLvl, 0.3));
+
+        // ---- the grid: pulse and booms ----------------------------------
+        const horizon2 = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon2 && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+          if (s.tension > 0.5 && st % 2 === 0 && duck > 0.4) {
+            const acc = st === 0 ? 1.35 : st % 4 === 0 ? 1.1 : 1;
+            A.bassNote(H.chordTone(0, -1), {
+              at: nextT, vol: (0.018 + (s.tension - 0.5) * 0.05) * acc * gate * duck, dur: 0.24
+            });
+          }
+          if (s.tension > 0.5 && st === 0 && duck > 0.4) {
+            A.kick(nextT, (0.13 + (s.tension - 0.5) * 0.25) * gate * duck);
+            A.hit({ at: nextT, vol: 0.04 * gate * duck, dur: 0.3, freq: 90, q: 0.8 });
+          }
+          if (s.tension > 0.75 && st === 8 && duck > 0.4) A.kick(nextT, 0.09 * gate * duck);
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        // ---- totality: one enormous boom out of the silence -------------
+        if (s.rise > 0.9 && !boomed) {
+          boomed = true;
+          A.kick(now, 0.5);
+          A.hit({ at: now, vol: 0.12, dur: 0.5, freq: 60, q: 0.7 });
+          A.tone(H.rootFreq(-2), { at: now, vol: 0.16, dur: 5, attack: 0.02, type: 'sine', rev: 0.5, role: 'sfx' });
+        }
+        if (s.rise < 0.1) boomed = false;
+
+        // ---- the flick: one rolled run per gesture ----------------------
+        let ev, k = 0;
+        while ((ev = s.strumQ.shift()) && k < 2) {
+          k++;
+          const base = Math.floor(s.tension * 4);
+          const at0 = Math.max(now + 0.02, T.next(0.25));
+          const vol0 = clamp(0.055 + ev.sp * 0.05, 0.06, 0.14) * gate * duck;
+          for (let i = 0; i < 5; i++) {
+            const idx = ev.dir > 0 ? base + i * 2 : base + 8 - i * 2;
+            A.pluck2(H.chordTone(idx, -1), {
+              at: at0 + i * 0.085, vol: vol0 * (1 - i * 0.09), dur: 2.4,
+              pan: (ev.dir > 0 ? -0.7 : 0.7) + i * (ev.dir > 0 ? 0.35 : -0.35),
+              rev: 0.55, del: 0.2, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', depth);
+          MOut.expr('lead', clamp(s.wave / 4));
+          MOut.expr('bass', clamp((s.tension - 0.5) * 2));
+          MOut.expr('sfx', Math.max(s.chg, s.rise));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-16.2 · RAIN ATRIUM V2 (finer rain) ---------- */
+/* Feedback (Aug 2026): ripples read too big on the wall, and each drop
+   made only a single ring. V2 keeps the exact same instrument — density
+   as paradigm, pentatonic plinks, stereo weather — but:
+   - raises the heightfield grid 1/0.75 (132×82 → 176×109), so every
+     ripple covers 25% less of the frame: smaller, finer circles.
+   - each drop now deposits a profiled crown (a central dip ringed by a
+     raised crest) instead of a single dimple, so one drop throws several
+     concentric wavefronts — more ripples per drop — and the downpour is
+     denser. */
+reg({
+  id: 'SRC-16.2', family: 'SRC-16', ver: 2, title: 'Rain Atrium V2', tech: 'HEIGHTFIELD WATER / TWO CLOUDS',
+  music: { bpm: 64, root: 50, mode: 'ionian', prog: [0, 3, 4, 0] }, fx: { bloom: 0.4, edge: true },
+  tags: ['WAVE EQUATION', 'DENSITY CONTROL', 'PENTATONIC PLINKS', 'STEREO WEATHER'],
+  desc: 'A dark pool under two private clouds — now a finer rain. The left cloud rains only on the left of the water, the right cloud on the right, and every drop throws not one ring but a little nest of them that argues with every other drop\'s. Smaller circles, more of them: the interference in the middle is busier, the pool reads as real weather. Hands high, downpour; hands low, the last circles widen and the pool goes back to holding still.',
+  interact: 'L = rain density over the left half, R = right. Interference is the secret content: medium rain from both sides makes moiré where the ring systems collide in the middle. Density, not position — a third paradigm for what a hand can mean.',
+  sound: 'Plinks: each drop is a pentatonic note — x-position picks the degree (low notes left, high right), drop size → volume, everything through a bright short reverb (Ableton: rack of tuned Operator sines or a music-box sampler; velocity random 20%). Bed: real rain-on-glass noise layer per side, gain = that hand\'s density, panned hard. When both hands are high, duck the plinks 3dB under the noise — downpours drown melodies, and that is correct.',
+  init(P) {
+    // grid 1/0.75 finer than V1 (132×82) → ripples 25% smaller in the frame
+    const W = 176, H = 109;
+    const oc = document.createElement('canvas'); oc.width = W; oc.height = H;
+    P.state = {
+      W, H, cur: new Float32Array(W * H), prev: new Float32Array(W * H),
+      oc, og: oc.getContext('2d'), img: new ImageData(W, H)
+    };
+  },
+  step(P, dt, t, inp) {
+    const s = P.state, { W, H, cur, prev } = s;
+    // profiled deposit: central dip ringed by a raised crown, so ONE drop
+    // launches several concentric wavefronts (more ripples per drop)
+    const deposit = (cx, cy, amp) => {
+      for (let dy = -2; dy <= 2; dy++) {
+        const yy = cy + dy; if (yy < 0 || yy >= H) continue;
+        for (let dx = -2; dx <= 2; dx++) {
+          const xx = cx + dx; if (xx < 0 || xx >= W) continue;
+          const rr = Math.sqrt(dx * dx + dy * dy);
+          // cos(rr*1.6): +1 dip at centre, flips to a crest near rr≈2
+          const prof = Math.cos(rr * 1.6) * Math.exp(-rr * rr * 0.5);
+          cur[yy * W + xx] -= amp * prof;
+        }
+      }
+    };
+    // drops — denser than V1 (rate 15 → 21) for more rings on the water
+    const tryDrop = (side, dens) => {
+      if (P.rand() < dens * dens * dt * 21) {
+        const x = (side === 0 ? P.rand() * 0.48 : 0.52 + P.rand() * 0.46) * W | 0;
+        const y = (P.rand() * (H - 8) + 4) | 0;
+        const amp = 1.2 + P.rand() * 2.2;
+        deposit(x, y, amp);
+        const deg = Math.round((x / W) * 9);
+        const duck = 1 - 0.55 * clamp(inp.L + inp.R - 1); // downpours drown melodies
+        const vol = clamp(amp * 0.04, 0.03, 0.12) * duck;
+        P.ping(A => A.pluck2(H.scaleTone(deg, 1), { at: A.q(), vol, dur: 0.9, pan: (x / W) * 2 - 1, rev: 0.45 }));
+      }
+    };
+    tryDrop(0, inp.L); tryDrop(1, inp.R);
+    // downpour: distant thunder on the texture channel (rack your real thunder samples there)
+    if (inp.L > 0.72 && inp.R > 0.72 && P.rand() < dt * 0.1) {
+      P.ping(A => {
+        MOut.evNote('texture', H.rootFreq(-3), 0.5, A.q(1), 3.5);
+        A.hit({ vol: 0.3, dur: 1.1, freq: 75, q: 0.5, type: 'lowpass', at: A.q(1) });
+      });
+    }
+    // wave step
+    const next = prev; // reuse buffer
+    for (let y = 1; y < H - 1; y++) {
+      const y0 = y * W;
+      for (let x = 1; x < W - 1; x++) {
+        const i = y0 + x;
+        next[i] = ((cur[i - 1] + cur[i + 1] + cur[i - W] + cur[i + W]) / 2 - next[i]) * 0.976;
+      }
+    }
+    s.prev = cur; s.cur = next;
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { W, H, cur, img } = s;
+    const d = img.data;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        const l = x > 0 ? cur[i - 1] : 0, r = x < W - 1 ? cur[i + 1] : 0;
+        const u = y > 0 ? cur[i - W] : 0, dn = y < H - 1 ? cur[i + W] : 0;
+        const shade = (l - r) * 0.9 + (u - dn) * 0.6;
+        // finer grid → gentler per-cell slopes; lift the crest gain to keep
+        // ripples catching the same light they did at V1's resolution
+        const crest = clamp(shade * 1.4, -0.06, 1);
+        // moonlit water: indigo depths, silver crests
+        d[i * 4] = 7 + Math.max(0, crest) * 165;
+        d[i * 4 + 1] = 10 + Math.max(0, crest) * 190;
+        d[i * 4 + 2] = 26 + Math.max(0, crest) * 224;
+        d[i * 4 + 3] = 255;
+      }
+    }
+    s.og.putImageData(img, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(s.oc, 0, 0, w, h);
+    // clouds
+    for (const [side, v] of [[0, inp.L], [1, inp.R]]) {
+      const cx = w * (side === 0 ? 0.25 : 0.75), cy = 26;
+      g.fillStyle = `rgba(160,200,215,${0.25 + v * 0.55})`;
+      for (let k = 0; k < 4; k++) {
+        g.beginPath();
+        g.arc(cx + (k - 1.5) * 13, cy + Math.sin(t + k) * 2, 9 + (k % 2) * 4, 0, TAU);
+        g.fill();
+      }
+      // falling streaks
+      g.strokeStyle = `rgba(170,220,235,${v * 0.5})`;
+      g.lineWidth = 1;
+      for (let k = 0; k < Math.round(v * 6); k++) {
+        const rx = cx + (P.rand() - 0.5) * 60, ry = 40 + ((t * 260 + k * 47) % (h - 60));
+        g.beginPath(); g.moveTo(rx, ry); g.lineTo(rx - 2, ry + 9); g.stroke();
+      }
+    }
+  },
+  audio(A, P) {
+    const v = A.voice();
+    const mkRain = pan => {
+      const n = v.noise();
+      const f = v.filter('bandpass', 5500, 0.6);
+      const gg = v.g(0);
+      n.connect(f); f.connect(gg);
+      if (A.ctx.createStereoPanner) {
+        const p = A.ctx.createStereoPanner(); p.pan.value = pan;
+        gg.connect(p); p.connect(v.group);
+      } else gg.connect(v.group);
+      return gg;
+    };
+    const gL = mkRain(-0.7), gR = mkRain(0.7);
+    v.fadeIn(1, 0.8);
+    return {
+      tick(inp) {
+        A.set(gL.gain, inp.L * inp.L * 0.055, 0.25);
+        A.set(gR.gain, inp.R * inp.R * 0.055, 0.25);
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-16.3 · RAIN ATRIUM V3 (bird's-eye pool) ---------- */
+/* Direction (Aug 2026): drop the sky. No clouds, no falling streaks, no
+   left/right weather split — just the water seen from directly above, and
+   the rings drops write on it. The two hands become two global qualities of
+   the same rain instead of two halves of the pool:
+     L = amount of RIPPLING — how much energy each drop carries (bigger,
+         longer-reaching rings with more concentric wavefronts).
+     R = amount of RAIN — how many drops fall per second.
+   Left hand alone: a few slow drops that ring hard and spread wide.
+   Right hand alone: a fine dense drizzle of small dimples. Both up: a
+   full downpour of big overlapping rings — the interference is the content. */
+reg({
+  id: 'SRC-16.3', family: 'SRC-16', ver: 3, title: 'Rain Atrium V3', tech: "BIRD'S-EYE POOL / DROP RIPPLES",
+  music: { bpm: 64, root: 50, mode: 'ionian', prog: [0, 3, 4, 0] }, fx: { bloom: 0.4, edge: true },
+  tags: ['WAVE EQUATION', "BIRD'S-EYE POOL", 'L = RIPPLE ENERGY', 'R = RAIN AMOUNT'],
+  desc: 'A still black pool seen from straight above — no sky, no walls, no sides. Rain falls onto it and every drop writes a nest of rings that argues with every other drop\'s. One hand decides how hard the water rings, the other how hard it rains; together they run the whole surface from a quiet dimpling to a full downpour of overlapping circles.',
+  interact: 'L = amount of RIPPLING (how much each drop rings — size, reach, number of wavefronts). R = amount of RAIN (how many drops fall). Reach outward on either hand for more. Density and energy, not position — the drops land everywhere; you shape the weather, not where it falls.',
+  sound: 'Plinks: each drop is a pentatonic note — x-position across the full pool picks the degree (low left, high right), ripple energy (L) → loudness, everything through a bright short reverb (Ableton: tuned Operator sines or a music-box sampler; velocity random 20%). Bed: rain-on-glass noise, gain = R (amount of rain), spread stereo. When both hands are high, distant thunder on the texture channel — silence between drops is what makes it land.',
+  init(P) {
+    // finer heightfield → small, dense rings that read as real rain from above
+    const W = 176, H = 109;
+    const oc = document.createElement('canvas'); oc.width = W; oc.height = H;
+    P.state = {
+      W, H, cur: new Float32Array(W * H), prev: new Float32Array(W * H),
+      oc, og: oc.getContext('2d'), img: new ImageData(W, H)
+    };
+  },
+  step(P, dt, t, inp) {
+    const s = P.state, { W, H, cur, prev } = s;
+    const ripple = inp.L; // amount of rippling — per-drop energy
+    const rain = inp.R;   // amount of rain — drop rate
+    // profiled deposit: central dip ringed by a raised crown, so ONE drop
+    // launches several concentric wavefronts. Crown radius + amplitude grow
+    // with ripple energy (L), so the left hand literally widens the rings.
+    const deposit = (cx, cy, amp, energy) => {
+      const rad = 2 + Math.round(energy * 2);   // 2..4 cells: L reaches wider
+      const k = 1.6 - energy * 0.5;             // lower freq at high energy → fatter rings
+      for (let dy = -rad; dy <= rad; dy++) {
+        const yy = cy + dy; if (yy < 0 || yy >= H) continue;
+        for (let dx = -rad; dx <= rad; dx++) {
+          const xx = cx + dx; if (xx < 0 || xx >= W) continue;
+          const rr = Math.sqrt(dx * dx + dy * dy);
+          if (rr > rad) continue;
+          const prof = Math.cos(rr * k) * Math.exp(-rr * rr / (rad * rad * 0.9));
+          cur[yy * W + xx] -= amp * prof;
+        }
+      }
+    };
+    // drops land ANYWHERE on the pool; rate from R, energy from L
+    if (P.rand() < rain * rain * dt * 26) {
+      const x = (0.04 + P.rand() * 0.92) * W | 0;
+      const y = (0.05 + P.rand() * 0.90) * H | 0;
+      const amp = (0.5 + P.rand() * 1.4) * (0.45 + ripple * 2.1); // L scales ring strength
+      deposit(x, y, amp, ripple);
+      const deg = Math.round((x / W) * 9);
+      const vol = clamp(amp * 0.03, 0.03, 0.13);
+      P.ping(A => A.pluck2(H.scaleTone(deg, 1), { at: A.q(), vol, dur: 0.9, pan: (x / W) * 2 - 1, rev: 0.45 }));
+    }
+    // downpour: distant thunder on the texture channel when it's both hard rain
+    // and hard rippling (rack your real thunder samples there)
+    if (rain > 0.78 && ripple > 0.6 && P.rand() < dt * 0.1) {
+      P.ping(A => {
+        MOut.evNote('texture', H.rootFreq(-3), 0.5, A.q(1), 3.5);
+        A.hit({ vol: 0.3, dur: 1.1, freq: 75, q: 0.5, type: 'lowpass', at: A.q(1) });
+      });
+    }
+    // wave step
+    const next = prev; // reuse buffer
+    for (let y = 1; y < H - 1; y++) {
+      const y0 = y * W;
+      for (let x = 1; x < W - 1; x++) {
+        const i = y0 + x;
+        next[i] = ((cur[i - 1] + cur[i + 1] + cur[i - W] + cur[i + W]) / 2 - next[i]) * 0.976;
+      }
+    }
+    s.prev = cur; s.cur = next;
+  },
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { W, H, cur, img } = s;
+    const d = img.data;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        const l = x > 0 ? cur[i - 1] : 0, r = x < W - 1 ? cur[i + 1] : 0;
+        const u = y > 0 ? cur[i - W] : 0, dn = y < H - 1 ? cur[i + W] : 0;
+        const shade = (l - r) * 0.9 + (u - dn) * 0.6;
+        // finer grid → gentler slopes; lift crest gain to keep rings catching light
+        const crest = clamp(shade * 1.4, -0.06, 1);
+        // moonlit water: indigo depths, silver crests
+        d[i * 4] = 7 + Math.max(0, crest) * 165;
+        d[i * 4 + 1] = 10 + Math.max(0, crest) * 190;
+        d[i * 4 + 2] = 26 + Math.max(0, crest) * 224;
+        d[i * 4 + 3] = 255;
+      }
+    }
+    s.og.putImageData(img, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(s.oc, 0, 0, w, h);
+    // NO clouds, NO falling streaks — pure top-down pool.
+  },
+  audio(A, P) {
+    const v = A.voice();
+    const mkRain = pan => {
+      const n = v.noise();
+      const f = v.filter('bandpass', 5500, 0.6);
+      const gg = v.g(0);
+      n.connect(f); f.connect(gg);
+      if (A.ctx.createStereoPanner) {
+        const p = A.ctx.createStereoPanner(); p.pan.value = pan;
+        gg.connect(p); p.connect(v.group);
+      } else gg.connect(v.group);
+      return gg;
+    };
+    const gL = mkRain(-0.6), gR = mkRain(0.6);
+    v.fadeIn(1, 0.8);
+    return {
+      tick(inp) {
+        // rain bed gain follows R (amount of rain), spread across the field
+        const rain = inp.R * inp.R * 0.06;
+        A.set(gL.gain, rain, 0.25);
+        A.set(gR.gain, rain, 0.25);
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-13.7 · EVENT HORIZON V7 ---------- */
+/* Lance's V6 verdicts: V5's sky-brightening reverted (never asked for it);
+   the under-line gradient is now MATHEMATICALLY smooth — one offscreen
+   gradient strip blitted per 4px column, falloff starting exactly at the
+   curve, no layer stripes to fight the ribbons; and the horizon line now
+   continues past the anchors to the frame edges, dim and uncontrolled, so
+   the grip points read as where YOUR stretch begins instead of a gap. */
+reg({
+  id: 'SRC-13.7', family: 'SRC-13', ver: 7, title: 'Event Horizon', tech: 'VERLET ROPE / ACCRETION',
+  music: {
+    bpm: 64, root: 45, mode: 'aeolian', chordBars: 2,
+    chords: [
+      [0, 12, 19, 24, 26],   // Am9 (open — no third, all weight)
+      [0, 8, 15, 19, 24],    // F/A — the bVI lift
+      [0, 10, 14, 17, 24],   // G/A — bVII
+      [0, 10, 15, 19, 27]    // Am7 — home, C on top
+    ],
+    chordNames: ['Am9', 'F/A', 'G/A', 'Am7']
+  },
+  fx: { bloom: 0.6 },
+  tags: ['THE LAST LINE OF LIGHT', 'AUDIBLE CRESCENDO', 'REDSHIFT ECHO', 'STARFALL', 'THE SWALLOW'],
+  desc: 'The cable is the event horizon: one burning line between the sky and the void. Stars drift down, accelerate, and are eaten; nothing below the line ever comes back. Raise your arms and an organ-dark string section assembles CHAIR BY CHAIR — each entrance announced, the whole wall swelling and brightening under your hands, throbbing on the grid as it tightens. Throw a wave and its ghosts fall into the hole, stretching and redshifting as they go. Hold both arms high and the void starts to RISE: six seconds of warning, then it swallows the room — everything goes black except the line, one enormous boom, and the sky is given back.',
+  interact: 'L = left arm of the conductor, R = right. Height is the crescendo: every chair you add is announced and audibly thickens the wall; the filter opens as you rise, the pulse and the booms arrive as the line tightens, the gate throbs deeper. A fast flick = one dark run in the direction you threw it, and its ribbons fall into the void. HOLD BOTH ARMS HIGH: the horizon charges — keep holding and it swallows everything but the line. That is the button you should be scared of.',
+  sound: 'The crescendo is the instrument, and in V5 the WALL outweighs every transient: chairs roughly doubled again, the pulse, chair-announces, booms and runs all halved beneath it, and the rhythmic gate capped at 60% depth so the throb never guts the sustain. Each chair crossing its height threshold swells in over ~0.7s AND is announced by a low rolled tone on its own pitch, so you HEAR the orchestra assemble. Filter opens with the arms, sub-octave organ stop slides in past 70% tension, everything runs through the tempo gate (deepens with tension, 8ths then 16ths; depth on pad CC74 for the string plugin\'s gate in Live). 8th-note root pulse and taiko booms earned past half tension. A flick = one rolled five-note run, low ladder, 0.8s per-side cooldown; the wave itself is a whoosh. THE SWALLOW: hold both arms > 85% — a riser charges for ~6s (you hear it coming), the band ducks to nothing as the void climbs, one enormous sub boom at totality, then the section re-blooms. Ableton: runs ch1, pulse ch3, pad ch2/6, booms ch10, riser sfx ch11.',
+
+  init(P) {
+    const N = 40;
+    const nodes = [];
+    for (let i = 0; i < N; i++) nodes.push({ x: 0, y: 0, ox: 0, oy: 0 });
+    const NS = Math.round(70 * Math.max(0.5, areaScale(P)));
+    const stars = [];
+    for (let i = 0; i < NS; i++) {
+      stars.push({ x: P.rand(), y: P.rand() * 0.75, vy: 0, px: 0, py: 0 });
+    }
+    P.state = {
+      N, nodes, seg: 0, tension: 0, wave: 0, pres: 0,
+      uL: 0, uR: 0, vL: 0, vR: 0, gate: 0, runs: 0,
+      prevAy: 0, prevBy: 0, cdL: 0, cdR: 0, strumQ: [],
+      hist: [], histAcc: 0, idleKick: 0, born: 0, init: false,
+      stars, chg: 0, act: 0, rise: 0, cdT: 0
+    };
+  },
+
+  step(P, dt, t, inp) {
+    const s = P.state, { N, nodes } = s, w = P.w, h = P.h;
+    const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+    s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+    const idL = 0.16 + 0.09 * Math.sin(t * 0.21), idR = 0.16 + 0.09 * Math.sin(t * 0.26 + 2.1);
+    s.uL = clamp(inp.L) * s.pres + idL * (1 - s.pres);
+    s.uR = clamp(inp.R) * s.pres + idR * (1 - s.pres);
+    const ax = w * 0.08, bx = w * 0.92;
+    const ay = h * (0.62 - s.uL * 0.46), by = h * (0.62 - s.uR * 0.46);
+    if (!s.init) {
+      s.init = true; s.born = t; s.prevAy = ay; s.prevBy = by;
+      const span = bx - ax;
+      const extra = Math.max(8, (1.16 - 0.22 * ((s.uL + s.uR) / 2)) * span - span);
+      const sag = Math.sqrt(3 * span * extra / 8);
+      for (let i = 0; i < N; i++) {
+        const tt = i / (N - 1);
+        nodes[i].x = nodes[i].ox = lerp(ax, bx, tt);
+        nodes[i].y = nodes[i].oy = lerp(ay, by, tt) + Math.sin(tt * Math.PI) * sag;
+      }
+    }
+    if (s.pres < 0.2 && t - s.idleKick > 9) {
+      s.idleKick = t + P.rand() * 5;
+      const ni = 6 + Math.floor(P.rand() * (N - 12));
+      for (let i = -2; i <= 2; i++) nodes[ni + i].oy -= (3 - Math.abs(i)) * 4;
+    }
+
+    const settled = t - s.born > 3;
+    if (settled && s.pres > 0.3 && dt > 0) {
+      const vA = Math.abs(ay - s.prevAy) / (h * dt), vB = Math.abs(by - s.prevBy) / (h * dt);
+      if (vA > 0.9 && t > s.cdL) { s.cdL = t + 0.8; s.runs++; s.strumQ.push({ dir: 1, sp: vA }); }
+      if (vB > 0.9 && t > s.cdR) { s.cdR = t + 0.8; s.runs++; s.strumQ.push({ dir: -1, sp: vB }); }
+      if (s.strumQ.length > 3) s.strumQ.length = 3;
+    }
+    s.prevAy = ay; s.prevBy = by;
+
+    s.seg = (bx - ax) * (1.16 - 0.22 * ((s.uL + s.uR) / 2)) / (N - 1);
+    const sub = 2;
+    for (let ss = 0; ss < sub; ss++) {
+      const sdt = dt / sub;
+      for (let i = 1; i < N - 1; i++) {
+        const nd = nodes[i];
+        const vx = (nd.x - nd.ox) * 0.996, vy = (nd.y - nd.oy) * 0.996;
+        nd.ox = nd.x; nd.oy = nd.y;
+        nd.x += vx; nd.y += vy + 1300 * sdt * sdt;
+      }
+      nodes[0].x = ax; nodes[0].y = ay;
+      nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      for (let it = 0; it < 22; it++) {
+        for (let i = 0; i < N - 1; i++) {
+          const a = nodes[i], b = nodes[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy) || 1e-5;
+          const diff = (d - s.seg) / d * 0.5;
+          const mA = i === 0 ? 0 : 1, mB = i === N - 2 ? 0 : 1;
+          const tot = mA + mB || 1;
+          a.x += dx * diff * 2 * mA / tot; a.y += dy * diff * 2 * mA / tot;
+          b.x -= dx * diff * 2 * mB / tot; b.y -= dy * diff * 2 * mB / tot;
+        }
+        nodes[0].x = ax; nodes[0].y = ay;
+        nodes[N - 1].x = bx; nodes[N - 1].y = by;
+      }
+    }
+    let pathLen = 0;
+    for (let i = 0; i < N - 1; i++) pathLen += Math.hypot(nodes[i + 1].x - nodes[i].x, nodes[i + 1].y - nodes[i].y);
+    const chord = Math.hypot(bx - ax, by - ay);
+    s.tension += (clamp(1 - (pathLen / chord - 1) / 0.12) - s.tension) * Math.min(1, dt * 4);
+
+    let wave = 0;
+    for (let i = 1; i < N - 1; i++) wave += Math.abs(nodes[i].y - nodes[i].oy);
+    s.wave += (wave / N - s.wave) * 0.25;
+
+    // ---- THE SWALLOW state machine -------------------------------------
+    // hold both arms high: 6s of charging you can hear and see, then the
+    // void takes the room. Rare by construction (25s cooldown + the hold).
+    if (s.act === 0 && settled && s.pres > 0.5 && s.uL > 0.85 && s.uR > 0.85 && t > s.cdT) {
+      s.chg = Math.min(1, s.chg + dt / 6);
+      if (s.chg >= 1) { s.act = 0.0001; s.chg = 0; }
+    } else if (s.act === 0) {
+      s.chg = Math.max(0, s.chg - dt * 0.5);
+    }
+    if (s.act > 0) {
+      s.act = Math.min(1, s.act + dt / 3.2);
+      s.rise = s.act < 0.5 ? s.act * 2 : (1 - s.act) * 2;   // up, hold nothing, back
+      if (s.act >= 1) { s.act = 0; s.rise = 0; s.cdT = t + 25; }
+    }
+
+    // ---- starfall: everything above the line is falling toward it ------
+    const cableYat = x => {
+      const i = clamp((x * w - ax) / (bx - ax)) * (N - 1);
+      const i0 = Math.floor(i), fr = i - i0;
+      return lerp(nodes[i0].y, nodes[Math.min(N - 1, i0 + 1)].y, fr);
+    };
+    const hunger = 1 + s.chg * 2 + s.rise * 6;
+    for (const st of s.stars) {
+      st.px = st.x; st.py = st.y;
+      const cy = cableYat(st.x) / h;
+      const d = Math.max(0.04, cy - st.y);
+      st.vy += (0.0022 / (d * d)) * dt * hunger;
+      st.vy = Math.min(st.vy, 0.55 * hunger);
+      st.y += st.vy * dt;
+      st.x += Math.sin(st.y * 17 + st.x * 31) * dt * 0.004;   // faint shear
+      if (st.y >= cy - 0.004) {
+        st.x = P.rand(); st.y = P.rand() * 0.12; st.vy = 0; st.px = st.x; st.py = st.y;
+      }
+    }
+
+    s.histAcc += dt;
+    if (s.histAcc > 0.045) {
+      s.histAcc = 0;
+      const snap = new Float32Array(N * 2);
+      for (let i = 0; i < N; i++) { snap[i * 2] = nodes[i].x; snap[i * 2 + 1] = nodes[i].y; }
+      s.hist.push(snap);
+      if (s.hist.length > 22) s.hist.shift();
+    }
+  },
+
+  draw(P, g, w, h, t, inp) {
+    const s = P.state, { N, nodes } = s;
+    const ms = Math.max(1, Math.sqrt(areaScale(P)));
+    g.fillStyle = 'rgba(4,3,7,0.45)'; g.fillRect(0, 0, w, h);
+
+    const ax = nodes[0].x, bx = nodes[N - 1].x;
+    let cavg = 0, topY = h;
+    for (let i = 0; i < N; i++) { cavg += nodes[i].y; if (nodes[i].y < topY) topY = nodes[i].y; }
+    cavg /= N;
+
+    // ---- the sky: stars falling toward the line, streaking as they go --
+    for (const st of s.stars) {
+      const sp = Math.min(1, st.vy * 6);
+      const a = 0.25 + sp * 0.6;
+      g.strokeStyle = `rgba(${200 + sp * 55},${205 - sp * 60},${255 - sp * 120},${a})`;
+      g.lineWidth = (1 + sp * 1.4) * ms;
+      g.beginPath();
+      g.moveTo(st.px * w, st.py * h);
+      g.lineTo(st.x * w, st.y * h + 1.5 * ms);
+      g.stroke();
+    }
+
+    // ---- the sky: soft ambient light escaping upward (full-frame, no
+    // hard shapes — the glow that FOLLOWS the line comes next) -----------
+    const gpulse = s.gate;
+    // sky back to the V4 treatment — the space stays dark, the light lives
+    // at the horizon (V5's tension-scaled sky brightening: reverted)
+    const glow = (0.10 + s.tension * 0.18 + gpulse * 0.10 + s.chg * 0.25) * (0.4 + s.pres * 0.6);
+    const skyBot = Math.min(h, topY + h * 0.15);
+    const sky = g.createLinearGradient(0, topY - h * 0.38, 0, skyBot);
+    sky.addColorStop(0, 'rgba(255,80,90,0)');
+    sky.addColorStop(0.72, `rgba(255,110,55,${glow * 0.5})`);
+    sky.addColorStop(1, 'rgba(255,110,55,0)');
+    g.fillStyle = sky; g.fillRect(0, 0, w, skyBot);
+
+    // ---- glow that hugs the curve: photon ring above, dying red rim
+    // below. Layered full-span strokes with heavy overlap — the falloff
+    // follows the LINE, not an absolute height (a gradient anchored to the
+    // average y paints a flat slab wherever the curve leaves the average).
+    const ridge = (off, style, lw) => {
+      g.strokeStyle = style; g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(0, nodes[0].y + off);
+      for (let i = 0; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y + off);
+      g.lineTo(w, nodes[N - 1].y + off);
+      g.stroke();
+    };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let k = 4; k >= 1; k--) {
+      ridge(-k * 7 * ms, `rgba(255,140,70,${glow * 0.28 * (1 - k / 4.6)})`, 10 * ms);
+    }
+    // the rim below the line — SMOOTH. One 1x256 offscreen gradient, blitted
+    // per 4px column so the falloff starts exactly at the curve at every x:
+    // an actual gradient (no layered strokes rippling against the ribbons).
+    // Deeper as the rope rises.
+    if (!s.gcv) {
+      s.gcv = document.createElement('canvas');
+      s.gcv.width = 1; s.gcv.height = 256;
+    }
+    const gg2 = s.gcv.getContext('2d');
+    gg2.clearRect(0, 0, 1, 256);
+    const rimA = 0.30 + s.tension * 0.16 + s.chg * 0.3;
+    const vg = gg2.createLinearGradient(0, 0, 0, 256);
+    vg.addColorStop(0, `rgba(255,64,24,${rimA})`);
+    vg.addColorStop(0.35, `rgba(200,28,16,${rimA * 0.5})`);
+    vg.addColorStop(1, 'rgba(120,10,12,0)');
+    gg2.fillStyle = vg; gg2.fillRect(0, 0, 1, 256);
+    const depth = h * (0.12 + s.tension * 0.28);
+    const ax2 = nodes[0].x, bx2 = nodes[N - 1].x;
+    const yAt = px => {
+      const u = clamp((px - ax2) / (bx2 - ax2)) * (N - 1);
+      const i0 = Math.floor(u), fr = u - i0;
+      return lerp(nodes[i0].y, nodes[Math.min(N - 1, i0 + 1)].y, fr);
+    };
+    for (let x = 0; x < w; x += 4) {
+      g.drawImage(s.gcv, 0, 0, 1, 256, x, yAt(x + 2), 4, depth);
+    }
+
+    // ---- the ribbons FALL IN: displaced down with age, redshifting -----
+    const echoA = clamp(s.wave / 1.2);
+    if (echoA > 0.03 && s.hist.length > 1) {
+      g.globalCompositeOperation = 'lighter';
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      for (let e2 = 0; e2 < s.hist.length; e2++) {
+        const snap = s.hist[e2];
+        const age = (e2 + 1) / s.hist.length;          // 0 old → 1 newest
+        const a = Math.pow(age, 1.7) * 0.20 * echoA;
+        if (a < 0.004) continue;
+        const fall = (1 - age) * (1 - age) * h * 0.13;  // older = deeper in
+        const r = 90 + age * 165, gg = 25 + age * 115, bb = 20 + age * 160;
+        g.strokeStyle = `rgba(${r | 0},${gg | 0},${bb | 0},${a})`;
+        g.lineWidth = (1.4 + age * 1.8) * ms;
+        g.beginPath();
+        g.moveTo(snap[0], snap[1] + fall);
+        for (let i = 1; i < N; i++) g.lineTo(snap[i * 2], snap[i * 2 + 1] + fall);
+        g.stroke();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    // ---- THE SWALLOW: the void climbs over everything but the line -----
+    if (s.rise > 0.001) {
+      const riseY = h * (1.02 - s.rise * 1.12);
+      const edge = g.createLinearGradient(0, riseY - h * 0.06, 0, riseY);
+      edge.addColorStop(0, 'rgba(255,40,15,0)');
+      edge.addColorStop(1, `rgba(255,60,20,${0.35 * s.rise})`);
+      g.fillStyle = edge; g.fillRect(0, riseY - h * 0.06, w, h * 0.06);
+      g.fillStyle = '#000'; g.fillRect(0, riseY, w, h - riseY);
+    }
+
+    // ---- the horizon continues past your grip: dim, uncontrolled, so the
+    // anchors read as where YOUR stretch begins instead of a dead gap
+    g.lineWidth = 2.4 * ms;
+    g.strokeStyle = 'rgba(255,130,80,0.4)';
+    g.beginPath(); g.moveTo(0, nodes[0].y); g.lineTo(nodes[0].x, nodes[0].y); g.stroke();
+    g.strokeStyle = 'rgba(190,150,255,0.4)';
+    g.beginPath(); g.moveTo(nodes[N - 1].x, nodes[N - 1].y); g.lineTo(w, nodes[N - 1].y); g.stroke();
+
+    // ---- the line itself: crisp, burning, last ------------------------
+    const cg = g.createLinearGradient(ax, 0, bx, 0);
+    cg.addColorStop(0, '#ffb266'); cg.addColorStop(0.5, '#ff8fa8'); cg.addColorStop(1, '#b48aff');
+    g.strokeStyle = cg;
+    g.lineWidth = (3.6 + s.tension * 1.4 + gpulse * 1.2) * ms;
+    g.shadowColor = '#ff8d5e'; g.shadowBlur = (7 + s.tension * 10 + s.wave * 2 + s.chg * 14) * ms;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(nodes[0].x, nodes[0].y);
+    for (let i = 1; i < N; i++) g.lineTo(nodes[i].x, nodes[i].y);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    // anchors: two star-points, no masts out here
+    [[nodes[0], '#ffb266'], [nodes[N - 1], '#b48aff']].forEach(([nd, col]) => {
+      g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 16 * ms;
+      g.beginPath(); g.arc(nd.x, nd.y, 4.5 * ms, 0, TAU); g.fill();
+      g.shadowBlur = 0;
+    });
+
+    g.fillStyle = '#040307'; g.fillRect(0, h - 24, 400, 24);
+    g.fillStyle = 'rgba(255,150,120,0.85)'; g.font = `${Math.round(10 * Math.min(ms, 1.4))}px ui-monospace,monospace`;
+    g.fillText('TENSION ' + (s.tension * 100).toFixed(0) + '%  ·  ' + (H.label || '') +
+      '  ·  STRINGS ' + s.vL + '+' + s.vR + '/6  ·  GATE ' + (s.gate * 100).toFixed(0) + '%' +
+      (s.rise > 0.001 ? '  ·  SWALLOWED' : s.chg > 0.01 ? '  ·  HORIZON ' + (s.chg * 100).toFixed(0) + '%' : '') +
+      (s.pres < 0.3 ? '  ·  RESTING' : ''), 10, h - 10);
+  },
+
+  audio(A, P) {
+    const v = A.voice();
+    const hum = v.osc('sine', H.rootFreq(-2)), hum2 = v.osc('sine', H.rootFreq(-1));
+    const hg = v.g(0.012);
+    hum.connect(hg); hum2.connect(hg); hg.connect(v.group);
+    const wn = v.noise(), wf = v.filter('bandpass', 400, 1.1), wg = v.g(0);
+    wn.connect(wf); wf.connect(wg); wg.connect(v.group);
+    // the swallow riser — its own noise, rising and narrowing
+    const rn = v.noise(), rf = v.filter('bandpass', 300, 3), rg = v.g(0);
+    rn.connect(rf); rf.connect(rg); rg.connect(v.group);
+
+    // SIX CHAIRS AT REAL VOLUME (the V3 mix bug: 0.0105/voice sat under the
+    // 0.034 hum — the crescendo was inaudible). Chairs are the lead voice of
+    // this scene: ~2x the bed guideline, hum trimmed beneath them, and each
+    // chair gets its own slow entrance envelope so joining is a swell you
+    // hear, not a crossfade you miss.
+    const bedLo = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 260, q: 0.7 });
+    const bedHi = A.padVoices(v, 3, { type: 'triangle', gain: 0.0001, cutoff: 520, q: 0.7 });
+    const subLo = A.padVoices(v, 2, { type: 'triangle', gain: 0.0001, cutoff: 160, q: 0.6 });
+    const place = glide => {
+      bedLo.forEach((b, i) => b.set(H.chordTone(i, -1), glide));
+      bedHi.forEach((b, i) => b.set(H.chordTone(i + 2, 0), glide));
+      subLo.forEach((b, i) => b.set(H.chordTone(i * 2, -2), glide));
+    };
+    place(0.05);
+    H.onChord(() => {
+      place(0.18);
+      // the chord change is a MOMENT: a gentle low-to-high roll, quiet
+      // enough that the wall stays on top
+      const s2 = P.state;
+      if (s2.tension > 0.3 && s2.pres > 0.4) {
+        const g2 = 0.3 + s2.pres * 0.7;
+        for (let i = 0; i < 3; i++) {
+          A.tone(H.chordTone(i * 2, -1), {
+            at: A.t() + 0.05 + i * 0.07, vol: 0.028 * g2, dur: 1.6, attack: 0.12,
+            type: 'triangle', pan: -0.25 + i * 0.25, rev: 0.6, role: 'pad'
+          });
+        }
+      }
+    });
+    v.fadeIn(1, 0.8);
+
+    const TH = [0.18, 0.45, 0.72];
+    const env = [0, 0, 0, 0, 0, 0];      // entrance envelope per chair (L0..2, R0..2)
+    const was = [false, false, false, false, false, false];
+    let nextT = T.next(0.25), lastNow = A.t(), boomed = false;
+    return {
+      tick(inp) {
+        const s = P.state, now = A.t();
+        const adt = Math.min(0.1, Math.max(0.001, now - lastNow)); lastNow = now;
+        const gate = 0.3 + s.pres * 0.7;
+        const duck = 1 - s.rise * 0.9;    // the swallow empties the band
+
+        A.set(hg.gain, (0.005 + s.tension * 0.02) * gate * duck, 0.3);
+        A.set(wg.gain, clamp(s.wave / 6) * 0.05 * gate * duck, 0.08);
+        A.set(wf.frequency, 260 + s.tension * 700 + s.wave * 120, 0.15);
+        // the riser: you HEAR the horizon charging
+        A.set(rg.gain, s.chg * s.chg * 0.055 * gate, 0.15);
+        A.set(rf.frequency, 300 + s.chg * 3600, 0.2);
+
+        // gate capped at 0.6: the throb must never gut the wall — at V4's
+        // 0.85 depth the bed spent most of each cycle at 15% exactly when
+        // it should be enormous
+        const depth = clamp((s.tension - 0.4) / 0.45) * 0.6 * s.pres;
+        const rate = s.tension > 0.8 ? 4 : 2;
+        const ph = (T.beats() * rate) % 1;
+        const lfo = 0.5 + 0.5 * Math.cos(ph * TAU);
+        const gv = 1 - depth * (1 - lfo * lfo);
+        s.gate = depth * (1 - gv);
+
+        // ---- the crescendo: chairs enter as EVENTS -----------------------
+        let vL = 0, vR = 0;
+        for (let j = 0; j < 6; j++) {
+          const side = j < 3 ? s.uL : s.uR;
+          const th = TH[j % 3];
+          const want = clamp((side - th) / 0.1);
+          // slow swell in (~0.7s), faster out — the entrance is audible
+          env[j] += (want - env[j]) * Math.min(1, adt * (want > env[j] ? 1.6 : 3));
+          if (want > 0.5) { if (j < 3) vL++; else vR++; }
+          // announce the chair the moment it commits
+          if (want > 0.5 && !was[j]) {
+            was[j] = true;
+            const f = j < 3 ? H.chordTone(j, -1) : H.chordTone((j % 3) + 2, 0);
+            A.tone(f, { at: T.next(0.5), vol: 0.045 * gate * duck, dur: 1.8, attack: 0.1, type: 'triangle', pan: j < 3 ? -0.4 : 0.4, rev: 0.55, role: 'pad' });
+          } else if (want < 0.3 && was[j]) was[j] = false;
+          const body = 0.6 + s.tension * 0.4;
+          const lvl = (j < 3 ? 0.045 : 0.03) * env[j] * body * gate * gv * duck;
+          (j < 3 ? bedLo[j] : bedHi[j % 3]).level(lvl, 0.06);
+        }
+        s.vL = vL; s.vR = vR;
+        // filter opens with the arms — the biggest "it is swelling" cue
+        bedLo.forEach(b => b.bright(200 + s.uL * 900 + s.tension * 500, 0.3));
+        bedHi.forEach(b => b.bright(360 + s.uR * 1400 + s.tension * 600, 0.3));
+        // the organ's 16-foot stop slides in when it is really tight
+        const subLvl = clamp((s.tension - 0.7) / 0.3) * 0.035 * gate * gv * duck;
+        subLo.forEach(b => b.level(subLvl, 0.3));
+
+        // ---- the grid: pulse and booms ----------------------------------
+        const horizon2 = now + 0.15;
+        let guard = 0;
+        while (nextT < horizon2 && guard++ < 24) {
+          const st = ((Math.round((nextT - T.t0) / (T.beat * 0.25)) % 16) + 16) % 16;
+          if (s.tension > 0.5 && st % 2 === 0 && duck > 0.4) {
+            const acc = st === 0 ? 1.35 : st % 4 === 0 ? 1.1 : 1;
+            A.bassNote(H.chordTone(0, -1), {
+              at: nextT, vol: (0.018 + (s.tension - 0.5) * 0.05) * acc * gate * duck, dur: 0.24
+            });
+          }
+          if (s.tension > 0.5 && st === 0 && duck > 0.4) {
+            A.kick(nextT, (0.13 + (s.tension - 0.5) * 0.25) * gate * duck);
+            A.hit({ at: nextT, vol: 0.04 * gate * duck, dur: 0.3, freq: 90, q: 0.8 });
+          }
+          if (s.tension > 0.75 && st === 8 && duck > 0.4) A.kick(nextT, 0.09 * gate * duck);
+          nextT += T.beat * 0.25;
+        }
+        if (nextT < now) nextT = T.next(0.25);
+
+        // ---- totality: one enormous boom out of the silence -------------
+        if (s.rise > 0.9 && !boomed) {
+          boomed = true;
+          A.kick(now, 0.5);
+          A.hit({ at: now, vol: 0.12, dur: 0.5, freq: 60, q: 0.7 });
+          A.tone(H.rootFreq(-2), { at: now, vol: 0.16, dur: 5, attack: 0.02, type: 'sine', rev: 0.5, role: 'sfx' });
+        }
+        if (s.rise < 0.1) boomed = false;
+
+        // ---- the flick: one rolled run per gesture ----------------------
+        let ev, k = 0;
+        while ((ev = s.strumQ.shift()) && k < 2) {
+          k++;
+          const base = Math.floor(s.tension * 4);
+          const at0 = Math.max(now + 0.02, T.next(0.25));
+          const vol0 = clamp(0.055 + ev.sp * 0.05, 0.06, 0.14) * gate * duck;
+          for (let i = 0; i < 5; i++) {
+            const idx = ev.dir > 0 ? base + i * 2 : base + 8 - i * 2;
+            A.pluck2(H.chordTone(idx, -1), {
+              at: at0 + i * 0.085, vol: vol0 * (1 - i * 0.09), dur: 2.4,
+              pan: (ev.dir > 0 ? -0.7 : 0.7) + i * (ev.dir > 0 ? 0.35 : -0.35),
+              rev: 0.55, del: 0.2, role: 'lead'
+            });
+          }
+        }
+
+        if (typeof MOut !== 'undefined' && MOut.expr) {
+          MOut.expr('pad', depth);
+          MOut.expr('lead', clamp(s.wave / 4));
+          MOut.expr('bass', clamp((s.tension - 0.5) * 2));
+          MOut.expr('sfx', Math.max(s.chg, s.rise));
+        }
+      },
+      stop() { v.kill(); }
+    };
+  }
+});
+/* ---------- SRC-16.4 · RAIN ATRIUM V4 (sunset-storm line; renumbered from
+   16.2 after another session's V2/V3 merged to main first) ---------- */
+reg({
+  id: 'SRC-16.4', family: 'SRC-16', ver: 4, title: 'Rain Atrium V4', tech: 'TWO-FIELD WATER / SUNSET STORM',
   music: {
     bpm: 64, root: 50, mode: 'aeolian', chordBars: 2,
     // D pedal the whole storm — the root never moves, the color shifts over it.
@@ -62139,9 +65862,10 @@ reg({
     };
   }
 });
-/* ---------- SRC-16.3 · RAIN ATRIUM V3 ---------- */
+/* ---------- SRC-16.5 · RAIN ATRIUM V5 (natural-time revision of the
+   sunset-storm line; renumbered from 16.3 — see part112_rainatrium2.js) ---------- */
 reg({
-  id: 'SRC-16.3', family: 'SRC-16', ver: 3, title: 'Rain Atrium V3', tech: 'TWO-FIELD WATER / NATURAL TIME',
+  id: 'SRC-16.5', family: 'SRC-16', ver: 5, title: 'Rain Atrium V5', tech: 'TWO-FIELD WATER / NATURAL TIME',
   music: {
     bpm: 64, root: 50, mode: 'aeolian', chordBars: 2,
     chords: [
