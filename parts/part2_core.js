@@ -872,7 +872,18 @@ setInterval(() => {
 document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.add('open'));
 document.getElementById('btnHelpClose').addEventListener('click', () => document.getElementById('helpModal').classList.remove('open'));
 document.getElementById('helpModal').addEventListener('click', e => { if (e.target.id === 'helpModal') e.target.classList.remove('open'); });
-window.addEventListener('pointerdown', () => AE.ensure(), { once: true });
+// ANY gesture must be able to wake audio, not just the first click: a
+// deep-link entry (#scene=...) builds the scene into a context the autoplay
+// policy holds suspended, and a keyboard-only player never fires
+// pointerdown — so resume on either kind of gesture (ensure() resumes a
+// suspended ctx), and rebuild the scene voice if it was created before the
+// context could run.
+const wakeAudio = () => {
+  AE.ensure();
+  if (AE.on && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
+};
+window.addEventListener('pointerdown', wakeAudio);
+window.addEventListener('keydown', wakeAudio);
 
 /* ============================================================
    SLIDER + LABEL REFRESH
