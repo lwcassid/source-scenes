@@ -207,6 +207,18 @@ file or chord names ("Cm9♭13 into Cm11, pedal on C") and it becomes the
 scene's `chords`. The Tom Misch drone move is literally the doctrine's gold
 standard: pedal root, color shifting on top.
 
+## Unlock modes — easter eggs for Source masters (Lance, Aug 2026)
+
+Some scenes hide a SECRET GESTURE that unlocks a beat window: a specific
+hold or move, sustained ~5s, with a visible charge (the picture tightens /
+shifts color), opening ~45s of groove to jam over — then it must be re-lit.
+Never announced in the UI until the player is already doing it. Strangers
+may stumble into it; performers know it cold. First one: Chladni's RAIL
+SECRET (hold either hand at its extreme; sand bunches, goes blue, a broken
+116-feel beat unlocks). The pattern can spread to other scenes with
+different gestures — each scene's secret should grow out of its own
+interaction, one per scene at most.
+
 ## What "mastery" means concretely
 
 The build vocabulary a practiced player can command, all of it already wired:

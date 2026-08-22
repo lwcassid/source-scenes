@@ -102,12 +102,14 @@ music: {
   ~0.14 window) — otherwise the only reachable targets are the rails (inp 0
   and 1) and the instrument plays like two buttons. Check payoff geometry
   in HAND-TRAVEL units, not parameter units.
-- **Idle is rest, not a performance (Lance, Chladni V13).** Ghost hands must
-  never keep the instrument playing: scale the payoff signal (resonance,
-  commitment) by presence so locks/blooms can't fire for an empty room, let
-  the SIMULATION itself relax toward rest (the picture disperses,
-  physics-honest), and tease — a brief gather-and-release every ~15-25s —
-  instead of performing. First real touch snaps it awake.
+- **Idle is rest, not a performance (Lance, Chladni V13→V19).** Ghost hands
+  must never keep the instrument playing: scale the payoff signal by
+  presence so locks/blooms can't fire for an empty room, let the SIMULATION
+  relax toward rest, and tease instead of performing. And keep idle HIGHS
+  DEAD: a constant high tone floor grates ("it's grating!" — three rounds to
+  kill it). The idle voice is noise/texture (sand, air) plus an occasional
+  BASS breath — lows carry across the playa and attract; thin highs annoy
+  up close and vanish at distance. First real touch snaps it awake.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
