@@ -69,6 +69,15 @@ music: {
 
 ## Taste — learned the hard way, do not relearn
 
+- **THE CENSUS comes first (Lance, WS V16→V17).** Before writing a scene's
+  audio, table what the EYE sees (objects, events, states) against what
+  the EAR will hear. Every voice must name the visible thing it IS; every
+  visual protagonist must sound. Anything unmatched is decoration and
+  reads as "music playing near a picture" — WS's bells had no visual body
+  while the pole-form and thread-rings were silent; the fix made the form
+  the melody (sky height = pitch) and the rings the harmony (tiers you
+  see = voices you hear).
+
 - **Events must never bury the bed (Lance, AV3).** If discrete notes mask
   the drone, the mix is upside down: event layers sit UNDER the bed — soft
   attacks (≥0.1s where the verb allows), gains below the pad voices — and
