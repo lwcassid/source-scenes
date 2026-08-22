@@ -55,7 +55,7 @@
   select{font-family:var(--sans);font-size:10px;background:var(--panel);color:var(--txt);
     border:1px solid var(--line);border-radius:var(--rs);padding:5px 7px;max-width:170px}
   input[type=range]{width:74px;accent-color:var(--acc);background:transparent;cursor:pointer}
-  #midiMon{background:#0a0a0c;border:1px solid var(--line);border-radius:var(--rs);width:100%;height:104px}
+  #midiMon{background:#0a0a0c;border:1px solid var(--line);border-radius:var(--rs);width:100%;height:148px}
   @keyframes blink{50%{background:var(--acc);color:#000}}
 
   /* MAP popover — the source's own settings, with coaching */
@@ -114,11 +114,13 @@
   .qbox.on:hover{background:var(--acc);border-color:var(--acc);color:#fff}
 
   /* ---------- performance queue drawer ---------- */
-  #queuePop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;width:360px;max-height:78vh;overflow-y:auto;
+  #queuePop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;
+    width:min(600px,calc(100vw - var(--rail) - 28px));max-height:82vh;overflow-y:auto;
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.3)}
   #queuePop.open{display:block}
   #queuePop h4{font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--txt);margin-bottom:8px}
+  #btnQueueX{position:absolute;top:10px;right:10px}
   #queuePop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
   #queuePop b{color:var(--txt)}
   #queuePop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
@@ -130,6 +132,13 @@
   #queueList .qt{font-size:10.5px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #queueList button{padding:2px 6px;font-size:10px;line-height:1.1}
   #queueList button:disabled{opacity:.28;cursor:default}
+  /* per-scene show settings: minutes on stage + sound routing override */
+  #queueList .qmin{width:40px;font:10px var(--mono);background:var(--panel2);color:var(--txt);
+    border:1px solid var(--line);border-radius:5px;padding:2px 3px;text-align:right}
+  #queueList .qmin::-webkit-inner-spin-button{display:none}
+  #queueList .qunit{font:8px var(--mono);color:var(--txt-faint)}
+  #queueList .qout{font-size:8.5px;padding:2px 3px;border-radius:5px;max-width:64px;background:var(--panel2)}
+  #queueList .qout.ovr{border-color:var(--acc);color:var(--acc)}
   /* thumbnails: the set list is unreadable as SRC numbers at 3am */
   #queueList .qthumb{width:56px;height:35px;flex:none;border-radius:3px;background:#000;
     border:1px solid rgba(255,255,255,.10);display:block}
@@ -187,22 +196,30 @@
   .sgroup .srow > input[type=range]{flex:1;min-width:0}
   .sgroup .sinfo{font-size:9.5px;line-height:1.6;letter-spacing:.04em;color:var(--txt-faint);margin:6px 0 0}
   .sgroup .sinfo b{color:var(--txt-dim)}
-  /* the scene's own notes live at the top of the same column as its controls —
-     one place to look, instead of a panel that slid in over the picture */
+  /* the scene's notes live WITH the controls they describe: the experience
+     summary heads the column, the input paradigm folds under SOURCE INPUT,
+     the Ableton build notes fold under MUSIC — read up where you act */
   .sgroup .snote{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:0 0 8px}
   .sgroup .snote b{color:var(--txt)}
-  .sgroup h6{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt-faint);
-    font-weight:700;margin:12px 0 4px}
   .stoggle{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--acc);cursor:pointer;
-    text-transform:uppercase;user-select:none}
+    text-transform:uppercase;user-select:none;display:inline-block;margin:0 0 6px}
   .stoggle:hover{text-decoration:underline}
-  #sNotes{display:none}
-  #sceneNotes.open #sNotes{display:block}
-  /* collapsed, the interaction line is a teaser — the controls below it stay
-     above the fold no matter how long a scene's paradigm reads */
-  #ipInt{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
-  #sceneNotes.open #ipInt{-webkit-line-clamp:unset}
-  #sceneNotes .chips{margin-top:10px}
+  /* collapsed, the summary is a teaser — the controls stay above the fold */
+  #ipDesc{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  #sceneNotes.open #ipDesc{-webkit-line-clamp:unset}
+  #sceneNotes .chips{margin:2px 0 0}
+  /* the fold-away notes under SOURCE INPUT / MUSIC */
+  .snfold{display:none}
+  .snfold.open{display:block}
+  /* ---------- HISTORY — every version, newest first, click to open ---------- */
+  #histList .hrow{padding:6px 8px;border:1px solid var(--line2);border-radius:6px;margin:0 0 4px;
+    cursor:pointer;transition:border-color .15s}
+  #histList .hrow:hover{border-color:var(--tile-hov)}
+  #histList .hrow.on{border-color:var(--acc);background:var(--acc-faint)}
+  #histList .hv{font:10px var(--mono);font-weight:700;color:var(--txt)}
+  #histList .hrow.on .hv{color:var(--acc)}
+  #histList .hd{font:9px var(--mono);color:var(--txt-faint);margin-left:6px}
+  #histList .hm{display:block;font-size:10px;line-height:1.5;color:var(--txt-dim);margin-top:2px}
   #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
   #sidebar .scrimonly{display:none}
   #overlay.scrimmode #sidebar .scrimonly{display:flex}
@@ -274,7 +291,19 @@
   .conBox.grow{flex:1;min-width:0}
   .whint{font-size:9.5px;line-height:1.65;letter-spacing:.04em;color:var(--txt-dim);max-width:640px}
   .whint b{color:var(--txt)}
-  .conBox:first-child .whint{max-width:280px}
+  /* THE RIG rack — what each role is, which channel it rides, what answers in
+     Live (rig.json, baked). Rows light while their lane is playing. */
+  #rackBox{width:300px;flex:none}
+  #roleRack{display:flex;flex-direction:column;gap:2px;cursor:pointer}
+  .rkrow{display:flex;align-items:center;gap:6px;padding:2px 6px;border:1px solid transparent;
+    border-radius:5px;font-size:9px;color:var(--txt-faint);line-height:1.5}
+  .rkrow i{width:7px;height:7px;flex:none;border-radius:50%;opacity:.35;transition:opacity .2s,box-shadow .2s}
+  .rkrow b{width:46px;flex:none;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .rkrow .rkch{width:32px;flex:none;font-family:var(--mono);color:var(--txt-faint)}
+  .rkrow .rki{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rkrow.on{border-color:var(--line)}
+  .rkrow.on i{opacity:1}
+  .rkrow.on b,.rkrow.on .rkch{color:var(--txt)}
   .monHead{display:flex;gap:14px;align-items:baseline;font-size:10px;letter-spacing:.14em;font-family:var(--mono)}
   .monHead #oChord{color:var(--acc)}
   .monHead .mflag{color:var(--txt-dim)}
@@ -285,6 +314,8 @@
     transition:opacity .5s}
   #useHint.gone{opacity:0}
   #widgetFocus{cursor:ns-resize;touch-action:none;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:var(--rs)}
+  /* the live source sits at the top of SOURCE INPUT — same column, both views */
+  #sidebar #widgetFocus{width:100%;height:auto;margin:0 0 8px;display:block}
 
   /* modals */
   #helpModal,#rigModal,#preModal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
@@ -306,6 +337,10 @@
   .prow .pstat{font-size:11px;color:var(--txt-dim);flex:1;line-height:1.45}
   .prow.bad .pstat{color:#f87171}
   .prow button,.prow select{padding:3px 9px;font-size:9.5px;flex:none}
+  /* the check reads in two tiers: what every show needs, then the hardware rig */
+  .psec{font-size:9px;letter-spacing:.22em;color:var(--acc);text-transform:uppercase;font-weight:700;margin:14px 0 2px}
+  .psec:first-child{margin-top:4px}
+  .psec span{color:var(--txt-faint);font-weight:400;letter-spacing:.06em;text-transform:none}
   #btnPreStart{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:800}
   #btnPreStart:hover{background:var(--acc);border-color:var(--acc);color:#fff}
   #preScreenNote{font-size:10px;color:var(--txt-faint);border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
@@ -380,8 +415,7 @@
     .obar .otitle h2{font-size:12px;letter-spacing:.16em}
     .obar .otitle .tid{display:none}
     .oconsole{padding:8px 8px 10px;gap:10px}
-    .conBox:first-child .whint{display:none} /* coaching text yields the space to the monitor */
-    #widgetFocus{width:120px;height:80px}
+    #rackBox{width:100%}
     #midiMon{height:78px}
     .whint{font-size:9px}
     #useHint{top:10px;font-size:9px;padding:7px 12px;white-space:nowrap}
@@ -403,7 +437,6 @@
     .conBox{width:100%}
     .conBox.grow{flex:none}
     .oconsole .monHead{flex-wrap:wrap;row-gap:4px}
-    #widgetFocus{width:100%;max-width:340px;height:96px}
     #midiMon{width:100%;height:78px}
     .whint{max-width:none}
     #sidebar select{max-width:none}
@@ -475,8 +508,9 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
 
 <!-- ================= PERFORMANCE QUEUE ================= -->
 <div id="queuePop">
+  <button id="btnQueueX" class="icon" title="Close — or just click anywhere outside">✕</button>
   <h4>Performance queue</h4>
-  <p>Tick a scene on the wall to add it. This list <b>is</b> the set — membership and running order both. SHOWTIME walks it in this order, and the screen edges step through it.</p>
+  <p>Tick a scene on the wall to add it. This list <b>is</b> the set — membership, running order, and each scene's show settings: <b>MIN</b> is how many minutes it holds the stage before SHOWTIME auto-advances, <b>OUT</b> overrides the sound routing for that scene (SET = whatever the global OUT toggle says). Everything here saves itself in this browser as you change it.</p>
   <ol id="queueList"></ol>
   <p id="queueEmpty">Nothing queued yet. With an empty queue the show falls back to playing the whole wall in library order — which is how you end up performing 43 scenes sorted by number.</p>
   <div class="row">
@@ -484,16 +518,15 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <button id="btnQueueCheck">SHOW CHECK</button>
     <button id="btnQueueLink">COPY LINK</button>
     <button id="btnQueueClear">CLEAR</button>
-    <button id="btnQueueClose">CLOSE</button>
   </div>
   <div id="setShelf">
     <h4>Shared sets</h4>
     <p>Committed in <b>setlists.json</b>, baked into the build — so these travel to the show laptop and onto playa. Your queue above is your own scratch pad until you publish it.</p>
     <div id="setList"></div>
     <div class="row">
-      <button id="btnSetPublish" title="Copy this queue as a setlists.json block — paste it in, or hand it to Claude">COPY FOR REPO</button>
+      <button id="btnSetPublish" title="Copy this queue — order, minutes and sound routing — as a setlists.json block; paste it in, or hand it to Claude">COPY FOR REPO</button>
     </div>
-    <p id="setHint">To publish: COPY FOR REPO → paste into <b>setlists.json</b> (or tell Claude in a session which set it is) → commit and push. Git is the memory; the diff is the history of what the show became.</p>
+    <p id="setHint">Your queue and its timing/sound settings persist in this browser on their own. To make them travel — to the repo, the other laptops, the show machine — COPY FOR REPO → paste into <b>setlists.json</b> (or tell Claude in a session which set it is) → commit and push. Git is the memory; the diff is the history of what the show became.</p>
   </div>
 </div>
 <main>
@@ -584,17 +617,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     </div>
   </div>
   <div id="sidebar">
+    <!-- the notes live where you act on them: the EXPERIENCE summary heads the
+         column; the input paradigm folds under SOURCE INPUT; the Ableton build
+         notes fold under MUSIC. One summary, then read up where you're working. -->
     <section class="sgroup" id="sceneNotes">
       <h5>This scene</h5>
-      <p class="snote" id="ipInt"></p>
-      <span class="stoggle" id="sNotesTog">full notes</span>
-      <div id="sNotes">
-        <h6>Field notes</h6>
-        <p class="snote" id="ipDesc"></p>
-        <h6>Sound — ableton build notes</h6>
-        <p class="snote" id="ipSound"></p>
-        <div class="chips" id="ipChips"></div>
-      </div>
+      <p class="snote" id="ipDesc"></p>
+      <span class="stoggle" id="sNotesTog">more</span>
+      <div class="chips" id="ipChips"></div>
     </section>
     <section class="sgroup">
       <h5>View</h5>
@@ -616,7 +646,13 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     </section>
     <section class="sgroup">
       <h5>Source input</h5>
-      <div class="srow"><button id="fMap" title="Bind your hardware controller — range-based learn">MAP CONTROLLER</button></div>
+      <canvas id="widgetFocus" width="280" height="150" title="The source, live — click or drag the beams to play"></canvas>
+      <div class="srow">
+        <button id="fGhosts" class="off" title="Ghost hands drift on this scene when nobody is playing — scenes still open still">GHOSTS</button>
+        <button id="fMap" title="Bind your hardware controller — range-based learn">MAP</button>
+      </div>
+      <span class="stoggle sntog" data-for="ipInt">▸ how it plays</span>
+      <p class="snote snfold" id="ipInt"></p>
       <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · reach outward = more · <b>R</b> reseeds the scene</p>
     </section>
     <section class="sgroup">
@@ -625,7 +661,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
       <div class="srow"><button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button></div>
       <div class="srow"><button id="fClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM (Live: port Sync on, EXT lit)">CLOCK OUT: ON</button></div>
       <div class="srow"><button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">MIDI RIG</button></div>
-      <p class="sinfo">roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · perc 10</p>
+      <span class="stoggle sntog" data-for="ipSound">▸ ableton build notes</span>
+      <p class="snote snfold" id="ipSound"></p>
+      <p class="sinfo">the rig rack below the stage shows role → channel → instrument, live</p>
+    </section>
+    <section class="sgroup" id="histGroup">
+      <h5>History</h5>
+      <p class="sinfo" id="histWho" style="margin:0 0 8px"></p>
+      <div id="histList"></div>
     </section>
   </div>
   <div class="ostage">
@@ -646,15 +689,14 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     </div>
   </div>
   <div class="oconsole">
-    <div class="conBox">
-      <h5 class="conTitle">Source · live</h5>
-      <canvas id="widgetFocus" width="280" height="150" title="Virtual theremin — click or drag the beams"></canvas>
-      <div class="whint">hands at the sphere = rest · <b>reach outward = more</b> · idle 6s → hands hold</div>
+    <div class="conBox" id="rackBox">
+      <div class="monHead"><h5 class="conTitle">The rig</h5><span class="mflag" id="oOutState"></span></div>
+      <div id="roleRack" title="Role → channel → what answers in Live (rig.json) — rows light while their lane plays. Click to remap."></div>
     </div>
     <div class="conBox grow">
-      <div class="monHead"><h5 class="conTitle">MIDI out</h5><span id="oChord">—</span><span class="mflag" id="oOutState"></span><span id="oRoles" title="lanes playing right now"></span></div>
-      <canvas id="midiMon" width="1240" height="104"></canvas>
-      <div class="whint">every role on its own channel (remap in MIDI RIG) · <b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy</div>
+      <div class="monHead"><h5 class="conTitle">MIDI out</h5><span id="oChord">—</span></div>
+      <canvas id="midiMon" width="1240" height="148"></canvas>
+      <div class="whint"><b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy (map to filter cutoff) · fill <b>rig.json</b> and the rack names your Live instruments</div>
     </div>
   </div>
 </div>
@@ -679,7 +721,7 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
     <h3>Hero assets</h3>
     <p>Akira Motorcycle by s.navajon (CC-BY) · palm trees via Sketchfab — thank you, artists.</p>
     <h3>For artists</h3>
-    <p>Each piece carries its interaction paradigm and Ableton sound-design notes at the top of the scene's left column — the same column that holds its controls. <b>R</b> reseeds a scene while it is open, <b>←/→</b> walk the wall, <b>P</b> toggles the projector frame. Steal any of these paradigms for your own source piece.</p>
+    <p>Each scene's notes live in its left column, next to what they describe: the experience summary up top, HOW IT PLAYS folded under SOURCE INPUT, the Ableton build notes folded under MUSIC, and its full version HISTORY at the bottom. <b>R</b> reseeds a scene while it is open, <b>←/→</b> walk the wall, <b>P</b> toggles the projector frame. Steal any of these paradigms for your own source piece.</p>
     <p style="margin-top:14px"><button id="btnHelpClose">CLOSE</button></p>
   </div>
 </div>

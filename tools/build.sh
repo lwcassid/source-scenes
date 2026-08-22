@@ -13,6 +13,16 @@ cd "$(dirname "$0")/.."
   printf 'const SETLISTS = '
   cat setlists.json
   printf ';\n'
+  # THE RIG DOC — rig.json baked read-only so the MIDI work surface can say
+  # what actually sits on each channel in the Live set (still hand-edited).
+  printf 'const RIGDOC = '
+  cat rig.json
+  printf ';\n'
+  # SCENELOG — per-version change history mined from git (tools/scenelog.py):
+  # each version is a part file, its birth commit carries the round's summary.
+  printf 'const SCENELOG = '
+  python3 tools/scenelog.py || printf '{"owners":{},"log":{}}'
+  printf ';\n'
   cat parts/part2_core.js
   cat parts/part2b_music.js
   cat parts/part2c_midiout.js
@@ -156,8 +166,9 @@ cd "$(dirname "$0")/.."
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
 } > index.html
-# setlists.json is hand-edited (and Claude-edited) — fail loudly, not at runtime
+# setlists.json / rig.json are hand-edited (and Claude-edited) — fail loudly, not at runtime
 python3 -c "import json,sys; json.load(open('setlists.json'))" || { echo "BUILD FAILED: setlists.json is not valid JSON"; exit 1; }
+python3 -c "import json,sys; json.load(open('rig.json'))" || { echo "BUILD FAILED: rig.json is not valid JSON"; exit 1; }
 # syntax check the assembled script
 python3 - <<'EOF'
 import re
