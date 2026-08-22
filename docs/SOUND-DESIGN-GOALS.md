@@ -207,6 +207,85 @@ file or chord names ("Cm9♭13 into Cm11, pedal on C") and it becomes the
 scene's `chords`. The Tom Misch drone move is literally the doctrine's gold
 standard: pedal root, color shifting on top.
 
+## THE PALETTE — Lance's toolbox (Aug 2026, from his own rig)
+
+What Lance actually improvises with; the Ableton phase draws from here
+first so the show carries his stamp. Nothing is forced into a scene — but
+when a role needs a voice, shop this list before inventing one.
+
+**Vendors installed:** Apple · Arturia (V Collection + Augmented) · Native
+Instruments · Spectrasonics (Omnisphere) · Splice instruments · Valhalla
+DSP · Waves · Xfer (Serum) · XLN Audio.
+
+**The named sounds:**
+- **Splice felt piano** ("the John Legend piano") — gorgeous, spacious.
+  Lance has a felt-piano riff with lots of space to feed us as MIDI.
+  → OBVIOUS HOME: Rain Atrium's lead IS a felt piano by design. Also the
+  candidate for Chladni's lock blooms and lure toll (through Valhalla).
+- **Omnisphere · Sacred Shrine** — cathedral ambient, zero tooth.
+  → bed/pad material anywhere space is needed; Chladni's lydian bed.
+- **Omnisphere · Hand Pan** — huge reverb but CRACKLY REAL STRIKES.
+  → Chladni's plate tones: the mirror re-strikes on every retune, and a
+  hand pan is literally a resonant metal plate. Poetic match.
+- **Omnisphere · Space Sax** — swelling, barely-a-sax under Valhalla.
+  → Lumen Film's aperture voices / Vespers' beam are the natural homes.
+- **Omnisphere · Science Class** — arpeggiating synth where cutoff +
+  resonance are THE performance controls.
+  → any arp-channel scene: CC74 already streams exactly that energy.
+  Lance pairs it with the Blade Runner rain chops.
+- **Arturia Augmented Strings** — gorgeous; has a DIAL that gates the
+  strings into rhythm. → EVENT HORIZON: its pad CC74 literally streams
+  gate depth. Map CC74 to that dial = the marquee mapping of the show.
+- **Mellotron** — the play is the octave knob (up/down a register mid-
+  phrase); without knob motion it's "a cheap violin". → give the knob to
+  a hand (CC1/CC2) in whichever scene adopts it.
+- **Ambient FX library** — cave drips, sci-fi spaceship bass atmospheres,
+  a 4-hour analog ambient synth recording. → bed ch12 scene-atmosphere
+  sampler (one held note per scene) + sfx layers. The spaceship bass =
+  idle attract material.
+- **Drum material** — Splice techno loops, foley drum loops, an 80s
+  ~100bpm Night-Rider beat with a fat simple bass synth. Loops need
+  chopping to ONE-SHOTS for the MIDI kits — XLN XO is the right tool.
+- **Monk/meditation vocal recordings** and **Blade Runner rain chops** —
+  performance-layer material for Lance to fly in live over scenes.
+- **Valhalla reverb** — the atmosphere engine, on sends everywhere.
+- **Arturia classics** (Prophet, Jup, Wurli...) — deep bench; we pick
+  specific patches per scene as needed (Jup/Prophet pads and fat mono
+  bass are the era-correct choices for the funk/club scenes).
+
+**Reuse principle (minimize Lance's setup work):** ONE Live set, nine
+role-channel Instrument Racks shared by all scenes — a patch is chosen to
+serve the whole set, scene identity comes from what MIDI each scene sends
+plus CC74. Advanced trick for later, only if a scene truly needs its own
+flavor: the bed channel's per-scene note (20 + SRC number) can drive a
+rack CHAIN SELECTOR, auto-switching a channel's sound per scene with zero
+hands. Start simple; add chains only when a scene earns it.
+
+## Chladni Court → Ableton (the pilot rack, step by step)
+
+1. IAC port: Track ON + Sync ON in Live's MIDI prefs; EXT pressed; page
+   CLOCK toggle on. (Scene sends 58 BPM clock + start/stop.)
+2. **ch6 texture — Omnisphere Hand Pan.** The two mode tones re-strike on
+   every retune: each detent catch is a mallet strike, the reverb tail is
+   the plate. CC74 (pooled voice energy) → Macro 1 → brightness.
+3. **ch2 pad — Omnisphere Sacred Shrine.** The lydian bed + breaths.
+4. **ch5 bells — Splice felt piano through Valhalla.** Lock blooms with
+   their earned velocities; the 1-in-7 lure toll becomes one deep felt
+   note into a cathedral. Velocity sensitivity ON — the whole point.
+5. **ch3 bass — fat mono synth** (the Night-Rider bass or an Arturia
+   Prophet/Jup mono patch). Lock bass + beat-mode doubling.
+6. **ch10 perc — XO kit** from Splice one-shots: 36 kick · 38 crack ·
+   42 click · 46 air. The rail-secret break plays this kit.
+7. **ch11 sfx — granular sand**: Granulator with a real sand/rain-ish
+   sample (or the cave-drips), CC74 = sand motion → volume/density.
+8. **ch12 bed — Sampler with the sci-fi spaceship atmosphere** keyed to
+   note 48 (20 + 28): the scene's room tone, fading with the show.
+9. **ch1 lead — no notes from Chladni; CC74 = resonance.** Map it to a
+   send/brightness macro so the whole mix opens as the pattern locks.
+Then: update the `roles` in rig.json from "(proposed)" to what actually
+got loaded, in the same breath. OUT toggle → BOTH while A/B-ing the
+browser sketch against the rack, → MIDI when Live wins.
+
 ## Unlock modes — easter eggs for Source masters (Lance, Aug 2026)
 
 Some scenes hide a SECRET GESTURE that unlocks a beat window: a specific
