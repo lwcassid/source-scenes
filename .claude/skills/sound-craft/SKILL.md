@@ -131,8 +131,11 @@ music: {
 
 ## One-shot samples (no Ableton rigging required)
 
-Drop the file in `assets/` (44.1k/16-bit, keep it small — convert with
-python `wave`+`audioop`), `fetch` + `decodeAudioData` once in `audio()`, play
+Drop the file in `assets/` AS-IS — ship the original bit depth/rate (Lance:
+keep samples high quality); the browser's decoder resamples to the context
+rate with a better resampler than any script-side conversion. Convert only
+if the file busts the ~2MB asset budget. `fetch` + `decodeAudioData` once in
+`audio()`, play
 through a gain into the scene's voice group with a reverb send. The preview
 builder inlines `assets/` audio so the offline harness hears it. Mirror the
 moment with `MOut.sfxNote(note, vol, dur)` on ch11 so a rig can layer its own
