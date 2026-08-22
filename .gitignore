@@ -10,3 +10,4 @@ package-lock.json
 .claude/worktrees/
 .verify-stamp
 .claude/.cache/
+tools/__pycache__/

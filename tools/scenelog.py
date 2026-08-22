@@ -45,11 +45,26 @@ for fams, who in [
     for f in fams:
         OWNERS[f] = who
 
+# Display names normalize to studio first names (raw git author still shown
+# in the expander untouched).
+NAMES = {'Nima Gardideh': 'Nima', 'Lance Cassidy': 'Lance'}
+
 # Manual attribution for pre-trailer history — exact version id → person.
-# Add entries only on the person's own say-so.
+# Add entries only on the person's own say-so, or where the birth commit's
+# own text names whose round it was (quoted).
 CREDITS = {
     # Lance, Aug 2026: "I made all the recent changes on White Study" (V2-V7)
     **{f'SRC-34.{n}': 'Lance' for n in range(2, 8)},
+    # birth-commit text names the round's human (mined + reviewed, Aug 2026):
+    'SRC-09.4': 'Lance',   # "Mix turned right side up after Lance's round on V3"
+    'SRC-09.8': 'Lance',   # "The skeleton round Lance called: STEREO FIELD"
+    'SRC-13.2': 'Lance',   # "echo treatments by motion (Lance's verdict this session)"
+    'SRC-13.3': 'Lance',   # "Lance's V2 verdicts, applied"
+    'SRC-13.4': 'Lance',   # "Lance's V3 verdicts"
+    'SRC-16.5': 'Lance',   # "Lance's round: the line streaks are gone"
+    'SRC-28.12': 'Lance',  # "Browser-first concept test per Lance"
+    'SRC-28.13': 'Lance',  # "Lance's feedback round on V12"
+    'SRC-28.14': 'Lance',  # "Round two of Lance's feedback"
 }
 
 
@@ -178,7 +193,7 @@ def main():
                 or (meta['a'] if 'claude' not in meta['a'].lower() else '') \
                 or CREDITS.get(sid)
             if by:
-                entry['by'] = by
+                entry['by'] = NAMES.get(by, by)
             log[sid] = entry
     print(json.dumps({'owners': OWNERS, 'log': log}, separators=(',', ':')))
 
