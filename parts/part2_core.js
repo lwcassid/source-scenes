@@ -690,6 +690,17 @@ if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); 
 
 function openFocus(i) {
   AE.ensure();
+  // deep-link entry: the autoplay policy holds the context suspended until a
+  // real gesture — say so instead of sitting silent (wakeAudio clears it)
+  if (AE.on && AE.ctx && AE.ctx.state === 'suspended') {
+    const hint = document.getElementById('useHint');
+    if (hint) {
+      hint.textContent = 'touch anywhere or press any key to wake the sound';
+      hint.dataset.sound = '1';
+      hint.style.display = 'block';
+      hint.classList.remove('gone');
+    }
+  }
   const def = PIECES[i];
   if (typeof T !== 'undefined') {
     T.start((def.music && def.music.bpm) || 78);
@@ -881,6 +892,10 @@ document.getElementById('helpModal').addEventListener('click', e => { if (e.targ
 const wakeAudio = () => {
   AE.ensure();
   if (AE.on && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
+  if (AE.ctx && AE.ctx.state === 'running') {
+    const hint = document.getElementById('useHint');
+    if (hint && hint.dataset.sound) { hint.classList.add('gone'); delete hint.dataset.sound; }
+  }
 };
 window.addEventListener('pointerdown', wakeAudio);
 window.addEventListener('keydown', wakeAudio);
