@@ -109,7 +109,12 @@ music: {
   DEAD: a constant high tone floor grates ("it's grating!" — three rounds to
   kill it). The idle voice is noise/texture (sand, air) plus an occasional
   BASS breath — lows carry across the playa and attract; thin highs annoy
-  up close and vanish at distance. First real touch snaps it awake.
+  up close and vanish at distance. And the lure must not be a metronome
+  (Chladni V21): randomize each breath's length/depth/shape/spacing/voice,
+  keep a faint UNDULATING low floor between breaths (incommensurate LFOs —
+  never dead, never constant), make the sound visibly move the picture,
+  and land a rare "walk toward it" payoff (a deep toll, ~1 in 7). First
+  real touch snaps it awake.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
