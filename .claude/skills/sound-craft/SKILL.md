@@ -209,11 +209,15 @@ Live set changes.
   Daft Punk funk only where the scene's verb is funky.
 - A Live patch with its own arp/motion gets a HELD chord and lets the clock
   drive it — never for the reactive layer, whose answers stay per-note.
-  Record the choice in `rig.json`. Fuller plan AND Lance's palette — the
-  named sounds he improvises with (felt piano, Hand Pan, Sacred Shrine,
-  Augmented Strings' gate dial, Science Class...) with per-scene casting —
-  live in `docs/SOUND-DESIGN-GOALS.md` (THE PALETTE). Shop there first;
-  rig.json says what each channel currently runs.
+  Record the choice in `rig.json`.
+- **The scene casts the rig, never the reverse (Lance, Aug 2026).** The
+  sketch already IS the scene expressing itself — the rig question is only
+  what TIMBRE its material demands. Write the timbre brief in the scene's
+  own language ("sand on a struck plate", never a product name), then
+  source it — synthesize, sample, or Lance's palette in
+  `docs/SOUND-DESIGN-GOALS.md` when it truly answers the brief. The palette
+  is a bench, not a casting sheet; assigning named sounds to scenes from
+  the list is backwards. rig.json records what each channel actually runs.
 
 ## Velocity — where "professional" lives or dies
 

@@ -209,9 +209,12 @@ standard: pedal root, color shifting on top.
 
 ## THE PALETTE — Lance's toolbox (Aug 2026, from his own rig)
 
-What Lance actually improvises with; the Ableton phase draws from here
-first so the show carries his stamp. Nothing is forced into a scene — but
-when a role needs a voice, shop this list before inventing one.
+What Lance actually improvises with, so the show carries his stamp. Nothing
+is forced into a scene: the scene casts the rig, never the reverse — write
+the scene's timbre brief in its own language first, then reach here when a
+listed sound truly answers it (synthesizing or sampling something truer
+always wins). The per-role notes below are hypotheses to test against each
+scene's brief, not assignments.
 
 **Vendors installed:** Apple · Arturia (V Collection + Augmented) · Native
 Instruments · Spectrasonics (Omnisphere) · Splice instruments · Valhalla
