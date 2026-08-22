@@ -147,7 +147,12 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
    (fog, tonemapping, scale, and pivot bugs hide). For states beyond idle/full,
    drive `tools/shot.mjs` directly.
 7. Capture a short GIF of the money interaction for the group chat.
-8. Push. A push that touches index.html is BLOCKED unless verify.sh rendered
+8. Commit with the round's human named: end the message with
+   `Round-By: <first name>` (you know who you are talking to). HISTORY shows
+   it as the WHO, and the pre-push hook REFUSES a new part file without it —
+   git says "Claude" for every session, so an untrailed round is anonymous
+   forever.
+9. Push. A push that touches index.html is BLOCKED unless verify.sh rendered
    that exact build — that guard exists because the harness once failed
    SILENTLY (ERR_MODULE_NOT_FOUND) and sessions shipped unseen work for weeks.
    If a harness ever errors, FIX IT; never downgrade to reasoning about what

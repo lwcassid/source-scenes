@@ -9,10 +9,51 @@
 #
 # Override, when you genuinely mean it:  VERIFY_SKIP=1 git push ...
 set -uo pipefail
-[ "${VERIFY_SKIP:-0}" = "1" ] && exit 0
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
+
+# ---- Round-By: a new scene version must name its human --------------------
+# Every commit being pushed that ADDS a parts/*.js file (a new scene version,
+# by the versioning law) must end with a `Round-By: <first name>` trailer.
+# HISTORY's WHO column reads that trailer, and git records author "Claude"
+# for every session — so a round pushed without it is anonymous FOREVER.
+# The library already has 60 versions nobody can attribute; this is the wall
+# that stops the count growing.
+# Override (shell work misdetected, genuine no-human case):
+#   ROUNDBY_SKIP=1 git push ...
+if [ "${ROUNDBY_SKIP:-0}" != "1" ]; then
+  missing=""
+  for c in $(git rev-list --no-merges HEAD --not --remotes 2>/dev/null); do
+    adds=$(git diff-tree -r -M --diff-filter=A --name-only --no-commit-id "$c" -- parts/ 2>/dev/null)
+    [ -z "$adds" ] && continue
+    if ! git log -1 --format=%B "$c" | grep -qiE '^Round-By:[[:space:]]*[^[:space:]]'; then
+      missing="$missing
+       $(git log -1 --format='%h  %s' "$c")"
+    fi
+  done
+  if [ -n "$missing" ]; then
+    cat >&2 <<MSG
+
+  ✋ PUSH BLOCKED — a new scene version has no Round-By trailer.
+$missing
+
+     These commits add a part file (= a scene round) but never say WHOSE
+     round it was. Every session commits as "Claude", so without the
+     trailer this version is anonymous in HISTORY forever.
+
+     Fix: amend the commit message to end with
+         Round-By: <first name of the human whose round this is>
+     (git commit --amend, or reword in your tooling), then push again.
+
+     Genuinely no human round to name?  ROUNDBY_SKIP=1 git push ...
+
+MSG
+    exit 1
+  fi
+fi
+
+[ "${VERIFY_SKIP:-0}" = "1" ] && exit 0
 
 remote_sha=""
 while read -r _local_ref local_sha _remote_ref remote_sha_in; do
