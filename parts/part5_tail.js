@@ -686,15 +686,32 @@ function renderFocusHistory(i) {
   }
   box.innerHTML = F.entries.slice().reverse().map(en => {
     const e = (LOG.log && LOG.log[en.def.id]) || {};
+    const hasX = !!(e.b || e.s || e.h);   // anything for the expander to show
     return `<div class="hrow${en.idx === i ? ' on' : ''}" data-idx="${en.idx}" title="open V${en.def.ver || 1} on the stage">
-      <span class="hv">V${en.def.ver || 1}</span><span class="hd">${e.d || ''}</span>
+      <div class="hline">
+        <span class="hv">V${en.def.ver || 1}</span>
+        ${e.by ? `<span class="hby">${esc(e.by)}</span>` : ''}
+        <span class="hd">${e.d || ''}${e.t ? ' · ' + e.t : ''}</span>
+        ${hasX ? '<span class="hxtog" title="the full round story">▸</span>' : ''}
+      </div>
       ${e.m ? `<span class="hm">${esc(e.m)}</span>` : ''}
+      ${hasX ? `<div class="hx">
+        ${e.b ? `<pre class="hbody">${esc(e.b)}</pre>` : ''}
+        <p class="hmeta">${e.h ? `commit ${e.h}` : ''}${e.a ? ` · by ${esc(e.a)}` : ''}${e.s ? ` · <a href="${esc(e.s)}" target="_blank" rel="noopener">open the session ↗</a>` : ''}</p>
+      </div>` : ''}
     </div>`;
   }).join('');
   box.querySelectorAll('.hrow').forEach(row => row.addEventListener('click', () => {
     const idx = +row.dataset.idx;
     if (idx !== focus.idx) { closeFocus(); openFocus(idx); }
   }));
+  // the expander is its own control — opening the story must not switch versions
+  box.querySelectorAll('.hxtog').forEach(tog => tog.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = tog.closest('.hrow').classList.toggle('open');
+    tog.textContent = open ? '▾' : '▸';
+  }));
+  box.querySelectorAll('.hx').forEach(x => x.addEventListener('click', e => e.stopPropagation()));
 }
 
 // MIDI OUT wiring
