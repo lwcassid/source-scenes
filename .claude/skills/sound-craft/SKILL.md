@@ -20,6 +20,14 @@ THE EXPERIENCE section — stranger / player / room / musician.)
 5. **Arc** — does minute 9 sound different from minute 1? A loop is a
    screensaver; an instrument accumulates.
 
+These tests are RUNNABLE headless, and that beats guessing (Lance, Rain
+Atrium V7): wrap the A helpers + MOut.evNote and sample master-bus RMS in
+the preview, play a scripted 2-min performance (idle → one hand → sweep →
+flicks → duet → downpour → storm), and judge the LOG — idle notes/s and
+RMS vs played states, first-note latency per gesture, velocity spread,
+minute-1 vs minute-9. V7's idle was performing (96 notes/15s, empty room)
+and no one could hear it in a sandbox until the numbers said so.
+
 A scene's sound is one instrument with three layers. Get the layers right
 and the scene jams with live musicians; get them wrong and it's a screensaver
 with a backing track.
