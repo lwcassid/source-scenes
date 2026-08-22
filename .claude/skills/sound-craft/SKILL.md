@@ -136,6 +136,14 @@ music: {
   and trim the hum beneath, and make each voice's entrance an audible event
   (0.7s swell + an announcing tone). Cable Strum V3's crescendo was
   inaudible because six chairs at 0.0105 sat under a 0.034 hum (Lance).
+- **Fullness thickens, never loudens (Lance, Lumen V18→V19).** When each
+  visual element holds a voice, POOL the loudness (budget/active^0.65-ish):
+  fixed per-voice gains sum to a wall as the scene fills — "so fucking
+  intense", not expressive. And when a player singles out one incidental
+  spatial moment as the best part (Lumen's chord whipping round the head as
+  the field turns), promote it to the design: pan each voice from its
+  element's LIVE position every tick, and couple the swirl to the gesture's
+  SPEED so it dies the moment the hand stops.
 - **For intensity, gate the bed — don't add events.** A tempo-synced gate/
   tremolo on the sustained strings (depth grows with commitment, 8ths before
   16ths) reads dramatic where more note-spam reads busy; stream the depth on
