@@ -2,15 +2,18 @@
 """Bake SCENELOG — the per-version change history the scene sidebar shows.
 
 Every feedback round is a NEW PART FILE (the versioning law), and the commit
-that ADDED that file carries the round's summary ("White Study V7: pink is
-yours; the drop learns manners"). One git pass maps every part file to its
-birth commit; every reg id in a file inherits that {date, message}. Files
+that ADDED that file carries the round's story: WHO, WHEN (date + time), the
+subject line, and a body full of round notes. One git pass maps every part
+file to its birth commit; every reg id in a file inherits that record. Files
 that register a crowd of scenes at once (the original pieces packs,
-part15_history.js) get a date but no message — the subject of a bulk commit
-is about none of them in particular.
+part15_history.js) get who/when but no message — the subject of a bulk
+commit is about none of them in particular.
 
-"Who" comes from the owners list in CLAUDE.md, not git — every session
-commits as Claude, so the family's keeper is the honest answer.
+WHO is a chain of honesty: the git author when it is a human, otherwise the
+family's keeper from the owners list in CLAUDE.md (every session commits as
+Claude, and people work their own scenes). The raw git author, commit hash
+and Claude session link ride along for the expander, so the attribution is
+inspectable rather than asserted.
 
 Emits JSON on stdout; tools/build.sh bakes it as `const SCENELOG = ...`.
 Fails soft: no git → empty log, the UI shows bare version rows.
@@ -19,6 +22,9 @@ import json, re, subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+DATEFMT = '--date=format:%b %d %Y|%H:%M'
+FMT = '%h|%an|%ad|%s'          # with DATEFMT the date itself splits into d|t
+BODY_MAX = 700
 
 # keep in sync with the Owners section of CLAUDE.md
 OWNERS = {}
@@ -32,20 +38,31 @@ for fams, who in [
         OWNERS[f] = who
 
 
+def git(*args, timeout=60):
+    return subprocess.run(['git', *args], cwd=ROOT, capture_output=True,
+                          text=True, timeout=timeout).stdout
+
+
+def parse_meta(line):
+    """'h|an|d|t|s' → dict, or None."""
+    if line.count('|') < 4:
+        return None
+    h, an, d, t, s = line.split('|', 4)
+    return {'h': h, 'a': an, 'd': d, 't': t, 's': s}
+
+
 def births():
-    """part file → (date, subject) of the commit that first added it."""
+    """part file → birth-commit meta dict."""
     try:
-        out = subprocess.run(
-            ['git', 'log', '--diff-filter=A', '--name-status',
-             '--format=@%ad|%s', '--date=format:%b %d %Y', '--', 'parts/'],
-            cwd=ROOT, capture_output=True, text=True, timeout=60).stdout
+        out = git('log', '--diff-filter=A', '--name-status',
+                  '--format=@' + FMT, DATEFMT, '--', 'parts/')
     except Exception:
         return {}
     born, meta = {}, None
     for line in out.splitlines():
         if line.startswith('@'):
-            meta = tuple(line[1:].split('|', 1))
-        elif line.startswith('A\t') and meta and len(meta) == 2:
+            meta = parse_meta(line[1:])
+        elif line.startswith('A\t') and meta:
             born[line[2:].strip()] = meta  # newest-first: overwrite → earliest add wins
     return born
 
@@ -53,29 +70,43 @@ def births():
 def birth_follow(relpath):
     """Fallback for parts renumbered in a merge — -m diffs the merge itself."""
     try:
-        out = subprocess.run(
-            ['git', 'log', '-m', '--diff-filter=A', '--format=%h|%ad|%s',
-             '--date=format:%b %d %Y', '--', relpath],
-            cwd=ROOT, capture_output=True, text=True, timeout=30).stdout.strip()
+        out = git('log', '-m', '--diff-filter=A', '--format=' + FMT, DATEFMT,
+                  '--', relpath, timeout=30).strip()
     except Exception:
         return None
     # a file reads as "added" against the parent that lacked it in EVERY later
     # merge too — the oldest hit is the actual birth
-    last = out.splitlines()[-1] if out else ''
-    if last.count('|') < 2:
-        return None
-    h, d, s = last.split('|', 2)
-    if s.startswith('Merge '):
-        # the round's real summary is the branch tip the merge brought in
+    meta = parse_meta(out.splitlines()[-1]) if out else None
+    if meta and meta['s'].startswith('Merge '):
+        # the round's real story is the branch tip the merge brought in
         try:
-            s2 = subprocess.run(['git', 'show', '-s', '--format=%s', h + '^2'],
-                                cwd=ROOT, capture_output=True, text=True,
-                                timeout=30).stdout.strip()
-            if s2:
-                s = s2
+            tip = git('show', '-s', '--format=' + FMT, DATEFMT,
+                      meta['h'] + '^2', timeout=30).strip()
+            tip_meta = parse_meta(tip)
+            if tip_meta:
+                meta = tip_meta
         except Exception:
             pass
-    return (d, s)
+    return meta
+
+
+def body_of(h):
+    """Commit body → (excerpt, session_url), trailers stripped."""
+    try:
+        raw = git('show', '-s', '--format=%b', h, timeout=30)
+    except Exception:
+        return '', ''
+    session = ''
+    m = re.search(r'Claude-Session:\s*(https?://\S+)', raw)
+    if m:
+        session = m.group(1)
+    lines = [ln for ln in raw.splitlines()
+             if not re.match(r'\s*(Co-Authored-By|Claude-Session):', ln)]
+    body = '\n'.join(lines).strip()
+    if len(body) > BODY_MAX:
+        cut = body[:BODY_MAX]
+        body = cut[:max(cut.rfind('\n'), BODY_MAX - 80)].rstrip() + ' …'
+    return body, session
 
 
 def clean(subject, ver):
@@ -84,10 +115,12 @@ def clean(subject, ver):
     if s.startswith('Merge '):
         s = re.sub(r'^Merge\s+(branch\s+)?', '', s)
         s = re.sub(r'\s+into\s+\S+.*$', '', s).strip("'\"")
-    if ':' in s:
-        head, tail = s.split(':', 1)
-        if re.search(r'SRC-\d+', head) or re.search(r'\bV%d\b' % ver, head, re.I):
-            s = tail.strip()
+    for sep in (':', ' — ', ' - '):
+        if sep in s:
+            head, tail = s.split(sep, 1)
+            if re.search(r'SRC-\d+', head) or re.search(r'\bV%d\b' % ver, head, re.I):
+                s = tail.strip()
+                break
     if '/' in s and ' ' not in s:  # a bare branch name says nothing
         return ''
     return s
@@ -95,6 +128,7 @@ def clean(subject, ver):
 
 def main():
     born = births()
+    bodies = {}
     log = {}
     for pf in sorted((ROOT / 'parts').glob('*.js')):
         ids = re.findall(r"id:\s*'(SRC-[^']+)'", pf.read_text(errors='replace'))
@@ -102,14 +136,27 @@ def main():
             continue
         meta = born.get('parts/' + pf.name) or birth_follow('parts/' + pf.name)
         for sid in ids:
-            entry = {}
-            if meta:
-                entry['d'] = meta[0]
-                if len(ids) <= 2:  # a bulk file's commit subject is about nobody
-                    vm = re.search(r'\.(\d+)', sid)
-                    m = clean(meta[1], int(vm.group(1)) if vm else 1)
-                    if m:
-                        entry['m'] = m
+            if not meta:
+                log[sid] = {}
+                continue
+            fam = (re.match(r'(SRC-\d+)', sid) or [sid])[0]
+            entry = {'d': meta['d'], 't': meta['t'], 'h': meta['h'], 'a': meta['a']}
+            # WHO: a human git author beats the keeper proxy
+            by = meta['a'] if 'claude' not in meta['a'].lower() else OWNERS.get(fam)
+            if by:
+                entry['by'] = by
+            if len(ids) <= 2:  # a bulk file's commit subject is about nobody
+                vm = re.search(r'\.(\d+)', sid)
+                m = clean(meta['s'], int(vm.group(1)) if vm else 1)
+                if m:
+                    entry['m'] = m
+                if meta['h'] not in bodies:
+                    bodies[meta['h']] = body_of(meta['h'])
+                b, sess = bodies[meta['h']]
+                if b:
+                    entry['b'] = b
+                if sess:
+                    entry['s'] = sess
             log[sid] = entry
     print(json.dumps({'owners': OWNERS, 'log': log}, separators=(',', ':')))
 

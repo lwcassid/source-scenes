@@ -86,9 +86,11 @@ is where you left it once a scene is open. INFORMATION lives in that column
 too, NEXT TO WHAT IT DESCRIBES: the experience summary (`desc`) heads the
 sidebar clamped (`MORE` expands), the interaction paradigm (`interact`) folds
 under SOURCE INPUT, the Ableton build notes (`sound`) fold under MUSIC, and
-HISTORY closes the column — every version with its date, round summary
-(SCENELOG, mined from git by `tools/scenelog.py` at build time) and keeper,
-click-through to open any version. GHOSTS exists in both views: the library
+HISTORY closes the column — every version with WHO · date · time and the
+round summary (SCENELOG, mined from git by `tools/scenelog.py` at build
+time; who = the git author when human, else the family keeper), a ▸ expander
+holding the full round story (commit body, hash, git author, Claude session
+link), click-through to open any version. GHOSTS exists in both views: the library
 toggle drives the wall's ambient drift, the sidebar's drives ghost hands on
 the focused scene (off by default — a scene starts still). Below the stage,
 the console is the MUSIC WORK SURFACE: THE RIG rack (role → channel → the
