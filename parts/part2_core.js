@@ -690,6 +690,17 @@ if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); 
 
 function openFocus(i) {
   AE.ensure();
+  // deep-link entry: the autoplay policy holds the context suspended until a
+  // real gesture — say so instead of sitting silent (wakeAudio clears it)
+  if (AE.on && AE.ctx && AE.ctx.state === 'suspended') {
+    const hint = document.getElementById('useHint');
+    if (hint) {
+      hint.textContent = 'touch anywhere or press any key to wake the sound';
+      hint.dataset.sound = '1';
+      hint.style.display = 'block';
+      hint.classList.remove('gone');
+    }
+  }
   const def = PIECES[i];
   if (typeof T !== 'undefined') {
     T.start((def.music && def.music.bpm) || 78);
@@ -872,7 +883,22 @@ setInterval(() => {
 document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.add('open'));
 document.getElementById('btnHelpClose').addEventListener('click', () => document.getElementById('helpModal').classList.remove('open'));
 document.getElementById('helpModal').addEventListener('click', e => { if (e.target.id === 'helpModal') e.target.classList.remove('open'); });
-window.addEventListener('pointerdown', () => AE.ensure(), { once: true });
+// ANY gesture must be able to wake audio, not just the first click: a
+// deep-link entry (#scene=...) builds the scene into a context the autoplay
+// policy holds suspended, and a keyboard-only player never fires
+// pointerdown — so resume on either kind of gesture (ensure() resumes a
+// suspended ctx), and rebuild the scene voice if it was created before the
+// context could run.
+const wakeAudio = () => {
+  AE.ensure();
+  if (AE.on && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
+  if (AE.ctx && AE.ctx.state === 'running') {
+    const hint = document.getElementById('useHint');
+    if (hint && hint.dataset.sound) { hint.classList.add('gone'); delete hint.dataset.sound; }
+  }
+};
+window.addEventListener('pointerdown', wakeAudio);
+window.addEventListener('keydown', wakeAudio);
 
 /* ============================================================
    SLIDER + LABEL REFRESH

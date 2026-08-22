@@ -29,14 +29,14 @@
   "port": "IAC Driver Bus 1",
   "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
   "roles": {
-    "lead":    { "ch": 1,  "instrument": "", "character": "", "use": "melodic triggers — plucks, tones, answers" },
-    "pad":     { "ch": 2,  "instrument": "", "character": "", "use": "sustained voice-led chords; glides on chord changes. Event Horizon (SRC-13) streams its rhythmic GATE DEPTH here as CC74 — map it to the string rack's gate/filter amount and the plugin throbs with the picture" },
-    "bass":    { "ch": 3,  "instrument": "", "character": "", "use": "root movement; keep the sub for the wall" },
-    "arp":     { "ch": 4,  "instrument": "", "character": "", "use": "sequenced 16th patterns (Night Circuit etc.)" },
-    "bells":   { "ch": 5,  "instrument": "", "character": "", "use": "chimes, sparkles, rain-on-gong one-shots" },
-    "texture": { "ch": 6,  "instrument": "", "character": "", "use": "the continuous-voice mirror: every scene's drones and films land here as held notes, CC74 = pooled voice energy" },
-    "perc":    { "ch": 10, "instrument": "", "character": "", "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness" },
-    "sfx":     { "ch": 11, "instrument": "", "character": "", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Event Horizon (SRC-13) streams its swallow charge/rise as CC74 here — map to a riser/impact send if the rack has one" },
-    "bed":     { "ch": 12, "instrument": "", "character": "", "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades" }
+    "lead":    { "ch": 1,  "instrument": "(proposed) Splice felt piano — the John Legend one", "character": "gorgeous, spacious, velocity-sensitive", "use": "melodic triggers — plucks, tones, answers. Rain Atrium's felt piano lives here by design. Chladni sends no lead notes but streams resonance as CC74 — map to a brightness/send macro" },
+    "pad":     { "ch": 2,  "instrument": "(proposed) Omnisphere Sacred Shrine · Arturia Augmented Strings for SRC-13", "character": "cathedral ambient, zero tooth", "use": "sustained voice-led chords; glides on chord changes. Event Horizon (SRC-13) streams its rhythmic GATE DEPTH here as CC74 — map it to Augmented Strings' gate dial and the plugin throbs with the picture" },
+    "bass":    { "ch": 3,  "instrument": "(proposed) fat mono synth — the Night-Rider bass, or Arturia Prophet/Jup mono", "character": "simple, fat, structural", "use": "root movement; keep the sub for the wall. Chladni's lock bass and beat-mode doubling land here" },
+    "arp":     { "ch": 4,  "instrument": "(proposed) Omnisphere Science Class", "character": "arpeggiating synth; cutoff + resonance ARE the performance controls", "use": "sequenced 16th patterns (Night Circuit etc.) — CC74 → cutoff is literally this patch's native play" },
+    "bells":   { "ch": 5,  "instrument": "(proposed) Splice felt piano through Valhalla", "character": "one deep note into a cathedral", "use": "chimes, sparkles, lock blooms, Chladni's lure toll — velocity sensitivity ON, the earned dynamics live here" },
+    "texture": { "ch": 6,  "instrument": "(proposed) Omnisphere Hand Pan", "character": "huge reverb, crackly REAL strikes", "use": "the continuous-voice mirror: held notes that re-strike on retune, CC74 = pooled voice energy. Chladni's mode tones: every detent catch is a mallet strike on a literal resonant plate" },
+    "perc":    { "ch": 10, "instrument": "(proposed) XLN XO kit chopped from Splice techno/foley one-shots", "character": "tight, dry", "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness. The rail-secret break plays this kit" },
+    "sfx":     { "ch": 11, "instrument": "(proposed) Granulator on a sand/cave-drips sample", "character": "granular weather", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Chladni streams sand motion as CC74 → density/volume. Event Horizon streams its swallow charge/rise as CC74 — map to a riser/impact send" },
+    "bed":     { "ch": 12, "instrument": "(proposed) Sampler of the sci-fi spaceship / analog-ambient atmospheres", "character": "deep room tone with bass", "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades. Chladni = note 48" }
   }
 }

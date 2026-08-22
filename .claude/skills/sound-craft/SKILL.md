@@ -97,12 +97,24 @@ music: {
   Atrium V2→V3). Keep the ladder for pitch, let timing follow the
   simulation (with a per-voice min-gap and velocity spread), and put the
   grid in the earned groove layer underneath instead.
-- **Idle is rest, not a performance (Lance, Chladni V13).** Ghost hands must
-  never keep the instrument playing: scale the payoff signal (resonance,
-  commitment) by presence so locks/blooms can't fire for an empty room, let
-  the SIMULATION itself relax toward rest (the picture disperses,
-  physics-honest), and tease — a brief gather-and-release every ~15-25s —
-  instead of performing. First real touch snaps it awake.
+- **Detents for integer targets (Lance, Chladni V14).** If a payoff needs a
+  continuous hand to land exact values, magnetize them (cubic ease inside a
+  ~0.14 window) — otherwise the only reachable targets are the rails (inp 0
+  and 1) and the instrument plays like two buttons. Check payoff geometry
+  in HAND-TRAVEL units, not parameter units.
+- **Idle is rest, not a performance (Lance, Chladni V13→V19).** Ghost hands
+  must never keep the instrument playing: scale the payoff signal by
+  presence so locks/blooms can't fire for an empty room, let the SIMULATION
+  relax toward rest, and tease instead of performing. And keep idle HIGHS
+  DEAD: a constant high tone floor grates ("it's grating!" — three rounds to
+  kill it). The idle voice is noise/texture (sand, air) plus an occasional
+  BASS breath — lows carry across the playa and attract; thin highs annoy
+  up close and vanish at distance. And the lure must not be a metronome
+  (Chladni V21): randomize each breath's length/depth/shape/spacing/voice,
+  keep a faint UNDULATING low floor between breaths (incommensurate LFOs —
+  never dead, never constant), make the sound visibly move the picture,
+  and land a rare "walk toward it" payoff (a deep toll, ~1 in 7). First
+  real touch snaps it awake.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
@@ -197,7 +209,11 @@ Live set changes.
   Daft Punk funk only where the scene's verb is funky.
 - A Live patch with its own arp/motion gets a HELD chord and lets the clock
   drive it — never for the reactive layer, whose answers stay per-note.
-  Record the choice in `rig.json`. Fuller plan: `docs/SOUND-DESIGN-GOALS.md`.
+  Record the choice in `rig.json`. Fuller plan AND Lance's palette — the
+  named sounds he improvises with (felt piano, Hand Pan, Sacred Shrine,
+  Augmented Strings' gate dial, Science Class...) with per-scene casting —
+  live in `docs/SOUND-DESIGN-GOALS.md` (THE PALETTE). Shop there first;
+  rig.json says what each channel currently runs.
 
 ## Velocity — where "professional" lives or dies
 
