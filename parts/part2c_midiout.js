@@ -252,9 +252,21 @@ const MOut = {
       try { for (let ch = 0; ch < 16; ch++) this.port.send([0xB0 | ch, 123, 0]); } catch (e) {}
     }
   },
+  // the operator's persistent choice — per-scene queue overrides applyMode()
+  // around it and fall back to it, so a show never strands the global toggle
+  baseMode: 'web',
   setMode(m) {
-    this.mode = m;
+    this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
+    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (m !== 'web' && !midi.access) connectMidi();
+    this.refreshUI();
+  },
+  // transient routing (a queued scene's OUT override) — same plumbing, no save
+  applyMode(m) {
+    if (!m) m = this.baseMode;
+    if (m === this.mode) return;
+    this.mode = m;
     if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
     if (m !== 'web' && !midi.access) connectMidi();
     this.refreshUI();

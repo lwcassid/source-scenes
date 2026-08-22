@@ -17,7 +17,15 @@ const famOf = def => def.family || def.id;
 
 const QUEUE = {
   list: [], shared: null,
+  /* Per-scene SHOW SETTINGS, keyed by family id:
+       min — minutes on stage before SHOWTIME auto-advances (default DWELL_MIN)
+       out — sound routing override for that scene ('web'|'both'|'midi');
+             absent = follow the global OUT toggle.
+     They live beside the list (srcQueueCfg), persist on every change, travel
+     inside COPY FOR REPO, and load back in from setlists.json entries. */
+  cfg: {}, DWELL_MIN: 10,
   load() {
+    try { this.cfg = JSON.parse(localStorage.getItem('srcQueueCfg') || '{}') || {}; } catch (e) { this.cfg = {}; }
     try {
       const s = window.localStorage && localStorage.getItem('srcQueue');
       if (s) { this.list = JSON.parse(s).filter(Boolean); return; }
@@ -29,9 +37,26 @@ const QUEUE = {
     // from nothing. This is what stops a fresh show laptop performing all 43
     // scenes in SRC order because nobody remembered to build a queue on it.
     const def = this.sets().find(s2 => s2.default);
-    if (def) this.list = def.scenes.slice();
+    if (def) this.adoptSet(def);
   },
-  save() { try { window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list)); } catch (e) {} },
+  save() {
+    try {
+      window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list));
+      window.localStorage && localStorage.setItem('srcQueueCfg', JSON.stringify(this.cfg));
+    } catch (e) {}
+  },
+  cfgFor(id) { return this.cfg[id] || {}; },
+  setCfg(id, patch) {
+    const c = { ...this.cfgFor(id), ...patch };
+    for (const k in c) if (c[k] === undefined || c[k] === '' || c[k] === null) delete c[k];
+    if (Object.keys(c).length) this.cfg[id] = c; else delete this.cfg[id];
+    this.save();
+  },
+  dwellMs(id) {
+    const m = +this.cfgFor(id).min;
+    return (m > 0 ? Math.min(m, 120) : this.DWELL_MIN) * 60 * 1000;
+  },
+  outFor(id) { return this.cfgFor(id).out || null; },
   has(id) { return this.list.indexOf(id) >= 0; },
   pos(id) { return this.list.indexOf(id) + 1; },   // 1-based, 0 = not queued
   toggle(id) {
@@ -102,20 +127,45 @@ const QUEUE = {
     const ol = document.getElementById('queueList');
     if (!ol) return;
     document.getElementById('queuePop').classList.toggle('empty', !this.list.length);
-    ol.innerHTML = this.list.map((id, i) => `<li data-qid="${id}">
+    ol.innerHTML = this.list.map((id, i) => {
+      const c = this.cfgFor(id);
+      return `<li data-qid="${id}">
       <span class="qn">${i + 1}</span>
       <canvas class="qthumb" width="56" height="35"></canvas>
       <span class="qid">${id}</span>
       <span class="qt">${this.titleOf(id)}</span>
+      <input class="qmin" type="number" min="1" max="120" step="1" value="${c.min || this.DWELL_MIN}"
+        title="Minutes on stage before SHOWTIME auto-advances (any manual step resets the clock)">
+      <span class="qunit">min</span>
+      <select class="qout${c.out ? ' ovr' : ''}" title="Sound routing while this scene is up — SET follows the global OUT toggle">
+        <option value=""${!c.out ? ' selected' : ''}>SET</option>
+        <option value="web"${c.out === 'web' ? ' selected' : ''}>WEB</option>
+        <option value="both"${c.out === 'both' ? ' selected' : ''}>W+M</option>
+        <option value="midi"${c.out === 'midi' ? ' selected' : ''}>MIDI</option>
+      </select>
       <button data-q="up" title="earlier in the set"${i === 0 ? ' disabled' : ''}>↑</button>
       <button data-q="dn" title="later in the set"${i === this.list.length - 1 ? ' disabled' : ''}>↓</button>
       <button data-q="rm" title="drop from the set">✕</button>
-    </li>`).join('');
+    </li>`; }).join('');
     ol.querySelectorAll('button').forEach(b => b.addEventListener('click', e => {
       const id = e.target.closest('li').dataset.qid, act = e.target.dataset.q;
       if (act === 'up') this.move(id, -1);
       else if (act === 'dn') this.move(id, 1);
       else this.toggle(id);
+    }));
+    ol.querySelectorAll('.qmin').forEach(inp => inp.addEventListener('change', e => {
+      const id = e.target.closest('li').dataset.qid;
+      const v = Math.max(1, Math.min(120, Math.round(+e.target.value || 0)));
+      e.target.value = v;
+      this.setCfg(id, { min: v === this.DWELL_MIN ? undefined : v });
+    }));
+    ol.querySelectorAll('.qout').forEach(sel => sel.addEventListener('change', e => {
+      const id = e.target.closest('li').dataset.qid;
+      this.setCfg(id, { out: e.target.value || undefined });
+      e.target.classList.toggle('ovr', !!e.target.value);
+      // a routing change on the OPEN scene should be audible right now
+      if (focus.idx >= 0 && famOf(PIECES[focus.idx]) === id && typeof MOut !== 'undefined')
+        MOut.applyMode(this.outFor(id));
     }));
     this.renderSets();
     this.paintThumbs();
@@ -158,20 +208,38 @@ const QUEUE = {
   },
 
   /* SHARED SETS — setlists.json, committed and baked into the build. The queue
-     above is personal scratch; these are what the camp agreed on. */
+     above is personal scratch; these are what the camp agreed on.
+     A scenes[] entry is either a plain id ("SRC-15") or an object carrying
+     that scene's show settings ({"id":"SRC-15","min":6,"out":"midi"}). */
   sets() { return (typeof SETLISTS !== 'undefined' && SETLISTS.sets) ? SETLISTS.sets : []; },
+  setIds(set) { return set.scenes.map(e => (typeof e === 'string' ? e : e && e.id)).filter(Boolean); },
+  adoptSet(set) {
+    this.list = this.setIds(set);
+    set.scenes.forEach(e => {
+      if (typeof e !== 'object' || !e || !e.id) return;  // a bare id keeps your local settings
+      this.setCfg(e.id, {
+        min: +e.min > 0 ? +e.min : undefined,
+        out: ['web', 'both', 'midi'].includes(e.out) ? e.out : undefined
+      });
+    });
+  },
   sameAs(set) {
-    return set.scenes.length === this.list.length && set.scenes.every((id, i) => this.list[i] === id);
+    const ids = this.setIds(set);
+    return ids.length === this.list.length && ids.every((id, i) => this.list[i] === id);
   },
   loadSet(name) {
     const set = this.sets().find(s2 => s2.name === name);
     if (!set) return;
-    this.list = set.scenes.slice();
+    this.adoptSet(set);
     this.save(); this.refresh();
   },
   publish() {
     const block = JSON.stringify({
-      name: 'MY SET', note: 'what this set is for', scenes: this.list
+      name: 'MY SET', note: 'what this set is for',
+      scenes: this.list.map(id => {
+        const c = this.cfgFor(id);
+        return (c.min || c.out) ? { id, ...(c.min ? { min: c.min } : {}), ...(c.out ? { out: c.out } : {}) } : id;
+      })
     }, null, 2);
     const done = () => {
       const b = document.getElementById('btnSetPublish');
@@ -229,7 +297,13 @@ const QUEUE = {
       this.wake(open);
       if (open) this.paintThumbs();
     });
-    document.getElementById('btnQueueClose').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); });
+    document.getElementById('btnQueueX').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); });
+    // clicking anywhere off the drawer closes it — like every other popover
+    document.addEventListener('pointerdown', e => {
+      if (!pop.classList.contains('open')) return;
+      if (pop.contains(e.target) || e.target.closest && e.target.closest('#btnQueue')) return;
+      pop.classList.remove('open'); this.wake(false);
+    });
     document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
@@ -303,10 +377,14 @@ SCREENS.load();
 /* Enter the show: picture only, on the chosen display.
    PLAY forces performance mode — the PANELS preference persists between
    sessions, and starting a show with the MIDI console sitting over the
-   picture is never what "play" meant. H (or the PANELS pill) brings it back. */
+   picture is never what "play" meant. H (or the PANELS pill) brings it back.
+   It also forces the FLAT projector view: the scrim 3D room and the ghost
+   overlay are design tools, and whichever one you were rehearsing in must
+   never be what the projectors get. */
 function enterShow() {
   const ov = document.getElementById('overlay');
   if (typeof setPanels === 'function') setPanels(false);
+  if (typeof setView === 'function' && typeof VIEW !== 'undefined' && VIEW.mode !== 'flat') setView('flat');
   if (typeof PROJ !== 'undefined' && !PROJ.on && typeof setProj === 'function') setProj(true);
   if (document.fullscreenElement) return Promise.resolve(true);
   const scr = SCREENS.target();
@@ -341,11 +419,15 @@ const PRE = {
   },
   /* Severity is deliberate: BAD is "the show will not work", WARN is "this is
      probably not what you meant". Nobody rehearsing with a mouse should get a
-     wall of red for having no theremin plugged in. */
+     wall of red for having no theremin plugged in.
+     Two tiers: THE SHOW is what a newbie must get right on any laptop —
+     sound, a set list, the right display, hands. THE RIG only matters when
+     Ableton or hardware sensors are in the loop. (The frame row is gone:
+     PLAY pins the 1920×1200 show frame itself, so there is nothing to check.) */
   rows() {
     const r = [];
     const ctxOn = AE.ctx && AE.ctx.state === 'running';
-    r.push({ k: 'audio', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
+    r.push({ k: 'audio', sec: 'show', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
       txt: !AE.on ? 'muted — SOUND is OFF in the left rail'
         : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
         : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
@@ -358,13 +440,17 @@ const PRE = {
       }] });
 
     const nq = QUEUE.list.length;
-    r.push({ k: 'queue', label: 'Set list', lvl: nq ? 'ok' : 'warn',
+    r.push({ k: 'queue', sec: 'show', label: 'Set list', lvl: nq ? 'ok' : 'warn',
       txt: nq ? nq + (nq === 1 ? ' scene queued · ' : ' scenes queued · ') + 'opens with ' + QUEUE.titleOf(QUEUE.list[0])
         : 'empty — the show would fall back to all ' + FAMS.length + ' scenes in library order',
       fix: ['OPEN QUEUE', () => { this.close(); document.getElementById('queuePop').classList.add('open'); }] });
 
+    r.push({ k: 'screen', sec: 'show', label: 'Display',
+      lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
+      txt: this.screenText(), screenPicker: true });
+
     const bound = (midi.map.L ? 1 : 0) + (midi.map.R ? 1 : 0);
-    r.push({ k: 'hands', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
+    r.push({ k: 'hands', sec: 'show', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
       txt: !midi.access ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
         : bound === 2 ? 'L and R both bound (' + mapLabel(midi.map.L) + ' · ' + mapLabel(midi.map.R) + ')'
         : bound === 1 ? 'only ' + (midi.map.L ? 'L' : 'R') + ' is bound — the other hand is dead'
@@ -374,35 +460,25 @@ const PRE = {
 
     const cal = ['L', 'R'].map(sd => midi.cal[sd]);
     const rested = cal.filter(c => c && c.rest !== null && c.rest !== undefined).length;
-    r.push({ k: 'cal', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
+    r.push({ k: 'cal', sec: 'rig', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
       txt: !midi.access ? 'not needed without hardware'
         : rested === 2 ? 'both hands ranged and rested — idle detection is live'
         : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle',
       fix: midi.access ? ['SET REST', () => startRest()] : null });
 
     const out = MOut.mode !== 'web';
-    r.push({ k: 'out', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
+    r.push({ k: 'out', sec: 'rig', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
       txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
         : !MOut.port ? 'MIDI out on, but no port selected'
         : 'sending to ' + MOut.port.name,
       fix: out ? null : ['SEND MIDI', () => { AE.ensure(); MOut.setMode('both'); }] });
 
-    r.push({ k: 'clock', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
+    r.push({ k: 'clock', sec: 'rig', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
       txt: !out ? 'browser transport only' :
         !MOut.clock.on ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
         : MOut.clock.running ? 'driving Live at ' + T.bpm + ' BPM — this app is the tempo master'
         : 'clock out armed — drives Live from the moment a scene opens (Live: port Sync on, EXT lit)',
       fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
-
-    const projOn = typeof PROJ !== 'undefined' && PROJ.on;
-    r.push({ k: 'frame', label: 'Frame', lvl: projOn ? 'ok' : 'warn',
-      txt: projOn ? '1920×1200 · 1.60 — the frame the projectors get'
-        : 'window frame — scenes are composed in a shape the wall never plays',
-      fix: projOn ? null : ['USE SHOW FRAME', () => { if (typeof setProj === 'function') setProj(true); }] });
-
-    r.push({ k: 'screen', label: 'Display',
-      lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
-      txt: this.screenText(), screenPicker: true });
     return r;
   },
   screenText() {
@@ -421,12 +497,17 @@ const PRE = {
     const box = document.getElementById('preRows');
     if (!box) return;
     const rows = this.rows();
-    box.innerHTML = rows.map(row => `<div class="prow ${row.lvl}" data-k="${row.k}">
+    const rowHtml = row => `<div class="prow ${row.lvl}" data-k="${row.k}">
       <span class="dot"></span><span class="plabel">${row.label}</span>
       <span class="pstat">${row.txt}</span>
       ${row.screenPicker ? '<select id="preScreenSel"></select>' : ''}
       ${row.fix ? `<button data-fix="${row.k}">${row.fix[0]}</button>` : ''}
-    </div>`).join('');
+    </div>`;
+    box.innerHTML =
+      '<h3 class="psec">The show <span>— every laptop, every time</span></h3>' +
+      rows.filter(r => r.sec === 'show').map(rowHtml).join('') +
+      '<h3 class="psec">The rig <span>— only if Ableton / hardware sensors are in the loop</span></h3>' +
+      rows.filter(r => r.sec === 'rig').map(rowHtml).join('');
     box.querySelectorAll('button[data-fix]').forEach(b => b.addEventListener('click', () => {
       const row = rows.find(x => x.k === b.dataset.fix);
       if (row && row.fix) { row.fix[1](); this.render(); }
@@ -583,6 +664,39 @@ document.getElementById('oVers').addEventListener('change', e => {
   if (idx !== focus.idx) { closeFocus(); openFocus(idx); }
 });
 
+/* ============================================================
+   HISTORY — the scene's change log, in its sidebar.
+   Every version is a part file, and SCENELOG (baked at build
+   time by tools/scenelog.py) carries each file's birth commit:
+   date + the round's summary. Owners come from the CLAUDE.md
+   coordination list — git can't tell, every session commits as
+   Claude. Click a row to open that version on the stage.
+   ============================================================ */
+function renderFocusHistory(i) {
+  const box = document.getElementById('histList');
+  if (!box) return;
+  const F = FAMS.find(x => x.fam === famOf(PIECES[i]));
+  if (!F) { box.innerHTML = ''; return; }
+  const LOG = (typeof SCENELOG !== 'undefined') ? SCENELOG : { owners: {}, log: {} };
+  const who = document.getElementById('histWho');
+  if (who) {
+    const owner = LOG.owners && LOG.owners[F.fam];
+    who.textContent = F.entries.length + (F.entries.length === 1 ? ' version' : ' versions') +
+      (owner ? ' · kept by ' + owner : '');
+  }
+  box.innerHTML = F.entries.slice().reverse().map(en => {
+    const e = (LOG.log && LOG.log[en.def.id]) || {};
+    return `<div class="hrow${en.idx === i ? ' on' : ''}" data-idx="${en.idx}" title="open V${en.def.ver || 1} on the stage">
+      <span class="hv">V${en.def.ver || 1}</span><span class="hd">${e.d || ''}</span>
+      ${e.m ? `<span class="hm">${esc(e.m)}</span>` : ''}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.hrow').forEach(row => row.addEventListener('click', () => {
+    const idx = +row.dataset.idx;
+    if (idx !== focus.idx) { closeFocus(); openFocus(idx); }
+  }));
+}
+
 // MIDI OUT wiring
 document.getElementById('btnOut').addEventListener('click', () => {
   const next = { web: 'both', both: 'midi', midi: 'web' }[MOut.mode];
@@ -609,7 +723,7 @@ window.addEventListener('keydown', e => {
   let m = null, hasMap = false;
   try { m = localStorage.getItem('srcOutMode'); hasMap = !!localStorage.getItem('srcMidiMap'); } catch (e) {}
   if (m === 'both' || m === 'midi') {
-    MOut.mode = m; // set directly; setMode would re-save (harmless but redundant)
+    MOut.mode = MOut.baseMode = m; // set directly; setMode would re-save (harmless but redundant)
     MOut.refreshUI();
   }
   // reconnect MIDI IN too if the theremin was ever learned — bindings are already restored
@@ -678,6 +792,12 @@ document.getElementById('volSlider').addEventListener('input', e => {
   document.getElementById('btnGhosts').addEventListener('click', () => {
     ghostsOn = !ghostsOn;
     document.getElementById('btnGhosts').classList.toggle('off', !ghostsOn);
+  });
+  // ghost hands INSIDE a focused scene — off by default (a scene starts still),
+  // handy when you want the scene to demo itself while you work the rig
+  document.getElementById('fGhosts').addEventListener('click', () => {
+    sceneGhosts = !sceneGhosts;
+    document.getElementById('fGhosts').classList.toggle('off', !sceneGhosts);
   });
   document.getElementById('fVol').addEventListener('input', e => {
     const v = document.getElementById('volSlider');
@@ -865,6 +985,20 @@ document.getElementById('oActs').addEventListener('click', e => {
   // (no LINK button: the URL carries #scene= on its own, and the address bar
   // is where anyone copying a link already looks)
 })();
+/* Per-scene sound routing: a queued scene can pin OUT to WEB / WEB+MIDI /
+   MIDI ONLY for its stay on stage (set in the queue drawer). Scenes without
+   an override — and every scene on close — fall back to the global toggle. */
+(() => {
+  const _open = window.openFocus, _close = window.closeFocus;
+  window.openFocus = function (i) {
+    _open(i);
+    if (typeof MOut !== 'undefined' && PIECES[i]) MOut.applyMode(QUEUE.outFor(famOf(PIECES[i])));
+  };
+  window.closeFocus = function () {
+    _close();
+    if (typeof MOut !== 'undefined') MOut.applyMode(null); // back to the operator's choice
+  };
+})();
 /* ============================================================
    SHOWTIME — installation player mode.
    Hover the stage → ⛶ appears → true fullscreen. In fullscreen:
@@ -909,14 +1043,15 @@ document.getElementById('oActs').addEventListener('click', e => {
   };
   document.getElementById('edgeL').addEventListener('click', () => step(-1));
   document.getElementById('edgeR').addEventListener('click', () => step(1));
-  // ten minutes per scene, reset by any manual navigation
-  const ROT_MS = 10 * 60 * 1000;
+  // each scene holds the stage for ITS OWN minutes (MIN in the queue drawer,
+  // default 10) — any manual navigation resets the clock
   let rotT = null, rotAt = 0;
   function resetRotation() {
     clearTimeout(rotT); rotT = null; rotAt = 0;
     if (document.fullscreenElement && focus.idx >= 0) {
-      rotAt = Date.now() + ROT_MS;
-      rotT = setTimeout(() => step(1), ROT_MS);
+      const ms = QUEUE.dwellMs(famOf(PIECES[focus.idx]));
+      rotAt = Date.now() + ms;
+      rotT = setTimeout(() => step(1), ms);
     }
   }
   window.SHOW = { next: () => step(1), prev: () => step(-1), resetRotation };
@@ -976,21 +1111,47 @@ setInterval(() => {
     const a2 = focus.P.state.act || 0;
     [...el.children].forEach((b, bi) => b.classList.toggle('on', bi === a2));
   }
-  const rr = document.getElementById('oRoles');
-  if (rr && typeof MOut !== 'undefined') {
-    if (!rr.children.length) {
-      rr.innerHTML = Object.keys(MOut.roles).map(role =>
-        `<i data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}" title="${role}"></i>`).join('');
-    }
-    const now = performance.now();
-    [...rr.children].forEach(dot => {
-      const role = dot.dataset.role;
-      const on = MOut.lastByRole[role] && now - MOut.lastByRole[role] < 1200;
-      dot.classList.toggle('on', !!on);
-      dot.style.boxShadow = on ? `0 0 6px 1px ${MOut.ROLE_COLORS[role]}` : '';
-    });
-  }
 }, 300);
+
+/* ============================================================
+   THE RIG RACK — the music work surface under the stage.
+   One row per role: color · role · channel · what answers in the
+   Live set (rig.json, baked as RIGDOC — fill in `instrument` and
+   the rack names your actual patches). Rows light while their
+   lane is playing, so with a scene open you can SEE which
+   instruments it is using and on which channels. Click to remap.
+   ============================================================ */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+(function () {
+  const rack = document.getElementById('roleRack');
+  if (!rack || typeof MOut === 'undefined') return;
+  const DOCS = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) ? RIGDOC.roles : {};
+  const rows = {};
+  for (const role of Object.keys(MOut.roles)) {
+    const doc = DOCS[role] || {};
+    const div = document.createElement('div');
+    div.className = 'rkrow';
+    div.title = (doc.instrument ? doc.instrument + ' — ' : '') + (doc.use || '');
+    div.innerHTML = `<i style="background:${MOut.ROLE_COLORS[role]}"></i>
+      <b>${role}</b><span class="rkch">CH${MOut.roles[role]}</span>
+      <span class="rki">${esc(doc.instrument || doc.use || '')}</span>`;
+    rack.appendChild(div);
+    rows[role] = div;
+  }
+  rack.addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
+  setInterval(() => {
+    if (!overlay.classList.contains('open')) return;
+    const now = performance.now();
+    for (const role in rows) {
+      const on = MOut.lastByRole[role] && now - MOut.lastByRole[role] < 1200;
+      rows[role].classList.toggle('on', !!on);
+      rows[role].querySelector('i').style.boxShadow = on ? `0 0 6px 1px ${MOut.ROLE_COLORS[role]}` : '';
+      const ch = 'CH' + MOut.roles[role]; // live: the RIG modal can remap
+      const el = rows[role].querySelector('.rkch');
+      if (el.textContent !== ch) el.textContent = ch;
+    }
+  }, 300);
+})();
 
 QUEUE.boot();
 // VIEW dropdown — the discoverable face of the view modes (V still cycles)

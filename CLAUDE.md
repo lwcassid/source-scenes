@@ -20,9 +20,17 @@ PIECES index in a family — new versions append to the build) weighted 0.55
 against version count on a log curve at 0.45, so scenes people are actively
 loving float and never-revised v1s sink.
 
+Each queued scene carries SHOW SETTINGS, edited inline in the drawer (which
+closes on outside click / ✕): MIN = minutes on stage before SHOWTIME
+auto-advances (default 10), OUT = per-scene sound routing (web / both / midi;
+blank follows the global OUT toggle — applied transiently on scene open via
+`MOut.applyMode`, restored on close). Settings save themselves per-browser
+(`srcQueueCfg`) and ride inside COPY FOR REPO.
+
 SHARED SETS live in `setlists.json` at the repo root — committed, so git is
 the coordination mechanism (diff = history of what the show became, merge
-conflict = a real conversation about the set). `tools/build.sh` BAKES it into
+conflict = a real conversation about the set). A scenes[] entry is a bare id
+or `{"id":"SRC-15","min":6,"out":"midi"}`. `tools/build.sh` BAKES it into
 index.html, which is what carries the running order onto the offline show
 artifact; a fetch would die the moment the laptop leaves the internet. A
 browser with no queue of its own loads the set flagged `default: true`, so a
@@ -31,13 +39,16 @@ COPY FOR REPO in the drawer emits the block to paste in (or hand to a Claude
 session). Editing setlists.json requires a rebuild — the build fails loudly if
 the JSON is malformed.
 
-SHOW CHECK (queue drawer) is the pre-flight: sound / set list / hands /
-calibration / Ableton / tempo / frame / display, each row reporting what it
-found with an inline fix. PLAY forces performance mode (panels off), pins the
-projector frame, and fullscreens onto the display chosen via Chrome's Window
-Management API — defaulting to the external screen, amber if aimed at the
-laptop. Red rows divert PLAY into the check. One tab = one picture: choosing a
-display moves the SHOW, it does not add a control window.
+SHOW CHECK (queue drawer) is the pre-flight, in two tiers: THE SHOW (sound /
+set list / display / hands — what a newbie must get right on any laptop) and
+THE RIG (calibration / Ableton / tempo — only when hardware or Live is in the
+loop), each row reporting what it found with an inline fix. PLAY forces
+performance mode (panels off), the FLAT view (never the scrim 3D or ghost
+rehearsal views), pins the projector frame, and fullscreens onto the display
+chosen via Chrome's Window Management API — defaulting to the external
+screen, amber if aimed at the laptop. Red rows divert PLAY into the check.
+One tab = one picture: choosing a display moves the SHOW, it does not add a
+control window.
 
 ## Owners (coordination only — no longer shown in the UI)
 Kasia: Ferro Bloom (SRC-15), Weather Station (SRC-10), Epicycle Court (SRC-01)
@@ -69,10 +80,20 @@ The site is ONE html file assembled by concatenating `parts/` in a fixed order
 The library and the scene view share the same left column (`--rail`, 248px,
 `.sgroup` markup): the library's `#librail` and the focus overlay's `#sidebar`
 carry the SAME groups in the same order — SOURCE INPUT and MUSIC are literally
-identical — so a control you learn on the wall is where you left it once a
-scene is open. INFORMATION lives in that column too: a scene's interaction
-line, field notes and Ableton notes head its sidebar (clamped, `FULL NOTES`
-expands), instead of a panel sliding in over the picture. The header is brand
+identical, and BOTH source widgets are playable (drag the beams on the wall's
+rail widget and the whole wall answers) — so a control you learn on the wall
+is where you left it once a scene is open. INFORMATION lives in that column
+too, NEXT TO WHAT IT DESCRIBES: the experience summary (`desc`) heads the
+sidebar clamped (`MORE` expands), the interaction paradigm (`interact`) folds
+under SOURCE INPUT, the Ableton build notes (`sound`) fold under MUSIC, and
+HISTORY closes the column — every version with its date, round summary
+(SCENELOG, mined from git by `tools/scenelog.py` at build time) and keeper,
+click-through to open any version. GHOSTS exists in both views: the library
+toggle drives the wall's ambient drift, the sidebar's drives ghost hands on
+the focused scene (off by default — a scene starts still). Below the stage,
+the console is the MUSIC WORK SURFACE: THE RIG rack (role → channel → the
+instrument named in rig.json, rows lit while their lane plays, click to
+remap) beside the MIDI monitor. The header is brand
 + theme + help, nothing else; the scene bar is identity + `+ QUEUE` + theme +
 CLOSE, nothing else; the stage's own ⛶ is the only fullscreen control and it
 hides during the show. LINK, PNG and REGEN buttons were killed as clutter —
@@ -109,7 +130,10 @@ actually getting — `1920×1200 · 1.60 · PROJ` is the show.
 Other projector classes: **`?frame=fhd|wxga|xga|uhd|1400x1050`** (or
 `setFrame(w,h)` live) re-pins the frame and cascades through every scene.
 **VIEW dropdown on the stage** (or `V` cycles): FLAT (one projector) ·
-GHOST (two-projector misregistration) · SCRIM THE CAVE 3D. In the scrim
+GHOST (two-projector misregistration) · SCRIM THE CAVE 3D. The scrim view is
+FULL BLEED — the room fills the whole stage at the window's own aspect (the
+scene still renders offscreen in the pinned show frame that feeds the
+throw); the frame views stay letterboxed. In the scrim
 view YOU drive the camera — drag orbits, wheel zooms, `C` jumps vantages
 (AT THE SOURCE — the default and the design target — / AUDIENCE / HEAD-ON /
 OBLIQUE / OVERVIEW); the mouse belongs to the camera there, keys still play
@@ -168,8 +192,9 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
   by filter freq) and `A.voice` (polled: audible pitched voices hold a note
   on texture ch6; pooled gain = texture CC74) — so every scene that makes
   pitched or percussive sound sends MIDI without scene-side code. What sits
-  on each channel in the Live set lives in `rig.json` (design-time, hand-
-  edited, not baked into the build).
+  on each channel in the Live set lives in `rig.json` (hand-edited; baked
+  read-only into the build as RIGDOC so THE RIG rack under the stage can
+  name the actual instruments — fill in `instrument` and the UI improves).
 - MIDI CLOCK goes out at 24 PPQN off the transport's own AudioContext
   timeline (`MOut.clock`), with song-position + Start on scene open and Stop
   on close — Live follows each scene's BPM instead of someone retyping it.
