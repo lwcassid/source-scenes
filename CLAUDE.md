@@ -86,9 +86,13 @@ is where you left it once a scene is open. INFORMATION lives in that column
 too, NEXT TO WHAT IT DESCRIBES: the experience summary (`desc`) heads the
 sidebar clamped (`MORE` expands), the interaction paradigm (`interact`) folds
 under SOURCE INPUT, the Ableton build notes (`sound`) fold under MUSIC, and
-HISTORY closes the column — every version with its date, round summary
-(SCENELOG, mined from git by `tools/scenelog.py` at build time) and keeper,
-click-through to open any version. GHOSTS exists in both views: the library
+HISTORY closes the column — every version with WHO · date · time and the
+round summary (SCENELOG, mined from git by `tools/scenelog.py` at build
+time), a ▸ expander holding the full round story (commit body, hash, git
+author, Claude session link), click-through to open any version. WHO is
+evidence, never a guess: the `Round-By:` trailer > a human git author > a
+CREDITS correction in scenelog.py; a version without evidence shows no name
+(the keeper appears only in the header, labeled "kept by"). GHOSTS exists in both views: the library
 toggle drives the wall's ambient drift, the sidebar's drives ghost hands on
 the focused scene (off by default — a scene starts still). Below the stage,
 the console is the MUSIC WORK SURFACE: THE RIG rack (role → channel → the
@@ -208,6 +212,13 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
 - Mobile: bloom post-stack is gated off via `window.IS_MOBILE`; keep it that way.
 
 ## Working agreements
+- EVERY SCENE-ROUND COMMIT NAMES ITS HUMAN: end the commit message with a
+  `Round-By: <first name>` trailer — the person whose session/feedback round
+  it is (you know who you are talking to; lwcassid@gmail.com = Lance). The
+  HISTORY panel reads this trailer, and it is the ONLY reliable "who": every
+  session commits as author Claude, so a round without the trailer shows no
+  name. For old rounds, corrections go in CREDITS in `tools/scenelog.py`,
+  only on the person's own say-so — never inferred from scene ownership.
 - END EVERY ROUND WITH A CLICKABLE LINK (Lance's rule). Never hand back a
   branch name or a file path and make someone hunt. The site deep-links:
   `#scene=SRC-XX.N` opens that exact scene. In order of preference:

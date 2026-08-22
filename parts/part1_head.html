@@ -211,15 +211,26 @@
   /* the fold-away notes under SOURCE INPUT / MUSIC */
   .snfold{display:none}
   .snfold.open{display:block}
-  /* ---------- HISTORY — every version, newest first, click to open ---------- */
+  /* ---------- HISTORY — who did what, when; ▸ expands the round story ---------- */
   #histList .hrow{padding:6px 8px;border:1px solid var(--line2);border-radius:6px;margin:0 0 4px;
     cursor:pointer;transition:border-color .15s}
   #histList .hrow:hover{border-color:var(--tile-hov)}
   #histList .hrow.on{border-color:var(--acc);background:var(--acc-faint)}
+  #histList .hline{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
   #histList .hv{font:10px var(--mono);font-weight:700;color:var(--txt)}
   #histList .hrow.on .hv{color:var(--acc)}
-  #histList .hd{font:9px var(--mono);color:var(--txt-faint);margin-left:6px}
+  #histList .hby{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+  #histList .hd{font:9px var(--mono);color:var(--txt-faint)}
+  #histList .hxtog{margin-left:auto;font-size:9px;color:var(--txt-faint);padding:0 3px;user-select:none}
+  #histList .hxtog:hover{color:var(--acc)}
   #histList .hm{display:block;font-size:10px;line-height:1.5;color:var(--txt-dim);margin-top:2px}
+  #histList .hx{display:none;margin-top:6px;border-top:1px dashed var(--line);padding-top:6px;cursor:default}
+  #histList .hrow.open .hx{display:block}
+  #histList .hbody{font:9px/1.6 var(--mono);color:var(--txt-dim);white-space:pre-wrap;
+    max-height:220px;overflow-y:auto;margin:0 0 6px}
+  #histList .hmeta{font:8.5px var(--mono);color:var(--txt-faint);margin:0}
+  #histList .hmeta a{color:var(--acc);text-decoration:none}
+  #histList .hmeta a:hover{text-decoration:underline}
   #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
   #sidebar .scrimonly{display:none}
   #overlay.scrimmode #sidebar .scrimonly{display:flex}
