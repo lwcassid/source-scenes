@@ -97,6 +97,17 @@ music: {
   Atrium V2→V3). Keep the ladder for pitch, let timing follow the
   simulation (with a per-voice min-gap and velocity spread), and put the
   grid in the earned groove layer underneath instead.
+- **Idle is rest, not a performance (Lance, Chladni V13).** Ghost hands must
+  never keep the instrument playing: scale the payoff signal (resonance,
+  commitment) by presence so locks/blooms can't fire for an empty room, let
+  the SIMULATION itself relax toward rest (the picture disperses,
+  physics-honest), and tease — a brief gather-and-release every ~15-25s —
+  instead of performing. First real touch snaps it awake.
+- **Danceability follows interaction legibility (Lance).** Beats belong
+  only to scenes whose mapping is commanded within seconds (flick, stab,
+  drop). If discovering what the hands do takes minutes (Weather Station's
+  heading + gale), the scene can't be performed like a kit — it stays
+  ambient however high its visual energy ceiling.
 - **Bright major-9 cadences read "Mario power-up"** on a colorful scene.
   Minor pedal color-shift reads tasteful and badass. When in doubt, darker.
 - **One voice per visual element** (a bloom = a pad voice, panned to its
@@ -160,6 +171,19 @@ hands globally.
 the actual Live set** — read it before designing a scene's sound so you
 write for the rack that exists, and tell the user to update it when the
 Live set changes.
+
+## The rig is the finish (Lance, Aug 2026)
+
+- The WebAudio helpers are the SKETCH and the offline fallback; the Live rack
+  on the mirror is the finished sound. Write MIDI (role choice, velocity,
+  CC74 rides) as if a quality velocity-sensitive patch will expose it.
+- Reference shelf: beds like Tom Misch's looped guitar drone — rich,
+  reverbed, worth improvising over. Earned drums like Fred Again / Chet
+  Faker / Darkside: breaks and R&B pockets with SPACE, minimal before busy;
+  Daft Punk funk only where the scene's verb is funky.
+- A Live patch with its own arp/motion gets a HELD chord and lets the clock
+  drive it — never for the reactive layer, whose answers stay per-note.
+  Record the choice in `rig.json`. Fuller plan: `docs/SOUND-DESIGN-GOALS.md`.
 
 ## Velocity — where "professional" lives or dies
 
