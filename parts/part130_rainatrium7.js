@@ -28,17 +28,18 @@ reg({
   },
   fx: { bloom: 0.55, edge: true },
   tags: ['WAVE INTERFERENCE', 'FELT PIANO', 'HAND = REGISTER', 'FLICK = LEAD NOTE', 'LIGHTNING'],
-  desc: 'The rain becomes an instrument. Your hand\'s height is a register: hold it low and the drops that earn notes speak low and sparse, reach out and the rain climbs the chord ladder with you — sweep and you can hear the sky follow your arm. A flick places a real note: the tone your hand is pointing at, as hard as you threw it. The weather still gusts and lulls when the room is empty, but under live hands it yields — steady rain that answers you instead of arguing. And the storm finally pays off: charge it with both hands and twin bolts of lightning tear down into the two storm cells as the thunder lands.',
+  desc: 'The rain becomes an instrument. Your hand\'s height is a register: hold it low and the drops that earn notes speak low and sparse, reach out and the rain climbs the chord ladder with you — sweep and you can hear the sky follow your arm. A flick places a real note: the tone your hand is pointing at, as hard as you threw it. Alone, the room truly rests — the rain keeps falling but the piano waits for a person, murmuring low if it speaks at all. And the storm finally pays off: charge it with both hands and twin bolts of lightning tear into the two storm cells as the thunder lands — and each storm the room survives leaves the pool soaked, the reverb deeper, the bed wider, for the rest of the night.',
   interact: 'L = rain over the left (ember) half, R = right (violet) — height is BOTH density and register: low hand, low sparse notes; high hand, dense and climbing. FLICK outward to place a note — pitch is where your hand is, loudness is how fast you flicked (0.35s cooldown). Set a register, then phrase with flicks. Both hands high charges the storm; one bar of warning, lightning + thunder on the downbeat; stillness after earns the petrichor. Idle, the weather plays itself; your first gesture makes it yield.',
-  sound: 'Felt piano with a note budget, now conducted: the earned notes\' degree window tracks the hand (register = expression), volumes ride drop size wide enough for a velocity patch to expose, and each felt note mirrors as ONE lead note (partials no longer double-strike MIDI). Flick = a lead note whose pitch and velocity are literally the gesture. Gust/lull autonomy scales away with presence, so a held hand gets a steady bed to phrase over. Groove unchanged but accented (bar heads lifted, ~×1.3). Thunder gains lightning; rumble swells with the charge so the crescendo is audible before it lands. Pinned key, empty mids, D pedal underneath.',
+  sound: 'Felt piano with a note budget, now conducted: the earned notes\' degree window tracks the hand (register = expression), volumes ride drop size wide enough for a velocity patch to expose, and each felt note mirrors as ONE lead note (partials no longer double-strike MIDI). Flick = a lead note whose pitch and velocity are literally the gesture, and it briefly holds the rain\'s note budget shut so it stands alone. PRESENCE GATES THE PIANO: an empty room gets visual rain and the low bed only — note chance, volume and register all scale with presence (idle speaks rarely, low, soft). Downpour is carried by weight now (patter + rumble up) instead of reading as a dropout. THE SOAKED POOL is the arc: each thunderstorm deepens the felt reverb, opens the bed filter and widens the drones for the rest of the session (SOAK on the HUD). Pinned key, empty mids, D pedal underneath.',
   // felt piano: small notes are 2 dry partials; big notes get the full wet
   // stack. Only the FUNDAMENTAL mirrors to MIDI (one lead note per felt note,
   // its vol = the velocity); partials are local timbre, suspended from the
   // mirror so the Live patch never gets octave double-strikes.
-  _felt(A, freq, { at = 0, vol = 0.1, pan = 0, dur = 1.4, big = false } = {}) {
+  _felt(A, freq, { at = 0, vol = 0.1, pan = 0, dur = 1.4, big = false, soak = 0 } = {}) {
     if (!isFinite(freq) || freq <= 20) return;
     const t0 = Math.max(A.t(), at || 0);
-    const rev = big ? 0.5 : 0.18;
+    // soak: the soaked-pool arc — each survived storm deepens the reverb
+    const rev = (big ? 0.5 : 0.18) + soak;
     A.tone(freq, { at: t0, vol: vol, dur: dur, attack: 0.014, type: 'triangle', pan, rev, del: big ? 0.08 : 0 });
     const sp = (typeof MOut !== 'undefined') && MOut.suspend;
     if (typeof MOut !== 'undefined') MOut.suspend = true;
@@ -71,7 +72,7 @@ reg({
       warmT: [255, 150, 92], violT: [138, 112, 255],
       charge: 0, primed: false, strikeBeat: 0, strikeTimer: 0, flash: 0, glow: 0,
       petriArmed: false, petri: 0,
-      presL: 0, presR: 0, bolts: []
+      presL: 0, presR: 0, bolts: [], soaked: 0
     };
   },
   step(P, dt, t, inp) {
@@ -85,6 +86,30 @@ reg({
     const liveL = chan.L.mode === 'live' ? 1 : 0, liveR = chan.R.mode === 'live' ? 1 : 0;
     s.presL += (liveL - s.presL) * Math.min(1, dt * (liveL ? 3 : 0.6));
     s.presR += (liveR - s.presR) * Math.min(1, dt * (liveR ? 3 : 0.6));
+    // THE POOL ANSWERS YOUR ARRIVAL: a low quiet hand can otherwise wait
+    // ~10s for the rain to earn its first note (agency fail) — so the first
+    // presence after real absence always lands one soft placed note, at the
+    // hand's register, at that side's cell, within the first beat.
+    for (const side of [0, 1]) {
+      const pv = side === 0 ? s.presL : s.presR;
+      const wk = side === 0 ? '_hereL' : '_hereR';
+      if (pv < 0.15) { s[wk] = 0; continue; }
+      if (pv >= 0.3 && !s[wk]) {
+        s[wk] = 1;
+        const cc = side === 0 ? s.ccL : s.ccR;
+        const lo = side === 0 ? 0.02 : 0.52, hi = side === 0 ? 0.48 : 0.98;
+        const xf = clamp(cc, lo, hi);
+        const adeg = Math.min(6, Math.floor(clamp(side === 0 ? inp.L : inp.R) * 6.99));
+        s.lastNoteAny = t; if (side === 0) s.lastNoteL = t; else s.lastNoteR = t;
+        s.splashes.push({ x: xf, y: 0.45 + P.rand() * 0.2, amp: 3, side, age: 0 });
+        P.ping(A => {
+          P.def._felt(A, H.chordTone(adeg, 0), {
+            at: A.t() + 0.005, vol: 0.12, pan: xf * 2 - 1, dur: 2.2, big: true,
+            soak: (s.soaked || 0) * 0.07
+          });
+        });
+      }
+    }
     // ---- gusts AND lulls: the weather's own phrasing — but it YIELDS to
     // presence: lulls stop stealing a held gesture, gust depth steadies, and
     // only the CELL keeps wandering (where rain lands stays weather) ----
@@ -150,18 +175,28 @@ reg({
       s.lastNoteAny = t; if (side === 0) s.lastNoteL = t; else s.lastNoteR = t;
       const big = amp > 2.9 && t - s.lastBass > 1.2;
       if (big) s.lastBass = t;
+      // PRESENCE GATES THE PIANO (listening-test fail: idle played 96 notes
+      // in 15s, some at full volume, for an empty room). Ghost rain stays
+      // visual; the piano is for people: chance and volume scale with the
+      // side's presence, and an idle plate speaks only low, only softly.
+      const pres = side === 0 ? s.presL : s.presR;
+      if (P.rand() > 0.12 + 0.88 * pres) return;
       // REGISTER IS YOURS: the degree window follows the HAND's height, not
       // the wandering cell — sweep the hand, hear the rain climb the ladder.
-      // ±1 of spread keeps it rain; the cell keeps owning WHERE (pan).
+      // Half the notes sit exactly on the hand's degree, the rest ±1.
       const vh = side === 0 ? s.vL : s.vR;
-      const deg = Math.max(0, Math.min(6, Math.floor(vh * 6.99)) + ((P.rand() * 3) | 0) - 1);
+      const base = Math.min(6, Math.floor(vh * 6.99));
+      let deg = Math.max(0, P.rand() < 0.5 ? base : base + (P.rand() < 0.5 ? -1 : 1));
+      if (pres < 0.35) deg = Math.min(deg, 2);   // idle highs stay dead
       P.ping(A => {
         const at = A.t() + 0.005 + P.rand() * 0.03;
         // velocity lives here: drop size drives vol over a range wide enough
         // for a velocity-sensitive patch to expose (was clamped 0.05–0.12)
-        const vol = clamp(0.04 + amp * 0.045 + P.rand() * 0.012, 0.05, 0.17) * duckNow;
+        const vol = clamp(0.04 + amp * 0.045 + P.rand() * 0.012, 0.05, 0.17)
+          * duckNow * (0.35 + 0.65 * pres);
         P.def._felt(A, big ? H.chordTone(deg % 4, 0) : H.chordTone(deg, 1), {
-          at, vol: big ? vol * 1.5 : vol, pan: xf * 2 - 1, dur: big ? 2.4 : 1.3, big
+          at, vol: big ? vol * (1 + 0.5 * pres) : vol, pan: xf * 2 - 1, dur: big ? 2.4 : 1.3, big,
+          soak: (s.soaked || 0) * 0.07
         });
       });
     };
@@ -178,9 +213,15 @@ reg({
       const fvol = clamp(0.10 + (flick - 2.2) * 0.03, 0.10, 0.22);
       dropAt(side, xf, y, 3.2 + clamp((flick - 2.2) * 0.35, 0, 1.2), true);
       const fdeg = Math.min(6, Math.floor(clamp(side === 0 ? inp.L : inp.R) * 6.99));
+      // one gesture = one statement: the flick's own splash would earn a burst
+      // of rain notes right on top of the placed note — hold that side's (and
+      // the global) note budget shut for a beat so the note stands alone
+      s.lastNoteAny = t + 0.35;
+      if (side === 0) s.lastNoteL = t + 0.45; else s.lastNoteR = t + 0.45;
       P.ping(A => {
         P.def._felt(A, H.chordTone(fdeg, 0), {
-          at: A.t() + 0.005, vol: fvol * duckNow, pan: xf * 2 - 1, dur: 2.6, big: true
+          at: A.t() + 0.005, vol: fvol * duckNow, pan: xf * 2 - 1, dur: 2.6, big: true,
+          soak: (s.soaked || 0) * 0.07
         });
       });
     }
@@ -199,6 +240,9 @@ reg({
       s.glow = T.running ? clamp(1 - (s.strikeBeat - T.beats()) / 4) : clamp(s.strikeTimer / 1.6);
       if (due) {
         s.primed = false; s.charge = 0.15; s.glow = 0; s.flash = 1; s.petriArmed = true;
+        // THE SOAKED POOL (the arc): each storm the room survives leaves it
+        // wetter for the rest of the night — reverb deepens, the bed opens
+        s.soaked = Math.min(3, (s.soaked || 0) + 1);
         P.ping(A => {
           const at = A.t() + 0.02;
           A.hit({ vol: 0.5, dur: 2.0, freq: 90, q: 0.6, type: 'lowpass', at });
@@ -257,7 +301,8 @@ reg({
         const t0 = T.running ? T.next(0.5) : A.t() + 0.1;
         [5, 7, 6, 9, 8].forEach((ci, i) => {
           P.def._felt(A, H.chordTone(ci, 1), {
-            at: t0 + i * (T.beat || 0.9) * 0.5, vol: 0.055 - i * 0.006, pan: (i - 2) * 0.35, dur: 2.2, big: true
+            at: t0 + i * (T.beat || 0.9) * 0.5, vol: 0.055 - i * 0.006, pan: (i - 2) * 0.35, dur: 2.2, big: true,
+            soak: (s.soaked || 0) * 0.07
           });
         });
       });
@@ -380,7 +425,8 @@ reg({
     if (P.focused) {
       g.fillStyle = 'rgba(255,255,255,0.45)'; g.font = '10px monospace';
       g.fillText('L ' + s.vL.toFixed(2) + '  R ' + s.vR.toFixed(2) + '  GUST ' + s.gustL.toFixed(1) + '/' + s.gustR.toFixed(1) +
-        '  STORM ' + (s.charge * 100 | 0) + '%' + (s.primed ? ' ⚡' : '') + '  ' + (H.label || ''), 8, h - 8);
+        '  STORM ' + (s.charge * 100 | 0) + '%' + (s.primed ? ' ⚡' : '') +
+        (s.soaked ? '  SOAK ' + s.soaked : '') + '  ' + (H.label || ''), 8, h - 8);
     }
   },
   audio(A, P) {
@@ -421,11 +467,13 @@ reg({
       const ci = H.step % self._WPAL.length;
       s.warmT = self._WPAL[ci].slice();
       s.violT = self._VPAL[ci].slice();
-      const inten = (s.vL + s.vR) / 2;
+      // presence-gated: ghost drift must not make an empty room roll chords
+      const inten = ((s.vL + s.vR) / 2) * Math.max(s.presL || 0, s.presR || 0);
       if (inten < 0.05) return;
       [0, 1, 2, 3, 4].forEach((cj, i) => {
         self._felt(A, H.chordTone(cj, 0), {
-          at: A.t() + i * 0.075, vol: 0.028 + inten * 0.055, pan: (i - 2) * 0.28, dur: 2.6, big: true
+          at: A.t() + i * 0.075, vol: 0.028 + inten * 0.055, pan: (i - 2) * 0.28, dur: 2.6, big: true,
+          soak: (s.soaked || 0) * 0.07
         });
       });
     });
@@ -434,17 +482,23 @@ reg({
     return {
       tick(inp) {
         const wet = (s.vL + s.vR) / 2;
-        const open = 0.3 + 0.7 * wet;
+        const soak = s.soaked || 0;
+        // the soaked pool: each survived storm opens the bed a little — the
+        // room stays wetter for the rest of the night
+        const open = (0.3 + 0.7 * wet) * (1 + 0.12 * soak);
         for (const dr of drones) A.set(dr.g.gain, dr.d.g * open, 0.3);
-        A.set(filt.frequency, 400 + wet * 500, 0.3);
+        A.set(filt.frequency, 400 + wet * 500 + soak * 120, 0.3);
         // the crescendo is AUDIBLE: rumble swells with the storm charge and
-        // the pre-strike glow, so lightning arrives announced, not sprung
-        A.set(rumble.gain, wet * wet * 0.06 + s.flash * 0.05 + s.charge * 0.025 + s.glow * 0.05, 0.3);
+        // the pre-strike glow, so lightning arrives announced, not sprung.
+        // 0.06 → 0.085: the downpour measured QUIETER than mid rain — when
+        // the piano yields, the weather has to actually take over
+        A.set(rumble.gain, wet * wet * 0.085 + s.flash * 0.05 + s.charge * 0.025 + s.glow * 0.05, 0.3);
         jT -= 1 / 60;
         if (jT <= 0) { jT = 0.05 + Math.random() * 0.07; jL = 0.55 + Math.random() * 0.9; jR = 0.55 + Math.random() * 0.9; }
-        // lulls duck the patter — quiet is really quiet
-        A.set(patL.gain, s.vL * s.vL * 0.05 * jL * (0.35 + 0.65 * Math.min(1, s.gustL)), 0.06);
-        A.set(patR.gain, s.vR * s.vR * 0.05 * jR * (0.35 + 0.65 * Math.min(1, s.gustR)), 0.06);
+        // lulls duck the patter — quiet is really quiet. 0.05 → 0.075: the
+        // downpour is carried by WATER, so the water has to weigh something
+        A.set(patL.gain, s.vL * s.vL * 0.075 * jL * (0.35 + 0.65 * Math.min(1, s.gustL)), 0.06);
+        A.set(patR.gain, s.vR * s.vR * 0.075 * jR * (0.35 + 0.65 * Math.min(1, s.gustR)), 0.06);
         A.set(spkL.gain, Math.max(0, s.vL - 0.55) * 0.06, 0.25);
         A.set(spkR.gain, Math.max(0, s.vR - 0.55) * 0.06, 0.25);
         // ---- the earned groove, now breathing: bar-aware kick/bass/ticks ----
