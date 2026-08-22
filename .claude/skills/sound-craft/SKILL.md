@@ -97,6 +97,11 @@ music: {
   Atrium V2→V3). Keep the ladder for pitch, let timing follow the
   simulation (with a per-voice min-gap and velocity spread), and put the
   grid in the earned groove layer underneath instead.
+- **Detents for integer targets (Lance, Chladni V14).** If a payoff needs a
+  continuous hand to land exact values, magnetize them (cubic ease inside a
+  ~0.14 window) — otherwise the only reachable targets are the rails (inp 0
+  and 1) and the instrument plays like two buttons. Check payoff geometry
+  in HAND-TRAVEL units, not parameter units.
 - **Idle is rest, not a performance (Lance, Chladni V13).** Ghost hands must
   never keep the instrument playing: scale the payoff signal (resonance,
   commitment) by presence so locks/blooms can't fire for an empty room, let
