@@ -9,11 +9,19 @@ that register a crowd of scenes at once (the original pieces packs,
 part15_history.js) get who/when but no message — the subject of a bulk
 commit is about none of them in particular.
 
-WHO is a chain of honesty: the git author when it is a human, otherwise the
-family's keeper from the owners list in CLAUDE.md (every session commits as
-Claude, and people work their own scenes). The raw git author, commit hash
-and Claude session link ride along for the expander, so the attribution is
-inspectable rather than asserted.
+WHO is never guessed. Every session commits as author "Claude", so a name
+appears on a version only from real evidence, in this order:
+  1. a `Round-By: <name>` trailer in the commit (the convention going
+     forward — see Working agreements in CLAUDE.md);
+  2. a human git author (the early hand-committed rounds);
+  3. an entry in CREDITS below — manual corrections for history that
+     predates the trailer, added when the person tells us.
+The keeper from the owners list is shown only in the section header, labeled
+"kept by" — ownership is a coordination fact, not authorship. (V1 of this
+tool fell back to the keeper per row; Lance caught it misattributing his
+White Study rounds to Nima. Guessed attribution is worse than none.)
+The raw git author, commit hash and Claude session link ride along for the
+expander, so what IS claimed stays inspectable.
 
 Emits JSON on stdout; tools/build.sh bakes it as `const SCENELOG = ...`.
 Fails soft: no git → empty log, the UI shows bare version rows.
@@ -36,6 +44,13 @@ for fams, who in [
 ]:
     for f in fams:
         OWNERS[f] = who
+
+# Manual attribution for pre-trailer history — exact version id → person.
+# Add entries only on the person's own say-so.
+CREDITS = {
+    # Lance, Aug 2026: "I made all the recent changes on White Study" (V2-V7)
+    **{f'SRC-34.{n}': 'Lance' for n in range(2, 8)},
+}
 
 
 def git(*args, timeout=60):
@@ -91,22 +106,26 @@ def birth_follow(relpath):
 
 
 def body_of(h):
-    """Commit body → (excerpt, session_url), trailers stripped."""
+    """Commit body → (excerpt, session_url, round_by), trailers stripped."""
     try:
         raw = git('show', '-s', '--format=%b', h, timeout=30)
     except Exception:
-        return '', ''
+        return '', '', ''
     session = ''
     m = re.search(r'Claude-Session:\s*(https?://\S+)', raw)
     if m:
         session = m.group(1)
+    round_by = ''
+    m = re.search(r'^\s*Round-By:\s*(.+?)\s*$', raw, re.M)
+    if m:
+        round_by = m.group(1)
     lines = [ln for ln in raw.splitlines()
-             if not re.match(r'\s*(Co-Authored-By|Claude-Session):', ln)]
+             if not re.match(r'\s*(Co-Authored-By|Claude-Session|Round-By):', ln)]
     body = '\n'.join(lines).strip()
     if len(body) > BODY_MAX:
         cut = body[:BODY_MAX]
         body = cut[:max(cut.rfind('\n'), BODY_MAX - 80)].rstrip() + ' …'
-    return body, session
+    return body, session, round_by
 
 
 def clean(subject, ver):
@@ -139,12 +158,8 @@ def main():
             if not meta:
                 log[sid] = {}
                 continue
-            fam = (re.match(r'(SRC-\d+)', sid) or [sid])[0]
             entry = {'d': meta['d'], 't': meta['t'], 'h': meta['h'], 'a': meta['a']}
-            # WHO: a human git author beats the keeper proxy
-            by = meta['a'] if 'claude' not in meta['a'].lower() else OWNERS.get(fam)
-            if by:
-                entry['by'] = by
+            round_by = ''
             if len(ids) <= 2:  # a bulk file's commit subject is about nobody
                 vm = re.search(r'\.(\d+)', sid)
                 m = clean(meta['s'], int(vm.group(1)) if vm else 1)
@@ -152,11 +167,18 @@ def main():
                     entry['m'] = m
                 if meta['h'] not in bodies:
                     bodies[meta['h']] = body_of(meta['h'])
-                b, sess = bodies[meta['h']]
+                b, sess, round_by = bodies[meta['h']]
                 if b:
                     entry['b'] = b
                 if sess:
                     entry['s'] = sess
+            # WHO — evidence only, never a guess:
+            # trailer > human git author > manual credit. Else no name.
+            by = round_by \
+                or (meta['a'] if 'claude' not in meta['a'].lower() else '') \
+                or CREDITS.get(sid)
+            if by:
+                entry['by'] = by
             log[sid] = entry
     print(json.dumps({'owners': OWNERS, 'log': log}, separators=(',', ':')))
 
