@@ -118,6 +118,17 @@ music: {
   16ths) reads dramatic where more note-spam reads busy; stream the depth on
   CC74 so a gate/filter plugin in Live can take over the same motion.
 
+## One-shot samples (no Ableton rigging required)
+
+Drop the file in `assets/` (44.1k/16-bit, keep it small — convert with
+python `wave`+`audioop`), `fetch` + `decodeAudioData` once in `audio()`, play
+through a gain into the scene's voice group with a reverb send. The preview
+builder inlines `assets/` audio so the offline harness hears it. Mirror the
+moment with `MOut.sfxNote(note, vol, dur)` on ch11 so a rig can layer its own
+copy. Trigger discipline: one-shots are MOMENTS — fire on a state edge
+(AV7's wake: first touch after 2s stillness, re-armed only by real absence),
+never on a loop, and give the moment a visual answer (AV7 flushes the glow).
+
 ## Turning an inspiration MIDI into a scene's harmony
 
 1. `python3 tools/midi2chords.py <file.mid>` — prints every note with beat

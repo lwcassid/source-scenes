@@ -33,9 +33,11 @@ for name, fn in models.items():
     b64 = base64.b64encode(open('models/' + fn, 'rb').read()).decode()
     consts.append(f"const {name} = 'data:model/gltf-binary;base64,{b64}';")
     src = src.replace(f"'models/{fn}'", name)
-# bitmap assets referenced by scenes (e.g. assets/white-study/*.jpg) — inline any
-# quoted 'assets/...' path found in the source so the preview stays offline-only
-mime = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp'}
+# bitmap + audio assets referenced by scenes (e.g. assets/white-study/*.jpg,
+# assets/av_wake.wav) — inline any quoted 'assets/...' path found in the
+# source so the preview stays offline-only
+mime = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp',
+        '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg'}
 for relpath in sorted(set(re.findall(r"'(assets/[^']+)'", src))):
     ext = os.path.splitext(relpath)[1].lower()
     b64 = base64.b64encode(open(relpath, 'rb').read()).decode()
