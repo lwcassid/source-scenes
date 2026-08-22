@@ -361,7 +361,7 @@ reg({
       g.shadowBlur = 0;
     });
 
-    g.fillStyle = '#040307'; g.fillRect(0, h - 24, 460, 24);
+    g.fillStyle = '#040307'; g.fillRect(0, h - 24, 760, 24);
     g.fillStyle = 'rgba(255,150,120,0.85)'; g.font = `${Math.round(10 * Math.min(ms, 1.4))}px ui-monospace,monospace`;
     g.fillText('TENSION ' + (s.tension * 100).toFixed(0) + '%  ·  ' + (H.label || '') +
       '  ·  STRINGS ' + s.vL + '+' + s.vR + '/6  ·  GATE ' + (s.gate * 100).toFixed(0) + '%' +
