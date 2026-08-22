@@ -195,7 +195,11 @@ Live set changes.
   Daft Punk funk only where the scene's verb is funky.
 - A Live patch with its own arp/motion gets a HELD chord and lets the clock
   drive it — never for the reactive layer, whose answers stay per-note.
-  Record the choice in `rig.json`. Fuller plan: `docs/SOUND-DESIGN-GOALS.md`.
+  Record the choice in `rig.json`. Fuller plan AND Lance's palette — the
+  named sounds he improvises with (felt piano, Hand Pan, Sacred Shrine,
+  Augmented Strings' gate dial, Science Class...) with per-scene casting —
+  live in `docs/SOUND-DESIGN-GOALS.md` (THE PALETTE). Shop there first;
+  rig.json says what each channel currently runs.
 
 ## Velocity — where "professional" lives or dies
 
