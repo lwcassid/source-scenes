@@ -248,6 +248,14 @@ DSP · Waves · Xfer (Serum) · XLN Audio.
   chopping to ONE-SHOTS for the MIDI kits — XLN XO is the right tool.
 - **Monk/meditation vocal recordings** and **Blade Runner rain chops** —
   performance-layer material for Lance to fly in live over scenes.
+- **Blade Runner PAD** (Lance, Aug 2026: "the samples that I have from
+  blade runner are so sick.. I have a pad with them") — a pad he has
+  already built from those samples. → OBVIOUS HOME: RAIN ATRIUM pad ch2 —
+  the rain scene wears the Blade Runner rain. Cast it when the Ableton
+  phase reaches SRC-16. Related: Lance also wants REAL sound in this scene
+  (actual rain/thunder one-shots browser-side, AV7-wake style) — he drops
+  the files in `assets/`, a session wires them; thunder is the natural
+  first candidate.
 - **Valhalla reverb** — the atmosphere engine, on sends everywhere.
 - **Arturia classics** (Prophet, Jup, Wurli...) — deep bench; we pick
   specific patches per scene as needed (Jup/Prophet pads and fat mono
