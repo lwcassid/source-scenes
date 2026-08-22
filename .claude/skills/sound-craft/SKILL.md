@@ -115,12 +115,16 @@ music: {
   never dead, never constant), make the sound visibly move the picture,
   and land a rare "walk toward it" payoff (a deep toll, ~1 in 7). First
   real touch snaps it awake.
-- **A charged unlock opens a WINDOW, not a moment (Lance, EH V10).** The
-  payoff of a held/charged gesture is ~45s of earned groove to jam over —
-  a single boom-and-reset reads as a letdown. And the charge must be
+- **A charged unlock opens a WINDOW, not a moment (Lance, EH V10–V11).**
+  The payoff of a held/charged gesture is ~45s of earned groove to jam
+  over — a single boom-and-reset reads as a letdown. The charge must be
   REACHABLE: never demand hands pinned at the sensor rails — enter high,
-  sustain well lower (hysteresis), freeze the charge through brief wobbles
-  instead of draining it, and scale charge speed with lift.
+  sustain well lower (hysteresis), freeze the charge through brief wobbles,
+  scale charge speed with lift. And the window must TRANSFORM the world
+  and stay an instrument: the palette/effect state visibly shifts, its
+  energy rides the hands (EH: arm height = warp speed), the beat shows in
+  the picture, and the groove runs at dance tempo — double-time feel when
+  the scene's transport is slow (half-time at 64 BPM read as dead).
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
