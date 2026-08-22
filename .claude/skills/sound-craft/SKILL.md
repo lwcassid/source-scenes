@@ -127,6 +127,14 @@ music: {
   the scene's transport is slow (half-time at 64 BPM read as dead). The
   drop LANDS ON the climax boom: the pocket starts at the peak and drives
   through any visual settling — a silent gap before beat one kills it.
+  Inside the window, LATCH the groove's high-water intensity: dropping the
+  hands to play the instrument must not fade the drums (Lance, EH V13).
+- **The top voice is a MELODY (Lance, EH V13).** Give the chord cycle a
+  stepwise top line (a descending lament reads instantly), mix that top
+  voice above the wall, keep the harmonic rhythm quick enough to hear it
+  move (1 bar beats 2–4), and keep gesture hits quiet, fixed-register and
+  one-at-a-time UNDER it — loud variable-octave hits read as random and
+  bury the music.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
