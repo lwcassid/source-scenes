@@ -115,6 +115,12 @@ music: {
   never dead, never constant), make the sound visibly move the picture,
   and land a rare "walk toward it" payoff (a deep toll, ~1 in 7). First
   real touch snaps it awake.
+- **A charged unlock opens a WINDOW, not a moment (Lance, EH V10).** The
+  payoff of a held/charged gesture is ~45s of earned groove to jam over —
+  a single boom-and-reset reads as a letdown. And the charge must be
+  REACHABLE: never demand hands pinned at the sensor rails — enter high,
+  sustain well lower (hysteresis), freeze the charge through brief wobbles
+  instead of draining it, and scale charge speed with lift.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
