@@ -124,7 +124,9 @@ music: {
   and stay an instrument: the palette/effect state visibly shifts, its
   energy rides the hands (EH: arm height = warp speed), the beat shows in
   the picture, and the groove runs at dance tempo — double-time feel when
-  the scene's transport is slow (half-time at 64 BPM read as dead).
+  the scene's transport is slow (half-time at 64 BPM read as dead). The
+  drop LANDS ON the climax boom: the pocket starts at the peak and drives
+  through any visual settling — a silent gap before beat one kills it.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
