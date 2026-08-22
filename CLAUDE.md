@@ -217,8 +217,12 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
   it is (you know who you are talking to; lwcassid@gmail.com = Lance). The
   HISTORY panel reads this trailer, and it is the ONLY reliable "who": every
   session commits as author Claude, so a round without the trailer shows no
-  name. For old rounds, corrections go in CREDITS in `tools/scenelog.py`,
-  only on the person's own say-so — never inferred from scene ownership.
+  name. ENFORCED: the pre-push hook refuses any push whose commits add a
+  parts/*.js file without the trailer (`ROUNDBY_SKIP=1` only for a genuine
+  no-human case). For old rounds, corrections go in CREDITS in
+  `tools/scenelog.py`, only on the person's own say-so — never inferred from
+  scene ownership; versions without evidence deliberately stay blank (Lance's
+  call, after inferred credits misattributed his White Study rounds).
 - END EVERY ROUND WITH A CLICKABLE LINK (Lance's rule). Never hand back a
   branch name or a file path and make someone hunt. The site deep-links:
   `#scene=SRC-XX.N` opens that exact scene. In order of preference:
