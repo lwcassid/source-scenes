@@ -1,8 +1,10 @@
 /* ---------- SRC-16.20 · RAIN ATRIUM V20 (the loop is the kit) ------------
    Lance found a better beat — a real loop (LEX 78 BPM, in Live on the
-   drum rack's C1 pad, looping). The scene now RUNS AT 78 — matching the
-   loop's native tempo so Live barely warps it (warping to 64 sounded
-   like shit — Lance). Same doctrine as the rain:
+   drum rack's F2 pad — OUTSIDE the kit's 36-51 zone, because other
+   scenes' kicks all fire note 36 and would restart it). The scene now
+   RUNS AT 78 — matching the loop's native tempo so Live barely warps
+   it (warping to 64 sounded like shit — Lance). Same doctrine as the
+   rain:
    struck ONCE on a bar boundary, held all scene, and perc CC74 = the
    groove gate fades it in and out with the latch/summons — no starts,
    no stops, phase-locked to the transport forever. The programmed R&B
@@ -490,18 +492,20 @@ reg({
         // plays. Floored so the pocket never thins to nothing mid-latch.
         const gate = s.beat * Math.max(0.3, clamp((Math.max(s.vL, s.vR) - 0.3) / 0.45));
         // THE LOOP IS THE KIT (V20): Lance's loop lives on the drum rack's
-        // C1 pad (note 36), looping at its native 78 — the scene's clock
-        // now matches it, so Live plays it 1:1. Struck once on a bar
-        // boundary, held all scene; perc CC74 = the gate fades it with the
-        // latch (map CC74 → that pad's volume, Min -inf). Live hears only
-        // this + the bass; the programmed groove is the browser fallback.
+        // F2 pad (note 53 — NOT in the kit's 36-51 zone: other scenes'
+        // kicks are note 36 and would restart it), looping at its native
+        // 78 — the scene's clock now matches it, so Live plays it 1:1.
+        // Struck once on a bar boundary, held all scene; perc CC74 = the
+        // gate fades it with the latch (map CC74 → that pad's volume,
+        // Min -inf). Live hears only this + the bass; the programmed
+        // groove is the browser fallback.
         if (typeof MOut !== 'undefined') {
           MOut.expr('perc', gate);
           if (!grooveHeld && MOut.wants()) {
             grooveHeld = true;
             const barLen = T.beat * 4;
             const nextBar = T.t0 + Math.ceil((A.t() - T.t0) / barLen) * barLen;
-            MOut.evNote('perc', 65.4, 0.22, nextBar, 3600);
+            MOut.evNote('perc', 174.6, 0.22, nextBar, 3600);
           }
         }
         const stepDur = T.beat * 0.25;
