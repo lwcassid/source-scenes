@@ -1231,6 +1231,14 @@ function srcMatches(m, p) {
   return m && m.type === p.type && m.ch === p.ch && m.num === p.num && m.dev === p.dev;
 }
 function onMidiMsg(e) {
+  // OUR OWN ECHO (Lance's queue-jump bug, Aug 2026): a mac IAC bus mirrors
+  // everything sent into it back out to every listener, so the browser
+  // hears every note it plays into Live. Drop anything arriving from the
+  // port MIDI OUT is talking to — otherwise scene notes masquerade as pad
+  // hits (opening Rain "pressed" a queue pad) and a stray echo during
+  // PAD LEARN or hand LEARN poisons the mapping.
+  if (typeof MOut !== 'undefined' && MOut.port && e.target &&
+      e.target.name && e.target.name === MOut.port.name) return;
   // Note-ons are a separate namespace: the hand system runs on CC/bend/AT
   // only, so pad-controller notes route to the queue's PAD MAP (part5_tail)
   // and can never be mistaken for a hand.
