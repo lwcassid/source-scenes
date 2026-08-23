@@ -40,7 +40,7 @@ reg({
     };
     this._FILL.forEach((st, i) => { P.state.rank[st] = i; });
     this._loadImages(P);
-    this._recut(P, 9);
+    this._recut(P, 9, true);
   },
   _loadImages(P) {
     const s = P.state;
@@ -94,23 +94,26 @@ reg({
     build(t0, vol);
     build(t0 + 0.055, vol * 0.4); // slap-back: one quiet repeat, no feedback tail
   },
-  _mkBar(P) {
-    const s = P.state;
-    const nImgs = (s.imgs && s.imgs.length) || 1;
+  // `rest` cuts PLATES, not data-bars: wide enough that every one clears the
+  // texture cutoff even at the breath's narrowest — the resting scene is
+  // etchings, never bare slivers. imgSeed resolves to an image AT DRAW TIME,
+  // so a lattice cut before the files finish loading still gets its textures.
+  _mkBar(P, rest) {
     return {
-      x: P.rand(), w2: 0.002 + P.rand() * P.rand() * 0.05,
+      x: P.rand(),
+      w2: rest ? 0.010 + P.rand() * 0.028 : 0.002 + P.rand() * P.rand() * 0.05,
       y0: P.rand() < 0.75 ? 0 : P.rand() * 0.5,
       y1: 1 - (P.rand() < 0.75 ? 0 : P.rand() * 0.5),
-      neg: P.rand() < 0.12,
-      img: Math.floor(P.rand() * nImgs),
+      neg: !rest && P.rand() < 0.12,
+      imgSeed: P.rand(),
       samp: 0.18 + P.rand() * 0.35, ax: P.rand(), ay: P.rand(),
       ph: P.rand() * TAU, rate: 0.25 + P.rand() * 0.3 // the rest-state breath
     };
   },
-  _recut(P, n) {
+  _recut(P, n, rest) {
     const s = P.state;
     s.bars = [];
-    for (let i = 0; i < n; i++) s.bars.push(this._mkBar(P));
+    for (let i = 0; i < n; i++) s.bars.push(this._mkBar(P, rest));
   },
   // schedule a pink inversion window: rails telegraph from armBeat, flip at
   // startBeat for one bar. Used by the summon, the uninvited visit, and idle.
@@ -321,7 +324,7 @@ reg({
       const st = ((stv % 16) + 16) % 16;
       const resting = s.pres < 0.15;
       if (resting ? (st === 0 && Math.floor(beats / 4) % 4 === 0)
-                  : (s.mode === 'build' || s.rank[st] < n)) this._recut(P, density);
+                  : (s.mode === 'build' || s.rank[st] < n)) this._recut(P, density, resting);
     }
     // THE UNINVITED PINK: while someone plays, the window also visits on its
     // own about once a phrase — rails one beat ahead, one bar of inversion
@@ -369,7 +372,7 @@ reg({
       const bx = b.x * w, by = b.y0 * h, bh = (b.y1 - b.y0) * h;
       const breath = 1 + rest * 0.35 * Math.sin(s.age * b.rate + b.ph);
       const bw = Math.max(1, b.w2 * w * breath * (1 + 0.55 * (s.pump || 0))); // kick pump breathes the lattice
-      const img = s.imgsReady ? s.imgs[b.img % s.imgs.length] : null;
+      const img = s.imgs.length ? s.imgs[Math.floor(b.imgSeed * s.imgs.length) % s.imgs.length] : null;
       if (img && bw >= texMinPx && bh >= texMinPx) {
         const src = flipped ? img.ci : img.c;
         // crop aspect always matches the bar's aspect — thin bars pull a thin sliver
