@@ -325,6 +325,13 @@ function srcMatches(m, p) {
   return m && m.type === p.type && m.ch === p.ch && m.num === p.num && m.dev === p.dev;
 }
 function onMidiMsg(e) {
+  // Note-ons are a separate namespace: the hand system runs on CC/bend/AT
+  // only, so pad-controller notes route to the queue's PAD MAP (part5_tail)
+  // and can never be mistaken for a hand.
+  const hi0 = e.data[0] & 0xF0;
+  if (hi0 === 0x90 && e.data[2] > 0 && window.PADMAP) {
+    window.PADMAP.onNote({ note: e.data[1], ch: e.data[0] & 15, dev: (e.target && e.target.id) || 'dev' });
+  }
   const p = parseMidi(e);
   if (!p) return;
   if (midi.learn) {

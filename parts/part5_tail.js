@@ -15,6 +15,51 @@ function syncChips() {
 }
 const famOf = def => def.family || def.id;
 
+/* PAD MAP — a 4×4 pad controller walks the queue, so scenes switch from the
+   source with no computer touch. LEARN once: hit the controller's PAD 1
+   (bottom-left) and its 16 consecutive notes become queue slots 1–16 in
+   running order. Learned rather than hard-coded because pad controllers
+   disagree about their base note (the M-VAVE's moves with its presets).
+   Device- and channel-filtered, and the hand system never sees notes at
+   all (part2_core routes only note-ons here) — so pads and hand sensors
+   can never collide. Persists per-browser like the hand calibration. */
+const PADMAP = {
+  base: null, learn: false,
+  load() { try { this.base = JSON.parse(localStorage.getItem('srcPadMap') || 'null'); } catch (e) { this.base = null; } },
+  save() { try { localStorage.setItem('srcPadMap', JSON.stringify(this.base)); } catch (e) {} },
+  onNote(p) {
+    if (this.learn) {
+      this.base = { note: p.note, ch: p.ch, dev: p.dev };
+      this.learn = false; this.save(); this.ui();
+      return;
+    }
+    if (!this.base || p.dev !== this.base.dev || p.ch !== this.base.ch) return;
+    const slot = p.note - this.base.note;
+    if (slot >= 0 && slot < 16) this.go(slot);
+  },
+  go(slot) {
+    const id = QUEUE.list[slot];
+    if (!id) return;
+    const tile = QUEUE.tileFor(id);
+    if (!tile || !tile.cur) return;
+    const already = focus.idx >= 0 && famOf(PIECES[focus.idx]) === id;
+    if (!already) {
+      if (focus.idx >= 0) closeFocus();
+      openFocus(tile.cur.idx);
+    }
+    if (window.SHOW) SHOW.resetRotation();
+  },
+  toggleLearn() { this.learn = !this.learn; this.ui(); },
+  ui() {
+    const b = document.getElementById('btnPadLearn');
+    if (!b) return;
+    b.textContent = this.learn ? 'HIT PAD 1…' : this.base ? 'PADS ✓' : 'PAD LEARN';
+    b.classList.toggle('learning', this.learn);
+  }
+};
+PADMAP.load();
+window.PADMAP = PADMAP;
+
 const QUEUE = {
   list: [], shared: null,
   /* Per-scene SHOW SETTINGS, keyed by family id:
@@ -304,6 +349,8 @@ const QUEUE = {
       if (pop.contains(e.target) || e.target.closest && e.target.closest('#btnQueue')) return;
       pop.classList.remove('open'); this.wake(false);
     });
+    document.getElementById('btnPadLearn').addEventListener('click', () => PADMAP.toggleLearn());
+    PADMAP.ui();
     document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
