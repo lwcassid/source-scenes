@@ -128,7 +128,12 @@ music: {
   drop LANDS ON the climax boom: the pocket starts at the peak and drives
   through any visual settling — a silent gap before beat one kills it.
   Inside the window, LATCH the groove's high-water intensity: dropping the
-  hands to play the instrument must not fade the drums (Lance, EH V13).
+  hands to play the instrument must not fade the drums (Lance, EH V13) —
+  latch in BARS, not held hands: a kick that dies when the hands release
+  can't be drummed over (Lance, WS V8). And a riser is a CRASH building —
+  noise crescendo, one silent 16th, then crash + kick together on a CHORD
+  boundary, so beat one of the drop is also a harmonic arrival; the beat
+  visibly pumps the picture on every kick (Lance, WS V8).
 - **The top voice is a MELODY (Lance, EH V13).** Give the chord cycle a
   stepwise top line (a descending lament reads instantly), mix that top
   voice above the wall, keep the harmonic rhythm quick enough to hear it
