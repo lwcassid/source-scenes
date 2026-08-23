@@ -139,9 +139,9 @@ FULL BLEED — the room fills the whole stage at the window's own aspect (the
 scene still renders offscreen in the pinned show frame that feeds the
 throw); the frame views stay letterboxed. In the scrim
 view YOU drive the camera — drag orbits, wheel zooms, `C` jumps vantages
-(AT THE SOURCE — the default and the design target — / AUDIENCE / HEAD-ON /
-OBLIQUE / OVERVIEW); the mouse belongs to the camera there, keys still play
-the hands. Rig derived from Elyse's planner (duxel = 8 ft): 24×40 ft
+(BEHIND THE SOURCE — the default: level, whole main wall in frame — /
+AT THE SOURCE / AUDIENCE / HEAD-ON / OBLIQUE / OVERVIEW); the mouse belongs
+to the camera there, keys still play the hands. Rig derived from Elyse's planner (duxel = 8 ft): 24×40 ft
 interior, cable-hung 54″ panels on three rows 6 ft apart, projectors atop
 the entrance-corner duxels ~22 ft apart — numbers in `SCRIMRIG`
 (`parts/part2d_scrimview.js`). FULLSCREEN = performance mode: picture only;
