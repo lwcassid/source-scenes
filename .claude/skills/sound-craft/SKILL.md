@@ -79,6 +79,16 @@ music: {
   scene whose visual verb is continuous, the instrument is the continuous
   synth — scheduled hits read as bolted-on and lazy; reserve note events for
   discrete visual events (strikes, births), else contort one voice.
+- **A gliding voice must LAND on the ladder (Lance, AV9→AV10).** Spring/blend
+  math that can reach equilibrium between chord tones parks the voice
+  permanently sour against the bed. Portamento = step-and-glide: walk exact
+  rungs, glide only in transit (~90ms), never interpolate pitch as a resting
+  state. And keep lead voices mid-register triangle-led — a high saw through
+  an open filter reads as a blast, not a voice. A held lead also needs a
+  MOUTH (Lance, AV10→AV11): a static filter is an organ stop — couple
+  gesture velocity to a filter kick with rising Q (wah-relax), give each
+  step/attack a short transient, and let structural sharpness set resting
+  reediness. Stream the mouth, not the level, on the lead's CC74.
 - **No long glides on sustained stacks.** 13 voices gliding 1.6s = jet
   taking off. Chord changes snap with ≤ 0.2s glide; the TRANSITION moment
   is marked instead by a gentle low-to-high roll (60–90ms stagger).
@@ -125,10 +135,17 @@ music: {
   energy rides the hands (EH: arm height = warp speed), the beat shows in
   the picture, and the groove runs at dance tempo — double-time feel when
   the scene's transport is slow (half-time at 64 BPM read as dead). The
-  drop LANDS ON the climax boom: the pocket starts at the peak and drives
-  through any visual settling — a silent gap before beat one kills it.
+  drop LANDS ON the climax boom, and the jump is a CUT, not an animation
+  (Lance, EH V15): quantize the landing to the next beat, then flip the
+  world in ONE FRAME — no rise-and-recede choreography around a drop;
+  warp speed happens instantly, on time.
   Inside the window, LATCH the groove's high-water intensity: dropping the
-  hands to play the instrument must not fade the drums (Lance, EH V13).
+  hands to play the instrument must not fade the drums (Lance, EH V13) —
+  latch in BARS, not held hands: a kick that dies when the hands release
+  can't be drummed over (Lance, WS V8). And a riser is a CRASH building —
+  noise crescendo, one silent 16th, then crash + kick together on a CHORD
+  boundary, so beat one of the drop is also a harmonic arrival; the beat
+  visibly pumps the picture on every kick (Lance, WS V8).
 - **The top voice is a MELODY (Lance, EH V13).** Give the chord cycle a
   stepwise top line (a descending lament reads instantly), mix that top
   voice above the wall, keep the harmonic rhythm quick enough to hear it
