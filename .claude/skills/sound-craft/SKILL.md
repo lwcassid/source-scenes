@@ -84,7 +84,11 @@ music: {
   permanently sour against the bed. Portamento = step-and-glide: walk exact
   rungs, glide only in transit (~90ms), never interpolate pitch as a resting
   state. And keep lead voices mid-register triangle-led — a high saw through
-  an open filter reads as a blast, not a voice.
+  an open filter reads as a blast, not a voice. A held lead also needs a
+  MOUTH (Lance, AV10→AV11): a static filter is an organ stop — couple
+  gesture velocity to a filter kick with rising Q (wah-relax), give each
+  step/attack a short transient, and let structural sharpness set resting
+  reediness. Stream the mouth, not the level, on the lead's CC74.
 - **No long glides on sustained stacks.** 13 voices gliding 1.6s = jet
   taking off. Chord changes snap with ≤ 0.2s glide; the TRANSITION moment
   is marked instead by a gentle low-to-high roll (60–90ms stagger).
