@@ -170,7 +170,16 @@ function ghostR(t) { return clamp(0.5 + 0.40 * Math.sin(t * 0.094 + 4.2) + 0.10 
 let nowT = 0;
 // `raw` present means this came off a sensor and is subject to the presence
 // test. A pointer, key or slider is a human by definition and always counts.
+/* NEAR = MORE (Lance, Aug 2026) — one global flip of the hand grammar:
+   physically approaching the source reads as intensity. Applied here, at
+   the single gate every REAL input passes through (mouse, keys, learned
+   sensors alike), so all nine scenes keep ONE grammar; ghosts author their
+   drift in scene units and are deliberately untouched. Presence detection
+   runs on raw readings and is unaffected. Persisted per-browser. */
+let NEAR_MORE = false;
+try { NEAR_MORE = localStorage.getItem('srcNearMore') === '1'; } catch (e) {}
 function setChan(side, v, raw) {
+  if (NEAR_MORE) v = 1 - clamp(v);
   const c = chan[side];
   if (raw === undefined) {
     c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
@@ -862,6 +871,17 @@ document.getElementById('btnLearnL').addEventListener('click', () => startLearn(
 document.getElementById('btnLearnR').addEventListener('click', () => startLearn('R'));
 document.getElementById('midiInSel').addEventListener('change', e => { midi.inputId = e.target.value; });
 document.getElementById('btnRest').addEventListener('click', startRest);
+(function () {
+  const b = document.getElementById('btnNearMore');
+  if (!b) return;
+  const paint = () => { b.textContent = 'NEAR = MORE: ' + (NEAR_MORE ? 'ON' : 'OFF'); b.classList.toggle('off', !NEAR_MORE); };
+  b.addEventListener('click', () => {
+    NEAR_MORE = !NEAR_MORE;
+    try { localStorage.setItem('srcNearMore', NEAR_MORE ? '1' : '0'); } catch (e) {}
+    paint();
+  });
+  paint();
+})();
 document.getElementById('btnInvL').addEventListener('click', () => setInvert('L'));
 document.getElementById('btnInvR').addEventListener('click', () => setInvert('R'));
 document.getElementById('btnCalClear').addEventListener('click', clearCal);
