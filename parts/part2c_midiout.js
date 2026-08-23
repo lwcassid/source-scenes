@@ -247,6 +247,7 @@ const MOut = {
     if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
   },
   allOff() {
+    this.onModeMidi = null;
     this.clockStop();
     if (this._voices) { this._voices.forEach(h => this.holdOff(h)); this._voices.clear(); }
     if (this.port) {
@@ -270,20 +271,36 @@ const MOut = {
   // around it and fall back to it, so a show never strands the global toggle
   baseMode: 'web',
   setMode(m) {
+    const was = this.wants();
     this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
     if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
     if (m !== 'web' && !midi.access) connectMidi();
+    this._modeCrossed(was);
     this.refreshUI();
   },
   // transient routing (a queued scene's OUT override) — same plumbing, no save
   applyMode(m) {
     if (!m) m = this.baseMode;
     if (m === this.mode) return;
+    const was = this.wants();
     this.mode = m;
     if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
     if (m !== 'web' && !midi.access) connectMidi();
+    this._modeCrossed(was);
     this.refreshUI();
+  },
+  // web → MIDI mid-scene must not strand held state: one-shot strikes sent
+  // while the mode was web went nowhere (Lance opened Rain in web mode, then
+  // flipped to MIDI — every continuous stream recovered but the scene's
+  // held rain never re-fired). Re-assert what the engine knows (the bed
+  // note, CC74 park) and tell the scene to re-strike its own holds.
+  onModeMidi: null,   // a scene may register a re-assert callback (cleared on close)
+  _modeCrossed(was) {
+    if (was || !this.wants()) return;
+    this.parkExpr();
+    if (this._bed && this.port) { try { this.port.send([0x90 | (this.chFor('bed') - 1), this._bed, 90]); } catch (e) {} }
+    if (this.onModeMidi) { try { this.onModeMidi(); } catch (e) {} }
   },
   refreshUI() {
     const b = document.getElementById('btnOut');
