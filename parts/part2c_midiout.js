@@ -189,14 +189,23 @@ const MOut = {
      change re-pins Live to the new BPM on its own.
 
      LOOKAHEAD is deliberately short. Web MIDI cannot cancel a queued
-     message, so anything already scheduled WILL arrive: 120ms is enough to
-     ride out a stalled frame and short enough that a scene change spills
-     only a couple of stale ticks past the Stop.
+     message, so anything already scheduled WILL arrive: 250ms rides out a
+     stalled frame yet spills only a few stale ticks past a Stop on scene
+     change (the next scene's song-position + Start re-pins Live anyway).
+
+     PHASE IS KING (Lance's drift bug, Aug 2026): a warped loop in Live
+     lives entirely on tick COUNT, so a skipped tick is a permanent slip
+     between Live and the browser's grid. The pump therefore (a) also runs
+     off a Worker timer — Chrome throttles a hidden OR fully-occluded
+     window's timers to 1Hz+, and mixing with Live fullscreen occludes the
+     browser — and (b) never skips: short gaps send the missed ticks late
+     (Live's tempo smoothing rides out the burst, phase stays true), long
+     gaps re-pin cleanly with Stop + song-position + Start.
 
      In Live: Preferences -> Link/Tempo/MIDI -> switch this port's "Sync" on,
      then press EXT in the transport bar. Live ignores clock entirely when
      Sync is off, so leaving this enabled costs nothing. ---------- */
-  clock: { on: true, PPQ: 24, LOOKAHEAD: 0.12, n: 0, t0: -1, beat: 0, running: false },
+  clock: { on: true, PPQ: 24, LOOKAHEAD: 0.25, n: 0, t0: -1, beat: 0, running: false },
   clockSet(on) {
     this.clock.on = !!on;
     try { localStorage.setItem('srcMidiClock', this.clock.on ? '1' : '0'); } catch (e) {}
@@ -222,10 +231,25 @@ const MOut = {
       this._clk([0xFA], this.ts(c.t0));       // start, landing on beat 0
     }
     const tick = c.beat / c.PPQ, now = AE.ctx.currentTime;
-    // fell behind (throttled tab, GC pause)? jump the counter to now instead of
-    // firing a burst of late ticks, which would shove Live's tempo around
     const nMin = Math.ceil((now - c.t0) / tick);
-    if (c.n < nMin) c.n = nMin;
+    if (c.n < nMin) {
+      if (nMin - c.n <= c.PPQ) {
+        // late by under a beat: send the missed ticks NOW. A tick skipped is
+        // a PERMANENT phase slip (Live counts ticks, the warped loop rides
+        // that count); a late burst is only a moment of tempo wobble.
+        while (c.n < nMin) { this._clk([0xF8]); c.n++; }
+      } else {
+        // real suspension (hidden window, laptop lid, huge stall): re-pin
+        // cleanly at an upcoming 16th — Stop, song position, Start — so Live
+        // rejoins the grid instead of running forever behind it
+        this._clk([0xFC]);
+        const sx = c.beat / 4;
+        const pos = Math.ceil((now - c.t0) / sx) + 1;
+        this._clk([0xF2, pos & 0x7F, (pos >> 7) & 0x7F]);
+        this._clk([0xFA], this.ts(c.t0 + pos * sx));
+        c.n = pos * (c.PPQ / 4);
+      }
+    }
     const horizon = now + c.LOOKAHEAD;
     while (c.t0 + c.n * tick < horizon) {
       this._clk([0xF8], this.ts(c.t0 + c.n * tick));
@@ -425,6 +449,14 @@ try {
   if (ck !== null) MOut.clock.on = ck === '1';
 } catch (e) {}
 setInterval(() => MOut.clockPump(), 20);
+// Chrome throttles a hidden window's timers to 1Hz+ — and on mac a window
+// fully COVERED by Live counts as hidden. Worker timers are exempt, so a
+// tiny Worker heartbeat keeps the clock's cadence while you mix behind Live.
+try {
+  const _ckw = new Worker(URL.createObjectURL(
+    new Blob(['setInterval(() => postMessage(0), 100)'], { type: 'text/javascript' })));
+  _ckw.onmessage = () => { try { MOut.clockPump(); } catch (e) {} };
+} catch (e) {}
 // leaving the page must not strand Live running on a clock that stopped arriving
 window.addEventListener('pagehide', () => { try { MOut.clockStop(); } catch (e) {} });
 
