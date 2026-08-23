@@ -33,6 +33,8 @@
   /* the focus overlay follows the shell theme — the STAGE (canvas) stays whatever the scene paints */
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  /* deep-link boot: the wall holds its breath until the linked scene is up */
+  html.deeplink header,html.deeplink main,html.deeplink footer,html.deeplink #favBanner{visibility:hidden}
   ::selection{background:var(--acc);color:#000}
 
   /* ---------- header — one slim row ---------- */
@@ -461,6 +463,9 @@
 <script>
 // one flag the scenes can ask: coarse pointer or narrow screen = phone rules
 window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches) || window.innerWidth < 820;
+// a #scene= deep link lands ON the scene: keep the wall invisible from the
+// very first paint instead of flashing the library before the stage opens
+if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deeplink');
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>

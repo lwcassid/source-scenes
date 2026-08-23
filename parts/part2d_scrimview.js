@@ -75,9 +75,12 @@ const SCRIMRIG = {
 
 window.SCRIMVIEW = {
   // orbit state: camera on a sphere around a per-vantage target. Default is
-  // AT THE SOURCE — standing at the obelisk, eye height, facing the main wall.
-  orb: { th: 0.035, ph: 1.93, r: 7.1, tx: 0, ty: 8, tz: -8 },
+  // BEHIND THE SOURCE — pulled back past the obelisk, level, the WHOLE main
+  // scrim wall in frame (Lance: opening close-up and tilted at the sky is
+  // useless for judging a look; AT THE SOURCE stays one C-press away).
+  orb: { th: 0, ph: 1.52, r: 18.5, tx: 0, ty: 8, tz: -5.63 },
   PRESETS: [
+    { n: 'BEHIND THE SOURCE', th: 0, ph: 1.52, r: 18.5, tgt: [0, 8, -5.63] },
     { n: 'AT THE SOURCE', th: 0.035, ph: 1.93, r: 7.1, tgt: [0, 8, -8] },
     { n: 'AUDIENCE', th: 0, ph: 1.695, r: 16.1, tgt: [0, 8, -4] },
     { n: 'HEAD-ON', th: 0, ph: 1.571, r: 19.6, tgt: [0, 8, -5.63] },

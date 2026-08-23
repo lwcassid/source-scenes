@@ -981,14 +981,18 @@ document.getElementById('oActs').addEventListener('click', e => {
       try { history.replaceState(null, '', location.pathname); } catch (e) {}
     }
   };
-  // arriving with a scene link → straight to the stage
+  // arriving with a scene link → straight to the stage. Runs on the next tick
+  // (after every openFocus wrapper below is installed), not after `load` — the
+  // old 300ms-post-load wait was the library flashing before the scene came up.
+  // The head sets html.deeplink at first paint to hold the wall invisible;
+  // lifted here once the stage owns the screen (or the link was a dud).
   const boot = () => {
     const i = sceneFromHash();
     if (i >= 0) { syncing = true; window.openFocus(i); syncing = false;
       try { history.replaceState(null, '', location.pathname + '#scene=' + PIECES[i].id); } catch (e) {} }
+    document.documentElement.classList.remove('deeplink');
   };
-  if (document.readyState === 'complete') setTimeout(boot, 300);
-  else window.addEventListener('load', () => setTimeout(boot, 300));
+  setTimeout(boot, 0);
   // pasting a different scene link while the app is open
   window.addEventListener('hashchange', () => {
     const i = sceneFromHash();

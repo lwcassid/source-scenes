@@ -33,6 +33,8 @@
   /* the focus overlay follows the shell theme — the STAGE (canvas) stays whatever the scene paints */
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  /* deep-link boot: the wall holds its breath until the linked scene is up */
+  html.deeplink header,html.deeplink main,html.deeplink footer,html.deeplink #favBanner{visibility:hidden}
   ::selection{background:var(--acc);color:#000}
 
   /* ---------- header — one slim row ---------- */
@@ -461,6 +463,9 @@
 <script>
 // one flag the scenes can ask: coarse pointer or narrow screen = phone rules
 window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches) || window.innerWidth < 820;
+// a #scene= deep link lands ON the scene: keep the wall invisible from the
+// very first paint instead of flashing the library before the stage opens
+if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deeplink');
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
@@ -2714,9 +2719,12 @@ const SCRIMRIG = {
 
 window.SCRIMVIEW = {
   // orbit state: camera on a sphere around a per-vantage target. Default is
-  // AT THE SOURCE — standing at the obelisk, eye height, facing the main wall.
-  orb: { th: 0.035, ph: 1.93, r: 7.1, tx: 0, ty: 8, tz: -8 },
+  // BEHIND THE SOURCE — pulled back past the obelisk, level, the WHOLE main
+  // scrim wall in frame (Lance: opening close-up and tilted at the sky is
+  // useless for judging a look; AT THE SOURCE stays one C-press away).
+  orb: { th: 0, ph: 1.52, r: 18.5, tx: 0, ty: 8, tz: -5.63 },
   PRESETS: [
+    { n: 'BEHIND THE SOURCE', th: 0, ph: 1.52, r: 18.5, tgt: [0, 8, -5.63] },
     { n: 'AT THE SOURCE', th: 0.035, ph: 1.93, r: 7.1, tgt: [0, 8, -8] },
     { n: 'AUDIENCE', th: 0, ph: 1.695, r: 16.1, tgt: [0, 8, -4] },
     { n: 'HEAD-ON', th: 0, ph: 1.571, r: 19.6, tgt: [0, 8, -5.63] },
@@ -78563,14 +78571,18 @@ document.getElementById('oActs').addEventListener('click', e => {
       try { history.replaceState(null, '', location.pathname); } catch (e) {}
     }
   };
-  // arriving with a scene link → straight to the stage
+  // arriving with a scene link → straight to the stage. Runs on the next tick
+  // (after every openFocus wrapper below is installed), not after `load` — the
+  // old 300ms-post-load wait was the library flashing before the scene came up.
+  // The head sets html.deeplink at first paint to hold the wall invisible;
+  // lifted here once the stage owns the screen (or the link was a dud).
   const boot = () => {
     const i = sceneFromHash();
     if (i >= 0) { syncing = true; window.openFocus(i); syncing = false;
       try { history.replaceState(null, '', location.pathname + '#scene=' + PIECES[i].id); } catch (e) {} }
+    document.documentElement.classList.remove('deeplink');
   };
-  if (document.readyState === 'complete') setTimeout(boot, 300);
-  else window.addEventListener('load', () => setTimeout(boot, 300));
+  setTimeout(boot, 0);
   // pasting a different scene link while the app is open
   window.addEventListener('hashchange', () => {
     const i = sceneFromHash();
