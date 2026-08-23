@@ -57,7 +57,10 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    losses.
 5. **Presence gates everything.** `chan.X.mode === 'live'` → smooth `s.pres`.
    Idle = ambient tease that hints the interaction without giving it away;
-   abandoned scenes drift back to rest states.
+   abandoned scenes drift back to rest states. But NEVER yank the
+   instrument back: a hand held still reads as absence to the tracker, so
+   hold the player's last pose and drift to rest only after real absence —
+   above all inside an unlocked payoff window (Lance, EH V13).
 6. **Bar-quantized structure.** Count changes, buds, entrances land on the
    downbeat (Schmitt thresholds + the audio tick commits at `st === 0`).
    Anticipation beats surprise: telegraph the downbeat (pre-glow the next gate).

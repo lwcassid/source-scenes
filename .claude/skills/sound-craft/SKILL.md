@@ -115,6 +115,26 @@ music: {
   never dead, never constant), make the sound visibly move the picture,
   and land a rare "walk toward it" payoff (a deep toll, ~1 in 7). First
   real touch snaps it awake.
+- **A charged unlock opens a WINDOW, not a moment (Lance, EH V10–V11).**
+  The payoff of a held/charged gesture is ~45s of earned groove to jam
+  over — a single boom-and-reset reads as a letdown. The charge must be
+  REACHABLE: never demand hands pinned at the sensor rails — enter high,
+  sustain well lower (hysteresis), freeze the charge through brief wobbles,
+  scale charge speed with lift. And the window must TRANSFORM the world
+  and stay an instrument: the palette/effect state visibly shifts, its
+  energy rides the hands (EH: arm height = warp speed), the beat shows in
+  the picture, and the groove runs at dance tempo — double-time feel when
+  the scene's transport is slow (half-time at 64 BPM read as dead). The
+  drop LANDS ON the climax boom: the pocket starts at the peak and drives
+  through any visual settling — a silent gap before beat one kills it.
+  Inside the window, LATCH the groove's high-water intensity: dropping the
+  hands to play the instrument must not fade the drums (Lance, EH V13).
+- **The top voice is a MELODY (Lance, EH V13).** Give the chord cycle a
+  stepwise top line (a descending lament reads instantly), mix that top
+  voice above the wall, keep the harmonic rhythm quick enough to hear it
+  move (1 bar beats 2–4), and keep gesture hits quiet, fixed-register and
+  one-at-a-time UNDER it — loud variable-octave hits read as random and
+  bury the music.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
@@ -209,11 +229,15 @@ Live set changes.
   Daft Punk funk only where the scene's verb is funky.
 - A Live patch with its own arp/motion gets a HELD chord and lets the clock
   drive it — never for the reactive layer, whose answers stay per-note.
-  Record the choice in `rig.json`. Fuller plan AND Lance's palette — the
-  named sounds he improvises with (felt piano, Hand Pan, Sacred Shrine,
-  Augmented Strings' gate dial, Science Class...) with per-scene casting —
-  live in `docs/SOUND-DESIGN-GOALS.md` (THE PALETTE). Shop there first;
-  rig.json says what each channel currently runs.
+  Record the choice in `rig.json`.
+- **The scene casts the rig, never the reverse (Lance, Aug 2026).** The
+  sketch already IS the scene expressing itself — the rig question is only
+  what TIMBRE its material demands. Write the timbre brief in the scene's
+  own language ("sand on a struck plate", never a product name), then
+  source it — synthesize, sample, or Lance's palette in
+  `docs/SOUND-DESIGN-GOALS.md` when it truly answers the brief. The palette
+  is a bench, not a casting sheet; assigning named sounds to scenes from
+  the list is backwards. rig.json records what each channel actually runs.
 
 ## Velocity — where "professional" lives or dies
 
