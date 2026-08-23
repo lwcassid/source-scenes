@@ -251,6 +251,17 @@ const MOut = {
     if (this.port) {
       try { for (let ch = 0; ch < 16; ch++) this.port.send([0xB0 | ch, 123, 0]); } catch (e) {}
     }
+    // PARK THE ENERGY OPEN — CC74 is "open at rest" by convention, but a
+    // scene that streams it leaves the last value standing when it closes,
+    // and the next scene may never touch that channel: a filter parked shut
+    // by one scene would silence an instrument for the rest of the night
+    // (Lance hit exactly this in W1). So every all-off resets CC74 to 127
+    // on every role channel and clears the dedupe cache so the next stream
+    // always re-sends.
+    if (this.port && this.wants()) {
+      try { for (const r in this.roles) this.port.send([0xB0 | (this.roles[r] - 1), 74, 127]); } catch (e) {}
+    }
+    this._exprState = {};
   },
   // the operator's persistent choice — per-scene queue overrides applyMode()
   // around it and fall back to it, so a show never strands the global toggle

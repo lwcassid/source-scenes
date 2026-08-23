@@ -852,7 +852,11 @@ document.getElementById('volSlider').addEventListener('input', e => {
         let n = 0;
         const iv = setInterval(() => {
           MOut.expr(role, (n % 2 ? 0.12 : 0.82) + Math.random() * 0.08);
-          if (++n > 11) { clearInterval(iv); b.classList.remove('learning'); b.textContent = 'MAP'; }
+          if (++n > 11) {
+            clearInterval(iv); b.classList.remove('learning'); b.textContent = 'MAP';
+            // always END OPEN — the wiggle must never leave a filter shut
+            setTimeout(() => MOut.expr(role, 1), 130);
+          }
         }, 120);
       });
       row.querySelector('select').addEventListener('change', e => {
