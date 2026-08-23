@@ -263,6 +263,40 @@ and Ableton Suite's own **Granulator III** for the ch11 sand.
 
 ## PART 4 · Craft — kits, chains, wiring (technique, unchanged by casting)
 
+### Mixing in plain language — the five moves (everything below is these)
+
+No pro-mixer background assumed. Every recipe in this doc is one of five
+moves; know what each is FOR and what wrong sounds like, and the numbers
+are just starting points to nudge by ear:
+
+1. **High-pass = clear the floor.** Cut everything below N Hz off a track
+   that isn't a bass. Why: every instrument carries inaudible low rumble;
+   stack nine of them and the mix turns to mud and the kick loses power.
+   Wrong sounds like: "it's all a bit blurry and the low end is soup."
+2. **A send reverb = one shared room.** Put ONE reverb on a Return track
+   and feed instruments into it a little each, instead of a different
+   reverb on every track. Why: everything sounds like it's in the same
+   place. Wrong sounds like: each instrument in its own bathroom.
+3. **Glue compressor = an invisible hand on the fader.** Gentle settings
+   (2:1, 1–2 dB) just even out the loud-vs-quiet swings so a part sits
+   steady. Why: real players do this with their hands; a compressor does
+   it for you. Wrong sounds like: pumping/breathing when it's too much,
+   or one note jumping out when it's missing.
+4. **Sidechain = auto-duck.** A compressor on the bass that listens to the
+   kick, dipping the bass for a split second on every kick hit. Why: kick
+   and bass fight for the same low frequencies; ducking lets the kick
+   punch through, and the recovery IS the "pump" of house music. Wrong
+   sounds like: a kick with no impact (missing) or seasick wobble (too
+   much).
+5. **Gain staging = leave headroom.** Set track volumes so the master
+   meter peaks around −6 dB at the loudest moment of the loudest scene,
+   and never touch the master fader to fix a balance — fix the track.
+   Why: distortion insurance, and the PA does the loudness. Wrong sounds
+   like: crackle at peaks, or one scene way louder than the next.
+
+Each move is introduced ONCE at the walk step where it first matters
+(Part 5) — nothing has to be learned in advance.
+
 ### The ch10 kit — build
 
 The break-character research (Attack Magazine's beat-dissected, MusicRadar,
@@ -365,58 +399,40 @@ option.)
 
 ---
 
-## PART 5 · The racking walkthrough, prioritized (~3h, quick wins first)
+## PART 5 · THE RACKING WALK — scene by scene, racking as we go
 
-Ordered by payoff-per-minute: hear a real upgrade inside the first half hour,
-save the long jobs for when the pipeline is proven. Every rack has a console
-test — with the page open and OUT on BOTH, DevTools console can fire any
-channel in isolation (`MOut.evNote(role, freq, vol, 0, dur)`,
-`MOut.evDrum(note, vol)`, `MOut.expr(role, v)`), which also solves MIDI-map
-mode: `MOut.expr('pad', Math.random())` emits ONLY CC74 on ch2, so Live's
-mapping can't be stolen by the CC1/CC2 hand streams.
+Not channel-by-channel: each step opens ONE scene, racks only the channels
+THAT scene needs, and ends with that scene sounding finished-ish. The order
+is a learning curve — one instrument first, chains next, drums and
+sidechain only mid-walk once the basics feel normal, the finale's marquee
+mapping near the end. Each step introduces at most one new mixing move
+(Part 4's plain-language five). The click-by-click for each step happens
+live in a Claude session — this table is the map, not the manual.
 
-- **R0 · Pipeline (10 min).** Audio MIDI Setup → IAC Driver online. Live
-  MIDI prefs, IAC input: Track ON, Sync ON, Remote ON (needed for CC
-  mapping; Live mappings are channel-aware). EXT pressed, page CLOCK on →
-  Live's tempo follows the scene. Test: open any scene, Live's MIDI-in dot
-  blinks, tempo reads the scene's BPM.
-- **R1 · PAD ch2 (15 min).** One track, MIDI From IAC ch2, Instrument Rack,
-  Sacred Shrine (or any analog pad), Macro 1 → cutoff/brightness, Cmd+M →
-  click Macro 1 → `MOut.expr('pad', Math.random())` twice → done. Eight of
-  nine scenes upgrade instantly. Test scene: Lumen (voices), Vespers (the
-  light rides CC74).
-- **R2 · BASS ch3 (25 min).** Serum patch per Part 4 (sub always on,
-  square↔saw morph, CHARACTER macro). No sidechain yet. Test:
-  `MOut.evNote('bass', 55, 0.25, 0, 1.5)`, then Ridge Loom's left hand.
-- **R3 · DRUMS ch10, v1 (45–60 min).** Drum Rack, pads 36/38/42/46 from
-  samples already on disk (proper sourcing is its own evening — Part 3
-  gaps + HOMAGE pack). Per-pad vel→vol ~60%. Group chain + sends per
-  Part 4. Test: `MOut.evDrum(36, 0.32)` … `(38, 0.2)` … `(42, 0.1)` …
-  `(46, 0.1)`; `MOut.evDrum(36, 1)` proves the vel-120 boom zone. Then
-  White Study's kick tiers, Ferro past 55% spread.
-- **R4 · Sidechain (10 min).** Now the key source exists: bass Compressor
-  keyed to the ch10 group (Post FX, sidechain EQ LP ~150 Hz, 4:1, 1 ms,
-  ~150 ms, 3–6 dB); copy at half depth to the pad track. Test: White
-  Study's drop — the pump should breathe with the kick and vanish when
-  drums stop.
-- **R5 · LEAD ch1 + BELLS ch5 (20 min).** Felt piano per Part 4; bells =
-  crystal/chime chain + TOLL chain (placeholder low bell into 8 s Valhalla
-  until the real tam-tam is sourced). Test: `MOut.evNote('bells', 98, 0.2,
-  0, 4)`, then Rain Atrium.
-- **R6 · TEXTURE ch6 + ARP ch4 (15 min).** Hand Pan; Science Class. Wire
-  Vespers' churn: MIDI-map arp-ch4 CC74 (`MOut.expr('arp', Math.random())`)
-  to a tempo-synced Auto-Pan amount ON THE PAD TRACK — the gate stream
-  throbs the hum. Test: Chladni detents (texture), Vespers under hands
-  (churn).
-- **R7 · SFX ch11 + BED ch12 (20 min).** Granulator on sand/drips;
-  atmosphere Sampler. Test: `MOut.sfxNote(38, 0.7, 3)`;
-  `MOut.bedOn(48)` / `MOut.bedOff()`.
-- **R8 · MASTER (10 min).** Gain-stage against White Study fully open
-  (≈ −6 dB), then the Part 4 master chain.
-- **R9 · Cast the OUT column.** A/B every scene at both; flip Lumen /
-  Ridge / Vespers to midi and listen for what the browser was still
-  contributing. **Fill `rig.json` in the same breath as every rack** —
-  honest beats aspirational.
+Console tools used throughout (page open, OUT on BOTH):
+`MOut.evNote(role, freq, vol, 0, dur)` / `MOut.evDrum(note, vol)` fire any
+channel in isolation, and `MOut.expr('pad', Math.random())` emits ONLY that
+role's CC74 — so Live's MIDI-map mode (Cmd+M, click the knob, run the line
+twice) can't be stolen by the CC1/CC2 hand streams.
+
+| # | Scene on stage | Channels racked | New skill | Done when |
+|---|---|---|---|---|
+| W0 | none | IAC online; Live: Track+Sync+Remote ON, EXT; page CLOCK on | — | Live's tempo follows the scene's BPM |
+| W1 | **Rain Atrium** | ch1 felt piano; ch3 quick sub for the D pedal | Instrument Rack + Macro 1 + CC74 map; a send reverb (move 2) | the rain earns REAL piano notes; small notes dry, chord rolls bloom |
+| W2 | **Lumen Film** | ch2 glass (Omnisphere audition); ch5 glass bells; ch6 air | chains in one rack; high-pass (move 1) | a lit burst = one glass voice; the chord breathes like an organ |
+| W3 | **Chladni Court** | ch6 Hand Pan; ch5 TOLL chain; ch11 granular sand; ch12 bed | Sampler one-shots; granular | detent catches strike the pan; the 1-in-7 toll stops the room |
+| W4 | **Attractor Vespers** | ch2 analog-pad chain; ch3 Mini V maw; churn gate wire | auditioning by ear; mapping CC74 to a non-filter thing | the light IS the sound; the maw inhales when it surges |
+| W5 | **White Study** | ch10 Drum Rack v1 + group chain; bass sub + SIDECHAIN; ch1 stab chain | drum rack; glue (move 3); sidechain (move 4) — the big mixing session | the drop pumps like a record; kick accents audibly land |
+| W6 | **Ridge Loom** | ch3 CHARACTER at round; ch1 bowed-tone chain; dry-kit check | dry vs wet; hearing velocity | the left hand's bassline sounds like a bassist; nothing splashy |
+| W7 | **Ferro Bloom** | ch10 pads 38/42/46 break character; wash send | the wash send; restraint | past 55% spread a lazy pocket, not a drum machine |
+| W8 | **Weather Station** | ch5 chimes; ch12 bed (wind stays browser) | — (breather step) | heading places real chimes in stereo |
+| W9 | **Event Horizon** | ch2 Augmented Strings GATE map; taiko on 36's 120-zone; ch11 riser | the marquee mapping | the wall throbs with the picture; totality is a taiko, not a kick |
+| W10 | full set walk | master chain; gain-stage vs W5; OUT casting; final rig.json | gain staging (move 5) | the nine play back-to-back with no volume surprises |
+
+Two rules for the whole walk: **fill `rig.json` in the same breath** as
+every rack lands (say what got loaded in the session and it gets
+committed), and never advance a step until the "done when" is true by ear
+— the scenes are the tests, not the meters.
 
 ### Buses and the pad controller (sanity checks, Aug 2026)
 
