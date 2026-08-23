@@ -190,16 +190,57 @@ long real recordings; the per-scene note is also the future chain selector.
 - **Felt piano for Ferro's bloom voices** — works, but the neo-soul pocket
   points at Wurli/Rhodes warmth (Arturia has both). Audition EP first.
 
-**Gaps (not on the shelf — source these):**
+**Gaps (not on the shelf):**
 - **A tam-tam / temple bell** for Chladni's lure toll (deep strike, long
-  real tail — a sample, one-shot, high quality; the toll is the scene's
-  three-camps-away beacon and deserves a real instrument).
+  real tail — the toll is the scene's three-camps-away beacon and deserves
+  a real instrument).
 - **Wind chimes / bell plates / crotales** for Weather Station's
   heading-placed bells.
 - **A log drum / wooden mallet kit** for Ferro's flick answers.
 - **A taiko + sub-drop layer** for EH's totality boom (pad 36 top zone).
-All four are one-shot sample sourcing (Splice search, an evening), not
-instrument purchases.
+Cheap route: one-shot sample sourcing (a Splice evening). Better route:
+the open-market instruments below, which close several gaps per purchase.
+
+### The open market — best-in-class per brief, beyond the shelf
+
+Ranked by briefs-answered-per-dollar:
+
+1. **AAS Chromaphone 3** (~$199, regularly ~$99 on sale) — a physical-
+   modeling instrument whose resonators are literally **plates, bars,
+   membranes, beams, tubes and strings** you strike, with velocity response
+   computed, not sampled. One purchase answers FOUR briefs: Chladni (the
+   scene IS a modal plate — a modeled plate can even be tuned toward the
+   scene's just ratios), Weather Station's chimes/bell plates, Ferro's log
+   drum (wood-bar models), and modeled glass for Lumen. The strongest
+   scene-first purchase on the market for this show.
+2. **Soniccouture Glass Works** (~$150, runs in the free Kontakt Player) —
+   the real thing for Lumen's timbre-is-the-point brief: **Glass Armonica,
+   Cristal Baschet, and Cloud Chamber Bowls** (bowed articulation = pad-like
+   sustains), recorded with Thomas Bloch (Radiohead/Tom Waits' glass
+   player). If Lumen goes `midi` because glass is the point, this is the
+   glass.
+3. **u-he Diva** (~$179) — the accepted gold standard of analog emulation
+   in software. Vespers' brief (one continuous analog voice + a maw of
+   "two detuned low saws through a growling resonant lowpass") is a Diva
+   patch almost verbatim; it also covers the era-correct funk-bass and
+   cold-stab ends if Serum's versions feel too digital. CPU-hungry —
+   fine here, one instance per channel.
+4. **Soundiron Temple Drums** (~$40–60, Kontakt or the free Decent
+   Sampler) — a 36" flat gong AND large temple drums in one library:
+   closes the Chladni toll gap and the EH taiko gap in a single purchase.
+   Alternatives: Riot Audio Ritual Gong Drum (deep-sampled ceremonial
+   gong), Wrongtools TORUS (cinematic gongs).
+5. **Pianoteq 8** (Stage ~€139) or **NI Noire** — only if the Splice felt
+   piano disappoints: Pianoteq is modeled (80 MB, no samples), which means
+   continuous velocity response with no layer-switching — the "velocity is
+   where professional lives or dies" doctrine embodied. Noire is the
+   sampled felt-concert-grand alternative with a texture engine.
+
+**Free tier (try before any purchase):** Spitfire **LABS Soft Piano** (the
+internet's default felt piano — A/B it against the Splice one), Orchestral
+Tools **Layers** (free orchestral chords — audition against the EH wall),
+Alan ViSta **Chau Gongs** (public-domain tam-tams, University of Iowa),
+and Ableton Suite's own **Granulator III** for the ch11 sand.
 
 ---
 
