@@ -175,13 +175,12 @@ let nowT = 0;
    the single gate every REAL input passes through (mouse, keys, learned
    sensors alike), so all nine scenes keep ONE grammar; ghosts author their
    drift in scene units and are deliberately untouched. Presence detection
-   runs on raw readings and is unaffected. DEFAULT ON (Lance: the show
-   laptop must need zero clicks) — the MAP-panel toggle is the escape
-   hatch back to reach-out-= -more, persisted per-browser. */
-let NEAR_MORE = true;
-try { NEAR_MORE = localStorage.getItem('srcNearMore') !== '0'; } catch (e) {}
+   runs on raw readings and is unaffected. UNCONDITIONAL — no toggle, no
+   stored state (a toggle trapped Lance's browser in the old grammar once;
+   the mapping is simply correct now, and per-hand sensor polarity still
+   has the CAL INVERT for hardware that reads backwards). */
 function setChan(side, v, raw) {
-  if (NEAR_MORE) v = 1 - clamp(v);
+  v = 1 - clamp(v);
   const c = chan[side];
   if (raw === undefined) {
     c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
@@ -873,17 +872,9 @@ document.getElementById('btnLearnL').addEventListener('click', () => startLearn(
 document.getElementById('btnLearnR').addEventListener('click', () => startLearn('R'));
 document.getElementById('midiInSel').addEventListener('change', e => { midi.inputId = e.target.value; });
 document.getElementById('btnRest').addEventListener('click', startRest);
-(function () {
-  const b = document.getElementById('btnNearMore');
-  if (!b) return;
-  const paint = () => { b.textContent = 'NEAR = MORE: ' + (NEAR_MORE ? 'ON' : 'OFF'); b.classList.toggle('off', !NEAR_MORE); };
-  b.addEventListener('click', () => {
-    NEAR_MORE = !NEAR_MORE;
-    try { localStorage.setItem('srcNearMore', NEAR_MORE ? '1' : '0'); } catch (e) {}
-    paint();
-  });
-  paint();
-})();
+// stale NEAR=MORE toggle state from the brief toggle era must never pin a
+// browser to the old grammar again — the flip is unconditional now
+try { localStorage.removeItem('srcNearMore'); } catch (e) {}
 document.getElementById('btnInvL').addEventListener('click', () => setInvert('L'));
 document.getElementById('btnInvR').addEventListener('click', () => setInvert('R'));
 document.getElementById('btnCalClear').addEventListener('click', clearCal);

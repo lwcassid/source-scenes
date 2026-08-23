@@ -518,7 +518,10 @@ AE.SB = {
   AE.hit = function (opts = {}) {
     const f = opts.freq !== undefined ? opts.freq : 2000;
     const note = f < 250 ? 36 : f < 1200 ? 38 : f < 4500 ? 42 : 46;
-    MOut.evDrum(note, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0);
+    // opts.midi === false: a noise-hit that is browser color, not a drum —
+    // e.g. thunder's low booms, which otherwise mirror as kick 36 and
+    // double the drum lane in Live (Lance heard it at full groove).
+    if (opts.midi !== false) MOut.evDrum(note, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0);
     _hit(opts);
   };
   /* AE.voice — continuous voices, the other hole. A voice has no note events,
