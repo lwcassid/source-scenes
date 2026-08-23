@@ -124,16 +124,29 @@ get judged against.
 ABLETON LATER: first scene to rack — kick ch10 + pumping bass + stab patch
 make or break the club feel.
 
-## 8 · Rain Atrium — THE COMEDOWN (SRC-16.6)
+## 8 · Rain Atrium — THE COMEDOWN (SRC-16.6) — RE-AUDITED ON THE RACK (Lance, Aug 2026)
 
-STATUS: matches the vision — felt piano on a note budget, real lulls where
-quiet is really quiet, earned groove that already walks (bass to a color
-tone every fourth bar, breathing backbeat kick, turnaround ticks), flick =
-placed drop. The weather stays on natural time; the bluesy pocket stays
-under it. Darkside at 3am, as cast.
-PROPOSAL: NO SCENE-SIDE CHANGES worth their risk. Leave it.
-ABLETON LATER: a real felt-piano patch on lead and granular rain on
-texture/sfx is where this scene jumps a tier — pure fidelity, no redesign.
+The W1 racking session put a real felt piano on lead, and Lance's verdict
+overturned the "leave it": busy, piano chaotic/unmelodic, bass static,
+groove sleepy, no room for a musician. The re-audit traces each to code:
+(a) PITCH IS DICE — each drop-note's degree comes from its random x
+position across ~7 ladder rungs at up to ~2.7 notes/s (0.22s global gap);
+the soft browser sketch hid the randomness, a real piano exposes every
+note as a melodic statement, so random reads as chaos and fills the
+sit-in space; (b) BASS GAPS — downpour bass sustains 1.6s of a 3.75s bar
+(64 BPM), so the pedal sounds broken, and the placeholder sine has no
+character; (c) GROOVE — kick on 1 + quarter-note ticks at 64 BPM is
+half-time-dead, the exact EH lesson (double-time feel fixed it there).
+PROPOSAL V7 (awaiting Lance's verdict): drop notes draw from a small
+per-chord MOTIF CELL (2-3 tones that voice-lead between chords, rare
+passing tone) instead of position-dice, budget widened to one note per
+~0.7s; bass legato to the bar with the color-walk kept; downpour groove
+re-pocketed with double-time FEEL (ghosted 8th ticks, side-stick
+backbeat) while staying sparse — comedown, not coma; REAL RAIN
+RECORDINGS from Lance's library replace the synthesized patter
+browser-side (two loops, light/heavy, crossfaded by wetness, in assets/)
+and rain intensity streams as sfx CC74 so Live can ride the same
+recordings; thunder/petrichor/flick logic untouched.
 
 ## 9 · Event Horizon — THE FINALE (SRC-13.9)
 
