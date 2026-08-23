@@ -230,6 +230,13 @@ Live set changes.
 - A Live patch with its own arp/motion gets a HELD chord and lets the clock
   drive it — never for the reactive layer, whose answers stay per-note.
   Record the choice in `rig.json`.
+- **OUT is a casting decision per scene (Lance, Aug 2026).** Some scenes keep
+  the browser sound blended under the rack (`both`) because its character is
+  part of the piece — Ikeda's flat clicks, physics-true plate beating,
+  natural-time rain (pure-noise beds mirror nothing, so `midi`-only would
+  mute them); others exist for timbre quality and go `midi` once racked.
+  Recommended casting per scene: `docs/ABLETON-RIG.md`; record the choice as
+  the scene's `out` in setlists.json.
 - **The scene casts the rig, never the reverse (Lance, Aug 2026).** The
   sketch already IS the scene expressing itself — the rig question is only
   what TIMBRE its material demands. Write the timbre brief in the scene's
