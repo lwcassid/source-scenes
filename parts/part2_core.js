@@ -175,12 +175,13 @@ let nowT = 0;
    the single gate every REAL input passes through (mouse, keys, learned
    sensors alike), so all nine scenes keep ONE grammar; ghosts author their
    drift in scene units and are deliberately untouched. Presence detection
-   runs on raw readings and is unaffected. UNCONDITIONAL — no toggle, no
-   stored state (a toggle trapped Lance's browser in the old grammar once;
-   the mapping is simply correct now, and per-hand sensor polarity still
-   has the CAL INVERT for hardware that reads backwards). */
+   runs on raw readings and is unaffected. THE CHANNEL STAYS IN HAND SPACE
+   (0 = at the source, 1 = arm's reach) so beams, widgets and the DBG bars
+   track the physical hands truthfully — Lance caught the lazy version,
+   which flipped the value here and mirrored the laser against the hand.
+   The semantic flip (near = intense) happens at the ONE place scenes read
+   input: the inp construction in part5_tail. Unconditional, no state. */
 function setChan(side, v, raw) {
-  v = 1 - clamp(v);
   const c = chan[side];
   if (raw === undefined) {
     c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
@@ -246,7 +247,7 @@ const SUMMON = {
   charge: 0, active: 0, until: 0, _dir: 0, _flips: 0, _flipT: -9, _lastR: 0,
   step(t, dt) {
     const live = chan.L.mode === 'live' && chan.R.mode === 'live';
-    const parked = live && chan.L.v > 0.82;          // near = more: at the source
+    const parked = live && chan.L.v < 0.18;          // raw hand space: AT the source
     const dR = chan.R.v - this._lastR; this._lastR = chan.R.v;
     if (Math.abs(dR) > 0.006) {
       const d = dR > 0 ? 1 : -1;
@@ -509,11 +510,11 @@ function drawWidget(cv, t) {
   const sy = floorY - ph - r + 1; // sphere center height
   const inX = { L: cx - r - 6, R: cx + r + 6 };       // v = 0 (at the source — rest)
   const outX = { L: w * 0.05, R: w * 0.95 };          // v = 1 (arm's reach — full)
-  const intensity = (chan.L.v + chan.R.v) / 2;
+  const intensity = 1 - (chan.L.v + chan.R.v) / 2;   // glow = leaning in
   for (const side of ['L', 'R']) {
     const v = chan[side].v;
     const live = chan[side].mode === 'live';
-    // REVERSED like the physical source: pull AWAY from the sphere = more
+    // beams live in hand space — they track the hands; intensity is read inverted
     const hx = inX[side] + (outX[side] - inX[side]) * v;
     // sensing rail the hand travels on
     g.strokeStyle = LT ? 'rgba(80,80,80,0.3)' : 'rgba(140,140,140,0.22)'; g.lineWidth = 1;
