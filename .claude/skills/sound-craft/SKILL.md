@@ -125,8 +125,10 @@ music: {
   energy rides the hands (EH: arm height = warp speed), the beat shows in
   the picture, and the groove runs at dance tempo — double-time feel when
   the scene's transport is slow (half-time at 64 BPM read as dead). The
-  drop LANDS ON the climax boom: the pocket starts at the peak and drives
-  through any visual settling — a silent gap before beat one kills it.
+  drop LANDS ON the climax boom, and the jump is a CUT, not an animation
+  (Lance, EH V15): quantize the landing to the next beat, then flip the
+  world in ONE FRAME — no rise-and-recede choreography around a drop;
+  warp speed happens instantly, on time.
   Inside the window, LATCH the groove's high-water intensity: dropping the
   hands to play the instrument must not fade the drums (Lance, EH V13).
 - **The top voice is a MELODY (Lance, EH V13).** Give the chord cycle a
