@@ -524,9 +524,9 @@ AE.SB = {
     const sp = MOut.suspend; MOut.suspend = true; _bassNote(freq, opts); MOut.suspend = sp;
   };
   const _kick = AE.kick.bind(AE);
-  AE.kick = function (at, vol) { MOut.evDrum(36, vol !== undefined ? vol : 0.32, at || 0); _kick(at, vol); };
+  AE.kick = function (at, vol, opts = {}) { if (opts.midi !== false) MOut.evDrum(36, vol !== undefined ? vol : 0.32, at || 0); _kick(at, vol); };
   const _hat = AE.hat.bind(AE);
-  AE.hat = function (at, opts = {}) { MOut.evDrum(opts.open ? 46 : 42, opts.vol !== undefined ? opts.vol : 0.045, at || 0); _hat(at, opts); };
+  AE.hat = function (at, opts = {}) { if (opts.midi !== false) MOut.evDrum(opts.open ? 46 : 42, opts.vol !== undefined ? opts.vol : 0.045, at || 0); _hat(at, opts); };
   /* AE.hit — filtered-noise percussion. It was the LOUDEST hole in the mirror
      (113 call sites; White Study's whole click language is hits). Map the
      filter's center frequency onto the drum-rack notes the rig already uses:
