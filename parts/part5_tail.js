@@ -825,6 +825,10 @@ document.getElementById('volSlider').addEventListener('input', e => {
     for (const role of order) {
       const inst = docFor(role).instrument || '';
       const draft = !inst || /\(proposed\)|TBD/i.test(inst);
+      // a per-browser remap that disagrees with rig.json is a silent misroute
+      // (Lance heard Chladni's HandPan voice on SHRINE ch8) — flag it loudly
+      const docCh = docFor(role).ch;
+      const offdoc = docCh >= 1 && docCh <= 16 && MOut.roles[role] !== docCh;
       const row = document.createElement('div');
       row.className = 'rigrow' + (draft ? ' draft' : '');
       row.title = [DESC[role], docFor(role).use].filter(Boolean).join('\n\n');
@@ -832,6 +836,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
         <label>${role}</label>
         <select data-role="${role}">${Array.from({ length: 16 }, (_, i) =>
           `<option value="${i + 1}"${i + 1 === MOut.roles[role] ? ' selected' : ''}>CH ${i + 1}</option>`).join('')}</select>
+        ${offdoc ? `<span class="rwarn" title="rig.json says CH ${docCh}; this browser's stored remap wins. RESET below to follow the set.">≠ rig.json CH ${docCh}</span>` : ''}
         <span>${esc(inst || DESC[role] || '')}</span>
         <button class="rping" title="For Live's MIDI mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then press MAP — it wiggles ONLY this channel's CC74 for a second, so the mapping can't be stolen by the hand streams.">MAP</button>
         <span class="rstate">${draft ? 'DRAFT' : 'LOADED'}</span>`;
@@ -878,7 +883,20 @@ document.getElementById('volSlider').addEventListener('input', e => {
         renderRig(); // re-sort so the panel keeps mirroring the mixer
       });
     }
+    // the drift banner + reset show only when a stored remap disagrees
+    const dp = document.getElementById('rigDrift');
+    if (dp) dp.style.display = order.some(r => {
+      const d = docFor(r).ch; return d >= 1 && d <= 16 && MOut.roles[r] !== d;
+    }) ? '' : 'none';
   }
+  const bReset = document.getElementById('btnRigReset');
+  if (bReset) bReset.addEventListener('click', () => {
+    try { localStorage.removeItem('srcRoleMap'); } catch (e) {}
+    MOut.allOff();
+    const doc = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) || {};
+    for (const r in MOut.roles) if (doc[r] && doc[r].ch >= 1 && doc[r].ch <= 16) MOut.roles[r] = doc[r].ch;
+    renderRig();
+  });
   renderRig();
   document.getElementById('btnRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
   // live activity lights: a role's swatch glows while that lane is playing,

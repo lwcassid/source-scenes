@@ -361,6 +361,7 @@
   #helpModal b,#rigModal b{color:var(--txt)}
   .rigrow{display:flex;align-items:center;gap:10px;margin:7px 0}
   .rigrow .swatch{width:10px;height:10px;flex:none;border-radius:3px}
+  .rigrow .rwarn{font-size:9px;letter-spacing:.08em;color:#e8a24a;border:1px solid rgba(232,162,74,.4);border-radius:3px;padding:1px 5px;flex:none;white-space:nowrap}
   .rigrow label{font-size:10px;letter-spacing:.14em;color:var(--txt);text-transform:uppercase;width:70px;font-weight:600}
   .rigrow span{font-size:10px;color:var(--txt-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rigrow.draft span{color:var(--txt-faint);font-style:italic}
@@ -755,6 +756,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     <p><b>The rig is global:</b> one mapping, identical for every scene. A scene never remaps channels — it just plays a subset of the roles below, so your Ableton set works for the whole wall.</p>
     <p>Every musical role the pieces generate is routed to a MIDI channel. Give each of your Ableton instruments its own channel (track's MIDI From = IAC, Ch. N) and one browser drives the whole rack. Remap freely — changes apply instantly.</p>
     <div id="rigRows"></div>
+    <p id="rigDrift" style="display:none;margin-top:8px">⚠ <b>This browser overrides rig.json</b> on the flagged rows — sound lands on different channels than the set expects. <button id="btnRigReset">RESET TO RIG.JSON</button></p>
     <h3>Expression</h3>
     <p><b>CC1 / CC2</b> = left / right hand, streamed always — enable <b>Remote</b> on the IAC input in Live's MIDI prefs, then Cmd+M-map any knob (filter, macro, send) to a hand. <b>CC74</b> is sent per role channel as that layer's energy — map it to each instrument's filter cutoff for free movement. <b>To make that mapping</b>: in Live press Cmd+M, click the knob you want moving, then press that row's <b>MAP</b> button above — it wiggles only that channel's CC74, Live catches it, Cmd+M again to finish. The <b>color swatch</b> sends one test note (use it outside Cmd+M) to check the right track answers.</p>
     <p style="margin-top:14px"><button id="btnRigClose">CLOSE</button></p>
@@ -88939,6 +88941,10 @@ document.getElementById('volSlider').addEventListener('input', e => {
     for (const role of order) {
       const inst = docFor(role).instrument || '';
       const draft = !inst || /\(proposed\)|TBD/i.test(inst);
+      // a per-browser remap that disagrees with rig.json is a silent misroute
+      // (Lance heard Chladni's HandPan voice on SHRINE ch8) — flag it loudly
+      const docCh = docFor(role).ch;
+      const offdoc = docCh >= 1 && docCh <= 16 && MOut.roles[role] !== docCh;
       const row = document.createElement('div');
       row.className = 'rigrow' + (draft ? ' draft' : '');
       row.title = [DESC[role], docFor(role).use].filter(Boolean).join('\n\n');
@@ -88946,6 +88952,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
         <label>${role}</label>
         <select data-role="${role}">${Array.from({ length: 16 }, (_, i) =>
           `<option value="${i + 1}"${i + 1 === MOut.roles[role] ? ' selected' : ''}>CH ${i + 1}</option>`).join('')}</select>
+        ${offdoc ? `<span class="rwarn" title="rig.json says CH ${docCh}; this browser's stored remap wins. RESET below to follow the set.">≠ rig.json CH ${docCh}</span>` : ''}
         <span>${esc(inst || DESC[role] || '')}</span>
         <button class="rping" title="For Live's MIDI mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then press MAP — it wiggles ONLY this channel's CC74 for a second, so the mapping can't be stolen by the hand streams.">MAP</button>
         <span class="rstate">${draft ? 'DRAFT' : 'LOADED'}</span>`;
@@ -88992,7 +88999,20 @@ document.getElementById('volSlider').addEventListener('input', e => {
         renderRig(); // re-sort so the panel keeps mirroring the mixer
       });
     }
+    // the drift banner + reset show only when a stored remap disagrees
+    const dp = document.getElementById('rigDrift');
+    if (dp) dp.style.display = order.some(r => {
+      const d = docFor(r).ch; return d >= 1 && d <= 16 && MOut.roles[r] !== d;
+    }) ? '' : 'none';
   }
+  const bReset = document.getElementById('btnRigReset');
+  if (bReset) bReset.addEventListener('click', () => {
+    try { localStorage.removeItem('srcRoleMap'); } catch (e) {}
+    MOut.allOff();
+    const doc = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) || {};
+    for (const r in MOut.roles) if (doc[r] && doc[r].ch >= 1 && doc[r].ch <= 16) MOut.roles[r] = doc[r].ch;
+    renderRig();
+  });
   renderRig();
   document.getElementById('btnRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
   // live activity lights: a role's swatch glows while that lane is playing,
