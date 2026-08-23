@@ -477,7 +477,11 @@ AE.SB = {
      different instruments without leaving the engine. */
   const _tone = AE.tone.bind(AE);
   AE.tone = function (freq, opts = {}) {
-    MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.15, opts.at || 0, opts.dur !== undefined ? opts.dur : 0.8);
+    // opts.midi === false: this tone is a PARTIAL of a composite voice (a
+    // stacked overtone, a sub-thump) — it colors the browser sound but must
+    // not mirror as its own MIDI note, or one composite note becomes a
+    // chord in Live (Rain Atrium's felt piano sent 4 notes per drop).
+    if (opts.midi !== false) MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.15, opts.at || 0, opts.dur !== undefined ? opts.dur : 0.8);
     if (!MOut.suspend) AE.SB.push(freq, opts.vol, opts.at, opts.dur !== undefined ? opts.dur : 0.8);
     const sp = MOut.suspend; MOut.suspend = true; _tone(freq, opts); MOut.suspend = sp;
   };
