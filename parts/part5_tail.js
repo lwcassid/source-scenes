@@ -843,6 +843,11 @@ document.getElementById('volSlider').addEventListener('input', e => {
       row.querySelector('.swatch').addEventListener('click', () => {
         AE.ensure(); if (!midi.access) connectMidi();
         if (role === 'perc') MOut.evDrum(36, 0.3);
+        // sfx tests the RAIN slot (note 39) — its Live zones are narrowed to
+        // 39/40, so a middle-C test note would make a CORRECT setup look
+        // broken (it did, for Lance); bed tests a real scene-atmosphere note
+        else if (role === 'sfx') MOut.evNote('sfx', 78.7, 0.25, 0, 2.5);
+        else if (role === 'bed') MOut.bedOn(48), setTimeout(() => MOut.bedOff(), 2500);
         else MOut.evNote(role, role === 'bass' ? 65.4 : 261.6, 0.2, 0, 1.2);
       });
       row.querySelector('.rping').addEventListener('click', e => {
