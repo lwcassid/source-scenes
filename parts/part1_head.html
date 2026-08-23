@@ -362,7 +362,10 @@
   .rigrow{display:flex;align-items:center;gap:10px;margin:7px 0}
   .rigrow .swatch{width:10px;height:10px;flex:none;border-radius:3px}
   .rigrow label{font-size:10px;letter-spacing:.14em;color:var(--txt);text-transform:uppercase;width:70px;font-weight:600}
-  .rigrow span{font-size:10px;color:var(--txt-dim)}
+  .rigrow span{font-size:10px;color:var(--txt-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rigrow.draft span{color:var(--txt-faint);font-style:italic}
+  .rigrow .rstate{flex:none;font-size:8px;letter-spacing:.16em;font-weight:800;padding:2px 5px;border-radius:4px;border:1px solid var(--line);color:var(--txt-faint)}
+  .rigrow:not(.draft) .rstate{color:var(--acc);border-color:var(--acc)}
 
   footer{padding:32px 24px 48px;text-align:center;font-size:10px;letter-spacing:.26em;color:var(--txt-faint);text-transform:uppercase;line-height:2.2}
   footer span{color:var(--txt-dim)}

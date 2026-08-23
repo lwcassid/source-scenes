@@ -811,28 +811,46 @@ document.getElementById('volSlider').addEventListener('input', e => {
     sfx: 'one-shot events — 36 ignition · 37 lightning · 38 thunder · 39 rain',
     bed: 'scene atmospheres — each scene HOLDS note 20+scene# while open (SRC-18 → 38)'
   };
-  for (const role of Object.keys(MOut.roles)) {
-    const row = document.createElement('div');
-    row.className = 'rigrow';
-    row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}"></div>
-      <label>${role}</label>
-      <select data-role="${role}">${Array.from({ length: 16 }, (_, i) =>
-        `<option value="${i + 1}"${i + 1 === MOut.roles[role] ? ' selected' : ''}>CH ${i + 1}</option>`).join('')}</select>
-      <span>${DESC[role] || ''}</span>`;
-    rows.appendChild(row);
-    row.querySelector('select').addEventListener('change', e => {
-      MOut.allOff();
-      MOut.roles[role] = +e.target.value;
-      // persist as a diff against rig.json's map, so untouched roles keep
-      // following the doc across rebuilds while this remap survives reloads
-      try {
-        const doc = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) || {};
-        const ov = {};
-        for (const r in MOut.roles) if (!doc[r] || MOut.roles[r] !== doc[r].ch) ov[r] = MOut.roles[r];
-        localStorage.setItem('srcRoleMap', JSON.stringify(ov));
-      } catch (err) {}
-    });
+  /* The panel is the racking walk's DASHBOARD, and it matures with the rig:
+     rows sit in CHANNEL ORDER (mirroring the Live set's mixer left-to-right),
+     each names the instrument rig.json says is actually on that channel, and
+     an entry still carrying "(proposed)"/TBD renders dimmed as a DRAFT.
+     Solidify a patch → record it in rig.json → rebuild → the row turns real.
+     The role's generic job + its `use` notes live in the row's tooltip. */
+  const docFor = r => ((typeof RIGDOC !== 'undefined' && RIGDOC.roles && RIGDOC.roles[r]) || {});
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  function renderRig() {
+    rows.innerHTML = '';
+    const order = Object.keys(MOut.roles).sort((a, b) => MOut.roles[a] - MOut.roles[b]);
+    for (const role of order) {
+      const inst = docFor(role).instrument || '';
+      const draft = !inst || /\(proposed\)|TBD/i.test(inst);
+      const row = document.createElement('div');
+      row.className = 'rigrow' + (draft ? ' draft' : '');
+      row.title = [DESC[role], docFor(role).use].filter(Boolean).join('\n\n');
+      row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}"></div>
+        <label>${role}</label>
+        <select data-role="${role}">${Array.from({ length: 16 }, (_, i) =>
+          `<option value="${i + 1}"${i + 1 === MOut.roles[role] ? ' selected' : ''}>CH ${i + 1}</option>`).join('')}</select>
+        <span>${esc(inst || DESC[role] || '')}</span>
+        <span class="rstate">${draft ? 'DRAFT' : 'LOADED'}</span>`;
+      rows.appendChild(row);
+      row.querySelector('select').addEventListener('change', e => {
+        MOut.allOff();
+        MOut.roles[role] = +e.target.value;
+        // persist as a diff against rig.json's map, so untouched roles keep
+        // following the doc across rebuilds while this remap survives reloads
+        try {
+          const doc = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) || {};
+          const ov = {};
+          for (const r in MOut.roles) if (!doc[r] || MOut.roles[r] !== doc[r].ch) ov[r] = MOut.roles[r];
+          localStorage.setItem('srcRoleMap', JSON.stringify(ov));
+        } catch (err) {}
+        renderRig(); // re-sort so the panel keeps mirroring the mixer
+      });
+    }
   }
+  renderRig();
   document.getElementById('btnRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
   // live activity lights: a role's swatch glows while that lane is playing,
   // so with a scene open the RIG shows exactly which roles the scene uses
