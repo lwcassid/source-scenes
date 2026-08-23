@@ -826,15 +826,22 @@ const RIGDOC = {
     "rack freely — the mapping survives."
   ],
   "_channelMap": [
-    "CHANNELS FOLLOW LANCE'S LIVE SET (Aug 2026), tracks left-to-right = ch 1-15:",
+    "THE WORKING DRAFT of the channel map (Aug 2026) — it mirrors the current Live set,",
+    "tracks left-to-right = ch 1-15, and it is PENCIL, not ink: we reshape it together",
+    "as the racking walk meets each scene. The rack serves the scenes and the art;",
+    "no assignment below is precious except where marked as Lance's own call:",
     "1 TRANCE DRUMS=perc · 2 80'S DRUMS (alt kit, unassigned) · 3 SYNTH BASS=bass ·",
-    "4 SFX=sfx · 5 PADS (unassigned) · 6 STRINGS (unassigned, EH chain later) ·",
+    "4 SFX=sfx · 5 PADS = earmarked: Lumen GLASS audition home · 6 STRINGS = Arturia Augmented Strings (Lance: these are good — Event Horizon's gate target; how the pad role reaches it gets decided at that step) ·",
     "7 FELT PIANO=lead · 8 SHRINE=pad · 9 HANDPAN=texture · 10 Mellotron (unassigned) ·",
-    "11 Choir (unassigned) · 12 SpaceSax (unassigned) · 13 Nebula=bed ·",
+    "11 Choir (bench — Vespers hum candidate) · 12 SpaceSax (bench — Lumen/Vespers fallback color) · 13 Nebula=bed ·",
     "14 Omnisphere=bells · 15 MIDI=arp (empty utility for now).",
     "The `ch` values below are BAKED as the browser's default map at build time",
     "(part2c reads RIGDOC.roles[].ch) — edit here, rebuild, and every browser",
-    "matches the set. The RIG panel remap is a per-browser override on top."
+    "matches the set. The RIG panel remap is a per-browser override on top.",
+    "CONFIDENCE (Lance, Aug 2026): drums, SFX one-shots, felt piano and Augmented",
+    "Strings are his calls; bass builds to the CHARACTER spec; every other seat is",
+    "provisional — designed to the briefs in docs/ABLETON-RIG.md, moved freely",
+    "whenever a scene asks. He is unattached; the scene decides."
   ],
   "port": "IAC Driver Bus 1",
   "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
@@ -846,7 +853,7 @@ const RIGDOC = {
     "bells":   { "ch": 14,  "instrument": "14 Omnisphere track (Omnisphere loaded, patch TBD) — proposal: two chains: crystal/glass strike + wind-chime plates (default) · deep TOLL sampler (tam-tam/temple bell, 4-8s Valhalla)", "character": "glass strikes for Lumen, chimes for Weather's heading bells, one enormous struck-metal toll for Chladni's lure — velocity sensitivity ON, the earned dynamics live here", "use": "chimes, sparkles, lock blooms, White Study's summon roll; Chladni's 1-in-7 lure toll goes to the TOLL chain — a real tam-tam, not a piano (docs/ABLETON-RIG.md Part 3)" },
     "texture": { "ch": 9,  "instrument": "Omnisphere Hand Pan (HandPan track, loaded)", "character": "huge reverb, crackly REAL strikes", "use": "the continuous-voice mirror: held notes that re-strike on retune, CC74 = pooled voice energy. Chladni's mode tones: every detent catch is a mallet strike on a literal resonant plate" },
     "perc":    { "ch": 1, "instrument": "TRANCE DRUMS drum rack (loaded) + 80'S DRUMS alt kit — pads 36/38/42/46 per the bucket contract. Still to add: taiko+sub layer on 36's top velocity zone (exactly 120 — v2v clamp ceiling, White Study's accent deliberately 119), break-sliced 38/42/46 (Splice HOMAGE: Fred Again + XO chops)", "character": "trance weight under Fred Again break character; group chain = EQ → Glue 2:1 slow attack → Drum Buss ~50% wet (Boom on A) → parallel comp ~25%; wash send 1.4s/predelay 14ms/low-cut 250Hz on 38/46 only. Per-pad vel→vol ~60% — the browser streams real velocity", "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness. The rail-secret break plays this kit. Swing comes from the SCENE, never Live (grooves don't apply to live MIDI). Full recipe: docs/ABLETON-RIG.md" },
-    "sfx":     { "ch": 4, "instrument": "SFX track, loaded — contents TBD; the brief is Granulator on a real sand/cave-drips sample", "character": "granular weather", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Chladni streams sand motion as CC74 → density/volume. Event Horizon streams its swallow charge/rise as CC74 — map to a riser/impact send" },
+    "sfx":     { "ch": 4, "instrument": "SFX track — Lance's call (Aug 2026): one-shot sample map — Blade Runner chops, cave drips, rain, thunder — on the semantic notes (36 ignition · 37 lightning · 38 thunder · 39 rain), plus a Granulator sand layer for Chladni's CC74 stream", "character": "granular weather", "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Chladni streams sand motion as CC74 → density/volume. Event Horizon streams its swallow charge/rise as CC74 — map to a riser/impact send" },
     "bed":     { "ch": 13, "instrument": "Nebula track is the home — (proposed) Sampler of the sci-fi spaceship / analog-ambient atmospheres", "character": "deep room tone with bass", "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades. Chladni = note 48" }
   }
 }
