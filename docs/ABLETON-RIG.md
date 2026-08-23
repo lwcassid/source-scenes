@@ -146,10 +146,11 @@ must speak on every strike, not swell in.
 - **Pad 36 has two jobs**: the club kick (White Study four-on-floor, EH's
   window pocket, Ferro/Rain backbeats) and the **taiko-scale boom** (EH's
   totality, max-energy hits). Answer: **velocity zones on pad 36** — kick
-  layers across the range, a taiko + sub-drop layer added only at the very
-  top (≈122–127). White Study's accent kick is documented at 119, safely
-  below the boom zone. Verify EH's boom velocity actually maxes before
-  relying on it.
+  layers across the range, a taiko + sub-drop layer only at the very top.
+  The browser's `v2v` clamps every velocity to **120**, and White Study's
+  accent kick is deliberately scaled to 119 — so the boom zone is exactly
+  **120**, one step above the loudest club accent. Verify EH's boom `vol`
+  actually reaches the clamp (vol ≥ 0.25 does) before relying on it.
 
 **ch11 SFX** — granular weather: sand (Chladni), the wake (Vespers),
 riser/impact rides on CC74 (EH). A Granulator instance fed by real recorded
@@ -306,22 +307,62 @@ option.)
 
 ---
 
-## Build order (the racking evening)
+## PART 5 · The racking walkthrough, prioritized (~3h, quick wins first)
 
-1. IAC port: Track ON + Sync ON; EXT pressed; page CLOCK on.
-2. Nine tracks (ch 1–6, 10–12), each an Instrument Rack, **Macro 1 mapped,
-   CC74 → Macro 1** everywhere — patch-swapping stays free.
-3. **Source the gap samples first** (tam-tam toll, chimes, log drum, taiko
-   layer — one Splice evening), then build the ch10 kit: longest job,
-   highest leverage.
-4. Serum SOURCE BASS + sidechain wiring.
-5. ch2 pad chains (glass first — it decides Lumen), ch1/ch5 chains, then
-   4/6/11/12.
-6. Drum group chain → sends → master, gain-staged against White Study.
-7. **Fill `rig.json` in the same breath** — replace "(proposed)" with what
-   actually got loaded. Honest beats aspirational.
-8. A/B every scene at OUT = both against the casting table; flip the three
-   `midi` scenes and listen for what the browser was still contributing.
+Ordered by payoff-per-minute: hear a real upgrade inside the first half hour,
+save the long jobs for when the pipeline is proven. Every rack has a console
+test — with the page open and OUT on BOTH, DevTools console can fire any
+channel in isolation (`MOut.evNote(role, freq, vol, 0, dur)`,
+`MOut.evDrum(note, vol)`, `MOut.expr(role, v)`), which also solves MIDI-map
+mode: `MOut.expr('pad', Math.random())` emits ONLY CC74 on ch2, so Live's
+mapping can't be stolen by the CC1/CC2 hand streams.
+
+- **R0 · Pipeline (10 min).** Audio MIDI Setup → IAC Driver online. Live
+  MIDI prefs, IAC input: Track ON, Sync ON, Remote ON (needed for CC
+  mapping; Live mappings are channel-aware). EXT pressed, page CLOCK on →
+  Live's tempo follows the scene. Test: open any scene, Live's MIDI-in dot
+  blinks, tempo reads the scene's BPM.
+- **R1 · PAD ch2 (15 min).** One track, MIDI From IAC ch2, Instrument Rack,
+  Sacred Shrine (or any analog pad), Macro 1 → cutoff/brightness, Cmd+M →
+  click Macro 1 → `MOut.expr('pad', Math.random())` twice → done. Eight of
+  nine scenes upgrade instantly. Test scene: Lumen (voices), Vespers (the
+  light rides CC74).
+- **R2 · BASS ch3 (25 min).** Serum patch per Part 4 (sub always on,
+  square↔saw morph, CHARACTER macro). No sidechain yet. Test:
+  `MOut.evNote('bass', 55, 0.25, 0, 1.5)`, then Ridge Loom's left hand.
+- **R3 · DRUMS ch10, v1 (45–60 min).** Drum Rack, pads 36/38/42/46 from
+  samples already on disk (proper sourcing is its own evening — Part 3
+  gaps + HOMAGE pack). Per-pad vel→vol ~60%. Group chain + sends per
+  Part 4. Test: `MOut.evDrum(36, 0.32)` … `(38, 0.2)` … `(42, 0.1)` …
+  `(46, 0.1)`; `MOut.evDrum(36, 1)` proves the vel-120 boom zone. Then
+  White Study's kick tiers, Ferro past 55% spread.
+- **R4 · Sidechain (10 min).** Now the key source exists: bass Compressor
+  keyed to the ch10 group (Post FX, sidechain EQ LP ~150 Hz, 4:1, 1 ms,
+  ~150 ms, 3–6 dB); copy at half depth to the pad track. Test: White
+  Study's drop — the pump should breathe with the kick and vanish when
+  drums stop.
+- **R5 · LEAD ch1 + BELLS ch5 (20 min).** Felt piano per Part 4; bells =
+  crystal/chime chain + TOLL chain (placeholder low bell into 8 s Valhalla
+  until the real tam-tam is sourced). Test: `MOut.evNote('bells', 98, 0.2,
+  0, 4)`, then Rain Atrium.
+- **R6 · TEXTURE ch6 + ARP ch4 (15 min).** Hand Pan; Science Class. Wire
+  Vespers' churn: MIDI-map arp-ch4 CC74 (`MOut.expr('arp', Math.random())`)
+  to a tempo-synced Auto-Pan amount ON THE PAD TRACK — the gate stream
+  throbs the hum. Test: Chladni detents (texture), Vespers under hands
+  (churn).
+- **R7 · SFX ch11 + BED ch12 (20 min).** Granulator on sand/drips;
+  atmosphere Sampler. Test: `MOut.sfxNote(38, 0.7, 3)`;
+  `MOut.bedOn(48)` / `MOut.bedOff()`.
+- **R8 · MASTER (10 min).** Gain-stage against White Study fully open
+  (≈ −6 dB), then the Part 4 master chain.
+- **R9 · Cast the OUT column.** A/B every scene at both; flip Lumen /
+  Ridge / Vespers to midi and listen for what the browser was still
+  contributing. **Fill `rig.json` in the same breath as every rack** —
+  honest beats aspirational.
+
+Sourcing evening (separate, unblocks nothing above): HOMAGE: Fred Again
+one-shots, a trance kick tuned to A, tam-tam/temple bell, wind
+chimes/plates, log drum, taiko + sub-drop — then relayer the kit pads.
 
 Research sources: [Attack Magazine — beats inspired by Fred
 Again](https://www.attackmagazine.com/technique/beat-dissected/breaking-down-how-to-make-beats-inspired-by-fred-again/) ·
