@@ -180,7 +180,9 @@ For a scene, in a cloud sandbox:
 
 ### Piece API (what `reg({...})` gets)
 `init(P)` (P.state, P.w/h, P.rand), `step(P, dt, t, inp)` (inp.L/inp.R ∈ 0..1,
-REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
+LEAN IN TOWARD THE SOURCE = HIGHER by default — NEAR=MORE, Lance's call,
+flipped at the input gate in part2_core; scenes still read 1 = intense and
+never handle polarity; presence via `chan.L.mode === 'live'`),
 `draw(P, g, w, h, t, inp)` (2D ctx; three.js scenes render offscreen then
 `drawImage`), `audio(A, P)` returns `{tick(inp), stop()}`. Global helpers:
 `clamp`, `TAU`, `areaScale(P)`, `H.chordTone(deg, oct)`, `T.beat`, `T.next()`,

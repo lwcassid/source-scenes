@@ -515,10 +515,10 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <button id="btnInvL" title="Flip the left hand if reaching outward reads as less">INVERT L</button>
       <button id="btnInvR" title="Flip the right hand if reaching outward reads as less">INVERT R</button>
       <button id="btnCalClear" title="Forget range, polarity and rest for both hands">CLEAR</button>
-      <button id="btnNearMore" title="Flip the whole instrument's grammar: leaning IN toward the source = more intensity, arm's reach = quiet. One global flip — every scene, every input (mouse, keys, sensors), so the wall stays consistent. Persists in this browser.">NEAR = MORE: OFF</button>
+      <button id="btnNearMore" title="The instrument's grammar. ON (the default): leaning IN toward the source = intensity, arm's reach = quiet — every scene, every input, no setup needed on a fresh machine. Turn OFF only to restore the old reach-out-equals-more feel. Persists in this browser.">NEAR = MORE: ON</button>
     </div>
     <pre id="calRead"></pre>
-    <p>The LEARN sweep already stored each control's working range, so full reach reaches <b>1.00</b>. Two things are worth doing on the show machine: press <b>SET REST</b> with nobody at the instrument — a rangefinder streams a value whether or not a hand is there, and this is what lets scenes go idle and tease again — and flip <b>INVERT</b> if the readout drops when you reach outward. By default every scene reads <b>at the source = 0, arm's reach = 1</b>; <b>NEAR = MORE</b> flips that grammar for the whole instrument at once (Lance's preferred feel — leaning in is intensity), for every scene and every input equally.</p>
+    <p>The LEARN sweep already stored each control's working range, so full reach reaches <b>1.00</b>. Two things are worth doing on the show machine: press <b>SET REST</b> with nobody at the instrument — a rangefinder streams a value whether or not a hand is there, and this is what lets scenes go idle and tease again — and flip <b>INVERT</b> if the readout drops when you reach outward. By default every scene reads <b>at the source = 0, arm's reach = 1</b>; <b>NEAR = MORE</b> is ON BY DEFAULT (Lance's call — leaning in is intensity, and a show laptop must need zero clicks); the toggle exists only to restore the old reach-out feel.</p>
   </div>
 </div>
 
@@ -591,7 +591,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
         <button id="btnGhosts" title="Ambient ghost hands drift on the library wall when nobody is playing — focused scenes always start still">GHOSTS</button>
         <button id="btnMap" title="Bind your hardware theremin / MIDI controller to the two hands">MAP</button>
       </div>
-      <p class="sinfo">ghost hands drift while nobody plays · <b>reach outward = more</b></p>
+      <p class="sinfo">ghost hands drift while nobody plays · <b>lean in toward the source = more</b></p>
     </section>
     <section class="sgroup railfold">
       <h5>Music</h5>
@@ -676,7 +676,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       </div>
       <span class="stoggle sntog" data-for="ipInt">▸ how it plays</span>
       <p class="snote snfold" id="ipInt"></p>
-      <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · reach outward = more · <b>R</b> reseeds the scene</p>
+      <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · lean in toward the source = more · <b>R</b> reseeds the scene</p>
     </section>
     <section class="sgroup">
       <h5>Music</h5>

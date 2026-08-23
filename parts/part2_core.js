@@ -175,9 +175,11 @@ let nowT = 0;
    the single gate every REAL input passes through (mouse, keys, learned
    sensors alike), so all nine scenes keep ONE grammar; ghosts author their
    drift in scene units and are deliberately untouched. Presence detection
-   runs on raw readings and is unaffected. Persisted per-browser. */
-let NEAR_MORE = false;
-try { NEAR_MORE = localStorage.getItem('srcNearMore') === '1'; } catch (e) {}
+   runs on raw readings and is unaffected. DEFAULT ON (Lance: the show
+   laptop must need zero clicks) — the MAP-panel toggle is the escape
+   hatch back to reach-out-= -more, persisted per-browser. */
+let NEAR_MORE = true;
+try { NEAR_MORE = localStorage.getItem('srcNearMore') !== '0'; } catch (e) {}
 function setChan(side, v, raw) {
   if (NEAR_MORE) v = 1 - clamp(v);
   const c = chan[side];
