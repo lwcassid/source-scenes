@@ -114,7 +114,11 @@ music: {
   keep a faint UNDULATING low floor between breaths (incommensurate LFOs —
   never dead, never constant), make the sound visibly move the picture,
   and land a rare "walk toward it" payoff (a deep toll, ~1 in 7). First
-  real touch snaps it awake.
+  real touch snaps it awake. Idle-is-rest binds the MIDI MIRROR too (Lumen
+  V20 found V18/19 striking Ableton off the idle tease all night): gate
+  note-ons on presence, and note-off when the element SHUTS — waiting for
+  the browser fade leaves notes held forever in Live when idle re-lights
+  the element mid-fade; Live's own release is the tail.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
