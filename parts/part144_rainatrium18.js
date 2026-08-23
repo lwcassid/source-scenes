@@ -1,4 +1,9 @@
-/* ---------- SRC-16.17 · RAIN ATRIUM V17 (the one-hand latch) -------------
+/* ---------- SRC-16.18 · RAIN ATRIUM V18 (little accents) -----------------
+   Lance: the hat reads monotonous — V11's groove steal dropped the open
+   hat entirely (his reference MIDI had none). V18: an open-hat SIGH on
+   the and-of-4 every other bar, and an occasional quick double-skip on a
+   weak step — little accents, never fills. The kit is christened THE R&B
+   KIT (rig.json); the trance kit becomes its own build. (V17 below.) --
    Lance: with beats in, he wants a free hand for effects — all-or-nothing
    killed that. The band now ENTERS on both hands deep (or the master
    code), then EITHER hand held deep LATCHES it while the other hand plays
@@ -59,7 +64,7 @@
    chords it meets. Rain recordings unchanged from V8 (39 forest / 40
    storm), lead-breathes-with-wetness unchanged from V9. */
 reg({
-  id: 'SRC-16.17', family: 'SRC-16', ver: 17, title: 'Rain Atrium V17', tech: 'TWO-FIELD WATER / SUMMONED BAND',
+  id: 'SRC-16.18', family: 'SRC-16', ver: 18, title: 'Rain Atrium V18', tech: 'TWO-FIELD WATER / SUMMONED BAND',
   music: {
     bpm: 64, root: 50, mode: 'aeolian', chordBars: 2,
     chords: [
@@ -74,7 +79,7 @@ reg({
   tags: ['WAVE INTERFERENCE', 'MOTIF RAIN', 'FLICK = PLACED DROP', 'GUSTS & LULLS', 'REAL RAIN ON SFX'],
   desc: 'The pocket is Lance\'s now — his own reference groove, parsed and thinned: the kicks land where his did, ghost kick and all, the snare cracks his backbeat, and the hats keep his loud-soft breathing while the busy 32nd rolls and riser fills stay on the cutting-room floor. A lazy 56%-swing drag makes the straight grid slouch. The bass chills on D with air at the end of every bar, then once a phrase walks up — B-flat, G — and falls home. The motif rain, the real forest-and-thunderstorm recordings, and the piano that breathes with the wetness all carry over.',
   interact: 'L = rain density over the left (ember) half, R = right (violet). The rain gusts AND lulls on its own — silence is part of the weather now. FLICK either hand outward: one placed drop, low and loud, at your storm cell (0.6s cooldown) — set a level with the hand, then punctuate with flicks. Both hands high charges the storm; one bar of warning, thunder on the downbeat; stillness after earns the petrichor. A fresh gesture always answers immediately, even mid-lull.',
-  sound: 'MOTIF RAIN kept from V7 (3-tone voice-led cell per chord, ~1 note/0.7s, big drops anchor low, only fundamentals mirror to MIDI). POCKET = LANCE\'S OWN GROOVE (midi/140_drums_fun.mid, 8ths→16ths onto the 64 BPM bar): his kicks with the vel-16 ghost on the and-of-2, snare crack on the backbeat, his hats\' loud/soft breathing with ~56% swing added; his 32nd rolls and chromatic fills dropped; weak hats ranked in past mid-gate. BASS SHAPE (Lance): D · D · B-flat · B-flat-to-G each 4-bar phrase — a full bar away from home before the walk back; air at the end of every sustain. TURNAROUND HATS: triplets on the walk bar only. THUNDER: browser booms no longer mirror to the kick lane; the strike sends a thunder one-shot on sfx 38. The bed voice no longer auto-mirrors to texture (it was playing the hand pan uninvited). Earned notes land visibly harder — ear and eye agree. ABLETON RAIN ×2: note 39 = forest rainfall held all scene (volume rides sfx CC74), note 40 = thunderstorm held past ~55% wetness with hysteresis (give its Simpler a slow amp attack/release — it walks in, never pops). TWO KEYS + THE LATCH (V17): enter the band with both hands deep (or the master code); once in, EITHER hand held deep keeps it while the free hand plays piano, flicks and weather — intensity rides the deeper hand; both hands out fades the pocket over ~3s. LIGHTNING STAYS BOTH-HANDS-ONLY (the charge runs on the lesser hand). DISTANT THUNDER: in a deep storm the brooding C#1 also rolls by occasionally on nature\'s clock, quiet and far — the close D1 crack is reserved for the strike itself. WEATHER NEVER STOPS: rain 39 + storm 40 held continuously, all movement is CC74 fades (floored — some weather always plays; storm crossfades in via its Live volume-map Min ~-60dB vs forest ~-22dB). Ambient state is rain + motif piano + drone — the vibe. LIGHTNING IN TWO ACTS: the brooding strike (C#1/37) fires as the storm primes and rolls under the one-bar warning glow; the quick loud strike (D1/38) lands exactly on the flash — both held 12s so the full echo rings (Simpler 1-Shot mode makes hold length moot). Cast OUT: MIDI; browser patter is the offline fallback. LEAD CC74 = wetness (V9): the felt piano\'s filter closes off in light rain and opens with the storm — set the mapping\'s Min/Max in Live to taste (Lance\'s ear: 640 Hz → 8.72 kHz). Pinned key, empty mids, D pedal underneath.',
+  sound: 'MOTIF RAIN kept from V7 (3-tone voice-led cell per chord, ~1 note/0.7s, big drops anchor low, only fundamentals mirror to MIDI). POCKET = LANCE\'S OWN GROOVE (midi/140_drums_fun.mid, 8ths→16ths onto the 64 BPM bar): his kicks with the vel-16 ghost on the and-of-2, snare crack on the backbeat, his hats\' loud/soft breathing with ~56% swing added; his 32nd rolls and chromatic fills dropped; weak hats ranked in past mid-gate; V18 accents: open-hat sigh (46) on the and-of-4 every other bar, occasional quick double-skip on a weak step — little accents, never fills. BASS SHAPE (Lance): D · D · B-flat · B-flat-to-G each 4-bar phrase — a full bar away from home before the walk back; air at the end of every sustain. TURNAROUND HATS: triplets on the walk bar only. THUNDER: browser booms no longer mirror to the kick lane; the strike sends a thunder one-shot on sfx 38. The bed voice no longer auto-mirrors to texture (it was playing the hand pan uninvited). Earned notes land visibly harder — ear and eye agree. ABLETON RAIN ×2: note 39 = forest rainfall held all scene (volume rides sfx CC74), note 40 = thunderstorm held past ~55% wetness with hysteresis (give its Simpler a slow amp attack/release — it walks in, never pops). TWO KEYS + THE LATCH (V17): enter the band with both hands deep (or the master code); once in, EITHER hand held deep keeps it while the free hand plays piano, flicks and weather — intensity rides the deeper hand; both hands out fades the pocket over ~3s. LIGHTNING STAYS BOTH-HANDS-ONLY (the charge runs on the lesser hand). DISTANT THUNDER: in a deep storm the brooding C#1 also rolls by occasionally on nature\'s clock, quiet and far — the close D1 crack is reserved for the strike itself. WEATHER NEVER STOPS: rain 39 + storm 40 held continuously, all movement is CC74 fades (floored — some weather always plays; storm crossfades in via its Live volume-map Min ~-60dB vs forest ~-22dB). Ambient state is rain + motif piano + drone — the vibe. LIGHTNING IN TWO ACTS: the brooding strike (C#1/37) fires as the storm primes and rolls under the one-bar warning glow; the quick loud strike (D1/38) lands exactly on the flash — both held 12s so the full echo rings (Simpler 1-Shot mode makes hold length moot). Cast OUT: MIDI; browser patter is the offline fallback. LEAD CC74 = wetness (V9): the felt piano\'s filter closes off in light rain and opens with the storm — set the mapping\'s Min/Max in Live to taste (Lance\'s ear: 640 Hz → 8.72 kHz). Pinned key, empty mids, D pedal underneath.',
   // felt piano: small notes are 2 dry partials; big notes get the full wet stack
   _felt(A, freq, { at = 0, vol = 0.1, pan = 0, dur = 1.4, big = false } = {}) {
     if (!isFinite(freq) || freq <= 20) return;
@@ -492,8 +497,17 @@ reg({
                 // TRIPLETS, riding the B♭→G walk
                 if (st % 4 === 0 && gate > 0.2) for (let k = 0; k < 3; k++)
                   A.hat(nextT + k * T.beat / 3, { vol: (0.010 + 0.02 * gate) * [0.42, 0.2, 0.3][k] * 2.2 * (0.9 + Math.random() * 0.2) });
-              } else if (weak ? gate > 0.5 : gate > 0.12)
-                A.hat(at2, { vol: (0.010 + 0.02 * gate) * HATV[st] * 2.2 * (0.85 + Math.random() * 0.3) });
+              } else {
+                // V18, Lance: LITTLE ACCENTS so the hat never goes flat —
+                // an open-hat sigh on the and-of-4 every other bar (replacing
+                // that step's tick), and an occasional quick double-skip
+                const openSigh = st === 14 && bar % 2 === 0 && gate > 0.3;
+                if (openSigh) A.hat(at2, { vol: 0.014 + 0.02 * gate, open: true });
+                else if (weak ? gate > 0.5 : gate > 0.12)
+                  A.hat(at2, { vol: (0.010 + 0.02 * gate) * HATV[st] * 2.2 * (0.85 + Math.random() * 0.3) });
+                if ((st === 6 || st === 10) && gate > 0.35 && Math.random() < 0.28)
+                  A.hat(at2 + T.beat / 8, { vol: (0.008 + 0.014 * gate) * (0.7 + Math.random() * 0.3) });
+              }
               // BASS SHAPE (Lance, V12): D · D · B♭ · B♭→G each 4-bar
               // phrase — the key leans away for a full bar before the walk
               // home, tracking the chord cycle underneath.
