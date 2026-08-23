@@ -823,6 +823,14 @@ document.getElementById('volSlider').addEventListener('input', e => {
     row.querySelector('select').addEventListener('change', e => {
       MOut.allOff();
       MOut.roles[role] = +e.target.value;
+      // persist as a diff against rig.json's map, so untouched roles keep
+      // following the doc across rebuilds while this remap survives reloads
+      try {
+        const doc = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) || {};
+        const ov = {};
+        for (const r in MOut.roles) if (!doc[r] || MOut.roles[r] !== doc[r].ch) ov[r] = MOut.roles[r];
+        localStorage.setItem('srcRoleMap', JSON.stringify(ov));
+      } catch (err) {}
     });
   }
   document.getElementById('btnRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));

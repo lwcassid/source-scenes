@@ -598,7 +598,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <div class="srow"><select id="midiOutSel" style="display:none"></select></div>
       <div class="srow"><button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button></div>
       <div class="srow"><button id="btnRig" title="Role → MIDI channel routing for your DAW">MIDI RIG</button></div>
-      <p class="sinfo">roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · perc 10</p>
+      <p class="sinfo">role → channel map comes from rig.json (MIDI RIG shows it live; remap there sticks in this browser)</p>
     </section>
   </aside>
   <div class="gridwrap"><div class="grid" id="grid"></div></div>

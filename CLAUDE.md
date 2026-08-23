@@ -189,8 +189,12 @@ REACH OUTWARD = HIGHER; presence via `chan.L.mode === 'live'`),
 ## Hardware truths
 - Projection surface is MESH SCRIM: black is invisible, thin lines vanish,
   perspective shatters across segmented drapes. See the scene-craft skill.
-- MIDI roles → channels: lead 1, pad 2, bass 3, arp 4, bells 5, texture 6,
-  perc 10, sfx 11, bed 12. CC1/CC2 = raw hands. CC74 per channel = that
+- MIDI roles → channels: the map lives in `rig.json` (`roles[].ch`, BAKED as
+  the browser's default at build time; the RIG panel is a per-browser
+  override). Since Aug 2026 it follows Lance's Live set track order — perc 1
+  · bass 3 · sfx 4 · lead 7 · pad 8 · texture 9 · bed 13 · bells 14 · arp 15.
+  Scenes never touch channel numbers (they speak ROLE names).
+  CC1/CC2 = raw hands. CC74 per channel = that
   layer's energy (map to filter cutoff in Ableton). Buffer 128. The mirror
   is AUTOMATIC for every A helper — including `A.hit` (drum note bucketed
   by filter freq) and `A.voice` (polled: audible pitched voices hold a note

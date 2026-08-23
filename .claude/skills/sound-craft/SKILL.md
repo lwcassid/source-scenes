@@ -200,8 +200,9 @@ by `st = step16 % 16` (son-clave bell `[0,3,6,10,12]` works).
 
 ## MIDI out (MOut) — Ableton mirror
 
-Roles → channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · texture 6 ·
-perc 10 · sfx 11 · bed 12. **The mirror is automatic for every A helper**:
+Roles → channels: the map lives in `rig.json` (`roles[].ch` — baked as the
+default at build time; scenes speak ROLE names and never channel numbers).
+**The mirror is automatic for every A helper**:
 tone/bell/pluck2/bassNote/kick/hat/padVoices auto-emit; `A.hit` auto-emits
 a drum note bucketed by its filter freq (<250→36, <1200→38, <4500→42,
 else 46); `A.voice` groups are polled — an audible pitched voice holds a

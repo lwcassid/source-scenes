@@ -375,6 +375,21 @@ const MOut = {
    when the clock is idle is a comparison, and there is no start/stop wiring
    for scene code to forget. ---------- */
 try {
+  /* role→channel boot: rig.json (baked as RIGDOC) is the agreement — the
+     default map follows its `ch` values, so editing rig.json re-wires every
+     browser at the next build to match the actual Live set. A RIG-panel
+     remap is stored per-browser as a DIFF against the doc (srcRoleMap), so
+     un-touched roles keep following rig.json across rebuilds. */
+  try {
+    if (typeof RIGDOC !== 'undefined' && RIGDOC.roles) {
+      for (const r in MOut.roles) {
+        const d = RIGDOC.roles[r];
+        if (d && d.ch >= 1 && d.ch <= 16) MOut.roles[r] = d.ch;
+      }
+    }
+    const ov = JSON.parse(localStorage.getItem('srcRoleMap') || 'null');
+    if (ov) for (const r in MOut.roles) if (ov[r] >= 1 && ov[r] <= 16) MOut.roles[r] = ov[r];
+  } catch (e) {}
   const ck = localStorage.getItem('srcMidiClock');
   if (ck !== null) MOut.clock.on = ck === '1';
 } catch (e) {}

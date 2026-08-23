@@ -399,6 +399,12 @@ option.)
 
 ---
 
+> **CHANNEL NUMBERS (Aug 2026):** the live role→channel map now follows
+> LANCE'S SET and is baked from `rig.json` (`_channelMap`): perc 1 · bass 3
+> · sfx 4 · lead 7 · pad 8 · texture 9 · bed 13 · bells 14 · arp 15.
+> Channel digits elsewhere in this doc are the original draft convention —
+> read ROLE NAMES as authoritative; scenes only ever speak roles.
+
 ## PART 5 · THE RACKING WALK — scene by scene, racking as we go
 
 Not channel-by-channel: each step opens ONE scene, racks only the channels
@@ -412,13 +418,13 @@ live in a Claude session — this table is the map, not the manual.
 Console tools used throughout (page open, OUT on BOTH):
 `MOut.evNote(role, freq, vol, 0, dur)` / `MOut.evDrum(note, vol)` fire any
 channel in isolation, and `MOut.expr('pad', Math.random())` emits ONLY that
-role's CC74 — so Live's MIDI-map mode (Cmd+M, click the knob, run the line
+role's CC74 on its mapped channel — so Live's MIDI-map mode (Cmd+M, click the knob, run the line
 twice) can't be stolen by the CC1/CC2 hand streams.
 
 | # | Scene on stage | Channels racked | New skill | Done when |
 |---|---|---|---|---|
 | W0 | none | IAC online; Live: Track+Sync+Remote ON, EXT; page CLOCK on | — | Live's tempo follows the scene's BPM |
-| W1 | **Rain Atrium** | ch1 felt piano; ch3 quick sub for the D pedal | Instrument Rack + Macro 1 + CC74 map; a send reverb (move 2) | the rain earns REAL piano notes; small notes dry, chord rolls bloom |
+| W1 | **Rain Atrium** | lead = FELT PIANO (ch7); bass = SYNTH BASS quick sub (ch3) | Instrument Rack + Macro 1 + CC74 map; a send reverb (move 2) | the rain earns REAL piano notes; small notes dry, chord rolls bloom |
 | W2 | **Lumen Film** | ch2 glass (Omnisphere audition); ch5 glass bells; ch6 air | chains in one rack; high-pass (move 1) | a lit burst = one glass voice; the chord breathes like an organ |
 | W3 | **Chladni Court** | ch6 Hand Pan; ch5 TOLL chain; ch11 granular sand; ch12 bed | Sampler one-shots; granular | detent catches strike the pan; the 1-in-7 toll stops the room |
 | W4 | **Attractor Vespers** | ch2 analog-pad chain; ch3 Mini V maw; churn gate wire | auditioning by ear; mapping CC74 to a non-filter thing | the light IS the sound; the maw inhales when it surges |
