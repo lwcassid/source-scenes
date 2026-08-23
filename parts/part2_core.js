@@ -231,7 +231,35 @@ function updateChannels(t, dt) {
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);
     c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : 2.2));
   }
+  SUMMON.step(t, dt);
 }
+
+/* THE SUMMONS (Lance, Aug 2026) — the master code, ONE grammar across every
+   scene: park the LEFT hand at the source and WIGGLE the right hand for a
+   few seconds. The charge fills (~3.5s), then a ~45s BEAT WINDOW opens for
+   any scene that gates its groove on it. The scenes stay ambient art for
+   strangers; whoever knows the code brings the band in to jam. Per-scene
+   secret unlocks (Chladni's rail) remain their own thing on top.
+   LIVE HANDS ONLY — ghosts can never summon. Scenes read window.SUMMON
+   ({charge 0..1, active 0|1}) or inp.summon / inp.summonCharge. */
+const SUMMON = {
+  charge: 0, active: 0, until: 0, _dir: 0, _flips: 0, _flipT: -9, _lastR: 0,
+  step(t, dt) {
+    const live = chan.L.mode === 'live' && chan.R.mode === 'live';
+    const parked = live && chan.L.v > 0.82;          // near = more: at the source
+    const dR = chan.R.v - this._lastR; this._lastR = chan.R.v;
+    if (Math.abs(dR) > 0.006) {
+      const d = dR > 0 ? 1 : -1;
+      if (d !== this._dir) { this._dir = d; this._flips++; this._flipT = t; }
+    }
+    if (t - this._flipT > 0.8) this._flips = 0;
+    if (parked && this._flips >= 4) this.charge = Math.min(1, this.charge + dt / 3.5);
+    else if (!this.active) this.charge = Math.max(0, this.charge - dt / 1.5);
+    if (this.charge >= 1 && !this.active) { this.active = 1; this.until = t + 45; }
+    if (this.active && t > this.until) { this.active = 0; this.charge = 0; this._flips = 0; }
+  }
+};
+window.SUMMON = SUMMON;
 
 /* ============================================================
    MIDI IN — device picker + range-based learn.

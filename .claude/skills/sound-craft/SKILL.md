@@ -152,6 +152,11 @@ music: {
   move (1 bar beats 2–4), and keep gesture hits quiet, fixed-register and
   one-at-a-time UNDER it — loud variable-octave hits read as random and
   bury the music.
+- **THE SUMMONS is the beat paradigm (Lance, Aug 2026).** Scenes are vibes
+  first: earned drums belong behind the cross-scene master code (core
+  `SUMMON`: left hand parked at the source + right wiggling ≈4s → ~45s
+  window, gate floored ~0.3 inside it so the pocket holds for jamming; live
+  hands only). Rain V13 is the reference. Per-scene secret unlocks stay.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's

@@ -1340,7 +1340,7 @@ function frame(ts) {
   last = t;
   applyKeys(dt);
   updateChannels(t, dt);
-  const inp = { L: chan.L.v, R: chan.R.v };
+  const inp = { L: chan.L.v, R: chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge };
   drawWidget(document.getElementById('widgetTop'), t);
   if (overlay.classList.contains('open')) {
     drawWidget(document.getElementById('widgetFocus'), t);

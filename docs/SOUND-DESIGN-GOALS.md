@@ -289,6 +289,18 @@ Then: update the `roles` in rig.json from "(proposed)" to what actually
 got loaded, in the same breath. OUT toggle → BOTH while A/B-ing the
 browser sketch against the rack, → MIDI when Live wins.
 
+## THE SUMMONS — the master code (Lance, Aug 2026)
+
+ONE gesture, identical in every scene: park the LEFT hand at the source and
+WIGGLE the right for a few seconds. The charge fills (~3.5s, an ember glow),
+then a ~45s BEAT WINDOW opens — scenes that gate their groove on it bring
+the band in, floored so there is always a pocket to jam over. The paradigm:
+every scene is an ambient art piece for strangers; Lance (or any musician
+who's told the code) can summon the groove anywhere to jam. Core detector
+in part2_core (`SUMMON`, live hands only — ghosts can never summon);
+scenes read `SUMMON.active/.charge` or `inp.summon`. Rain Atrium V13 is
+the first summoned scene. Per-scene secrets below remain their own layer.
+
 ## Unlock modes — easter eggs for Source masters (Lance, Aug 2026)
 
 Some scenes hide a SECRET GESTURE that unlocks a beat window: a specific
