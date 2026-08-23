@@ -190,20 +190,37 @@ long real recordings; the per-scene note is also the future chain selector.
 - **Felt piano for Ferro's bloom voices** — works, but the neo-soul pocket
   points at Wurli/Rhodes warmth (Arturia has both). Audition EP first.
 
-**Gaps (not on the shelf):**
-- **A tam-tam / temple bell** for Chladni's lure toll (deep strike, long
-  real tail — the toll is the scene's three-camps-away beacon and deserves
-  a real instrument).
-- **Wind chimes / bell plates / crotales** for Weather Station's
-  heading-placed bells.
-- **A log drum / wooden mallet kit** for Ferro's flick answers.
-- **A taiko + sub-drop layer** for EH's totality boom (pad 36 top zone).
-Cheap route: one-shot sample sourcing (a Splice evening). Better route:
-the open-market instruments below, which close several gaps per purchase.
+**Gaps — owned-first (Lance: work with what I have before buying).**
+Each gap names its owned candidate and the audition that decides it; the
+open-market list below only activates where an audition FAILS.
 
-### The open market — best-in-class per brief, beyond the shelf
+- **Chladni's tam-tam toll**: Omnisphere's browser, search *gong / bowl /
+  temple / tibetan* — its core library is deep in struck ritual metal. Or a
+  Splice one-shot (search *tam-tam*, *gong hit*) into a Sampler + Valhalla.
+  Audition: one low note, eyes closed — does the tail feel like a real
+  object three camps away, or like a preset?
+- **Lumen's glass**: Omnisphere search *glass / crystal / armonica / bowl*
+  (bowed-glass-adjacent soundsources exist); layer two, filter with Macro 1.
+  Audition: hold a five-note chord for 30 s — is it glass, or a synth pad
+  wearing the name?
+- **Weather's chimes/bell plates**: Omnisphere *chime / bell plate /
+  crotale*, or Splice one-shots into a small pitched Sampler map.
+- **Ferro's log drum**: Splice one-shots (*log drum*, *kalimba*, *marimba
+  ghost*) chopped into XO / a Drum Rack pad.
+- **EH's taiko boom**: Splice (*taiko*, *ensemble hit*, *sub drop*) —
+  layer taiko + sub drop on pad 36's 120-velocity zone.
+- **Vespers' maw**: Arturia **Mini V** — two oscillators, saws, slightly
+  detuned, into the Moog ladder filter with resonance pushed: the scene's
+  own spec, on an instrument you own. (Serum as alternate.)
+- **Vespers' continuous pad**: Omnisphere analog category or Jup-8 V /
+  Prophet-5 V — audition against the scene with CC74 riding the filter.
+- **The ch11 sand**: Omnisphere 2 imports user audio into its granular
+  engine — feed it an actual sand recording; or Granulator III (Suite).
 
-Ranked by briefs-answered-per-dollar:
+### The open market — only where an owned audition fails
+
+Kept for reference, ranked by briefs-answered-per-dollar — do not buy
+ahead of the auditions above:
 
 1. **AAS Chromaphone 3** (~$199, regularly ~$99 on sale) — a physical-
    modeling instrument whose resonators are literally **plates, bars,
@@ -431,9 +448,10 @@ mapping can't be stolen by the CC1/CC2 hand streams.
   over the Bus-2 lane. Playa caveat: BLE is fine in the cave, but pack the
   USB-C cable — radio last-resorts to copper.
 
-Sourcing evening (separate, unblocks nothing above): HOMAGE: Fred Again
-one-shots, a trance kick tuned to A, tam-tam/temple bell, wind
-chimes/plates, log drum, taiko + sub-drop — then relayer the kit pads.
+Sourcing evening (separate, unblocks nothing above — all inside the Splice
+subscription): HOMAGE: Fred Again one-shots, a kick tuned to A (search
+*trance kick A*), tam-tam/temple bell, wind chimes/plates, log drum,
+taiko + sub-drop — then relayer the kit pads.
 
 Research sources: [Attack Magazine — beats inspired by Fred
 Again](https://www.attackmagazine.com/technique/beat-dissected/breaking-down-how-to-make-beats-inspired-by-fred-again/) ·
