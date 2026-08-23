@@ -365,6 +365,8 @@
   .rigrow span{font-size:10px;color:var(--txt-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rigrow.draft span{color:var(--txt-faint);font-style:italic}
   .rigrow .rstate{flex:none;font-size:8px;letter-spacing:.16em;font-weight:800;padding:2px 5px;border-radius:4px;border:1px solid var(--line);color:var(--txt-faint)}
+  .rigrow .swatch{cursor:pointer}
+  .rigrow .rping{flex:none;font-size:8px;letter-spacing:.14em;font-weight:800;padding:3px 7px}
   .rigrow:not(.draft) .rstate{color:var(--acc);border-color:var(--acc)}
 
   footer{padding:32px 24px 48px;text-align:center;font-size:10px;letter-spacing:.26em;color:var(--txt-faint);text-transform:uppercase;line-height:2.2}
@@ -754,7 +756,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     <p>Every musical role the pieces generate is routed to a MIDI channel. Give each of your Ableton instruments its own channel (track's MIDI From = IAC, Ch. N) and one browser drives the whole rack. Remap freely — changes apply instantly.</p>
     <div id="rigRows"></div>
     <h3>Expression</h3>
-    <p><b>CC1 / CC2</b> = left / right hand, streamed always — enable <b>Remote</b> on the IAC input in Live's MIDI prefs, then Cmd+M-map any knob (filter, macro, send) to a hand. <b>CC74</b> is sent per role channel as that layer's energy — map it to each instrument's filter cutoff for free movement.</p>
+    <p><b>CC1 / CC2</b> = left / right hand, streamed always — enable <b>Remote</b> on the IAC input in Live's MIDI prefs, then Cmd+M-map any knob (filter, macro, send) to a hand. <b>CC74</b> is sent per role channel as that layer's energy — map it to each instrument's filter cutoff for free movement. <b>To make that mapping</b>: in Live press Cmd+M, click the knob you want moving, then press that row's <b>MAP</b> button above — it wiggles only that channel's CC74, Live catches it, Cmd+M again to finish. The <b>color swatch</b> sends one test note (use it outside Cmd+M) to check the right track answers.</p>
     <p style="margin-top:14px"><button id="btnRigClose">CLOSE</button></p>
   </div>
 </div>
@@ -81785,13 +81787,33 @@ document.getElementById('volSlider').addEventListener('input', e => {
       const row = document.createElement('div');
       row.className = 'rigrow' + (draft ? ' draft' : '');
       row.title = [DESC[role], docFor(role).use].filter(Boolean).join('\n\n');
-      row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}"></div>
+      row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}" title="Click: send one test note on this channel — does the right Ableton track answer?"></div>
         <label>${role}</label>
         <select data-role="${role}">${Array.from({ length: 16 }, (_, i) =>
           `<option value="${i + 1}"${i + 1 === MOut.roles[role] ? ' selected' : ''}>CH ${i + 1}</option>`).join('')}</select>
         <span>${esc(inst || DESC[role] || '')}</span>
+        <button class="rping" title="For Live's MIDI mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then press MAP — it wiggles ONLY this channel's CC74 for a second, so the mapping can't be stolen by the hand streams.">MAP</button>
         <span class="rstate">${draft ? 'DRAFT' : 'LOADED'}</span>`;
       rows.appendChild(row);
+      // one-click wiring checks, no console required:
+      // swatch = a single test note on this role's channel (use OUTSIDE Live's
+      // Cmd+M mode); MAP = a CC74-only wiggle burst FOR Cmd+M mode — values
+      // alternate low/high so Live detects the sweep, and nothing else sends.
+      row.querySelector('.swatch').addEventListener('click', () => {
+        AE.ensure(); if (!midi.access) connectMidi();
+        if (role === 'perc') MOut.evDrum(36, 0.3);
+        else MOut.evNote(role, role === 'bass' ? 65.4 : 261.6, 0.2, 0, 1.2);
+      });
+      row.querySelector('.rping').addEventListener('click', e => {
+        AE.ensure(); if (!midi.access) connectMidi();
+        const b = e.target;
+        b.classList.add('learning'); b.textContent = 'CC74…';
+        let n = 0;
+        const iv = setInterval(() => {
+          MOut.expr(role, (n % 2 ? 0.12 : 0.82) + Math.random() * 0.08);
+          if (++n > 11) { clearInterval(iv); b.classList.remove('learning'); b.textContent = 'MAP'; }
+        }, 120);
+      });
       row.querySelector('select').addEventListener('change', e => {
         MOut.allOff();
         MOut.roles[role] = +e.target.value;

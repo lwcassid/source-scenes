@@ -828,13 +828,33 @@ document.getElementById('volSlider').addEventListener('input', e => {
       const row = document.createElement('div');
       row.className = 'rigrow' + (draft ? ' draft' : '');
       row.title = [DESC[role], docFor(role).use].filter(Boolean).join('\n\n');
-      row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}"></div>
+      row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}" title="Click: send one test note on this channel — does the right Ableton track answer?"></div>
         <label>${role}</label>
         <select data-role="${role}">${Array.from({ length: 16 }, (_, i) =>
           `<option value="${i + 1}"${i + 1 === MOut.roles[role] ? ' selected' : ''}>CH ${i + 1}</option>`).join('')}</select>
         <span>${esc(inst || DESC[role] || '')}</span>
+        <button class="rping" title="For Live's MIDI mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then press MAP — it wiggles ONLY this channel's CC74 for a second, so the mapping can't be stolen by the hand streams.">MAP</button>
         <span class="rstate">${draft ? 'DRAFT' : 'LOADED'}</span>`;
       rows.appendChild(row);
+      // one-click wiring checks, no console required:
+      // swatch = a single test note on this role's channel (use OUTSIDE Live's
+      // Cmd+M mode); MAP = a CC74-only wiggle burst FOR Cmd+M mode — values
+      // alternate low/high so Live detects the sweep, and nothing else sends.
+      row.querySelector('.swatch').addEventListener('click', () => {
+        AE.ensure(); if (!midi.access) connectMidi();
+        if (role === 'perc') MOut.evDrum(36, 0.3);
+        else MOut.evNote(role, role === 'bass' ? 65.4 : 261.6, 0.2, 0, 1.2);
+      });
+      row.querySelector('.rping').addEventListener('click', e => {
+        AE.ensure(); if (!midi.access) connectMidi();
+        const b = e.target;
+        b.classList.add('learning'); b.textContent = 'CC74…';
+        let n = 0;
+        const iv = setInterval(() => {
+          MOut.expr(role, (n % 2 ? 0.12 : 0.82) + Math.random() * 0.08);
+          if (++n > 11) { clearInterval(iv); b.classList.remove('learning'); b.textContent = 'MAP'; }
+        }, 120);
+      });
       row.querySelector('select').addEventListener('change', e => {
         MOut.allOff();
         MOut.roles[role] = +e.target.value;

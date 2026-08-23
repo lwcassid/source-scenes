@@ -365,6 +365,8 @@
   .rigrow span{font-size:10px;color:var(--txt-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rigrow.draft span{color:var(--txt-faint);font-style:italic}
   .rigrow .rstate{flex:none;font-size:8px;letter-spacing:.16em;font-weight:800;padding:2px 5px;border-radius:4px;border:1px solid var(--line);color:var(--txt-faint)}
+  .rigrow .swatch{cursor:pointer}
+  .rigrow .rping{flex:none;font-size:8px;letter-spacing:.14em;font-weight:800;padding:3px 7px}
   .rigrow:not(.draft) .rstate{color:var(--acc);border-color:var(--acc)}
 
   footer{padding:32px 24px 48px;text-align:center;font-size:10px;letter-spacing:.26em;color:var(--txt-faint);text-transform:uppercase;line-height:2.2}
@@ -754,7 +756,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     <p>Every musical role the pieces generate is routed to a MIDI channel. Give each of your Ableton instruments its own channel (track's MIDI From = IAC, Ch. N) and one browser drives the whole rack. Remap freely — changes apply instantly.</p>
     <div id="rigRows"></div>
     <h3>Expression</h3>
-    <p><b>CC1 / CC2</b> = left / right hand, streamed always — enable <b>Remote</b> on the IAC input in Live's MIDI prefs, then Cmd+M-map any knob (filter, macro, send) to a hand. <b>CC74</b> is sent per role channel as that layer's energy — map it to each instrument's filter cutoff for free movement.</p>
+    <p><b>CC1 / CC2</b> = left / right hand, streamed always — enable <b>Remote</b> on the IAC input in Live's MIDI prefs, then Cmd+M-map any knob (filter, macro, send) to a hand. <b>CC74</b> is sent per role channel as that layer's energy — map it to each instrument's filter cutoff for free movement. <b>To make that mapping</b>: in Live press Cmd+M, click the knob you want moving, then press that row's <b>MAP</b> button above — it wiggles only that channel's CC74, Live catches it, Cmd+M again to finish. The <b>color swatch</b> sends one test note (use it outside Cmd+M) to check the right track answers.</p>
     <p style="margin-top:14px"><button id="btnRigClose">CLOSE</button></p>
   </div>
 </div>
