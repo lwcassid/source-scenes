@@ -360,6 +360,36 @@ mapping can't be stolen by the CC1/CC2 hand streams.
   contributing. **Fill `rig.json` in the same breath as every rack** —
   honest beats aspirational.
 
+### Buses and the pad controller (sanity checks, Aug 2026)
+
+- **Channel math**: a MIDI port carries 16 channels; each IAC bus is its own
+  port, so Bus 1 + Bus 2 = 32 channels — the understanding is right. But the
+  page speaks ONE output port at a time (MOut's device picker), using 9 of
+  Bus 1's 16 channels, so **7 channels (7–9, 13–16) are still free before
+  Bus 2 costs a code change** (a second MOut port — small, do it when a real
+  need shows up, not before). Meanwhile **reserve Bus 2 as the performance
+  lane**: the pad controller / Lance's own playing into Live, kept off the
+  page's bus. If Bus 2 is enabled in Live, leave its **Sync OFF** — two
+  clock sources fight.
+- **4×4 pad scene-switching**: the page's MIDI-in parser currently ignores
+  note messages entirely (only CC/bend/aftertouch feed the hand system), so
+  pad notes are a clean, collision-free namespace. Planned design: a PAD
+  LEARN in the queue drawer — press the bottom-left pad once, the page
+  captures note+device and maps 16 consecutive notes to QUEUE SLOTS 1–16 in
+  running order (device-filtered, so drum pads never read as hands); a pad
+  press opens that queue entry with its show settings and resets the
+  SHOWTIME clock. Works in PLAY mode with panels off — that's the point:
+  scene changes from the source, no computer touch. Hardware note: the
+  laptop still runs the show — the pad reaches it by USB-C or Bluetooth
+  MIDI (macOS BLE MIDI is native and Chrome's Web MIDI sees it). The actual
+  unit is an **M-VAVE SMC-PAD** (16 velocity pads, 8 assignable knobs, BLE +
+  USB-C, battery). Its default note layout is undocumented and
+  preset-dependent — exactly why the mapping is a LEARN, not hard-coded
+  notes. Its 8 knobs send CCs, which the existing hand LEARN already
+  accepts: a knob can stand in for a hand in a pinch, or map to Live macros
+  over the Bus-2 lane. Playa caveat: BLE is fine in the cave, but pack the
+  USB-C cable — radio last-resorts to copper.
+
 Sourcing evening (separate, unblocks nothing above): HOMAGE: Fred Again
 one-shots, a trance kick tuned to A, tam-tam/temple bell, wind
 chimes/plates, log drum, taiko + sub-drop — then relayer the kit pads.
