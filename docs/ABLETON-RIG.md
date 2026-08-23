@@ -1,287 +1,329 @@
-# ABLETON RIG — the universal instruments (Lance's round, Aug 2026)
+# ABLETON RIG — derived from the nine, not from the shelf (Lance's round, Aug 2026)
 
-The Phase-2 build plan that `SOUND-DESIGN-GOALS.md` promises: what actually
-goes on the nine role channels, how each is mixed, and the exact Live wiring —
-so one evening of racking serves all nine scenes of THE MAGNIFICENT NINE.
-The reuse principle governs everything here: ONE Live set, nine Instrument
-Racks, scene identity comes from the MIDI each scene already streams plus
-CC74. A quality investment in any channel multiplies ×9.
+The Phase-2 racking guide `SOUND-DESIGN-GOALS.md` promises, rebuilt from
+first principles after Lance's verdict: **optimize for what each soundscape
+needs; the instruments follow. If the palette fits, fine; if it doesn't,
+unattached.** (This is the existing law — the scene casts the rig, never the
+reverse — applied all the way down.)
 
-Two structural facts make "universal" actually work:
-
-- **The four-bucket drum contract.** Every scene's percussion funnels into
-  the same four pads (36 kick/low · 38 crack · 42 click · 46 air) because
-  `A.hit` buckets by brightness and `A.kick`/`A.hat` land on 36/46. Build ONE
-  great kit and every groove in the set — Ferro's pocket, Ridge's band, White
-  Study's club, the unlock-window breaks — plays it.
-- **Sidechain follows earned drums for free.** Scenes only send kick when the
-  groove is earned, so a sidechain keyed to the kick pumps exactly when the
-  doctrine says the music should pump, and is silent in every ambient state.
-  Zero per-scene configuration.
+Method: Part 1 writes each scene's timbre brief in the scene's OWN language
+(from its `desc`/`sound` notes — several scenes literally specify their
+instrument). Part 2 derives what the nine channels must be, as the union of
+the briefs. Part 3 grades Lance's palette against that — where it answers,
+where it's a compromise, what has to be sourced. Part 4 is craft: the mix
+chains, sidechain wiring, and master, which are technique, not casting.
 
 ---
 
-## CH 10 · PERC — the kit (trance weight, Fred Again breaks)
+## PART 1 · The nine briefs (the scene's words, then the timbre it demands)
 
-### What the reference actually is
+**Chladni Court — sand on a struck plate.** "Modal plate tones, beat
+partners, JUST shimmer, structural bass"; a lure that breathes bass and once
+in a while "a single deep bell tolls into long reverb — the sound you walk
+toward from three camps away"; a sand wash; an unlock break where "every kick
+pulses through the grains."
+→ Demands: two pure sustained tones whose BEATING is physically exact
+(browser-owned — that beating is the scene's physics); a struck resonant
+metal plate; granular sand; **a deep temple-bell / tam-tam toll** — a real
+struck-metal fundamental with minutes of tail; a structural sub.
 
-The Fred Again drum sound, per the production breakdowns (Attack Magazine's
-beat-dissected, MusicRadar's style guide, Reverb Machine's pack notes):
+**Lumen Film — light through cut stone.** "An aperture organ… every lit
+burst holds one voice… doubled by a GLASS bell… a slow air bed and a root
+pedal. NO PERCUSSION."
+→ Demands: **glass** — blown/bowed glass organ flues (glass armonica, wine-
+glass choir, breathy flue pipes), rolled entrances, zero attack transient on
+the voices; real glass strikes for the bells; air.
 
-- Snares and hats are **sliced from processed, atmospheric loops** (breaks,
-  foley, found sound) into Simpler — not pristine drum-machine hits. The dirt
-  and room in the slice IS the sound.
-- Groove: offbeat snare placement, two-16th snare rolls, **heavy velocity
-  variation** for human energy, swing on everything.
-- Processing: **Drum Buss** (comp + soft drive + crunch + damp), and a big
-  characteristic **drum reverb — ~14 ms predelay, ~1.4 s decay, low-cut at
-  250 Hz** — on a send, so hits bloom into a wash without the lows smearing.
-- Under the break: one clean, heavy four-on-floor-capable kick (his club-era
-  tracks layer a solid kick under the chopped break).
+**Ferro Bloom — a liquid-metal garden breathing warm↔cool.** "Soft triangle
+voices, one per bloom… sub C underneath"; groove of "bell clave, shaker,
+sparse kick"; "flicks fire log-drum answers"; cast as the Chet Faker /
+neo-soul pocket.
+→ Demands: warm rounded keys for the bloom voices (**electric-piano warmth —
+Wurli/Rhodes territory** is the neo-soul truth, softer than felt piano);
+a real **log drum / wooden mallet** for the answers; soft pocket drums —
+side-stick, brushed ghost hats, a round kick; a sub that moves late.
 
-That last point is where the trance-kick request fits: the trance kit and the
-break kit are the **same Drum Rack** — trance-grade kick on pad 36 for weight,
-break-sliced crack/click/air on 38/42/46 for character.
+**Ridge Loom — contour heat, the band.** The bassline "is literally written
+by the picture"; "a long bowed tone… a running eighth arpeggio… a sparse
+high bell"; "a bowed loom bed… **no sawtooth, no horns**."
+→ Demands (the scene bans the obvious funk saw itself): **round rubbery
+bass** — filtered square/triangle, Moog-ish, mono; a bowed-string lead
+voice; a **clav-like** dry arp; tight DRY kit, no wash; a bowed bed.
 
-### Sample sources (ranked)
+**Weather Station — wind with a heading.** "One wind body whose gain and
+filter open hard with the gale"; "a bell figure… pitch and stereo position
+set by heading."
+→ Demands: the wind is browser noise BY DESIGN (mirrors nothing — the body
+stays web); the bells placed by heading are, from first principles, **wind
+chimes / bell plates / crotales** — struck metal with air around it, placed
+in stereo; a distant storm rumble for the gale peak.
 
-1. **Splice · HOMAGE: Fred Again** — curated one-shots + transitions in his
-   style, ready for drum racks. First stop for 38/42/46.
-2. **Lance's own Splice techno + foley loops** chopped to one-shots in XLN XO
-   (already the rig.json plan — XO's similarity map is the right chopper).
-3. **Classic breaks** (Think, Amen, Apache) — public-domain-adjacent staples;
-   slice for character pads and keep 1-bar loops for the unlock windows.
-4. **Myloops · Ultimate Trance Kicks** (200 kicks, key-labeled, pre-processed)
-   or Allan Morrow's Heavy Trance Kicks — for pad 36. Key-labeling matters:
-   see tuning below.
-5. **Vidro Breaks Vol 1** / Reverb Machine's **Future Garage** pack (182
-   one-shots cut on 808/DDM-110/Mother-32 hardware) — depth on the break side.
+**Attractor Vespers — the smoke organism.** The scene specifies its own
+synthesis: the maw is "**two detuned low saws through a growling resonant
+lowpass**"; the hum is one continuous voice played by the light; the churn
+streams gate depth on arp CC74 "so a gate plugin in Live can take the same
+motion."
+→ Demands: one rich continuous **analog poly pad** whose filter rides the
+measured light (this is the Tom Misch drone seat); a mono **analog growl
+bass** built exactly as the scene says; a tempo-gate device on the churn
+stream. Nothing struck, nothing scheduled.
 
-### Building the rack
+**White Study — Ikeda severity meets the dancefloor.** "Mixed like a
+record"; kick velocity tiers "accent 119, others ~100"; stabs whose velocity
+follows flick size; the six-chord trance-minor cycle "on a serious patch";
+machine-flat 16th clicks that are flat ON PURPOSE.
+→ Demands: the clicks stay browser (they ARE the aesthetic); a **clean,
+heavy, cold club kick**; a pumping **sub**; a stab that is SEVERE — cold,
+precise, more Ikeda than lush. (This is where the earlier draft's Juno was
+palette-first: Juno chorus is warm romance. Candidate A: a cold PWM/trance
+pluck with no chorus. Candidate B: Jun-6 V. A/B at the rack — the scene
+decides.)
 
-- One **Drum Rack**, pads 36/38/42/46 as the contract lanes. Extra pads are
-  fine (White Study's `evDrum(36)` boom can get its own 36-layer); the four
-  lanes are the guarantee.
-- **Layer each pad** (2–3 samples inside an instrument rack on the pad):
-  36 = trance kick body + a soft beater transient; 38 = break snare + rim or
-  clap air; 42 = rimshot/click; 46 = break hat + a shaker/air tick.
-- **Tune the kick.** The set's roots are D·D·C·C♯·G·G·A·D·A. One kick tuned
-  to **A (~55 Hz)** sits right for the two club/finale scenes (White Study,
-  Event Horizon, both Am) and works as the dominant under the D scenes. The
-  key-labeled trance packs make this a browse filter, not a job. (Per-scene
-  kick tuning via the bed-note chain selector is the later trick; one A kick
-  first.)
-- **One-shot hygiene** while chopping: trim leading silence to the transient,
-  peak-normalize to about −6 dB so the pad mixer does the balancing, high-pass
-  the hats/clicks (300–500 Hz) so break rumble doesn't stack under the kick.
-- **Velocity is already real** — the browser mirrors every hit's `vol` as
-  per-note velocity (28–123). In each pad's Simpler set **vel→vol ≈ 50–70%**
-  (default 100% makes ghost notes vanish) and a small vel→filter amount on
-  38/46 so hard hits open up. This is where the earned-groove dynamics land.
-- **Swing lives scene-side, not in Live.** Ableton's Groove Pool only applies
-  to clips — live incoming MIDI bypasses it. Scenes write their own drag
-  (Ferro's laid-back backbeat, Ridge's proposed ~55% 16th swing); don't try
-  to add feel in Live, you can't. Groove Pool IS right for the session-view
-  break clips below.
+**Rain Atrium — rain that earns a piano.** "Felt piano with a note budget…
+small notes nearly DRY — the long reverb is saved for chord rolls, thunder
+and petrichor"; rain granulated browser-side on natural time.
+→ Demands: **a felt piano**, velocity-honest, close-miked and dry by
+default, with the hall on a send reserved for moments. The one scene whose
+brief names a palette item verbatim — the Splice felt piano is
+scene-derived here, not forced.
 
-### The mix chain (on the ch10 group)
-
-In order — compression clean first, color after:
-
-1. **EQ Eight** — HP 30 Hz; small wide dip ~350 Hz only if the layered kit
-   muds up.
-2. **Glue Compressor** — ratio 2:1 (up to 4:1 for the club scenes), **attack
-   10–30 ms** so transients pass, release Auto, 1–2 dB of movement. This is
-   glue, not pump.
-3. **Drum Buss** — the Fred move: soft Drive, Crunch to taste on the mids,
-   Damp ~9–10 kHz to take the sample-pack fizz off, **Boom tuned to A** to
-   reinforce the kick fundamental, then pull **Dry/Wet back to ~50%** so it
-   reads as attitude, not a blanket.
-4. **Parallel thump** — a Compressor set stupid (10:1, fast attack, slammed),
-   **Dry/Wet at ~20–30%**. New-York compression without extra routing.
-5. **Limiter** — safety ceiling only, no visible GR in normal play.
-
-Sends: **A = tight room** (~0.4 s, low amount, everything) for placement;
-**B = the Fred wash** (Valhalla VintageVerb, 1.4 s, predelay ~14 ms, EQ
-low-cut 250 Hz **inside the send chain**) — generous on 38/46, never on 36.
-
-### Break loops as performance material
-
-Keep 2–3 one-bar classic-break clips in Session view on a separate audio
-track, warped, Groove Pool swing applied. The page's MIDI clock (24 PPQN +
-song-position + start/stop) means they launch bar-locked to whatever scene is
-up — material for Lance to fly in over the unlock windows (Chladni's rail
-secret, Event Horizon's 45 s), alongside the monk vocals and Blade Runner
-chops. Performance layer, never autonomous.
+**Event Horizon — the string wall and the swallow.** "An organ-dark string
+section assembles CHAIR BY CHAIR"; "everything through the tempo gate (depth
+on pad CC74 for a gate plugin in Live)"; "one enormous sub boom at totality";
+then a 128-feel pocket; scars leave it "darker, heavier, forever."
+→ Demands: a **dark low string ensemble** with a rhythmic gate the CC74
+stream can drive (this scene is WHY the gate mapping exists); the totality
+boom is **taiko-scale** — a huge low drum + sub drop, not a club kick; the
+window pocket then IS the club kick. Both land on pad 36 — see the
+velocity-zone answer in Part 2.
 
 ---
 
-## CH 3 · BASS — clean, but it can bite
+## PART 2 · What the channels must be (the union of the briefs)
 
-**Instrument: Serum** (owned, reliable, exactly this brief). One patch,
-"SOURCE BASS":
+**ch1 LEAD** — three personalities: felt piano (Rain Atrium), a bowed tone
+(Ridge), a severe stab (White Study). One rack, chains; felt piano default.
 
-- Osc A: saw, unison 2–3 at slight detune, warp available for grit.
-- Sub osc: sine, always on, one octave down — the clean structural floor.
-- Filter: LP 24, mostly open at rest.
-- Amp env fast-attack; ~40 ms release; **mono, legato, portamento ~30 ms**
-  (the browser's bass lines are mono figures; Ridge's bassline especially).
+**ch2 PAD** — the most divergent channel in the set, and the one that earns
+the bed-note chain-selector trick first: GLASS organ (Lumen) · cathedral air
+(Chladni) · ANALOG light-pad (Vespers) · dark GATED STRINGS (Event Horizon) ·
+plain triangle glue (Ferro/Ridge). Four chains, selected per scene (manual to
+start, chain-select on the bed note 20+SRC later).
 
-Rack macros (this is the whole point):
+**ch3 BASS** — one mono instrument covering a spectrum the briefs define:
+structural sine sub (Chladni, EH's sub-octave stop) → round rubbery
+square/tri funk (Ridge — saw banned) → pumping club sub (White Study) →
+the growling detuned-saw maw (Vespers — the one seat where saw is the
+spec). So: **sub core always on; a single CHARACTER macro morphing
+round → bite → growl** (osc mix/warp + drive + resonance). Clean and nice at
+0, teeth in the middle, the maw at the top. Sidechain-ducked by the kick
+(wiring in Part 4) — and because kick is earned, the pump only exists inside
+an earned groove.
 
-- **Macro 1 = CC74 = cutoff** (the universal convention — every scene's bass
-  energy already streams here).
-- **Macro 2 = BITE**: one knob mapped to Serum distortion drive + a touch of
-  filter resonance + osc warp amount. At 0 it's the clean Night-Rider-style
-  fat synth; at 70 it's got teeth for Ridge Loom's funk and White Study's
-  pump. Set per scene by hand (or later: bed-note chain selector).
-- Macro 3 = sub/osc blend · Macro 4 = glide time.
+**ch4 ARP** — clav-like and dry (Ridge), cutoff+resonance as THE performance
+controls (CC74 is literally that stream); plus Vespers' churn arrives here as
+CC74 only — so the arp chain also hosts the **tempo-synced gate** device that
+motion drives.
 
-Era-correct alternative in the same rack as a second chain: an Arturia Jup-8 V
-mono patch (goals-doc candidate). And Lance's 80s Night-Rider bass sample in a
-Simpler chain if a scene wants exactly that record.
+**ch5 BELLS** — glass strikes (Lumen) · high answering bell (Ridge) · chime
+plates (Weather) · the summon roll (White Study) · **the deep toll**
+(Chladni — a tam-tam/temple bell, NOT a piano; the earlier draft forced the
+felt piano here). Two chains: a crystal/chime strike (default) and a LOW
+TOLL sampler with a long hall.
 
-**Sidechain — the wiring:**
+**ch6 TEXTURE** — struck resonant metal with real attack (Chladni's plate =
+a hand pan is honestly the same physical object) · air (Lumen) · bowed loom
+bed (Ridge). The continuous-voice mirror re-strikes on retune, so the patch
+must speak on every strike, not swell in.
 
-1. On the bass track, **Compressor** after the rack.
-2. Sidechain ▸ **Audio From: the ch10 drum GROUP, Post FX**.
-3. **Enable the sidechain EQ: low-pass ~150 Hz** — only the kick pumps it;
-   hats and cracks don't chatter the bass.
-4. Ratio 4:1 · attack 1 ms (fast is correct for ducking) · **release
-   120–180 ms** (≈ an 8th at 100–120 BPM; one setting reads fine across the
-   set's tempos — tune by ear at White Study's 120, check it doesn't gasp at
-   Ferro's 100) · 3–6 dB GR when the kick runs.
+**ch10 PERC** — the four-bucket contract (36 kick/low · 38 crack · 42 click
+· 46 air) means ONE kit serves every groove. The briefs split it two ways:
+- **Character**: Ferro wants soft/brushed and lazy, Ridge wants tight and
+  bone-dry, White Study wants cold club weight, the unlock windows want
+  break grit. Layered pads + real velocity cover most of this (the browser
+  already streams honest velocity, 28–123); dryness vs wash is a send
+  question — keep the wash send modest and on 38/46 only.
+- **Pad 36 has two jobs**: the club kick (White Study four-on-floor, EH's
+  window pocket, Ferro/Rain backbeats) and the **taiko-scale boom** (EH's
+  totality, max-energy hits). Answer: **velocity zones on pad 36** — kick
+  layers across the range, a taiko + sub-drop layer added only at the very
+  top (≈122–127). White Study's accent kick is documented at 119, safely
+  below the boom zone. Verify EH's boom velocity actually maxes before
+  relying on it.
 
-Because kick = earned, this pump only ever exists inside an earned groove.
-Ambient scenes never touch the threshold. Copy the same compressor at HALF the
-GR (2–3 dB) onto the pad track for the two club scenes' sidechained-pad feel
-(toggle it off is one click if it leaks into the ambient five — but it
-shouldn't, same reason).
+**ch11 SFX** — granular weather: sand (Chladni), the wake (Vespers),
+riser/impact rides on CC74 (EH). A Granulator instance fed by real recorded
+material (sand, drips) plus an impact/riser sampler.
 
-Mix: **Utility "Bass Mono" below ~120 Hz** at the end of the chain (scrim PA
-doesn't reward wide sub), and let CC74 do the rest — the browser already rides
-it.
-
----
-
-## CH 2 · PAD / STRINGS
-
-Two chains in one rack, chosen per scene (manual to start):
-
-- **SHRINE** (default): Omnisphere Sacred Shrine — cathedral ambient, zero
-  tooth. Macro 1 → filter/brightness.
-- **STRINGS**: Arturia Augmented Strings. Macro 1 → **the gate dial** (plus a
-  small brightness co-mapping). Event Horizon streams gate depth as pad CC74
-  by design — this is the marquee mapping of the show: the plugin throbs with
-  the picture.
-
-Mixing strings/pads so they stay expensive and stay out of the way:
-
-- **HP ~100–120 Hz** — the floor belongs to bass ch3 and bed ch12.
-- A gentle wide dip around **1.5–3 kHz** — the hole-in-the-mids law is a MIX
-  law: that's where a live player (and the felt piano) sits.
-- Glue 2:1, slow attack, ~1 dB — evens the voice-led chord changes.
-- Valhalla send generous; keep the insert dry-ish so the gate stays legible.
-- Width: wide is good, but mono-check — the room hears one PA, not headphones.
+**ch12 BED** — one held atmosphere note per scene (20+SRC). A Sampler of
+long real recordings; the per-scene note is also the future chain selector.
 
 ---
 
-## CH 1 · LEAD + CH 5 · BELLS — the felt piano (and the Juno)
+## PART 3 · Sourcing — the palette graded against the briefs
 
-**Felt piano** (Splice "John Legend" piano) is the universal lead voice —
-Rain Atrium's by design, Chladni's blooms/toll on bells. Chain:
+**Answers truthfully (use it):**
+- **Splice felt piano** → Rain Atrium lead. The brief names it.
+- **Arturia Augmented Strings** → EH pad chain. The gate-depth CC74 stream
+  was designed around exactly this dial; the marquee mapping stands.
+- **Omnisphere Hand Pan** → Chladni texture. A hand pan IS a resonant
+  struck metal plate; the mirror's re-strikes are mallet strikes.
+- **Omnisphere Science Class** → ch4 arp. Cutoff+res as performance
+  controls is literally what CC74 streams.
+- **Arturia analog classics (Prophet/Jup)** → Vespers' light-pad and the
+  reference for the bass's round end. Era-honest for a continuous analog
+  drone.
+- **Valhalla** → the space engine on every send.
+- **Splice techno/foley loops + trance kicks + break packs** → the ch10 kit
+  (build notes in Part 4).
+- **Sci-fi/analog atmosphere library** → ch12 bed.
 
-- Velocity sensitivity **ON** — the scenes write real velocity (Rain's
-  size-scaled notes, Chladni's approach-decisiveness blooms); this patch is
-  where that work becomes audible.
-- EQ: HP 60 Hz; small cut ~250 Hz only if the low-mids thicken against the
-  pad.
-- Compressor 2:1, **slow attack (~30 ms)** to keep the felt thump, gentle.
-- A whisper of Saturator (warm curve, ~2 dB drive) for presence without EQ.
-- ch1 send to the room verb ~15%.
-- **ch5 bells = the same piano into a cathedral**: Valhalla (VintageVerb 4–8 s
-  or Supermassive) 40–60 % wet. One deep note, huge tail — the lure toll.
+**Compromise (palette *can* do it, something truer exists):**
+- **Space Sax for Lumen's aperture voices** — swelling and breathy, yes,
+  but the brief says GLASS. Truer: a glass armonica / blown-glass organ
+  patch (Omnisphere's glass category is deep) or sampled wine-glass choir.
+  Audition glass first; Space Sax is the fallback color.
+- **Jun-6 V for White Study's stab** — warm/lush vs the scene's severity.
+  A/B against a cold chorus-free PWM or trance pluck (Serum). Let the Ikeda
+  read win.
+- **Felt piano for Ferro's bloom voices** — works, but the neo-soul pocket
+  points at Wurli/Rhodes warmth (Arturia has both). Audition EP first.
 
-**The synth lead** — second chain in the ch1 rack: **Arturia Jun-6 V** (the
-Juno). Patch for White Study's stab/hook: square with PWM slowly modulated,
-filter env medium decay, fast attack, **Chorus II on** (the chorus IS the
-Juno), Macro 1 → cutoff. White Study sends lead + arp + drums — Juno stab on
-ch1, Science Class arp on ch4 (its cutoff+resonance are natively what CC74
-streams), kick on ch10, pumping Serum bass on ch3. That's the club rack.
+**Gaps (not on the shelf — source these):**
+- **A tam-tam / temple bell** for Chladni's lure toll (deep strike, long
+  real tail — a sample, one-shot, high quality; the toll is the scene's
+  three-camps-away beacon and deserves a real instrument).
+- **Wind chimes / bell plates / crotales** for Weather Station's
+  heading-placed bells.
+- **A log drum / wooden mallet kit** for Ferro's flick answers.
+- **A taiko + sub-drop layer** for EH's totality boom (pad 36 top zone).
+All four are one-shot sample sourcing (Splice search, an evening), not
+instrument purchases.
 
 ---
 
-## CH 4 / 6 / 11 / 12 — as already cast in rig.json
+## PART 4 · Craft — kits, chains, wiring (technique, unchanged by casting)
 
-Science Class (arp) · Hand Pan (texture) · Granulator sand/drips (sfx) ·
-atmosphere Sampler (bed). One mixing note each: keep the arp's insert dry
-(its motion reads better dry, send-verb only); texture and sfx are send-heavy
-by nature; the bed gets a **LP shelf around 6 kHz** and sits 6–10 dB under
-everything — room tone, not a pad.
+### The ch10 kit — build
 
----
+The break-character research (Attack Magazine's beat-dissected, MusicRadar,
+Reverb Machine's pack notes) on the Fred Again reference the goals doc
+names: snares/hats **sliced from processed atmospheric loops** into Simpler
+— the dirt in the slice is the sound; offbeat snares, two-16th rolls, heavy
+velocity variation; **Drum Buss** (comp + soft drive + crunch + damp); the
+signature drum reverb **~14 ms predelay, ~1.4 s decay, low-cut 250 Hz** on a
+send; one clean heavy kick under the chopped break. That maps cleanly onto
+the buckets: solid kick on 36, break character on 38/42/46.
 
-## MASTER — mixing for a PA on playa, not for Spotify
+- Sources, ranked: Splice **HOMAGE: Fred Again** one-shots · Lance's Splice
+  techno/foley loops chopped in **XLN XO** · classic breaks (Think/Amen) ·
+  a key-labeled trance-kick pack (Myloops Ultimate Trance Kicks / Allan
+  Morrow) for 36 — pick the kick tuned to **A (~55 Hz)**: right for both Am
+  club/finale scenes, dominant under the D scenes.
+- Layer pads 2–3 deep (body + transient + air). One-shot hygiene: trim to
+  transient, normalize ≈ −6 dB, HP hats/clicks 300–500 Hz.
+- Per-pad **vel→vol ≈ 50–70%** (default 100% erases ghost notes), small
+  vel→filter on 38/46.
+- **Swing lives scene-side, never in Live** — Ableton grooves don't apply
+  to live incoming MIDI. Groove Pool is only for the session-view break
+  clips below.
+- Group chain, in order: EQ (HP 30 Hz) → **Glue** 2:1 (4:1 for club),
+  attack 10–30 ms, release Auto, 1–2 dB → **Drum Buss** (soft drive, crunch
+  to taste, damp ~9–10 kHz, **Boom tuned to A**, pulled to ~50% wet) →
+  parallel thump (Compressor 10:1 slammed, **Dry/Wet ~25%**) → safety
+  Limiter. Sends: A tight room (~0.4 s, everything, low); B the wash
+  (1.4 s, predelay 14 ms, low-cut 250 Hz inside the send) on 38/46 only.
+- **Break loops as performance material**: 2–3 warped one-bar break clips in
+  Session view (Groove Pool swing applies here) — the page's MIDI clock +
+  song-position means they launch bar-locked over the unlock windows,
+  alongside the monk vocals and Blade Runner chops. Performance layer,
+  never autonomous.
 
-The PA is the master. Chasing LUFS is meaningless here; headroom and
-translation are everything.
+### The ch3 bass — build
 
-1. Gain-stage the nine tracks so the master peaks around **−6 dB** with White
-   Study fully open — the loudest scene defines the ceiling, the ambient five
-   then sit naturally lower (that dynamic arc is the SET, don't crush it).
-2. **EQ Eight**: HP 25 Hz (protect the subs from DC/rumble), broad strokes
-   only.
-3. **Glue Compressor** 2:1, attack 30 ms, release Auto, **≤ 2 dB GR** at peak.
-4. **Limiter, ceiling −1 dB** — insurance, not loudness. If it's working
-   hard, fix the gain staging instead.
-5. Soundcheck move: play White Study's drop at show volume, set the PA amp
-   there, never touch the master chain again mid-show.
+Tool: **Serum** (owned, does the whole spectrum), patch "SOURCE BASS":
+- Sine sub osc always on (the structural floor every brief shares); Osc A
+  morphable square↔saw via wavetable position; LP24; mono/legato,
+  portamento ~30 ms.
+- **Macro 1 = CC74 = cutoff** (universal convention). **Macro 2 =
+  CHARACTER**: warp/osc blend + drive + resonance, one knob from round
+  (Ridge, saw fully out) through bite (White Study) to the growling
+  detuned-saw maw (Vespers, saw fully in + resonant growl). Macro 3 =
+  sub/osc blend · Macro 4 = glide.
+- **Sidechain**: Compressor after the rack · Audio From **ch10 group,
+  Post FX** · **sidechain EQ low-pass ~150 Hz** (only the kick pumps it) ·
+  4:1 · attack 1 ms · release 120–180 ms (tune at 120 BPM, check 100) ·
+  3–6 dB GR. Copy at half depth onto the pad track for the club scenes.
+- **Utility bass-mono below ~120 Hz** last.
+
+### Pads, piano, bells — mixing
+
+- Strings/pads: HP ~100–120 Hz (the floor belongs to ch3/ch12); gentle wide
+  1.5–3 kHz dip — the hole-in-the-mids law as an EQ move; Glue 2:1 slow
+  attack ~1 dB; Valhalla on the send, insert dry-ish so EH's gate stays
+  legible; wide but mono-checked.
+- Felt piano: velocity ON; HP 60 Hz; Compressor 2:1 **slow attack ~30 ms**
+  (keep the felt thump); a whisper of Saturator; room send ~15%, dry by
+  default per the Rain brief — the hall is spent on moments.
+- Bells ch5: strike chain dry-ish into place; the TOLL chain 40–60% wet
+  into a 4–8 s Valhalla — one deep note into a cathedral.
+
+### Master — a PA on playa, not Spotify
+
+1. Gain-stage so White Study fully open peaks ≈ **−6 dB** on the master —
+   the loudest scene defines the ceiling; the ambient five sitting lower IS
+   the set's arc. Don't crush it.
+2. EQ Eight: HP 25 Hz, broad strokes only.
+3. Glue 2:1, attack 30 ms, release Auto, **≤ 2 dB** at peak.
+4. Limiter ceiling −1 dB — insurance, not loudness. Working hard = fix gain
+   staging.
+5. Soundcheck: White Study's drop at show volume sets the PA; never touch
+   the master chain mid-show.
 
 ---
 
 ## Browser blend vs. timbre-first — the OUT casting
 
-Lance's call this round: per-scene, some scenes keep the browser sound in the
-mix (its character is part of the piece), some scenes' entire point is timbre
-quality (rack only). Recommended casting, to land in `setlists.json` once the
-rack exists (`out` per scene; until then everything stays web):
+Per-scene (Lance's verdict): keep the browser in the mix where its character
+is part of the piece; go rack-only where timbre quality IS the point. Lands
+in `setlists.json` as each scene's `out` once the rack exists; until then
+everything stays web.
 
 | Scene | OUT | Why |
 |---|---|---|
-| Chladni Court | **both** | The beating between two just-ratio plate tones IS the physics — keep it; Hand Pan + Shrine dress it. |
-| Lumen Film | **midi** | Timbre is the point: the glass organ needs real glass; the browser sine stack is the sketch. |
-| Ferro Bloom | **both** | The soft-piano drone has charm; the rack supplies the pocket's drums + felt piano weight. |
-| Ridge Loom | **midi** | The band deserves real instruments — rubbery Serum bass, clav-ish arp, dry kit. Browser plucks read cheap at 96 BPM funk. |
-| Weather Station | **both** (forced) | The wind is browser noise and mirrors nothing by design — MIDI-only would silence the scene's body. |
-| Attractor Vespers | **midi** | The one-continuous-synth scene; an Omnisphere pad ridden by the light is the whole upgrade (goals doc flags it plugin-drives-design). |
-| White Study | **both** | The Ikeda clicks are flat-on-purpose and browser-perfect; the rack adds what the browser can't — kick weight, Juno stab, sidechain pump. |
-| Rain Atrium | **both** (forced) | Rain is a pure-noise bed, mirrors nothing by design; the felt piano rides MIDI. |
-| Event Horizon | **both** | The string wall + gate carries in the browser; Augmented Strings doubles it into the marquee mapping. Review after racking — may earn midi. |
+| Chladni Court | **both** | The just-ratio plate beating IS the physics — irreplaceable. Rack dresses it. |
+| Lumen Film | **midi** | Glass is the point; the browser sine stack is the sketch of it. |
+| Ferro Bloom | **both** | The soft drone has charm; rack supplies pocket drums + EP warmth. |
+| Ridge Loom | **midi** | The band deserves real instruments; browser plucks read cheap at 96 BPM funk. |
+| Weather Station | **both** (forced) | The wind body is browser noise by design — mirrors nothing. |
+| Attractor Vespers | **midi** | One continuous synth; the analog pad ridden by the light is the upgrade. |
+| White Study | **both** | The Ikeda clicks are browser-perfect on purpose; rack adds kick weight, sub, stab. |
+| Rain Atrium | **both** (forced) | Rain is a pure-noise bed by design; the piano rides MIDI. |
+| Event Horizon | **both** | The wall + gate carries in-browser; Augmented doubles into the marquee mapping. Review after racking. |
 
-("Forced" = the scene has deliberate browser-only material; MIDI-only is not
-an option there, it's a bug.)
+("Forced" = deliberate browser-only material; `midi` there is a bug, not an
+option.)
 
 ---
 
 ## Build order (the racking evening)
 
-1. IAC port: Track ON + Sync ON in Live's MIDI prefs; EXT pressed; page CLOCK
-   toggle on.
-2. Nine MIDI tracks, channels 1–6 + 10/11/12, each an Instrument Rack,
-   **Macro 1 mapped, CC74 → Macro 1** on every one (the convention that makes
-   patch-swapping free).
-3. Drum Rack on ch10 per the kit section — buy/chop samples first, it's the
-   longest job and the highest leverage.
-4. Serum SOURCE BASS + the sidechain compressor wiring.
-5. Felt piano ch1/ch5, Juno chain, pad chains, then the already-cast 4/6/11/12.
-6. Drum group chain → sends → master chain, gain-staged against White Study.
-7. **Fill `rig.json` in the same breath** — replace "(proposed)" with what's
-   actually loaded. Honest beats aspirational; an empty rig means Claude
-   writes for an imaginary one.
-8. A/B each scene with OUT = both against the casting table; flip the two
+1. IAC port: Track ON + Sync ON; EXT pressed; page CLOCK on.
+2. Nine tracks (ch 1–6, 10–12), each an Instrument Rack, **Macro 1 mapped,
+   CC74 → Macro 1** everywhere — patch-swapping stays free.
+3. **Source the gap samples first** (tam-tam toll, chimes, log drum, taiko
+   layer — one Splice evening), then build the ch10 kit: longest job,
+   highest leverage.
+4. Serum SOURCE BASS + sidechain wiring.
+5. ch2 pad chains (glass first — it decides Lumen), ch1/ch5 chains, then
+   4/6/11/12.
+6. Drum group chain → sends → master, gain-staged against White Study.
+7. **Fill `rig.json` in the same breath** — replace "(proposed)" with what
+   actually got loaded. Honest beats aspirational.
+8. A/B every scene at OUT = both against the casting table; flip the three
    `midi` scenes and listen for what the browser was still contributing.
 
-Sources for the drum research: [Attack Magazine — beats inspired by Fred
+Research sources: [Attack Magazine — beats inspired by Fred
 Again](https://www.attackmagazine.com/technique/beat-dissected/breaking-down-how-to-make-beats-inspired-by-fred-again/) ·
 [MusicRadar — Fred Again style track](https://www.musicradar.com/news/make-a-fred-again-style-track-free-samples) ·
 [Splice HOMAGE: Fred Again](https://splice.com/sounds/collections/splice/jbwvedrbqnt1lcr6gacfutn3xwg/samples) ·
