@@ -181,15 +181,27 @@ have ONE driver: control applies them locally and relays the same seed /
 act index on, so the mirror and the wall never diverge. Still not wired:
 THE RIG rack's channel remap is control-window-local only.
 
-**MIRROR pill** (control window only, next to PANELS/DBG): toggles the
-control window's own scene mirror between FULL (matches the show window's
-frame rate) and THROTTLED (~20fps, the default) — on a throttled tick,
-`P.def.step()`/`draw()` AND the composite pass after them (drawImage /
-ghost pass / bloom / scrim render) are all skipped together, not just
-step/draw, protecting the show window's real performance from the mirror's
-GPU (and, since the audio graph above runs unconditionally, CPU) cost.
-Resolution/downscale throttling and automatic FPS-driven throttling are
-both deliberately deferred until real M1 numbers exist to justify either.
+CLOSE in the control window ends the show: the scene tears down in the show
+window (voice stopped, bed note off, all-notes-off to Ableton) and then that
+window is STOWED — hidden, not destroyed, so the AudioContext, the open MIDI
+ports and the loaded build survive and the next PLAY is instant. Opening a
+scene or pressing PLAY brings it back exactly where it was.
+
+**THE SHOW CONSOLE** (control window, ADR-0007): with a scene open the
+control window is a console, not a second screen. Its stage splits — the
+RUNNING ORDER left (a NOW block with the scene, a big countdown, a draining
+bar and what's next, over the ordered list; current row highlighted and
+counting down, others showing their MIN, every row click-to-jump) and a
+LIVE FEED right. The feed is a real capture of the show window
+(`setDisplayMediaRequestHandler` answers with the show window itself, so
+there's no picker and you can't aim it wrong) — so the control window no
+longer runs scenes AT ALL: no `makeInstance`, no `startVoice`, no second
+performance to diverge from the wall. `telemetry:tick` carries what it can
+no longer compute: the countdown deadline, the chord readout, and the MIDI
+activity THE RIG rack and monitor light from. The MIRROR pill is gone with
+the render it governed. **macOS needs Screen Recording permission** for the
+feed — without it the picture is black (the WALL is unaffected); SHOW
+CHECK's Preview row says so and opens the right settings pane.
 
 ### The frame: 1920×1200, 16:10 — the DEFAULT everywhere
 The show is one WUXGA render fullscreen, cloned to both projectors (Panasonic

@@ -1,6 +1,13 @@
 # Control window mirrors at a throttled frame rate by default, manual toggle to Full
 
-Status: accepted
+Status: SUPERSEDED by ADR-0007.
+
+The governor below existed to make the control window's *second render* of
+each scene affordable. ADR-0007 removed the second render — the control
+window's picture is now a live capture of the show window — so there is
+nothing left to throttle. The MIRROR pill, the dt-accumulator and
+`srcMirrorRate` are gone. Kept for the reasoning, which is still the right
+reasoning about a mirror that renders.
 
 ADR-0003 accepted the control window as a full mirror — same `openFocus()`,
 same local rendering, not a thin remote — on one explicit condition: mirror

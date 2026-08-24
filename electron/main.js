@@ -11,7 +11,7 @@
 // Renderers never talk to each other directly — everything relays through
 // this process: control's preload sends over IPC, this file forwards to
 // the show window's webContents, and vice versa for telemetry.
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, session, systemPreferences } = require('electron');
 const path = require('node:path');
 
 // Nima: SHOW CHECK's SOUND row sat red until someone clicked WAKE AUDIO —
@@ -129,6 +129,38 @@ function placeShowWindow(target) {
   }
 }
 
+// Nima: closing the scene from the control window used to leave the show
+// window sitting there fullscreen on the projector showing the LIBRARY WALL —
+// the whole app, chrome and all, thrown 20 feet wide at the camp. Closing a
+// scene should take the picture away, not swap it for the tool that made it.
+//
+// So the show window is STOWED, not destroyed: hide() keeps the AudioContext,
+// the open MIDI ports and the 43MB build loaded, so the next PLAY is instant
+// instead of a cold reload — but the window leaves the screen entirely, which
+// is what "close" means to the person watching the wall go dark.
+// Exit fullscreen BEFORE hiding: on macOS a hidden window that is still
+// fullscreen leaves its empty Space behind for the operator to swipe past.
+let showStowed = false, showWasFullScreen = false;
+function stowShowWindow() {
+  if (!showWindow || showWindow.isDestroyed() || showStowed) return;
+  showStowed = true;
+  showWasFullScreen = showWindow.isFullScreen();
+  const hide = () => { if (showWindow && !showWindow.isDestroyed()) showWindow.hide(); };
+  if (showWasFullScreen) {
+    showWindow.once('leave-full-screen', () => setTimeout(hide, 0));
+    showWindow.setFullScreen(false);
+  } else hide();
+}
+function revealShowWindow() {
+  if (!showWindow || showWindow.isDestroyed() || !showStowed) return;
+  showStowed = false;
+  showWindow.show();
+  // Put it back exactly as it was. Only re-fullscreen if it WAS fullscreen —
+  // opening a tile from control never fullscreened the show window before
+  // this, and it should not start now; that is PLAY's job.
+  if (showWasFullScreen) placeShowWindow(pickedDisplay ? findDisplay(pickedDisplay) : null);
+}
+
 // The whole point of this app is running the show on playa, no internet —
 // index.html loads three.js from a CDN (same trap docs/SHOW-KIT.md already
 // warns about for the plain Netlify site), so this loads the offline,
@@ -211,6 +243,27 @@ function bootWindows() {
 app.whenReady().then(() => {
   try {
     bootWindows();
+    // ADR-0007: hand the control window a live stream OF THE SHOW WINDOW.
+    // getDisplayMedia normally raises a source picker; this handler answers
+    // it directly with the show window, so the operator never picks anything
+    // and can never pick WRONG (the control window itself, say, which would
+    // be a hall of mirrors). Passing a BrowserWindow captures that window
+    // specifically, not the screen it sits on — so it keeps working when the
+    // show window moves displays, and it captures the real composited
+    // output rather than re-running the scene.
+    // useSystemPicker:false keeps macOS's own picker out of a kiosk app.
+    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+      if (!showWindow || showWindow.isDestroyed()) return callback({});
+      // Must be a WebFrameMain or a DesktopCapturerSource — passing the
+      // BrowserWindow itself throws "video must be a WebFrameMain or
+      // DesktopCapturerSource". mainFrame is the better of the two anyway:
+      // it captures the show window's rendered WEB CONTENT directly rather
+      // than going out through the OS window compositor, which means it
+      // keeps working when the show window is behind something, and it does
+      // not lean on macOS Screen Recording the way desktop capture does.
+      try { callback({ video: showWindow.webContents.mainFrame }); }
+      catch (e) { console.error('display-media handler failed:', e); callback({}); }
+    }, { useSystemPicker: false });
   } catch (err) {
     const { dialog } = require('electron');
     dialog.showErrorBox('SOURCE show-runner', err.message);
@@ -226,6 +279,7 @@ app.whenReady().then(() => {
   // opens a scene on its own (SHOWTIME auto-advance, an edge click) with
   // nobody in the control window having triggered it.
   ipcMain.on('show:openScene', (_event, sceneId) => {
+    revealShowWindow();   // a scene means the wall is wanted back
     sendTo(showWindow, 'show:openScene', sceneId);
   });
   ipcMain.on('control:syncScene', (_event, sceneId) => {
@@ -236,7 +290,12 @@ app.whenReady().then(() => {
   // drop back to the library wall too, so a closed scene in control doesn't
   // leave the show window stuck on a scene nobody is driving anymore.
   ipcMain.on('show:closeScene', () => {
+    // Relay FIRST so the renderer tears the scene down properly — voice
+    // stopped, bed note off, all-notes-off to Ableton, transport stopped —
+    // and only then take the window off the screen. Hiding first would strand
+    // notes sounding in Live with nothing to turn them off.
     sendTo(showWindow, 'show:closeScene');
+    stowShowWindow();
   });
 
   // hand:drive — mouse/keyboard-driven virtual theremin input from the
@@ -290,6 +349,33 @@ app.whenReady().then(() => {
     sendTo(showWindow, 'queue:update', q);
   });
 
+  // telemetry:tick (ADR-0003, finally built) — the show window's own account
+  // of what it is DOING, 4x a second: which scene, which act, when the dwell
+  // timer fires, the chord/bar readout, and the MIDI note activity the RIG
+  // rack and monitor light up from. The control window used to derive all of
+  // that by running its own copy of the scene; once it stops (ADR-0007) this
+  // is the only honest source, and it is honest in a way the copy never was —
+  // it is the wall's numbers, not a second performance's.
+  ipcMain.on('telemetry:tick', (_event, t) => {
+    sendTo(controlWindow, 'telemetry:tick', t);
+  });
+
+  // preview:status — macOS gates window capture behind Screen Recording, and
+  // a missing grant looks exactly like a broken app: a black preview, no
+  // error. SHOW CHECK asks this so the pre-flight can SAY so, with a button
+  // that opens the right settings pane. 'not-applicable' on Windows/Linux,
+  // where there is nothing to grant.
+  ipcMain.handle('preview:status', () => {
+    if (process.platform !== 'darwin') return 'not-applicable';
+    try { return systemPreferences.getMediaAccessStatus('screen'); } catch (e) { return 'unknown'; }
+  });
+  ipcMain.on('preview:openSettings', () => {
+    if (process.platform !== 'darwin') return;
+    require('electron').shell.openExternal(
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
+    );
+  });
+
   // display:list / display:pick (ticket #31) — the Electron path never
   // touches the web Window Management API (SCREENS.probe() branches to
   // this instead): main has unconditional access to the real displays and
@@ -301,6 +387,7 @@ app.whenReady().then(() => {
   // (not just a label string) so findDisplay() has an id to try first.
   ipcMain.handle('display:list', () => listDisplaysForRenderer());
   ipcMain.on('display:pick', (_event, pick) => {
+    revealShowWindow();
     pickedDisplay = pick || null;
     placeShowWindow(findDisplay(pickedDisplay || {}));
   });

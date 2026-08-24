@@ -1108,11 +1108,20 @@ function openFocus(i, fromRelay) {
   applyStageBox(m);
   const w2 = m.pw, h2 = m.ph;
   // pieces render to an offscreen scene; post-FX composites onto the visible canvas
-  const scene = document.createElement('canvas');
-  focusCanvas.width = w2; focusCanvas.height = h2;
-  focus.fctx = focusCanvas.getContext('2d');
-  focus.P = makeInstance(def, scene, w2, h2);
-  focus.P.focused = true;
+  // ADR-0007: the control window does NOT build a scene instance any more.
+  // Its picture is a live video feed of the show window (#showFeed), so
+  // re-running the scene here would be a second, divergent performance paid
+  // for on the machine driving the projectors. focus.idx is still set, so
+  // every bit of scene-IDENTITY UI below (title, tags, versions, history,
+  // act chips) keeps working; focus.P stays null, which the render loop and
+  // syncStage already guard on.
+  if (window.ELECTRON_ROLE !== 'control') {
+    const scene = document.createElement('canvas');
+    focusCanvas.width = w2; focusCanvas.height = h2;
+    focus.fctx = focusCanvas.getContext('2d');
+    focus.P = makeInstance(def, scene, w2, h2);
+    focus.P.focused = true;
+  }
   document.getElementById('oTid').textContent = def.id;
   document.getElementById('oTitle').textContent = def.title;
   document.getElementById('oTag').textContent = def.tech;
@@ -1145,6 +1154,11 @@ function openFocus(i, fromRelay) {
 }
 function startVoice() {
   if (focus.voice) { focus.voice.stop(); focus.voice = null; }
+  // ADR-0007: no scene audio in the control window. This was the last big
+  // unconditional cost there — the mirror's DSP ran at full rate whatever
+  // the render throttle said. The audio the operator needs to know about is
+  // the wall's, and that arrives over telemetry:tick.
+  if (window.ELECTRON_ROLE === 'control') return;
   const def = PIECES[focus.idx];
   if (AE.on && AE.ctx && def.audio && focus.P) {
     try { focus.voice = def.audio(AE, focus.P) || null; } catch (e) { focus.voice = null; }

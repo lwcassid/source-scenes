@@ -65,6 +65,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onQueue(callback) {
     ipcRenderer.on('queue:update', (_event, queue) => callback(queue));
   },
+  // telemetry:tick — the show window's live account of itself at 4Hz:
+  // { sceneId, act, rotAt, rotMs, chordHud, beatPhase, fps, lastByRole,
+  //   logTail }. rotAt is an absolute Date.now() deadline; both windows are
+  //   one machine, so control interpolates a SMOOTH countdown from it between
+  //   packets rather than ticking once a second.
+  sendTelemetry(t) { ipcRenderer.send('telemetry:tick', t); },
+  onTelemetry(callback) {
+    ipcRenderer.on('telemetry:tick', (_event, t) => callback(t));
+  },
+  // preview:* (ADR-0007) — the control window's picture is a live capture of
+  // the show window. main answers the getDisplayMedia request with the show
+  // window itself, so there is no source picker; these two only exist so
+  // SHOW CHECK can report the macOS Screen Recording grant, which is the one
+  // way this can fail silently (black preview, no error).
+  previewStatus() { return ipcRenderer.invoke('preview:status'); },
+  openScreenSettings() { ipcRenderer.send('preview:openSettings'); },
   // ticket #31 — SCREENS.probe()/enterShow() branch to these under
   // Electron. pickDisplay now takes the whole { id, label } object (not a
   // bare label string) so main's findDisplay() has a real Electron display

@@ -228,6 +228,74 @@ const QUEUE = {
     }));
     this.renderSets();
     this.paintThumbs();
+    this.renderShowPanel();
+  },
+
+  /* ============================================================
+     THE SHOW CONSOLE (ADR-0007) — the control window's running order.
+     Deliberately NOT renderList(): that one is the EDITOR (MIN input, OUT
+     select, ↑↓✕, thumbnails, shared sets) and it targets #queueList by id,
+     singular. This is a read-only running order with a live clock, and it
+     is the thing the operator actually looks at during a show — the picture
+     is on the wall behind them.
+     Split in two on purpose: renderShowPanel() rebuilds innerHTML and runs
+     ONLY when the set changes; paintShowPanel() runs every frame and only
+     ever writes textContent/classList. Rebuilding the DOM at 60fps is what
+     made SHOW CHECK's buttons flicker, and this list has click targets.
+     ============================================================ */
+  renderShowPanel() {
+    const ol = document.getElementById('sqList');
+    if (!ol) return;
+    const empty = document.getElementById('sqEmpty');
+    if (empty) empty.style.display = this.list.length ? 'none' : 'block';
+    ol.innerHTML = this.list.map((id, i) => {
+      const c = this.cfgFor(id);
+      return `<li data-sqid="${id}" title="Open this scene on the wall">
+        <span class="sqn">${i + 1}</span>
+        <span class="sqid">${id}</span>
+        <span class="sqt">${esc(this.titleOf(id))}</span>
+        <span class="sqm">${c.min || this.DWELL_MIN}m</span>
+      </li>`;
+    }).join('');
+    // click a row to jump the SHOW there — openFocus already relays
+    ol.querySelectorAll('li').forEach(li => li.addEventListener('click', () => {
+      const tile = this.tileFor(li.dataset.sqid);
+      if (!tile || !tile.cur) return;
+      closeFocus(); openFocus(tile.cur.idx);
+    }));
+    this.paintShowPanel();
+  },
+  paintShowPanel() {
+    const ol = document.getElementById('sqList');
+    if (!ol || !ol.children.length && !this.list.length) return;
+    const curFam = focus.idx >= 0 ? famOf(PIECES[focus.idx]) : null;
+    // tele.rotAt is an ABSOLUTE deadline stamped by the show window's dwell
+    // timer. Both windows are one machine, so subtracting our own Date.now()
+    // is exact — and smooth between the 4Hz packets that carry it, which a
+    // relayed "seconds remaining" could never be.
+    const left = tele.rotAt ? Math.max(0, tele.rotAt - Date.now()) : 0;
+    const clock = ms => Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0');
+    const set = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
+
+    const ci = curFam ? this.list.indexOf(curFam) : -1;
+    set(document.getElementById('sqNowTitle'), curFam ? this.titleOf(curFam) : '—');
+    set(document.getElementById('sqNowClock'), tele.rotAt ? clock(left) : '—:—');
+    const nextId = ci >= 0 && this.list.length ? this.list[(ci + 1) % this.list.length] : null;
+    set(document.getElementById('sqNowNext'), 'next: ' + (nextId ? this.titleOf(nextId) : '—'));
+    const bar = document.querySelector('#sqBar i');
+    if (bar) {
+      const pct = tele.rotMs ? Math.max(0, Math.min(100, (1 - left / tele.rotMs) * 100)) : 0;
+      const w = pct.toFixed(1) + '%';
+      if (bar.style.width !== w) bar.style.width = w;
+    }
+    [...ol.children].forEach(li => {
+      const on = li.dataset.sqid === curFam;
+      li.classList.toggle('on', on);
+      const m = li.querySelector('.sqm');
+      // the scene on stage counts DOWN; the rest just state their MIN
+      if (on && tele.rotAt) set(m, clock(left));
+      else set(m, (this.cfgFor(li.dataset.sqid).min || this.DWELL_MIN) + 'm');
+    });
   },
 
   /* THUMBNAILS — SRC numbers are unreadable as a set list at 3am, so each row
@@ -421,6 +489,132 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendRigStatus) {
 if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onRigStatus) {
   window.electronAPI.onRigStatus(s => { Object.assign(rigRelay, s); });
 }
+/* telemetry:tick (ADR-0003's last unbuilt channel, ADR-0007) — what the WALL
+   is doing, 4x a second. The control window no longer runs its own copy of
+   the scene, so everything it used to read off its own focus.P / T / H / MOut
+   comes from here instead: the dwell deadline behind the countdown, the act
+   chip highlight, the chord readout, and the MIDI note activity the monitor
+   and THE RIG rack light up from (those are fed ONLY by a scene's audio()
+   tick, which now happens exclusively in the show window). */
+const tele = {
+  sceneId: null, act: 0, rotAt: 0, rotMs: 0, chordHud: '', beatPhase: 0,
+  fps: 0, lastByRole: {}, log: [], at: 0,
+};
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendTelemetry) {
+  let sentUpTo = 0;
+  setInterval(() => {
+    // Only the TAIL of MOut.log since the last tick — the full log holds up to
+    // 900 events and shipping it 4x a second would be pure waste.
+    const log = MOut.log.slice(sentUpTo);
+    sentUpTo = MOut.log.length;
+    // MOut.log self-trims (splice(0,300) past 900), which walks the index
+    // backwards; resync rather than slicing from a stale offset.
+    if (sentUpTo > MOut.log.length) sentUpTo = MOut.log.length;
+    const rot = window.SHOW ? SHOW.rotationState() : { rotAt: 0, rotMs: 0 };
+    // MOut.log stamps events with performance.now(), whose TIME ORIGIN is
+    // per-document — the two windows' clocks start at different moments, so
+    // shipping those numbers raw would plot the wall's notes against the
+    // console's timeline and smear the whole monitor. Convert to epoch here;
+    // the receiver converts back into its own performance clock.
+    const toEpoch = Date.now() - performance.now();
+    window.electronAPI.sendTelemetry({
+      sceneId: focus.idx >= 0 ? PIECES[focus.idx].id : null,
+      act: (focus.P && focus.P.state && focus.P.state.act) || 0,
+      rotAt: rot.rotAt, rotMs: rot.rotMs,
+      chordHud: document.getElementById('oChord')?.textContent || '',
+      beatPhase: (typeof T !== 'undefined' && T.running) ? T.phase(1) : 0,
+      fps: window.__showFps || 0,
+      lastByRole: MOut.lastByRole,
+      log: log.slice(-120).map(e => ({ ...e, p: e.p + toEpoch })),
+      at: Date.now(),
+    });
+  }, 250);
+}
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onTelemetry) {
+  window.electronAPI.onTelemetry(t => {
+    if (!t) return;
+    Object.assign(tele, t, { log: tele.log });
+    // Feed the relayed notes into the LOCAL MOut.log the monitor already
+    // draws from, rather than teaching drawMonitor a second data source.
+    if (t.log && t.log.length) {
+      // back out of epoch into THIS document's performance clock (see the
+      // sender) so drawMonitor plots the wall's notes on our own timeline
+      const toPerf = performance.now() - Date.now();
+      MOut.log.push(...t.log.map(e => ({ ...e, p: e.p + toPerf })));
+      if (MOut.log.length > 900) MOut.log.splice(0, MOut.log.length - 600);
+    }
+    if (t.lastByRole) MOut.lastByRole = t.lastByRole;
+    const el = document.getElementById('oChord');
+    if (el && t.chordHud && el.textContent !== t.chordHud) el.textContent = t.chordHud;
+    if (typeof QUEUE !== 'undefined' && QUEUE.paintShowPanel) QUEUE.paintShowPanel();
+    // titles resolve off the wall's tiles, which are built after QUEUE.boot()
+    // — if the very first telemetry lands before a row list exists, build it
+    if (typeof QUEUE !== 'undefined' && !document.querySelector('#sqList li') && QUEUE.list.length) QUEUE.renderShowPanel();
+  });
+}
+/* THE LIVE FEED (ADR-0007) — control window only. The picture here is the
+   SHOW WINDOW's actual composited output, not a second render of the same
+   scene: it cannot drift from the wall, and it costs the show machine one
+   video encode instead of a whole duplicate scene + audio graph.
+   main answers the getDisplayMedia request with the show window directly
+   (setDisplayMediaRequestHandler), so no picker ever appears and the
+   operator cannot aim it at the wrong window. */
+const FEED = {
+  stream: null, status: 'idle',
+  note(msg, on) {
+    const n = document.getElementById('feedNote');
+    if (!n) return;
+    n.textContent = msg || '';
+    n.classList.toggle('on', !!on);
+  },
+  async start() {
+    if (window.ELECTRON_ROLE !== 'control' || this.stream) return;
+    const v = document.getElementById('showFeed');
+    if (!v || !navigator.mediaDevices?.getDisplayMedia) return;
+    try {
+      // audio:false is deliberate — the show window is the only thing that
+      // should ever make noise, and capturing it back would double it.
+      this.stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      v.srcObject = this.stream;
+      this.status = 'live';
+      this.note('', false);
+      // the show window can be closed/reloaded under us; recover rather than
+      // sitting on a frozen last frame that looks like a hung show
+      this.stream.getVideoTracks().forEach(tr => tr.addEventListener('ended', () => {
+        this.stream = null; this.status = 'ended';
+        this.note('FEED ENDED — retrying…', true);
+        setTimeout(() => this.start(), 1200);
+      }));
+    } catch (e) {
+      this.stream = null;
+      this.status = 'denied';
+      // On macOS this is almost always the Screen Recording grant. Say so
+      // here AND in SHOW CHECK — a black rectangle explains nothing at 3am.
+      this.note('NO PREVIEW — macOS Screen Recording permission needed for this app. SHOW CHECK → Preview has the fix. The wall itself is unaffected.', true);
+    }
+  },
+};
+if (window.ELECTRON_ROLE === 'control') {
+  // one gesture-free attempt at boot; Electron grants same-app capture
+  // without a user gesture, so this just works when the OS grant is there
+  setTimeout(() => FEED.start(), 400);
+}
+// SHOW CHECK reads this; polled rather than asked once, because the operator
+// can grant the permission WHILE the pre-flight is open and should see it go
+// green without relaunching.
+const previewPerm = { status: 'checking' };
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.previewStatus) {
+  const poll = () => window.electronAPI.previewStatus()
+    .then(st => {
+      const was = previewPerm.status;
+      previewPerm.status = st;
+      // granted after a denial? take the feed now instead of at next launch
+      if (was !== 'granted' && st === 'granted' && !FEED.stream) FEED.start();
+    })
+    .catch(() => { previewPerm.status = 'unknown'; });
+  poll();
+  setInterval(poll, 3000);
+}
 const SCREENS = {
   details: null, chosen: null, denied: false,
   // Electron path (ticket #31): never touches the web Window Management
@@ -595,6 +789,34 @@ const PRE = {
         : 'empty — the show would fall back to all ' + FAMS.length + ' scenes in library order',
       fix: ['OPEN QUEUE', () => { this.close(); document.getElementById('queuePop').classList.add('open'); }] });
 
+    // ADR-0007: the control window's picture is a capture of the show window,
+    // and macOS gates that behind Screen Recording. A missing grant is a BLACK
+    // PREVIEW with no error — indistinguishable from a dead show — so it gets
+    // a row like every other environmental precondition.
+    if (inControl) {
+      // Report what is ACTUALLY TRUE — whether a stream is running — not
+      // what a permission API implies. The feed captures the show window's
+      // web frame rather than the OS screen, so on some setups it works with
+      // no grant at all; inferring from getMediaAccessStatus would warn
+      // falsely there. Permission is only consulted to EXPLAIN a failure.
+      const live = FEED.status === 'live';
+      const perm = previewPerm.status;
+      r.push({ k: 'preview', sec: 'show', label: 'Preview',
+        lvl: live ? 'ok' : FEED.status === 'denied' ? 'warn' : 'ok',
+        txt: live ? 'live feed of the SHOW window — this is the wall itself, not a second render'
+          : FEED.status === 'denied'
+            ? 'no preview here' + (perm === 'denied' || perm === 'restricted'
+                ? ' — macOS is blocking screen recording for this app' : '')
+              + '. THE WALL IS UNAFFECTED; this is the console\u2019s picture only.'
+          : FEED.status === 'ended' ? 'feed dropped — reconnecting…'
+          : 'connecting to the SHOW window…',
+        fix: FEED.status === 'denied' ? ['RETRY', () => {
+          if (perm === 'denied' || perm === 'restricted') {
+            if (window.electronAPI?.openScreenSettings) window.electronAPI.openScreenSettings();
+          }
+          FEED.start();
+        }] : null });
+    }
     r.push({ k: 'screen', sec: 'show', label: 'Display',
       lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
       txt: this.screenText(), screenPicker: true });
@@ -1241,6 +1463,18 @@ window.addEventListener('keydown', e => {
   // hands are the one thing this window is meant to accept.
   if (window.ELECTRON_ROLE === 'show') return;
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  // Nima: "left/right in control mode should go up and down the QUEUE but it
+  // goes through a different list." It did — this handler walks the WALL in
+  // its current sort/filter order, while the edge arrows next to it walk the
+  // SET (step() -> showList()). Two controls that look identical, two
+  // different lists. In the show console the set list is on screen and is
+  // the thing these keys visibly move through, so route them to the same
+  // step() the edges use. showList() falls back to wall order when the queue
+  // is empty, so this never dead-ends.
+  if (window.ELECTRON_ROLE === 'control' && window.SHOW) {
+    if (e.key === 'ArrowRight') SHOW.next(); else SHOW.prev();
+    return;
+  }
   const tiles = [...grid.children]
     .filter(t2 => t2.style.display !== 'none')
     .sort((a2, b2) => (+a2.style.order || 0) - (+b2.style.order || 0));
@@ -1458,7 +1692,15 @@ document.getElementById('oActs').addEventListener('click', e => {
     rotAt = Date.now() + left;
     rotT = setTimeout(() => step(1), left);
   }
-  window.SHOW = { next: () => step(1), prev: () => step(-1), resetRotation, retimeRotation };
+  // rotationState() is how telemetry:tick reads the dwell clock without the
+  // countdown having to live out here. rotAt is an absolute Date.now()
+  // deadline on purpose: the control window is the same machine, so it can
+  // interpolate a smooth countdown from one number instead of us shipping a
+  // "seconds left" that would be stale the instant it arrived.
+  window.SHOW = {
+    next: () => step(1), prev: () => step(-1), resetRotation, retimeRotation,
+    rotationState: () => ({ rotAt, rotMs }),
+  };
   // DBG — the little truth window: is the rig actually feeling your hands?
   const dbg = document.getElementById('dbg'), body = document.getElementById('dbgBody');
   document.getElementById('dbgTab').addEventListener('click', () => dbg.classList.toggle('open'));
@@ -1467,6 +1709,9 @@ document.getElementById('oActs').addEventListener('click', e => {
   setInterval(() => {
     const now = performance.now();
     fps = Math.round(frames * 1000 / (now - fpsT)); frames = 0; fpsT = now;
+    // telemetry:tick reports this outward — in the control window the useful
+    // number is the SHOW window's frame rate (the wall's), not the console's
+    window.__showFps = fps;
     // #dbg is display:none unless #overlay.fs, which the show window forces
     // unconditionally (ADR-0003, above) but the control window never gets
     // (it is never really document.fullscreenElement) — so DBG belongs to
@@ -1647,34 +1892,11 @@ QUEUE.boot();
 })();
 applyLibrary();
 
-// MIRROR fidelity governor (ADR-0005) — control-window-only. Per ADR-0003
-// the control window renders every focused scene locally, same as the show
-// window; that doubles rendering load while a scene is open. Default
-// Throttled caps how often P.def.step/draw run to ~20fps (a dt-accumulator,
-// not a frame-count stride, since nothing asserts the control window's
-// actual display Hz); the MIRROR pill lets the operator opt up to Full.
-// The show window is untouched either way — ELECTRON_ROLE is never 'control'
-// there, and it's null outside Electron entirely.
-let mirrorFull = false, mirrorAcc = 0;
-const MIRROR_INTERVAL = 1 / 20;
-if (window.ELECTRON_ROLE === 'control') {
-  try { mirrorFull = localStorage.getItem('srcMirrorRate') === 'full'; } catch (e) {}
-  const mt = document.getElementById('mirrorTab');
-  if (mt) {
-    mt.style.display = 'inline-block';
-    const applyMirror = () => {
-      mt.textContent = 'MIRROR: ' + (mirrorFull ? 'FULL' : 'THROTTLED');
-      mt.classList.toggle('on', mirrorFull);
-    };
-    mt.addEventListener('click', () => {
-      mirrorFull = !mirrorFull;
-      try { localStorage.setItem('srcMirrorRate', mirrorFull ? 'full' : 'throttled'); } catch (e) {}
-      applyMirror();
-    });
-    applyMirror();
-  }
-}
-
+// ADR-0007 superseded ADR-0005's MIRROR governor and it is gone with it.
+// The governor existed because the control window ran its own copy of every
+// scene and that doubled render cost on the show machine; the control window
+// no longer renders scenes at all — its picture is a video feed of the show
+// window — so there is nothing left to throttle and no pill to throttle it
 let last = 0, fc = 0;
 function frame(ts) {
   const t = ts / 1000;
@@ -1703,15 +1925,9 @@ function frame(ts) {
       const el = document.getElementById('oChord');
       if (el && el.textContent !== hud) el.textContent = hud;
     }
-    let stepDt = dt, doStep = true;
-    if (window.ELECTRON_ROLE === 'control' && !mirrorFull) {
-      mirrorAcc += dt;
-      if (mirrorAcc < MIRROR_INTERVAL) doStep = false;
-      else { stepDt = mirrorAcc; mirrorAcc = 0; }
-    }
     try {
-      if (doStep) {
-        P.def.step(P, stepDt, t, inp);
+      {
+        P.def.step(P, dt, t, inp);
         P.def.draw(P, P.g, P.w, P.h, t, inp);
         // Nima, review fix: this composite block (drawImage/ghost-pass/
         // bloomTo/edgeFadeCtx/SCRIMVIEW.render) used to sit OUTSIDE the
@@ -1748,7 +1964,11 @@ function frame(ts) {
       }
     } catch (e) { console.error(P.def.id, e); }
     if (focus.voice && AE.on) { try { focus.voice.tick(inp, dt); } catch (e) {} }
-  } else {
+  } else if (focus.idx < 0) {
+    // Only the LIBRARY WALL renders here. Before ADR-0007, "no focus.P" and
+    // "no scene open" were the same condition; in the control window they no
+    // longer are — a scene IS open, it just has no local instance — and
+    // without this guard the wall's 43 tiles would render behind it.
     fc++;
     insts.forEach((P, i) => {
       if (!P.visible || (fc + i) % 2) return;
@@ -1758,6 +1978,11 @@ function frame(ts) {
       } catch (e) { console.error(P.def.id, e); }
     });
   }
+  // ADR-0007: the console's clock is the thing that must be smooth, so it
+  // repaints every frame off tele.rotAt. textContent only, never innerHTML —
+  // that list carries click targets, and rebuilding DOM at 60fps is exactly
+  // what made SHOW CHECK's buttons flicker.
+  if (window.ELECTRON_ROLE === 'control' && typeof QUEUE !== 'undefined') QUEUE.paintShowPanel();
   requestAnimationFrame(frame);
 }
 // The show window's global controls, driven from the control window over
