@@ -515,11 +515,12 @@ const MOut = {
    when the clock is idle is a comparison, and there is no start/stop wiring
    for scene code to forget. ---------- */
 try {
-  /* role→channel boot: rig.json (baked as RIGDOC) is the agreement — the
-     default map follows its `ch` values, so editing rig.json re-wires every
-     browser at the next build to match the actual Live set. A RIG-panel
-     remap is stored per-browser as a DIFF against the doc (srcRoleMap), so
-     un-touched roles keep following rig.json across rebuilds. */
+  /* role→channel boot: rig.json (baked as RIGDOC) IS the map — the ONLY
+     map. There is deliberately no per-browser remap any more (Lance,
+     Aug 2026: "this is what the software understands — remove room for
+     error"): a stale stored override once silently re-routed a whole
+     audition. Change the Live set → edit rig.json → rebuild; every
+     browser matches the set, always. The stale key is purged. */
   try {
     if (typeof RIGDOC !== 'undefined' && RIGDOC.roles) {
       for (const r in MOut.roles) {
@@ -527,8 +528,7 @@ try {
         if (d && d.ch >= 1 && d.ch <= 16) MOut.roles[r] = d.ch;
       }
     }
-    const ov = JSON.parse(localStorage.getItem('srcRoleMap') || 'null');
-    if (ov) for (const r in MOut.roles) if (ov[r] >= 1 && ov[r] <= 16) MOut.roles[r] = ov[r];
+    localStorage.removeItem('srcRoleMap');
   } catch (e) {}
   const ck = localStorage.getItem('srcMidiClock');
   if (ck !== null) MOut.clock.on = ck === '1';
@@ -702,6 +702,11 @@ AE.SB = {
   AE.padVoices = function (v, n, opts) {
     v._noHold = true;   // its pad voices are mirrored individually below
     const voices = _padVoices(v, n, opts);
+    // opts.midi === false: browser-color only — a scene whose floor is a
+    // standing stack of pad voices must NOT hold that stack in Live (Lance:
+    // Chladni's five held SHRINE notes drowned everything; the pad channel
+    // is for INTENTIONAL notes, not washes)
+    if (opts && opts.midi === false) return voices;
     for (const vc of voices) {
       const _set = vc.set.bind(vc);
       // velocity from the voice's ACTUAL gain, not a constant — measured
