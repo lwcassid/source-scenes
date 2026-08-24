@@ -157,10 +157,14 @@ designed.
 **What doesn't work yet**: LEARN (hand-sensor CC mapping) and MIDI-input
 device picking now DO run from the control window — relayed to the show
 window over `midi:learnStart` / `midi:learnResult` / `midi:setInput`, same
-shape as the CONNECT/TEST relay. Calibration (SET REST / INVERT) is the
-one MIDI thing still show-window-only — it needs a live raw-value stream
-during an active sweep that isn't relayed; do it directly in the show
-window, whose own SHOW CHECK panel is unaffected. Queue edits DO reach the
+shape as the CONNECT/TEST relay. Calibration works from the console too:
+SET REST / INVERT / CLEAR relay over `show:control`, and SHOW CHECK's
+Calibration row has its fix button back. **SET REST samples what the
+sensors read with NOBODY at the instrument** — stand clear before pressing,
+and LEARN both hands first, because REST only samples a source that is
+already bound. The one piece still show-only is the live raw readout in the
+MAP popover: that needs a value stream nothing relays, so it is hidden in
+the console rather than shown empty. Queue edits DO reach the
 show window now (`queue:update`, pushed from `QUEUE.save()` — the choke
 point every mutation already funnels through): reorder the set, drop a
 scene or change a MIN/OUT and SHOWTIME follows live. Changing MIN on the

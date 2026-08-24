@@ -309,7 +309,7 @@ const midi = {
 // Review pass: inputId relayed too, so the control window's IN
 // dropdown can show the show window's real selection instead of always
 // defaulting to ALL DEVICES.
-const midiRelay = { connected: false, inputs: [], outputs: [], map: { L: null, R: null }, calRested: { L: false, R: false }, denied: false, inputId: 'all' };
+const midiRelay = { connected: false, inputs: [], outputs: [], map: { L: null, R: null }, calRested: { L: false, R: false }, calInv: { L: false, R: false }, denied: false, inputId: 'all' };
 // Nima: clicking CONNECT in the control window relays the request and
 // returns immediately (the real connect happens in the show window) — with
 // nothing marking that gap, the button just vanished once midiRelay caught
@@ -505,7 +505,24 @@ const srcKey = m => m ? m.type + ':' + m.ch + ':' + m.num + ':' + m.dev : '';
 /* REST — hold everyone back from the instrument and press this. Whatever the
    sensors read with nobody there becomes the zero point of presence, which is
    what lets an always-streaming rangefinder ever go idle. */
+// Nima: "I always see REST not set. How do I set that?" — because in the
+// control window there was no button: the whole calibration box was hidden
+// and SHOW CHECK's fix said "set it in the SHOW window", which means walking
+// to the projector. The stated reason was that calibration needs a live
+// raw-value stream, and that is only half true: SET REST is a fire-and-forget
+// 1.6s sample whose RESULT already comes back over midiRelay.calRested. Only
+// the live #calRead readout genuinely needs the stream. So the three actions
+// relay; the readout stays show-only and is hidden here rather than lying.
+let restPending = false, restPendingTimer = null;
 function startRest() {
+  if (window.ELECTRON_ROLE === 'control') {
+    if (window.electronAPI) window.electronAPI.sendShowControl('setRest');
+    restPending = true;                       // covers the 1.6s sample + round trip
+    clearTimeout(restPendingTimer);
+    restPendingTimer = setTimeout(() => { restPending = false; refreshMidiUI(); }, 2000);
+    refreshMidiUI();
+    return;
+  }
   if (midi.restSampling) return;
   midi.restSampling = true;
   midi.restData = { L: [], R: [] };
@@ -530,11 +547,19 @@ function finishRest() {
   refreshMidiUI();
 }
 function setInvert(side, on) {
+  if (window.ELECTRON_ROLE === 'control') {
+    if (window.electronAPI) window.electronAPI.sendShowControl('invert', side);
+    return;   // the show window flips it and relays the new state back
+  }
   const cal = midi.cal[side] || (midi.cal[side] = { lo: 0, hi: 1, inv: false, rest: null });
   cal.inv = on === undefined ? !cal.inv : !!on;
   saveCal(); refreshMidiUI();
 }
 function clearCal() {
+  if (window.ELECTRON_ROLE === 'control') {
+    if (window.electronAPI) window.electronAPI.sendShowControl('calClear');
+    return;
+  }
   midi.cal.L = null; midi.cal.R = null;
   for (const side of ['L', 'R']) { chan[side].hist.length = 0; chan[side].absentSince = 0; }
   saveCal(); refreshMidiUI();
@@ -752,6 +777,7 @@ function relayMidiDevicesIfElectron() {
       L: !!(midi.cal.L && midi.cal.L.rest !== null && midi.cal.L.rest !== undefined),
       R: !!(midi.cal.R && midi.cal.R.rest !== null && midi.cal.R.rest !== undefined),
     },
+    calInv: { L: !!(midi.cal.L && midi.cal.L.inv), R: !!(midi.cal.R && midi.cal.R.inv) },
     denied: false, // clears any stale denial from an earlier failed attempt
     inputId: midi.inputId,
   });
@@ -785,7 +811,22 @@ function refreshMidiUI() {
     bl.classList.toggle('learning', midiLearnPending.L);
     br.classList.toggle('learning', midiLearnPending.R);
     const box = document.getElementById('calBox');
-    if (box) box.style.display = 'none';
+    if (box) {
+      box.style.display = '';
+      const rb = document.getElementById('btnRest');
+      if (rb) { rb.textContent = restPending ? 'SAMPLING…' : 'SET REST'; rb.classList.toggle('learning', restPending); }
+      for (const side of ['L', 'R']) {
+        const ib = document.getElementById('btnInv' + side);
+        if (ib) ib.classList.toggle('off', !midiRelay.calInv[side]);
+      }
+      // #calRead is the LIVE raw-value stream, which is not relayed — an
+      // empty box here would read as "the sensors are dead", so hide it and
+      // say where it lives instead.
+      const rd = document.getElementById('calRead');
+      if (rd) rd.style.display = 'none';
+      const note = document.getElementById('calRelayNote');
+      if (note) note.style.display = '';
+    }
     if (sel) {
       if (midiRelay.connected) {
         sel.style.display = '';

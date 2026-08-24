@@ -1034,8 +1034,8 @@ const PRE = {
     r.push({ k: 'cal', sec: 'rig', label: 'Calibration', lvl: !midiConnected ? 'ok' : rested === 2 ? 'ok' : 'warn',
       txt: !midiConnected ? 'not needed without hardware'
         : rested === 2 ? 'both hands ranged and rested — idle detection is live'
-        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle' + (inControl ? ' — set it in the SHOW window' : ''),
-      fix: (midiConnected && !inControl) ? ['SET REST', () => startRest()] : null });
+        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle. Stand clear of the instrument first: REST is what the sensors read with NOBODY there.',
+      fix: midiConnected ? ['SET REST', () => startRest()] : null });
 
     // control window: MOut.mode/port/clock are local stand-ins that never
     // reflect what the show window is actually sending (same bug class as
@@ -2267,6 +2267,11 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     else if (kind === 'outPort') MOut.selectPortByName(value);
     else if (kind === 'ghosts') sceneGhosts = !!value;
     else if (kind === 'navDevice') { NAV.dev = value || null; NAV.save(); NAV.relay(); }
+    // calibration, driven from the console (ADR-0006's last show-only gap).
+    // The results ride home on the existing midi:devices relay.
+    else if (kind === 'setRest') startRest();
+    else if (kind === 'invert') setInvert(value);
+    else if (kind === 'calClear') clearCal();
     // reseed carries the SEED control just used, so the mirror and the wall
     // land on the same picture instead of two different random ones
     else if (kind === 'reseed') { if (focus.P) focus.P.reinit(typeof value === 'number' ? value : (Math.random() * 1e9) | 0); }

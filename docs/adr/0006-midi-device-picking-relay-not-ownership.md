@@ -58,6 +58,9 @@ the time this was verified — see Consequences for what a later pass wired.)
   over `midi:setInput` — `midi.inputId` is still in-memory only in the
   show window, so neither window persists that choice across a restart,
   matching pre-existing single-tab behavior.
+- SUPERSEDED BELOW: calibration's actions now relay over `show:control`
+  (SET REST / INVERT / CLEAR), leaving only the live raw readout show-only.
+  The original reasoning — kept because it was half right — was:
 - Calibration (hand-range sweep: SET REST / INVERT) is the one thing still
   show-window-only — it needs live raw-value feedback during an active
   sweep, which needs its own narrow, temporary relay (extending the

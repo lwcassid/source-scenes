@@ -637,6 +637,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <button id="btnCalClear" title="Forget range, polarity and rest for both hands">CLEAR</button>
           </div>
     <pre id="calRead"></pre>
+    <p id="calRelayNote" style="display:none">The live raw readout only exists in the SHOW window — it needs a value stream that isn't relayed. The buttons above are real: they run there and report back.</p>
     <p>The LEARN sweep already stored each control's working range, so full reach reaches <b>1.00</b>. Two things are worth doing on the show machine: press <b>SET REST</b> with nobody at the instrument — a rangefinder streams a value whether or not a hand is there, and this is what lets scenes go idle and tease again — and flip <b>INVERT</b> if the readout drops when you reach outward. By default every scene reads <b>at the source = 0, arm's reach = 1</b>; The grammar is fixed: <b>leaning in toward the source = intensity</b>, every scene, every input — nothing to configure. (A sensor that reads backwards is corrected with its own INVERT above.)</p>
   </div>
 </div>

@@ -117,6 +117,8 @@ each via the Chrome DevTools Protocol:
   mitigates, not eliminates, the 2x-rendering-load risk this ADR flagged —
   the control window also runs a full (muted) audio graph per the gate
   change above, unconditionally, regardless of the mirror throttle.
-- Calibration (SET REST / INVERT) and forcing the show window's view/
-  frame/panels state remotely on PLAY remain show-window-only — see
-  CLAUDE.md's electron/ section for the current list.
+- Calibration's ACTIONS (SET REST / INVERT / CLEAR) relay over
+  `show:control`; only the live raw readout stays show-only, because that is
+  the part that genuinely needs a value stream. Forcing the show window's
+  view/frame/panels state remotely was dropped, not deferred — ADR-0007's
+  input lockdown made that state unreachable instead.
