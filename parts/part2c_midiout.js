@@ -174,11 +174,12 @@ const MOut = {
   _exprState: {},
   expr(role, v01) {
     const now = performance.now();
-    const st = this._exprState[role] || (this._exprState[role] = { t: 0, v: -1 });
-    if (now - st.t < 50) return;
+    const st = this._exprState[role] || (this._exprState[role] = { t: 0, v: -1, s: 0 });
+    st.t = now;                    // the scene SPOKE — even if the value held
+    if (now - st.s < 50) return;   // rate-limit actual sends
     const v = Math.round(clamp(v01) * 127);
     if (v === st.v) return;
-    st.t = now; st.v = v;
+    st.s = now; st.v = v;
     // short history ring so the console timeline can draw the CC74 ride
     const lg = this._exprLog[role] || (this._exprLog[role] = []);
     lg.push({ p: now, v });
@@ -541,6 +542,26 @@ try {
   if (ck !== null) MOut.clock.on = ck === '1';
 } catch (e) {}
 setInterval(() => MOut.clockPump(), 20);
+// CC74 watchdog (Lance: "the piano's auto-filter was reduced AGAIN — manage
+// it better"): a role whose expr stream has gone quiet for 5s is UNATTENDED,
+// and an unattended lane parks OPEN — so a scene that stopped speaking (or a
+// closed tab, or a scene that only streams while playing) can never leave a
+// filter shut in the Live set. Active scenes are untouched: expr() stamps
+// st.t on every call, even when the value repeats.
+setInterval(() => {
+  const M = MOut;
+  if (M.suspend || !M.wants() || !M.port) return;
+  const now = performance.now();
+  for (const role in M.roles) {
+    const st = M._exprState[role];
+    if (st && st.v >= 0 && st.v < 127 && now - st.t > 5000) {
+      st.t = now; st.s = now; st.v = 127;
+      M.cc(M.chFor(role), 74, 127);
+      const lg = M._exprLog[role] || (M._exprLog[role] = []);
+      lg.push({ p: now, v: 127 });
+    }
+  }
+}, 2000);
 // Chrome throttles a hidden window's timers to 1Hz+ — and on mac a window
 // fully COVERED by Live counts as hidden. Worker timers are exempt, so a
 // tiny Worker heartbeat keeps the clock's cadence while you mix behind Live.
@@ -550,7 +571,7 @@ try {
   _ckw.onmessage = () => { try { MOut.clockPump(); } catch (e) {} };
 } catch (e) {}
 // leaving the page must not strand Live running on a clock that stopped arriving
-window.addEventListener('pagehide', () => { try { MOut.clockStop(); } catch (e) {} });
+window.addEventListener('pagehide', () => { try { MOut.allOff(); } catch (e) {} });
 
 /* ============================================================
    SOUNDING BUS — what the board is ringing with, right now

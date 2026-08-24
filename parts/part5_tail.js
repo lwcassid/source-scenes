@@ -1934,6 +1934,12 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   const roleAt = {};
   for (const r in MOut.roles) roleAt[MOut.roles[r]] = r;
   const rows = [];
+  // HANDS lane first: the raw CC1/CC2 curves above the channels, so cause
+  // (the gesture) sits directly over effect (the notes)
+  const handsRow = document.createElement('div');
+  handsRow.className = 'rkhands';
+  handsRow.innerHTML = '<span class="rkch">·</span><span>HANDS L / R</span>';
+  rack.appendChild(handsRow);
   // COLLAPSED = identity + liveness, EXPANDED = values + tools (the shell
   // law): a thin row is just CH · dot · Live track name; the lane beside it
   // is the activity display, so no readout text belongs on the row. Opening
@@ -1951,15 +1957,14 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
       '\n\nClick to expand: tools + a piano-roll of this channel.';
     div.innerHTML = `<span class="rkch">${ch}</span>
       <i style="background:${role ? MOut.ROLE_COLORS[role] : '#3a3a3a'}"></i>
-      <span class="rki">${esc(name)}</span>`;
+      <span class="rki">${esc(name)}</span>${role ? `<em class="rkr">${role}</em>` : ''}`;
     rack.appendChild(div);
     const x = document.createElement('div');
     x.className = 'rkx'; x.hidden = true;
-    x.innerHTML = `<span class="rkxrole"><i style="background:${role ? MOut.ROLE_COLORS[role] : '#3a3a3a'}"></i>${role || 'no role'} · CH ${ch}</span>
-      <span class="rkevt">—</span>
-      ${role ? '<span class="rkcc"><u></u></span>' : ''}
-      <span class="rkxbtns">
-        <button class="rkt" title="One test note on CH ${ch} (use OUTSIDE Cmd+M) — does the right track answer?">♪ TEST</button>
+    x.innerHTML = `<span class="rkevt">—</span>
+      <span class="rkxtools">
+        ${role ? '<span class="rkcc" title="This channel\'s live CC74 (energy) value"><u></u></span>' : ''}
+        <button class="rkt" title="One test note on this channel (use OUTSIDE Cmd+M) — does the right track answer?">♪ TEST</button>
         ${role ? '<button class="rkm" title="For Cmd+M: click the knob in Live, then this — wiggles ONLY this channel\'s CC74.">MAP</button>' : ''}
       </span>`;
     rack.appendChild(x);
@@ -1993,6 +1998,32 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     });
     div.addEventListener('click', () => { x.hidden = !x.hidden; });
   }
+
+  // ---- THE SPLIT (Lance): drag the console's top edge to trade picture
+  // height for music-area height; the console scrolls inside itself.
+  (function () {
+    const drag = document.getElementById('conDrag');
+    const ov = document.getElementById('overlay');
+    if (!drag || !ov) return;
+    try { const h = +localStorage.getItem('srcConH'); if (h > 100) ov.style.setProperty('--conH', h + 'px'); } catch (e) {}
+    let startY = 0, startH = 0;
+    const move = e => {
+      const h = Math.max(120, Math.min(window.innerHeight * 0.75, startH + (startY - e.clientY)));
+      ov.style.setProperty('--conH', h + 'px');
+    };
+    const up = () => {
+      drag.classList.remove('dragging');
+      window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
+      try { localStorage.setItem('srcConH', parseInt(ov.style.getPropertyValue('--conH')) || ''); } catch (e) {}
+    };
+    drag.addEventListener('mousedown', e => {
+      e.preventDefault();
+      startY = e.clientY;
+      startH = document.querySelector('.oconsole').getBoundingClientRect().height;
+      drag.classList.add('dragging');
+      window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+    });
+  })();
 
   // ---- PAUSE EVERYTHING (Lance): one button, whole performance ----------
   let pausedBed;
@@ -2066,15 +2097,52 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     if (!lanes || !overlay.classList.contains('open')) return;
     const W = lanes.clientWidth | 0, Hh = rackEl.offsetHeight | 0;
     if (!W || !Hh) return;
-    if (lanes.width !== W || lanes.height !== Hh) { lanes.width = W; lanes.height = Hh; }
+    if (lanes.width !== W || lanes.height !== Hh) {
+      lanes.width = W; lanes.height = Hh;
+      lanes.style.height = Hh + 'px';   // CSS box = bitmap, or the drawing squashes
+    }
     const g = lanes.getContext('2d');
     g.clearRect(0, 0, W, Hh);
     const now = performance.now();
     const x = p => W - (now - p) / WIN * W;
-    g.strokeStyle = 'rgba(128,128,128,.10)'; g.lineWidth = 1;
-    for (let tt = now - (now % 1000); tt > now - WIN; tt -= 1000) {
-      const xx = Math.round(x(tt)) + 0.5;
-      g.beginPath(); g.moveTo(xx, 0); g.lineTo(xx, Hh); g.stroke();
+    // PRODUCER GRID: beats faint, bars stronger — musicians think in bars,
+    // not seconds (fallback to seconds when no transport runs)
+    g.lineWidth = 1;
+    if (typeof T !== 'undefined' && T.running && AE.ctx) {
+      const nowA = AE.ctx.currentTime;
+      const perfOf = tA => now + (tA - nowA) * 1000;
+      const firstBeat = Math.ceil((nowA - WIN / 1000 - T.t0) / T.beat);
+      for (let k = firstBeat; ; k++) {
+        const pAt = perfOf(T.t0 + k * T.beat);
+        if (pAt > now) break;
+        const xx = Math.round(x(pAt)) + 0.5;
+        g.strokeStyle = k % 4 === 0 ? 'rgba(128,128,128,.22)' : 'rgba(128,128,128,.07)';
+        g.beginPath(); g.moveTo(xx, 0); g.lineTo(xx, Hh); g.stroke();
+      }
+    } else {
+      g.strokeStyle = 'rgba(128,128,128,.10)';
+      for (let tt = now - (now % 1000); tt > now - WIN; tt -= 1000) {
+        const xx = Math.round(x(tt)) + 0.5;
+        g.beginPath(); g.moveTo(xx, 0); g.lineTo(xx, Hh); g.stroke();
+      }
+    }
+    // the HANDS lane: raw CC1/CC2 curves over the channels — cause above effect
+    if (handsRow) {
+      const hy = handsRow.offsetTop + 2, hh = handsRow.offsetHeight - 4;
+      g.save(); g.beginPath(); g.rect(0, hy, W, hh); g.clip();
+      for (const [side, colr] of [['L', '#8fd48f'], ['R', '#c09aff']]) {
+        const cl = MOut.ccLog[side];
+        if (!cl || !cl.length) continue;
+        g.strokeStyle = colr; g.globalAlpha = 0.8; g.beginPath();
+        let st2 = false;
+        for (const c of cl) {
+          if (c.p < now - WIN) continue;
+          const cx = x(c.p), cy = hy + hh - (c.v / 127) * hh;
+          if (!st2) { g.moveTo(cx, cy); st2 = true; } else g.lineTo(cx, cy);
+        }
+        if (st2) g.stroke();
+      }
+      g.globalAlpha = 1; g.restore();
     }
     const L = MOut.log, byCh = {};
     for (let i = 0; i < L.length; i++) {
@@ -2093,9 +2161,11 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
         const sounding = Math.min(e.p + Math.max(150, e.durMs || 0), now);
         const x0 = Math.max(0, x(e.p)), x1 = Math.min(W, x(sounding));
         if (x1 <= x0) continue;
-        g.globalAlpha = 0.25 + 0.65 * (e.vel / 127);
+        // velocity reads as bar HEIGHT (drum-machine style), alpha assists
+        const bh = 3 + (e.vel / 127) * (rowH - 9);
+        g.globalAlpha = 0.35 + 0.55 * (e.vel / 127);
         g.fillStyle = col;
-        g.fillRect(x0, rowY + 4, Math.max(2, x1 - x0), rowH - 8);
+        g.fillRect(x0, rowY + (rowH - bh) / 2, Math.max(2, x1 - x0), bh);
       }
       g.restore(); g.globalAlpha = 1;
       if (!r.evts.hidden) {
@@ -2164,7 +2234,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     if (fold[key]) g.classList.add('fold');
     h.addEventListener('click', e => {
       if (e.target !== h) return; // controls inside the header keep working
+      // SCROLL-ANCHOR (Lance: "the header moves when it expands — bad UX"):
+      // whatever reflows, the header you clicked stays under your cursor.
+      const sc = g.closest('#sidebar') || g.closest('#librail') || document.scrollingElement;
+      const before = h.getBoundingClientRect().top;
       g.classList.toggle('fold');
+      const after = h.getBoundingClientRect().top;
+      if (sc) sc.scrollTop += after - before;
       fold[key] = g.classList.contains('fold');
       try { localStorage.setItem('srcFold', JSON.stringify(fold)); } catch (err) {}
     });

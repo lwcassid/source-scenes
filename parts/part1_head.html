@@ -300,8 +300,14 @@
   .lslider .lab .mode.live{color:#39ff5c}
 
   /* bottom console */
-  .oconsole{display:flex;align-items:flex-start;justify-content:center;gap:22px;padding:12px 60px 14px;
-    border-top:1px solid var(--line);flex-wrap:wrap;min-height:64px}
+  .oconsole{display:flex;align-items:flex-start;justify-content:center;gap:22px;padding:0 60px 10px;
+    border-top:1px solid var(--line);flex-wrap:wrap;min-height:64px;position:relative;
+    height:var(--conH,auto);overflow:hidden}
+  #conDrag{position:absolute;top:0;left:0;right:0;height:7px;cursor:ns-resize;z-index:5}
+  #conDrag:hover,#conDrag.dragging{background:linear-gradient(to bottom,var(--acc),transparent);opacity:.5}
+  #rackBox{display:flex;flex-direction:column;min-height:0;height:100%;padding-top:10px}
+  #rackBox .monHead{flex:none}
+  #rigSplit{overflow-y:auto;flex:1;min-height:0}
   .conBox{display:flex;flex-direction:column;gap:6px}
   .conBox.grow{flex:1;min-width:0}
   .whint{font-size:9.5px;line-height:1.65;letter-spacing:.04em;color:var(--txt-dim);max-width:640px}
@@ -310,23 +316,24 @@
      Live (rig.json, baked). Rows light while their lane is playing. */
   #rackBox{flex:1;min-width:0}
   #rigSplit{display:flex;align-items:flex-start;position:relative}
+  .rkrow .rkr{flex:none;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-faint);margin-left:auto;padding-right:2px}
   #rigSplit #roleRack{width:230px;flex:none;overflow:hidden}
-  #rigLanes{flex:1;min-width:0;align-self:stretch;border-left:1px solid var(--line)}
+  #rigLanes{flex:1;min-width:0;align-self:flex-start;border-left:1px solid var(--line)}
   /* collapsed = identity + liveness ONLY; the lane beside the row is the
      activity display. Tools and values live in the expanded panel. */
   #rigSplit .rkrow{height:22px;flex-wrap:nowrap;overflow:hidden}
   #rigSplit .rkrow .rki{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rkx[hidden]{display:none}
-  .rkx{height:90px;margin:0 0 2px;padding:4px 6px 4px 30px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
-  .rkx .rkxrole{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-dim);font-weight:700}
-  .rkx .rkxrole i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:-1px}
-  .rkx .rkevt{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rkx .rkcc{width:120px;height:5px;background:#1c1c20;border-radius:3px;overflow:hidden;flex:none}
+  .rkx{height:64px;margin:0 0 2px;padding:5px 6px 0 30px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+  .rkx .rkxtools{display:flex;gap:8px;align-items:center}
+  .rkx .rkevt{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  .rkx .rkcc{width:70px;height:5px;background:#1c1c20;border-radius:3px;overflow:hidden;flex:none}
   .rkx .rkcc u{display:block;height:100%;width:0;background:var(--acc);opacity:.7;transition:width .15s}
-  .rkx .rkxbtns{display:flex;gap:6px;align-items:center}
   .rkx .rkt,.rkx .rkm{flex:none;font-size:9px;letter-spacing:.08em;padding:1px 8px;background:none;border:1px solid var(--line);border-radius:3px;color:var(--txt-dim);cursor:pointer}
   .rkx .rkt:hover,.rkx .rkm:hover{color:var(--txt);border-color:var(--txt-dim)}
   .rkx .rkm.learning{color:var(--acc);border-color:var(--acc)}
+  .rkhands{display:flex;align-items:center;gap:6px;padding:2px 6px;height:18px;font-size:8.5px;color:var(--txt-faint);letter-spacing:.12em}
+  .rkhands .rkch{width:32px;flex:none;font-family:var(--mono)}
   .hsearch{display:flex;align-items:center;gap:10px;flex:1;min-width:0;margin:0 26px}
   .hsearch #searchBox{width:220px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
   .hsearch select{padding:6px 8px}
@@ -893,6 +900,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </div>
   </div>
   <div class="oconsole">
+    <div id="conDrag" title="Drag to resize the split between the picture and the music area — it sticks"></div>
     <div class="conBox grow" id="rackBox">
       <div class="monHead"><h5 class="conTitle">The rig</h5><span class="mflag" id="oOutState"></span><span id="oChord">—</span>
         <button id="btnPauseAll" title="PAUSE EVERYTHING — the scene freezes, every note in Live is released, the clock stops. PLAY resumes right where you were: bed and held notes re-strike on their own.">⏸ PAUSE</button>
