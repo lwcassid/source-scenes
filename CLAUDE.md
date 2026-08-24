@@ -86,7 +86,7 @@ is where you left it once a scene is open. INFORMATION lives in that column
 too, NEXT TO WHAT IT DESCRIBES: the experience summary (`desc`) heads the
 sidebar clamped (`MORE` expands), the interaction paradigm (`interact`) folds
 under SOURCE INPUT, the Ableton build notes (`sound`) fold under MUSIC, and
-HISTORY closes the column — every version with WHO · date · time and the
+HISTORY closes the working groups (the version picker lives in ITS header now, not the scene bar), with THIS SCENE + tags at the BOTTOM — Lance's design-tool round put VIEW / SOURCE INPUT / MUSIC / HISTORY on top, and every rail/sidebar group folds on its header (persisted per-browser) — every version with WHO · date · time and the
 round summary (SCENELOG, mined from git by `tools/scenelog.py` at build
 time), a ▸ expander holding the full round story (commit body, hash, git
 author, Claude session link), click-through to open any version. WHO is
@@ -95,11 +95,19 @@ CREDITS correction in scenelog.py; a version without evidence shows no name
 (the keeper appears only in the header, labeled "kept by"). GHOSTS exists in both views: the library
 toggle drives the wall's ambient drift, the sidebar's drives ghost hands on
 the focused scene (off by default — a scene starts still). Below the stage,
-the console is the MUSIC WORK SURFACE: THE RIG rack (role → channel → the
-instrument named in rig.json, rows lit while their lane plays, click to
-remap) beside the MIDI monitor. The header is brand
-+ theme + help, nothing else; the scene bar is identity + `+ QUEUE` + theme +
-CLOSE, nothing else; the stage's own ⛶ is the only fullscreen control and it
+the console is the MUSIC WORK SURFACE, full-width and Live-shaped: one row
+per channel 1-16 (exact Live track names from rig.json `tracks`, role,
+last event, live CC74 bar, test note, MAP) beside an aligned per-row MIDI
+timeline scrolling left-to-right — click a row for its piano-roll band
+(co-onsets <30ms ring red). Channels are READ-ONLY from rig.json (no
+remap control anywhere — change the Live set, edit rig.json, rebuild).
+The header holds PAUSE (freezes everything; PLAY resumes with holds
+re-struck) and the ⓘ mapping cheat-sheet. PLAY on the wall IS the
+pre-flight: it always opens SHOW CHECK and launches from START THE SHOW
+(no separate CHECK button). The library header is the brand (SOURCE SCENES)
++ search / sort / ALL-IN QUEUE / count + theme + help; the scene bar is a
+BACK arrow + title + `+ QUEUE` + theme + CLOSE (no SRC id, no version
+picker); the stage's own ⛶ is the only fullscreen control and it
 hides during the show. LINK, PNG and REGEN buttons were killed as clutter —
 the URL already carries `#scene=`, and `R` reseeds an open scene. A tile is a
 single target: clicking anywhere on the card opens it. New chrome must earn
