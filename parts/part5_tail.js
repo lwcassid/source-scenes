@@ -15,50 +15,210 @@ function syncChips() {
 }
 const famOf = def => def.family || def.id;
 
-/* PAD MAP — a 4×4 pad controller walks the queue, so scenes switch from the
-   source with no computer touch. LEARN once: hit the controller's PAD 1
-   (bottom-left) and its 16 consecutive notes become queue slots 1–16 in
-   running order. Learned rather than hard-coded because pad controllers
-   disagree about their base note (the M-VAVE's moves with its presets).
-   Device- and channel-filtered, and the hand system never sees notes at
-   all (part2_core routes only note-ons here) — so pads and hand sensors
-   can never collide. Persists per-browser like the hand calibration. */
-const PADMAP = {
-  base: null, learn: false,
-  load() { try { this.base = JSON.parse(localStorage.getItem('srcPadMap') || 'null'); } catch (e) { this.base = null; } },
-  save() { try { localStorage.setItem('srcPadMap', JSON.stringify(this.base)); } catch (e) {} },
-  onNote(p) {
+/* SHOW CONTROL — the second MIDI device (ADR-0008). The HANDS device plays
+   the instrument; this one drives the SHOW: previous/next through the running
+   order, and 16 pads that jump straight to queue slots 1-16. Two devices, two
+   jobs, learned separately.
+
+   Replaces PADMAP, which did the slot half only and whose LEARN button was a
+   no-op where it lived: it sat in the queue drawer — the CONTROL window — and
+   armed a listener in a window that can never receive a MIDI note, because
+   real MIDI-in is show-window-only (ADR-0006). There was no pad:* IPC to
+   close that gap. NAV learns over nav:learn/nav:state, the same round trip
+   the hands' LEARN uses.
+
+   LEARN IS ONE-SHOT, not the hands' 2.6s sweep. A continuous controller has
+   to reveal its RANGE before you know what it is; a button is decisive on its
+   first press. Times out at 6s so a stray click doesn't leave it listening.
+
+   Bindings are the same {type, ch, num, dev} 4-tuple the hands use, so
+   srcMatches()/srcKey() work on them unchanged — but `type` here is 'note' or
+   'cc', a namespace the hands never touch (they bind cc/bend/at, and note-ons
+   are routed here before the hands ever parse them). CC binds fire on the
+   RISING EDGE ONLY, so a momentary footswitch triggers once per press instead
+   of on press and release.
+
+   Slots are anchor + offset: slot N is the base's `num` + (N-1) on the same
+   type/channel/device. One press to learn all 16 — but it does assume the
+   pads are consecutive, which is true of a 4x4 grid and not true of every
+   controller. Slots past the end of the queue are inert. */
+const NAV = {
+  dev: null,                       // {id, name} — which device is the pad
+  prev: null, next: null, base: null,
+  learn: null,                     // 'prev' | 'next' | 'slots' | null
+  _timer: null, _last: {},         // _last: CC value per source, for edges
+  SLOTS: 16,
+  load() {
+    let m = null;
+    try { m = JSON.parse(localStorage.getItem('srcNavMap') || 'null'); } catch (e) {}
+    if (m) { this.dev = m.dev || null; this.prev = m.prev || null; this.next = m.next || null; this.base = m.base || null; return; }
+    // migrate PADMAP: an already-mapped 4x4 keeps every pad, no re-learn
+    try {
+      const old = JSON.parse(localStorage.getItem('srcPadMap') || 'null');
+      if (old && old.note !== undefined) {
+        this.base = { type: 'note', ch: old.ch, num: old.note, dev: old.dev };
+        this.dev = { id: old.dev, name: '' };
+        this.save();
+      }
+    } catch (e) {}
+  },
+  save() {
+    try {
+      localStorage.setItem('srcNavMap', JSON.stringify({ dev: this.dev, prev: this.prev, next: this.next, base: this.base }));
+    } catch (e) {}
+  },
+  label(m) { return m ? (m.type === 'note' ? 'NOTE' : 'CC') + m.num : null; },
+  // In the control window the real bindings live in the show window, so the
+  // buttons read the relayed labels (_relay) instead of local state that is
+  // permanently empty there — the same split refreshMidiUI makes for hands.
+  _relay: null,
+  /* Review: this used to return _relay unconditionally in the control window,
+     which is null until the show window happens to relay — and the show
+     window never relayed at BOOT. So every launch showed LEARN PREV / "no
+     show controller mapped" even with a controller mapped, which reads as a
+     broken rig and invites a pointless re-learn.
+     The control window is not actually ignorant: load() is not role-gated and
+     localStorage is shared between the two windows, so it already has the
+     real bindings. Fall back to them; _relay only has to cover CHANGES made
+     after boot, and those always follow a control-initiated LEARN. */
+  labels() {
+    if (window.ELECTRON_ROLE === 'control' && this._relay) return this._relay;
+    return { prev: this.label(this.prev), next: this.label(this.next), base: this.label(this.base) };
+  },
+  baseNum() {
+    if (window.ELECTRON_ROLE === 'control' && this._relay) return this._relayBase;
+    return this.base ? this.base.num : null;
+  },
+  // Which slot (if any) this source is — one definition, used both to fire a
+  // pad and to tell the hands' LEARN to keep its hands off (claims()).
+  slotOf(p) {
+    const b = this.base;
+    if (!b || b.type !== p.type || b.ch !== p.ch || b.dev !== p.dev) return -1;
+    const slot = p.num - b.num;
+    return (slot >= 0 && slot < this.SLOTS) ? slot : -1;
+  },
+  // Does SHOW CONTROL own this source? The hands' LEARN asks before binding.
+  // Review: the old guard checked prev/next only, so a CC-based pad BASE
+  // could still be stolen as a hand — the ADR claimed a guard in both
+  // directions that the code only half had.
+  claims(p) { return srcMatches(this.prev, p) || srcMatches(this.next, p) || this.slotOf(p) >= 0; },
+  /* The device gate. MIDIInput ids are NOT stable across a replug or a BLE
+     re-pair — the MIDI-OUT path already learned this the hard way and
+     persists by NAME (MOut.selectPortByName). Match on id, fall back to name,
+     so re-pairing the pad mid-show doesn't silently kill navigation. */
+  isOurDevice(p) {
+    if (!this.dev) return true;              // nothing picked = listen to all
+    if (this.dev.id && p.dev === this.dev.id) return true;
+    return !!(this.dev.name && p.devName && p.devName === this.dev.name);
+  },
+  arm(what) {
+    this.learn = (this.learn === what) ? null : what;   // click again to cancel
+    clearTimeout(this._timer);
+    if (this.learn) this._timer = setTimeout(() => { this.learn = null; this.ui(); this.relay(); }, 6000);
+    // Control has no MIDI-in of its own (ADR-0006) — relay the REQUEST and
+    // let the show window run the real listen. The local toggle above is
+    // only so the button says HIT IT… during the round trip; nav:state
+    // overwrites it the moment the show window actually binds.
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.requestNavLearn) {
+      window.electronAPI.requestNavLearn(this.learn);
+    }
+    this.ui(); this.relay();
+  },
+  onMsg(p) {
     if (this.learn) {
-      this.base = { note: p.note, ch: p.ch, dev: p.dev };
-      this.learn = false; this.save(); this.ui();
+      // Review: the device gate used to sit BELOW this branch, so learning
+      // was device-blind. Pick your pad, learn PADS on it, then click LEARN
+      // NEXT and have the theremin twitch a CC first — NAV.dev silently
+      // became the theremin and every pad binding went unreachable, with
+      // nothing on screen saying so. Once a device is named, only that
+      // device can bind; adopting a NEW one is something you do through the
+      // picker (set it to ANY), not by accident.
+      if (this.dev && !this.isOurDevice(p)) return;
+      // Don't bind something the HANDS already own — a theremin sweeping
+      // during nav-learn would otherwise steal the binding.
+      if (typeof midi !== 'undefined' && (srcMatches(midi.map.L, p) || srcMatches(midi.map.R, p))) return;
+      const src = { type: p.type, ch: p.ch, num: p.num, dev: p.dev };
+      if (this.learn === 'slots') this.base = src; else this[this.learn] = src;
+      if (!this.dev) this.dev = { id: p.dev, name: p.devName || '' };
+      this.learn = null; clearTimeout(this._timer);
+      this.save(); this.ui(); this.relay();
       return;
     }
-    if (!this.base || p.dev !== this.base.dev || p.ch !== this.base.ch) return;
-    const slot = p.note - this.base.note;
-    if (slot >= 0 && slot < 16) this.go(slot);
+    // A hands LEARN sweep is running: don't navigate off it. Crossing a CC
+    // that happens to be bound to PREV would jump the show mid-sweep.
+    if (typeof midi !== 'undefined' && midi.learn) return;
+    if (!this.isOurDevice(p)) return;
+    // Backfill a name for a mapping that only ever had an id — a migrated
+    // PADMAP, or a bind from an input that hadn't reported its name — so the
+    // name fallback in isOurDevice() can rescue it after a replug.
+    if (this.dev && !this.dev.name && p.devName) { this.dev.name = p.devName; this.save(); }
+    if (srcMatches(this.prev, p)) return this.fire('prev');
+    if (srcMatches(this.next, p)) return this.fire('next');
+    const slot = this.slotOf(p);
+    if (slot >= 0) this.fire('slot', slot);
   },
-  go(slot) {
-    const id = QUEUE.list[slot];
-    if (!id) return;
-    const tile = QUEUE.tileFor(id);
-    if (!tile || !tile.cur) return;
-    const already = focus.idx >= 0 && famOf(PIECES[focus.idx]) === id;
-    if (!already) {
-      if (focus.idx >= 0) closeFocus();
-      openFocus(tile.cur.idx);
-    }
-    if (window.SHOW) SHOW.resetRotation();
+  fire(what, slot) {
+    if (what === 'slot') { QUEUE.goToSlot(slot); return; }
+    // step() is a no-op with nothing on stage, which would make the pad feel
+    // dead exactly when someone is trying to START the show — open the top of
+    // the running order instead.
+    if (focus.idx < 0) { QUEUE.goToSlot(0); return; }
+    if (window.SHOW) (what === 'next' ? SHOW.next() : SHOW.prev());
   },
-  toggleLearn() { this.learn = !this.learn; this.ui(); },
   ui() {
-    const b = document.getElementById('btnPadLearn');
-    if (!b) return;
-    b.textContent = this.learn ? 'HIT PAD 1…' : this.base ? 'PADS ✓' : 'PAD LEARN';
-    b.classList.toggle('learning', this.learn);
-  }
+    const set = (id, txt, on) => {
+      const b = document.getElementById(id);
+      if (!b) return;
+      b.textContent = txt;
+      b.classList.toggle('learning', !!on);
+    };
+    const L = this.labels();
+    set('btnNavPrev', this.learn === 'prev' ? 'HIT IT…' : L.prev ? 'PREV=' + L.prev : 'LEARN PREV', this.learn === 'prev');
+    set('btnNavNext', this.learn === 'next' ? 'HIT IT…' : L.next ? 'NEXT=' + L.next : 'LEARN NEXT', this.learn === 'next');
+    set('btnNavSlots', this.learn === 'slots' ? 'HIT PAD 1…' : L.base ? 'PADS=' + L.base : 'LEARN PADS', this.learn === 'slots');
+    const r = document.getElementById('navRange');
+    const bn = this.baseNum();
+    if (r) r.textContent = (bn === null || bn === undefined) ? '' : '1-' + this.SLOTS + ' → ' + bn + '-' + (bn + this.SLOTS - 1);
+  },
+  // show -> control, so the console's buttons reflect the real bindings
+  relay() {
+    if (window.ELECTRON_ROLE !== 'show' || !window.electronAPI?.sendNavState) return;
+    window.electronAPI.sendNavState({
+      learn: this.learn, labels: this.labels(),
+      baseNum: this.base ? this.base.num : null, dev: this.dev,
+    });
+  },
 };
-PADMAP.load();
-window.PADMAP = PADMAP;
+NAV.load();
+window.NAV = NAV;
+// Show window: announce the bindings once at boot. The console is already
+// correct without this (shared localStorage + the fallback in labels()), but
+// this keeps _relay authoritative from the first moment rather than only
+// after the first LEARN.
+if (window.ELECTRON_ROLE === 'show') setTimeout(() => NAV.relay(), 1200);
+// Show window: run the real listen when the console's LEARN is clicked.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onNavLearnRequested) {
+  window.electronAPI.onNavLearnRequested(what => {
+    // control already toggled its own copy, so set rather than toggle here —
+    // arm()'s click-again-cancels logic would otherwise invert the request
+    NAV.learn = what || null;
+    clearTimeout(NAV._timer);
+    if (NAV.learn) NAV._timer = setTimeout(() => { NAV.learn = null; NAV.ui(); NAV.relay(); }, 6000);
+    NAV.ui(); NAV.relay();
+  });
+}
+// Control window: the real bindings, mirrored back for the buttons.
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onNavState) {
+  window.electronAPI.onNavState(st => {
+    if (!st) return;
+    NAV._relay = st.labels || null;
+    NAV._relayBase = st.baseNum;
+    NAV.learn = st.learn || null;
+    NAV.dev = st.dev || null;
+    clearTimeout(NAV._timer);
+    NAV.ui();
+  });
+}
 
 const QUEUE = {
   list: [], shared: null,
@@ -89,6 +249,20 @@ const QUEUE = {
       window.localStorage && localStorage.setItem('srcQueue', JSON.stringify(this.list));
       window.localStorage && localStorage.setItem('srcQueueCfg', JSON.stringify(this.cfg));
     } catch (e) {}
+    this.relay();
+  },
+  /* Electron: push the queue to the show window on every change. save() is
+     the one choke point every mutation already funnels through — toggle,
+     move, clear, setCfg, adoptSet/loadSet and the #set= merge banner — so
+     relaying here means no edit path can be added later that forgets to
+     sync. Control-only and one-way: the show window is picture-only, so it
+     never has an edit of its own to send back (ADR-0003's queue:update).
+     Both windows share localStorage, so before this the show window did
+     pick edits up — but only on a reload, which is not a thing you do
+     mid-show. */
+  relay() {
+    if (window.ELECTRON_ROLE !== 'control' || !window.electronAPI?.sendQueue) return;
+    window.electronAPI.sendQueue({ list: this.list, cfg: this.cfg });
   },
   cfgFor(id) { return this.cfg[id] || {}; },
   setCfg(id, patch) {
@@ -127,6 +301,28 @@ const QUEUE = {
   },
   // the tile a family lives on — the queue stores family ids, not versions
   tileFor(id) { return [...grid.children].find(t => t.dataset.pid === id) || null; },
+  /* Put a family id on stage. This move — resolve id -> tile -> latest
+     version -> close-then-open -> restart the dwell clock — was written out
+     four separate times (PADMAP.go, the console row click, play(), the arrow
+     walk) before the nav controller would have made it five. One helper.
+     Re-selecting the scene already on stage deliberately does NOT reopen it
+     (that would restart its audio and reseed it mid-show) but DOES restart
+     the dwell clock, so hitting a pad for the current scene means "give this
+     one another full stay". */
+  goToFamily(id) {
+    const tile = this.tileFor(id);
+    if (!tile || !tile.cur) return false;
+    const already = focus.idx >= 0 && famOf(PIECES[focus.idx]) === id;
+    if (!already) {
+      if (focus.idx >= 0) closeFocus();
+      openFocus(tile.cur.idx);
+    }
+    if (window.SHOW) SHOW.resetRotation();
+    return true;
+  },
+  // 0-based into the running order; slots past the end are simply inert, so a
+  // 16-pad controller over a 9-scene set costs nothing.
+  goToSlot(i) { const id = this.list[i]; return id ? this.goToFamily(id) : false; },
   titleOf(id) {
     const t = this.tileFor(id);
     return t ? (t.querySelector('h3').textContent || id) : id + ' (not on this build)';
@@ -140,10 +336,11 @@ const QUEUE = {
       PRE.open();
       return;
     }
+    // Raise the show flag FIRST: openFocus only relays to the wall while a
+    // show is live, and this open is the first scene of one.
+    if (typeof setShowLive === 'function') setShowLive(true);
     const first = this.list.find(id => this.tileFor(id));
-    const tile = first ? this.tileFor(first) : null;
-    if (tile && tile.cur) { closeFocus(); openFocus(tile.cur.idx); }
-    else if (focus.idx < 0) openFocus(0);
+    if (!(first && this.goToFamily(first)) && focus.idx < 0) openFocus(0);
     document.getElementById('queuePop').classList.remove('open');
     this.wake(false);
     if (typeof enterShow === 'function') enterShow();
@@ -214,6 +411,72 @@ const QUEUE = {
     }));
     this.renderSets();
     this.paintThumbs();
+    this.renderShowPanel();
+  },
+
+  /* ============================================================
+     THE SHOW CONSOLE (ADR-0007) — the control window's running order.
+     Deliberately NOT renderList(): that one is the EDITOR (MIN input, OUT
+     select, ↑↓✕, thumbnails, shared sets) and it targets #queueList by id,
+     singular. This is a read-only running order with a live clock, and it
+     is the thing the operator actually looks at during a show — the picture
+     is on the wall behind them.
+     Split in two on purpose: renderShowPanel() rebuilds innerHTML and runs
+     ONLY when the set changes; paintShowPanel() runs every frame and only
+     ever writes textContent/classList. Rebuilding the DOM at 60fps is what
+     made SHOW CHECK's buttons flicker, and this list has click targets.
+     ============================================================ */
+  renderShowPanel() {
+    const ol = document.getElementById('sqList');
+    if (!ol) return;
+    const empty = document.getElementById('sqEmpty');
+    if (empty) empty.style.display = this.list.length ? 'none' : 'block';
+    ol.innerHTML = this.list.map((id, i) => {
+      const c = this.cfgFor(id);
+      return `<li data-sqid="${id}" title="Open this scene on the wall">
+        <span class="sqn">${i + 1}</span>
+        <span class="sqid">${id}</span>
+        <span class="sqt">${esc(this.titleOf(id))}</span>
+        <span class="sqm">${c.min || this.DWELL_MIN}m</span>
+      </li>`;
+    }).join('');
+    // click a row to jump the SHOW there — openFocus already relays
+    ol.querySelectorAll('li').forEach(li => li.addEventListener('click', () => {
+      this.goToFamily(li.dataset.sqid);   // openFocus relays to the wall
+    }));
+    this.paintShowPanel();
+  },
+  paintShowPanel() {
+    const ol = document.getElementById('sqList');
+    if (!ol || !ol.children.length && !this.list.length) return;
+    const curFam = focus.idx >= 0 ? famOf(PIECES[focus.idx]) : null;
+    // tele.rotAt is an ABSOLUTE deadline stamped by the show window's dwell
+    // timer. Both windows are one machine, so subtracting our own Date.now()
+    // is exact — and smooth between the 4Hz packets that carry it, which a
+    // relayed "seconds remaining" could never be.
+    const left = tele.rotAt ? Math.max(0, tele.rotAt - Date.now()) : 0;
+    const clock = ms => Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0');
+    const set = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
+
+    const ci = curFam ? this.list.indexOf(curFam) : -1;
+    set(document.getElementById('sqNowTitle'), curFam ? this.titleOf(curFam) : '—');
+    set(document.getElementById('sqNowClock'), tele.rotAt ? clock(left) : '—:—');
+    const nextId = ci >= 0 && this.list.length ? this.list[(ci + 1) % this.list.length] : null;
+    set(document.getElementById('sqNowNext'), 'next: ' + (nextId ? this.titleOf(nextId) : '—'));
+    const bar = document.querySelector('#sqBar i');
+    if (bar) {
+      const pct = tele.rotMs ? Math.max(0, Math.min(100, (1 - left / tele.rotMs) * 100)) : 0;
+      const w = pct.toFixed(1) + '%';
+      if (bar.style.width !== w) bar.style.width = w;
+    }
+    [...ol.children].forEach(li => {
+      const on = li.dataset.sqid === curFam;
+      li.classList.toggle('on', on);
+      const m = li.querySelector('.sqm');
+      // the scene on stage counts DOWN; the rest just state their MIN
+      if (on && tele.rotAt) set(m, clock(left));
+      else set(m, (this.cfgFor(li.dataset.sqid).min || this.DWELL_MIN) + 'm');
+    });
   },
 
   /* THUMBNAILS — SRC numbers are unreadable as a set list at 3am, so each row
@@ -349,8 +612,8 @@ const QUEUE = {
       if (pop.contains(e.target) || e.target.closest && e.target.closest('#btnQueue')) return;
       pop.classList.remove('open'); this.wake(false);
     });
-    document.getElementById('btnPadLearn').addEventListener('click', () => PADMAP.toggleLearn());
-    PADMAP.ui();
+    // (PAD LEARN moved to MAP -> SHOW CONTROL, ADR-0008: it could never work
+    // from this drawer, which lives in the window with no MIDI-in.)
     document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
@@ -360,6 +623,12 @@ const QUEUE = {
       if (focus.idx >= 0) this.toggle(famOf(PIECES[focus.idx]));
     });
     this.refresh();
+    // Seed the show window (and main's replay cache) with what we booted
+    // with. Both windows read the same localStorage, so they already agree
+    // here — this push exists so main HAS a payload to replay if the show
+    // window reloads, and so a #set= link the control window opened on is
+    // in effect before the first edit rather than after it.
+    this.relay();
   }
 };
 // part2_core calls FAV.refresh() on focus open; keep that name pointing here
@@ -381,9 +650,166 @@ const FAV = QUEUE;
    during the show is the DBG strip and the PANELS pill (H) on
    top of the picture.
    ============================================================ */
+// RIG status relay (ticket #27's SHOW CHECK follow-up) — same shape as
+// audioRelay/midiRelay in part2_core.js: the control window has no real
+// MOut (its MOut.mode/port/clock are local-only stand-ins, never sent
+// anywhere), so the two RIG rows below (Ableton / Tempo) were reading a
+// question the control window can never truthfully answer — MOut.port was
+// always null there, so "Ableton" said "no port selected" forever even
+// while the show window was happily sending, and MOut.clock.running was
+// always false, so "Tempo" never reported "driving Live". The show window
+// pushes its real state once a second; the control window just remembers
+// the last one it heard.
+const rigRelay = { mode: 'web', portName: null, clockOn: true, clockRunning: false, bpm: 78 };
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendRigStatus) {
+  setInterval(() => window.electronAPI.sendRigStatus({
+    mode: MOut.mode, portName: MOut.port ? MOut.port.name : null,
+    clockOn: MOut.clock.on, clockRunning: MOut.clock.running, bpm: T.bpm,
+  }), 1000);
+}
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onRigStatus) {
+  window.electronAPI.onRigStatus(s => { Object.assign(rigRelay, s); });
+}
+/* telemetry:tick (ADR-0003's last unbuilt channel, ADR-0007) — what the WALL
+   is doing, 4x a second. The control window no longer runs its own copy of
+   the scene, so everything it used to read off its own focus.P / T / H / MOut
+   comes from here instead: the dwell deadline behind the countdown, the act
+   chip highlight, the chord readout, and the MIDI note activity the monitor
+   and THE RIG rack light up from (those are fed ONLY by a scene's audio()
+   tick, which now happens exclusively in the show window). */
+const tele = {
+  sceneId: null, act: 0, rotAt: 0, rotMs: 0, chordHud: '', beatPhase: 0,
+  fps: 0, lastByRole: {}, log: [], at: 0,
+};
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendTelemetry) {
+  let sentUpTo = 0;
+  setInterval(() => {
+    // Only the TAIL of MOut.log since the last tick — the full log holds up to
+    // 900 events and shipping it 4x a second would be pure waste.
+    const log = MOut.log.slice(sentUpTo);
+    sentUpTo = MOut.log.length;
+    // MOut.log self-trims (splice(0,300) past 900), which walks the index
+    // backwards; resync rather than slicing from a stale offset.
+    if (sentUpTo > MOut.log.length) sentUpTo = MOut.log.length;
+    const rot = window.SHOW ? SHOW.rotationState() : { rotAt: 0, rotMs: 0 };
+    // MOut.log stamps events with performance.now(), whose TIME ORIGIN is
+    // per-document — the two windows' clocks start at different moments, so
+    // shipping those numbers raw would plot the wall's notes against the
+    // console's timeline and smear the whole monitor. Convert to epoch here;
+    // the receiver converts back into its own performance clock.
+    const toEpoch = Date.now() - performance.now();
+    window.electronAPI.sendTelemetry({
+      sceneId: focus.idx >= 0 ? PIECES[focus.idx].id : null,
+      act: (focus.P && focus.P.state && focus.P.state.act) || 0,
+      rotAt: rot.rotAt, rotMs: rot.rotMs,
+      chordHud: document.getElementById('oChord')?.textContent || '',
+      beatPhase: (typeof T !== 'undefined' && T.running) ? T.phase(1) : 0,
+      fps: window.__showFps || 0,
+      lastByRole: MOut.lastByRole,
+      log: log.slice(-120).map(e => ({ ...e, p: e.p + toEpoch })),
+      at: Date.now(),
+    });
+  }, 250);
+}
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onTelemetry) {
+  window.electronAPI.onTelemetry(t => {
+    if (!t) return;
+    Object.assign(tele, t, { log: tele.log });
+    // Only let the wall's numbers drive this window while the wall IS the
+    // thing on screen. Outside a show the control window runs its own scene,
+    // and stale telemetry would fight its HUD and pollute its MIDI monitor.
+    if (!showLive) return;
+    // Feed the relayed notes into the LOCAL MOut.log the monitor already
+    // draws from, rather than teaching drawMonitor a second data source.
+    if (t.log && t.log.length) {
+      // back out of epoch into THIS document's performance clock (see the
+      // sender) so drawMonitor plots the wall's notes on our own timeline
+      const toPerf = performance.now() - Date.now();
+      MOut.log.push(...t.log.map(e => ({ ...e, p: e.p + toPerf })));
+      if (MOut.log.length > 900) MOut.log.splice(0, MOut.log.length - 600);
+    }
+    if (t.lastByRole) MOut.lastByRole = t.lastByRole;
+    const el = document.getElementById('oChord');
+    if (el && t.chordHud && el.textContent !== t.chordHud) el.textContent = t.chordHud;
+    if (typeof QUEUE !== 'undefined' && QUEUE.paintShowPanel) QUEUE.paintShowPanel();
+    // titles resolve off the wall's tiles, which are built after QUEUE.boot()
+    // — if the very first telemetry lands before a row list exists, build it
+    if (typeof QUEUE !== 'undefined' && !document.querySelector('#sqList li') && QUEUE.list.length) QUEUE.renderShowPanel();
+  });
+}
+/* THE LIVE FEED (ADR-0007) — control window only. The picture here is the
+   SHOW WINDOW's actual composited output, not a second render of the same
+   scene: it cannot drift from the wall, and it costs the show machine one
+   video encode instead of a whole duplicate scene + audio graph.
+   main answers the getDisplayMedia request with the show window directly
+   (setDisplayMediaRequestHandler), so no picker ever appears and the
+   operator cannot aim it at the wrong window. */
+const FEED = {
+  stream: null, status: 'idle',
+  note(msg, on) {
+    const n = document.getElementById('feedNote');
+    if (!n) return;
+    n.textContent = msg || '';
+    n.classList.toggle('on', !!on);
+  },
+  async start() {
+    if (window.ELECTRON_ROLE !== 'control' || this.stream) return;
+    const v = document.getElementById('showFeed');
+    if (!v || !navigator.mediaDevices?.getDisplayMedia) return;
+    try {
+      // audio:false is deliberate — the show window is the only thing that
+      // should ever make noise, and capturing it back would double it.
+      this.stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      v.srcObject = this.stream;
+      this.status = 'live';
+      this.note('', false);
+      // the show window can be closed/reloaded under us; recover rather than
+      // sitting on a frozen last frame that looks like a hung show
+      this.stream.getVideoTracks().forEach(tr => tr.addEventListener('ended', () => {
+        this.stream = null; this.status = 'ended';
+        this.note('FEED ENDED — retrying…', true);
+        setTimeout(() => this.start(), 1200);
+      }));
+    } catch (e) {
+      this.stream = null;
+      this.status = 'denied';
+      // On macOS this is almost always the Screen Recording grant. Say so
+      // here AND in SHOW CHECK — a black rectangle explains nothing at 3am.
+      this.note('NO PREVIEW — macOS Screen Recording permission needed for this app. SHOW CHECK → Preview has the fix. The wall itself is unaffected.', true);
+    }
+  },
+};
+if (window.ELECTRON_ROLE === 'control') {
+  // one gesture-free attempt at boot; Electron grants same-app capture
+  // without a user gesture, so this just works when the OS grant is there
+  setTimeout(() => FEED.start(), 400);
+}
+// SHOW CHECK reads this; polled rather than asked once, because the operator
+// can grant the permission WHILE the pre-flight is open and should see it go
+// green without relaunching.
+const previewPerm = { status: 'checking' };
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.previewStatus) {
+  const poll = () => window.electronAPI.previewStatus()
+    .then(st => {
+      const was = previewPerm.status;
+      previewPerm.status = st;
+      // granted after a denial? take the feed now instead of at next launch
+      if (was !== 'granted' && st === 'granted' && !FEED.stream) FEED.start();
+    })
+    .catch(() => { previewPerm.status = 'unknown'; });
+  poll();
+  setInterval(poll, 3000);
+}
 const SCREENS = {
   details: null, chosen: null, denied: false,
-  supported() { return typeof window.getScreenDetails === 'function'; },
+  // Electron path (ticket #31): never touches the web Window Management
+  // API — main has unconditional, permission-free access to real displays,
+  // and is the only thing that can actually fullscreen the SHOW window
+  // (one BrowserWindow's renderer can't trigger fullscreen on another's,
+  // proved resolving ticket #29). Electron's own Display objects already
+  // carry .label/.internal, so label()/aimedInternal() below are untouched.
+  inElectron() { return typeof window.electronAPI !== 'undefined'; },
+  supported() { return this.inElectron() || typeof window.getScreenDetails === 'function'; },
   label(sc) { return (sc.label || '') + ' ' + sc.width + '×' + sc.height + (sc.isPrimary ? ' (primary)' : ''); },
   load() { try { this.chosen = localStorage.getItem('srcShowScreen'); } catch (e) {} },
   pick(label) {
@@ -393,18 +819,33 @@ const SCREENS = {
       else localStorage.removeItem('srcShowScreen');
     } catch (e) {}
   },
-  async probe() {
-    if (!this.supported() || this.details) return this.details;
-    try { this.details = await window.getScreenDetails(); }
-    catch (e) { this.denied = true; }
+  // Nima, review fix: probe() used to cache this.details FOREVER, so a
+  // projector plugged in after launch never appeared — and main's
+  // display-added retry (ticket #37) was a no-op alongside it, because
+  // nothing here was ever re-run to pick it up. refresh() is the one place
+  // that re-runs the auto-pick logic: called once by probe() with whatever
+  // it fetched, and again live whenever main tells us the display list
+  // changed (see the onDisplaysChanged wiring below SCREENS.load()).
+  refresh(screens) {
+    this.details = { screens };
+    this.denied = false;
     // Default to the display that is almost certainly the projector: the
     // external, non-primary one. Landing the show on the built-in screen is
-    // the mistake this whole row exists to prevent.
-    if (this.details && !this.target()) {
-      const ext = this.details.screens.find(sc => !sc.isInternal && !sc.isPrimary) ||
-                  this.details.screens.find(sc => !sc.isInternal);
+    // the mistake this whole row exists to prevent. Only auto-picks when
+    // nothing is targeted yet — a live plug-in event must never yank the
+    // show off a display someone already chose.
+    if (!this.target()) {
+      const ext = screens.find(sc => !sc.isInternal && !sc.isPrimary) ||
+                  screens.find(sc => !sc.isInternal);
       if (ext) this.pick(this.label(ext));
     }
+  },
+  async probe() {
+    if (!this.supported() || this.details) return this.details;
+    try {
+      const screens = this.inElectron() ? await window.electronAPI.getDisplays() : (await window.getScreenDetails()).screens;
+      this.refresh(screens);
+    } catch (e) { this.denied = true; }
     return this.details;
   },
   // is the show currently aimed at the laptop while another display exists?
@@ -420,6 +861,14 @@ const SCREENS = {
   list() { return this.details ? this.details.screens : []; }
 };
 SCREENS.load();
+// Ticket #37: main pushes the display list again whenever a display is
+// added/removed (a projector waking up after launch, a cable coming loose)
+// so the picker and the PRE panel's Display row can react without a reload.
+// PRE is declared further down this file — fine, this callback only ever
+// runs long after the whole script has finished and PRE exists.
+if (window.electronAPI?.onDisplaysChanged) {
+  window.electronAPI.onDisplaysChanged(list => { SCREENS.refresh(list); if (PRE.timer) PRE.render(); });
+}
 
 /* Enter the show: picture only, on the chosen display.
    PLAY forces performance mode — the PANELS preference persists between
@@ -433,6 +882,24 @@ function enterShow() {
   if (typeof setPanels === 'function') setPanels(false);
   if (typeof setView === 'function' && typeof VIEW !== 'undefined' && VIEW.mode !== 'flat') setView('flat');
   if (typeof PROJ !== 'undefined' && !PROJ.on && typeof setProj === 'function') setProj(true);
+  // Electron (ticket #31): this document is the CONTROL window when PLAY is
+  // clicked — fullscreening IT would be wrong. Tell main to place+fullscreen
+  // the SHOW window instead; the web Fullscreen API path below never runs.
+  // Forcing panels/flat-view/PROJ *on the show window itself* over IPC is
+  // separate, already-decided (ADR-0003's show:play channel), not-yet-wired
+  // work — this only wires the display placement this ticket is about.
+  // display:pick now carries { id, label } rather than a bare label string
+  // (main matches on id when it has one, since a label string collides
+  // whenever two attached displays share the same size). A null target is
+  // a DELIBERATE single-display case, not a failure — main still
+  // fullscreens the show window right where it already is, so PLAY is
+  // never a silent no-op just because nothing was ever picked.
+  if (SCREENS.inElectron()) {
+    if (typeof setShowLive === 'function') setShowLive(true);
+    const t = SCREENS.target();
+    window.electronAPI.pickDisplay({ id: t ? t.id : null, label: SCREENS.chosen || null });
+    return Promise.resolve(true);
+  }
   if (document.fullscreenElement) return Promise.resolve(true);
   const scr = SCREENS.target();
   const opts = scr ? { screen: scr } : undefined;
@@ -458,7 +925,13 @@ const PRE = {
     SCREENS.probe().then(() => this.render());
     this.render();
     clearInterval(this.timer);
-    this.timer = setInterval(() => this.render(), 600);
+    // render() rebuilds the whole modal via innerHTML, including the display
+    // <select> — don't do that while it has focus, or a picker click gets
+    // torn down and reset mid-selection before it can ever register.
+    this.timer = setInterval(() => {
+      if (document.activeElement?.id === 'preScreenSel') return;
+      this.render();
+    }, 600);
   },
   close() {
     document.getElementById('preModal').classList.remove('open');
@@ -473,13 +946,23 @@ const PRE = {
      PLAY pins the 1920×1200 show frame itself, so there is nothing to check.) */
   rows() {
     const r = [];
-    const ctxOn = AE.ctx && AE.ctx.state === 'running';
+    // control window: its AudioContext is real but MUTED by design (see
+    // AE.ensure) — "running" there says nothing about whether the wall is
+    // audible, so this row must read the show window's relayed state
+    // (audioRelay), never local state. Nima found this showing "no audio
+    // context yet" while sound was actually playing fine in the show window.
+    const inControl = window.ELECTRON_ROLE === 'control';
+    const aOn = inControl ? audioRelay.on : AE.on;
+    const aCtxState = inControl ? audioRelay.ctxState : (AE.ctx ? AE.ctx.state : null);
+    const aRate = inControl ? audioRelay.sampleRate : (AE.ctx ? AE.ctx.sampleRate : null);
+    const ctxOn = aCtxState === 'running';
     r.push({ k: 'audio', sec: 'show', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
-      txt: !AE.on ? 'muted — SOUND is OFF in the left rail'
-        : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
-        : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
-        : 'running at ' + (AE.ctx.sampleRate / 1000).toFixed(1) + ' kHz',
+      txt: !aOn ? 'muted — SOUND is OFF in the left rail'
+        : !aCtxState ? 'no audio context yet — browsers need one click before they make noise'
+        : aCtxState !== 'running' ? 'suspended (' + aCtxState + ') — one click wakes it'
+        : 'running at ' + (aRate / 1000).toFixed(1) + ' kHz',
       fix: ctxOn ? null : ['WAKE AUDIO', () => {
+        if (inControl) { if (window.electronAPI) window.electronAPI.requestAudioWake(); return; }
         AE.on = true; AE.ensure();
         // only restart a voice if a scene is actually up — startVoice reads
         // PIECES[focus.idx], and focus.idx is -1 on the library wall
@@ -492,40 +975,121 @@ const PRE = {
         : 'empty — the show would fall back to all ' + FAMS.length + ' scenes in library order',
       fix: ['OPEN QUEUE', () => { this.close(); document.getElementById('queuePop').classList.add('open'); }] });
 
+    // ADR-0007: the control window's picture is a capture of the show window,
+    // and macOS gates that behind Screen Recording. A missing grant is a BLACK
+    // PREVIEW with no error — indistinguishable from a dead show — so it gets
+    // a row like every other environmental precondition.
+    if (inControl) {
+      // Report what is ACTUALLY TRUE — whether a stream is running — not
+      // what a permission API implies. The feed captures the show window's
+      // web frame rather than the OS screen, so on some setups it works with
+      // no grant at all; inferring from getMediaAccessStatus would warn
+      // falsely there. Permission is only consulted to EXPLAIN a failure.
+      const live = FEED.status === 'live';
+      const perm = previewPerm.status;
+      r.push({ k: 'preview', sec: 'show', label: 'Preview',
+        lvl: live ? 'ok' : FEED.status === 'denied' ? 'warn' : 'ok',
+        txt: live ? 'live feed of the SHOW window — this is the wall itself, not a second render'
+          : FEED.status === 'denied'
+            ? 'no preview here' + (perm === 'denied' || perm === 'restricted'
+                ? ' — macOS is blocking screen recording for this app' : '')
+              + '. THE WALL IS UNAFFECTED; this is the console\u2019s picture only.'
+          : FEED.status === 'ended' ? 'feed dropped — reconnecting…'
+          : 'connecting to the SHOW window…',
+        fix: FEED.status === 'denied' ? ['RETRY', () => {
+          if (perm === 'denied' || perm === 'restricted') {
+            if (window.electronAPI?.openScreenSettings) window.electronAPI.openScreenSettings();
+          }
+          FEED.start();
+        }] : null });
+    }
     r.push({ k: 'screen', sec: 'show', label: 'Display',
       lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
       txt: this.screenText(), screenPicker: true });
 
-    const bound = (midi.map.L ? 1 : 0) + (midi.map.R ? 1 : 0);
-    r.push({ k: 'hands', sec: 'show', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
-      txt: !midi.access ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
-        : bound === 2 ? 'L and R both bound (' + mapLabel(midi.map.L) + ' · ' + mapLabel(midi.map.R) + ')'
-        : bound === 1 ? 'only ' + (midi.map.L ? 'L' : 'R') + ' is bound — the other hand is dead'
+    // control window: midi.access/midi.map/midi.cal are permanently
+    // null/inert here too (real MIDI-in stays show-only, ADR-0006) — same
+    // class of bug as SOUND above. Nima found CONNECT looked broken from
+    // here because this row never learned the show window actually
+    // connected. LEARN now relays too (startLearn(), part2_core.js), so
+    // MAP HANDS opens the real thing here — only calibration (REST/INVERT)
+    // still needs doing directly in the show window (no live raw-value
+    // stream relayed for that yet).
+    const midiConnected = inControl ? midiRelay.connected : !!midi.access;
+    const mapL = inControl ? midiRelay.map.L : mapLabel(midi.map.L);
+    const mapR = inControl ? midiRelay.map.R : mapLabel(midi.map.R);
+    const bound = (mapL ? 1 : 0) + (mapR ? 1 : 0);
+    // Nima: clicking CONNECT relayed the request fine, but the button just
+    // vanished with nothing said in between — it looked broken even when it
+    // worked. midiConnectPending covers the round trip; midiRelay.denied
+    // covers the show window actually failing (no Web MIDI, permission
+    // refused) instead of silently retrying for 6s with no explanation.
+    const pending = inControl && midiConnectPending;
+    r.push({ k: 'hands', sec: 'show', label: 'Hands', lvl: !midiConnected ? 'warn' : bound === 2 ? 'ok' : 'warn',
+      txt: !midiConnected
+        ? (pending ? 'connecting to MIDI in the SHOW window…'
+          : inControl && midiRelay.denied ? 'the SHOW window could not get MIDI access — check it directly'
+          : 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall')
+        : bound === 2 ? 'L and R both bound (' + mapL + ' · ' + mapR + ')'
+        : bound === 1 ? 'only ' + (mapL ? 'L' : 'R') + ' is bound — the other hand is dead'
         : 'MIDI on, but neither hand is bound yet',
-      fix: !midi.access ? ['CONNECT', () => connectMidi()]
+      fix: !midiConnected ? (pending ? null : ['CONNECT', () => connectMidi()])
         : ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
 
-    const cal = ['L', 'R'].map(sd => midi.cal[sd]);
-    const rested = cal.filter(c => c && c.rest !== null && c.rest !== undefined).length;
-    r.push({ k: 'cal', sec: 'rig', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
-      txt: !midi.access ? 'not needed without hardware'
+    const restedL = inControl ? midiRelay.calRested.L : !!(midi.cal.L && midi.cal.L.rest !== null && midi.cal.L.rest !== undefined);
+    const restedR = inControl ? midiRelay.calRested.R : !!(midi.cal.R && midi.cal.R.rest !== null && midi.cal.R.rest !== undefined);
+    const rested = (restedL ? 1 : 0) + (restedR ? 1 : 0);
+    // Nima: "I click SET REST and nothing happens." Two reasons, both fixed
+    // here. (a) The sample takes 1.6s and its result only arrives on the next
+    // device poll, so for ~2.6s the row said exactly what it said before —
+    // the click looked dead. It now reports the sample WHILE it runs, and
+    // PRE's own 600ms poll paints it. (b) restData only collects from a hand
+    // that is already BOUND, so with nothing learned SET REST genuinely does
+    // nothing, forever — that is a different problem and it now says so
+    // instead of offering a button that cannot work.
+    const restBusy = inControl ? restPending : midi.restSampling;
+    r.push({ k: 'cal', sec: 'rig', label: 'Calibration',
+      lvl: !midiConnected ? 'ok' : restBusy ? 'warn' : rested === 2 ? 'ok' : 'warn',
+      txt: !midiConnected ? 'not needed without hardware'
+        : restBusy ? 'SAMPLING — stand clear of the instrument, hands away, until this settles'
         : rested === 2 ? 'both hands ranged and rested — idle detection is live'
-        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle',
-      fix: midi.access ? ['SET REST', () => startRest()] : null });
+        : bound === 0 ? 'no hand is bound yet, so there is nothing to take a rest reading FROM — LEARN L and R first, then set REST'
+        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle. Stand clear of the instrument first: REST is what the sensors read with NOBODY there.',
+      fix: !midiConnected || restBusy ? null
+        : bound === 0 ? ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }]
+        : ['SET REST', () => startRest()] });
 
-    const out = MOut.mode !== 'web';
-    r.push({ k: 'out', sec: 'rig', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
+    // control window: MOut.mode/port/clock are local stand-ins that never
+    // reflect what the show window is actually sending (same bug class as
+    // Sound/Hands/Calibration above) — read the relayed rigRelay instead.
+    const outMode = inControl ? rigRelay.mode : MOut.mode;
+    const outPortName = inControl ? rigRelay.portName : (MOut.port ? MOut.port.name : null);
+    const clockOn = inControl ? rigRelay.clockOn : MOut.clock.on;
+    const clockRunning = inControl ? rigRelay.clockRunning : MOut.clock.running;
+    const bpm = inControl ? rigRelay.bpm : T.bpm;
+    // SHOW CONTROL (ADR-0008): optional hardware, so THE RIG tier and never
+    // worse than warn — PRE.worst() === 'bad' refuses to start the show, and
+    // a missing nav pad must never be the reason a show doesn't run.
+    const nl = NAV.labels(), navBound = (nl.prev ? 1 : 0) + (nl.next ? 1 : 0) + (nl.base ? 1 : 0);
+    r.push({ k: 'nav', sec: 'rig', label: 'Show control', lvl: navBound ? 'ok' : 'warn',
+      txt: !navBound ? 'no show controller mapped — the console, the arrow keys and the edge arrows still walk the set'
+        : [nl.prev ? 'PREV=' + nl.prev : null, nl.next ? 'NEXT=' + nl.next : null,
+           nl.base ? 'PADS=' + nl.base : null].filter(Boolean).join(' · '),
+      fix: ['MAP CONTROL', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+
+    const out = outMode !== 'web';
+    r.push({ k: 'out', sec: 'rig', label: 'Ableton', lvl: out && outPortName ? 'ok' : 'warn',
       txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
-        : !MOut.port ? 'MIDI out on, but no port selected'
-        : 'sending to ' + MOut.port.name,
+        : !outPortName ? 'MIDI out on, but no port selected'
+        : 'sending to ' + outPortName,
       fix: out ? null : ['SEND MIDI', () => { AE.ensure(); MOut.setMode('both'); }] });
 
-    r.push({ k: 'clock', sec: 'rig', label: 'Tempo', lvl: !out ? 'ok' : MOut.clock.on ? 'ok' : 'warn',
+    r.push({ k: 'clock', sec: 'rig', label: 'Tempo', lvl: !out ? 'ok' : clockOn ? 'ok' : 'warn',
       txt: !out ? 'browser transport only' :
-        !MOut.clock.on ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
-        : MOut.clock.running ? 'driving Live at ' + T.bpm + ' BPM — this app is the tempo master'
+        !clockOn ? 'clock out OFF — someone has to retype Live’s tempo on every scene change'
+        : clockRunning ? 'driving Live at ' + bpm + ' BPM — this app is the tempo master'
         : 'clock out armed — drives Live from the moment a scene opens (Live: port Sync on, EXT lit)',
-      fix: (out && !MOut.clock.on) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
+      fix: (out && !clockOn) ? ['CLOCK ON', () => MOut.clockSet(true)] : null });
     return r;
   },
   screenText() {
@@ -571,7 +1135,9 @@ const PRE = {
     }
     const note = document.getElementById('preScreenNote');
     if (note) {
-      note.textContent = SCREENS.supported()
+      note.textContent = SCREENS.inElectron()
+        ? 'PLAY places and fullscreens the SHOW window on the display picked here — this control window stays put on its own screen. The DBG tab at the bottom is the truth window.'
+        : SCREENS.supported()
         ? 'One tab renders one picture: choosing a display sends the SHOW there, it does not give you a second control window. During the show, PANELS (or H) brings the hands/MIDI/console back over the picture, and the DBG tab at the bottom is the truth window.'
         : 'Display picking needs Chrome’s window-management support. Without it: drag this window onto the projector screen first, then start the show.';
     }
@@ -768,6 +1334,18 @@ document.getElementById('btnOut').addEventListener('click', () => {
   MOut.setMode(next);
 });
 document.getElementById('midiOutSel').addEventListener('change', e => {
+  // control window (ticket #36): no local midi.access to pick a real port
+  // from. Writing srcOutPort to localStorage (the old fix) never actually
+  // changed anything — the show window only re-acquires a port when it has
+  // NONE at all, which is never once it has one, so the picker looked like
+  // it worked and did nothing. Relay the pick over IPC instead, by NAME
+  // (MIDIAccess ids are per-window — the show window's port ids mean
+  // nothing here); the show window is what persists srcOutPort now.
+  if (window.ELECTRON_ROLE === 'control') {
+    const picked = midiRelay.outputs[+e.target.value];
+    if (picked && window.electronAPI) window.electronAPI.sendShowControl('outPort', picked.name);
+    return;
+  }
   if (!midi.access) return;
   const outs = [...midi.access.outputs.values()];
   MOut.port = outs[+e.target.value] || null;
@@ -775,12 +1353,22 @@ document.getElementById('midiOutSel').addEventListener('change', e => {
 });
 document.getElementById('btnClock').addEventListener('click', () => MOut.clockSet(!MOut.clock.on));
 setInterval(() => MOut.refreshUI(), 1500);
+/* Acts, from the keys OR the chips in the top bar. Same one-driver rule as
+   R (part2_core.js): the show window doesn't accept them locally, control
+   applies them to its mirror and relays the identical act index on, so the
+   operator's picture and the wall are never on different chapters. */
+function setActLocal(n) {
+  if (focus.idx < 0 || !focus.P) return;
+  const d = PIECES[focus.idx];
+  if (!d || !d.setAct) return;
+  if (window.ELECTRON_ROLE === 'show') return;
+  d.setAct(focus.P, n);
+  if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('act', n);
+}
 // act hotkeys — keys 1-4 jump acts inside a focused journey piece (smooth-fades there)
 window.addEventListener('keydown', e => {
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
-  if (focus.idx < 0 || !focus.P) return;
-  const d = PIECES[focus.idx];
-  if (d && d.setAct && e.key >= '1' && e.key <= '4') d.setAct(focus.P, +e.key - 1);
+  if (e.key >= '1' && e.key <= '4') setActLocal(+e.key - 1);
 });
 // restore the MIDI rig across reloads — redeploys kept silently resetting OUT to web audio
 (() => {
@@ -799,6 +1387,12 @@ document.getElementById('volSlider').addEventListener('input', e => {
   AE.vol = (+e.target.value / 100) * 0.85;
   document.getElementById('volLabel').textContent = e.target.value + '%';
   if (AE.master && MOut.mode !== 'midi') AE.set(AE.master.gain, AE.vol, 0.05);
+  // control window: its AE.master is real but feeds a muted sink, so moving
+  // it changes nothing anyone hears — relay the raw value to the show window,
+  // which owns the audible one.
+  // fVol's synthesized 'input' event (below) also funnels through here, so
+  // one relay call covers both the rail slider and the focus-bar mirror.
+  if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('vol', +e.target.value);
 });
 // RIG panel
 (function () {
@@ -945,12 +1539,22 @@ document.getElementById('volSlider').addEventListener('input', e => {
     const v = document.getElementById('volSlider'), fv = document.getElementById('fVol');
     if (fv && v && document.activeElement !== fv) fv.value = v.value;
     const st = document.getElementById('oOutState');
-    if (st) st.textContent = (MOut.mode !== 'web' && MOut.port) ? '→ ' + (MOut.port.name || 'MIDI OUT') : '';
+    // control window: MOut.mode/port are local stand-ins (never the real
+    // route), so read the relayed rigRelay instead — same bug class as
+    // the SHOW CHECK rows above.
+    const inControl = window.ELECTRON_ROLE === 'control';
+    const stMode = inControl ? rigRelay.mode : MOut.mode;
+    const stPort = inControl ? rigRelay.portName : (MOut.port ? MOut.port.name : null);
+    if (st) st.textContent = (stMode !== 'web' && stPort) ? '→ ' + (stPort || 'MIDI OUT') : '';
   };
   document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
   document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
   document.getElementById('fRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
   document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
+  // NOT relayed: this is the library wall's own ambient drift, local to
+  // whichever window you're staring at (control, always) — it has nothing
+  // to do with what the show window renders, so there is no show:control
+  // kind for it.
   document.getElementById('btnGhosts').addEventListener('click', () => {
     ghostsOn = !ghostsOn;
     document.getElementById('btnGhosts').classList.toggle('off', !ghostsOn);
@@ -960,6 +1564,9 @@ document.getElementById('volSlider').addEventListener('input', e => {
   document.getElementById('fGhosts').addEventListener('click', () => {
     sceneGhosts = !sceneGhosts;
     document.getElementById('fGhosts').classList.toggle('off', !sceneGhosts);
+    // control window: sceneGhosts here only drives the LOCAL mirror's ghost
+    // hands — relay it so the real show window's scene actually ghosts too.
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('ghosts', sceneGhosts);
   });
   document.getElementById('fVol').addEventListener('input', e => {
     const v = document.getElementById('volSlider');
@@ -1032,6 +1639,41 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   QUEUE.refresh();
 }));
 
+// SHOW CONTROL bindings (ADR-0008) — the second device's LEARN buttons and
+// its own device picker, both inside the MAP popover.
+(() => {
+  const wire = (id, what) => {
+    const b = document.getElementById(id);
+    if (b) b.addEventListener('click', e => { e.stopPropagation(); NAV.arm(what); });
+  };
+  wire('btnNavPrev', 'prev'); wire('btnNavNext', 'next'); wire('btnNavSlots', 'slots');
+  const sel = document.getElementById('navInSel');
+  if (sel) sel.addEventListener('change', e => {
+    const id = e.target.value;
+    // 'any' keeps the old PADMAP behaviour (listen to every device); picking
+    // one stores id AND name, because MIDIInput ids do not survive a replug
+    const opt = e.target.selectedOptions[0];
+    NAV.dev = id === 'all' ? null : { id, name: opt ? opt.dataset.name || '' : '' };
+    NAV.save();
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.sendShowControl) {
+      // the show window owns the listening, so it needs the pick too
+      window.electronAPI.sendShowControl('navDevice', NAV.dev);
+    }
+  });
+  // keep the picker's options in step with whatever device list this window has
+  setInterval(() => {
+    if (!sel || !document.getElementById('mapPop').classList.contains('open')) return;
+    const inputs = (window.ELECTRON_ROLE === 'control') ? midiRelay.inputs
+      : (midi.access ? [...midi.access.inputs.values()].map(d => ({ id: d.id, name: d.name })) : []);
+    const cur = NAV.dev ? NAV.dev.id : 'all';
+    const sig = ['all', ...inputs.map(i => i.id)].join('|') + '#' + cur;
+    if (sel.dataset.sig === sig) return;
+    sel.dataset.sig = sig;
+    sel.innerHTML = '<option value="all"' + (cur === 'all' ? ' selected' : '') + '>DEVICE: ANY</option>' +
+      inputs.map(i => `<option value="${i.id}" data-name="${esc(i.name)}"${i.id === cur ? ' selected' : ''}>${esc(i.name)}</option>`).join('');
+  }, 800);
+  NAV.ui();
+})();
 // MAP popover — the source's hardware bindings live here (library AND scene view)
 (() => {
   const pop = document.getElementById('mapPop');
@@ -1045,6 +1687,12 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
 })();
 // ESC closes the scene (when not exiting fullscreen)
 window.addEventListener('keydown', e => {
+  // The SECOND Escape path — part2_core.js has one too, and this one guards
+  // on !document.fullscreenElement, which under Electron's NATIVE fullscreen
+  // is always true. So in the show window this fired and dropped the
+  // projectors to the library wall. Gate it the same way: CLOSE is a
+  // control-window action.
+  if (window.ELECTRON_ROLE === 'show') return;
   if (e.key === 'Escape' && focus.idx >= 0 && !document.fullscreenElement) {
     const c = document.getElementById('btnClose');
     if (c) c.click();
@@ -1054,7 +1702,24 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keydown', e => {
   if (focus.idx < 0) return;
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  // Show window: ←/→ walk the WALL (not even the set list) — a stray arrow
+  // on the focused projector window jumped the show to an unrelated scene.
+  // Note ↑/↓ deliberately still work here: those are the right hand, and
+  // hands are the one thing this window is meant to accept.
+  if (window.ELECTRON_ROLE === 'show') return;
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  // Nima: "left/right in control mode should go up and down the QUEUE but it
+  // goes through a different list." It did — this handler walks the WALL in
+  // its current sort/filter order, while the edge arrows next to it walk the
+  // SET (step() -> showList()). Two controls that look identical, two
+  // different lists. In the show console the set list is on screen and is
+  // the thing these keys visibly move through, so route them to the same
+  // step() the edges use. showList() falls back to wall order when the queue
+  // is empty, so this never dead-ends.
+  if (window.ELECTRON_ROLE === 'control' && window.SHOW) {
+    if (e.key === 'ArrowRight') SHOW.next(); else SHOW.prev();
+    return;
+  }
   const tiles = [...grid.children]
     .filter(t2 => t2.style.display !== 'none')
     .sort((a2, b2) => (+a2.style.order || 0) - (+b2.style.order || 0));
@@ -1076,9 +1741,8 @@ function renderFocusActs(i) {
 }
 document.getElementById('oActs').addEventListener('click', e => {
   const b = e.target.closest('button');
-  if (!b || focus.idx < 0 || !focus.P) return;
-  const d = PIECES[focus.idx];
-  if (d.setAct) d.setAct(focus.P, +b.dataset.a);
+  if (!b) return;
+  setActLocal(+b.dataset.a);   // relays to the show window under Electron
 });
 // zen mode — in fullscreen, the chrome sleeps until the mouse moves
 (() => {
@@ -1114,8 +1778,16 @@ document.getElementById('oActs').addEventListener('click', e => {
   // wrap open/close so the URL always mirrors the stage
   const _open = openFocus, _close = closeFocus;
   let syncing = false;
-  window.openFocus = function (i) {
-    _open(i);
+  // part2_core.js's openFocus(i, fromRelay) passes fromRelay so a scene the
+  // SHOW window opened for the control window (or vice versa) never bounces
+  // back over show:openScene as though it were a fresh local click — every
+  // wrapper in this file MUST keep taking a second arg and pass it through,
+  // or a relayed open loses that flag partway down the chain and re-fires
+  // the relay, which re-runs T.start/H.setup/makeInstance/MOut.bedOn and
+  // visibly restarts the scene (and Live gets a spurious clock Start) on
+  // every SHOWTIME auto-advance.
+  window.openFocus = function (i, fromRelay) {
+    _open(i, fromRelay);
     if (!syncing && PIECES[i]) {
       try { history.replaceState(null, '', location.pathname + '#scene=' + PIECES[i].id); } catch (e) {}
     }
@@ -1156,8 +1828,8 @@ document.getElementById('oActs').addEventListener('click', e => {
    an override — and every scene on close — fall back to the global toggle. */
 (() => {
   const _open = window.openFocus, _close = window.closeFocus;
-  window.openFocus = function (i) {
-    _open(i);
+  window.openFocus = function (i, fromRelay) {
+    _open(i, fromRelay);
     if (typeof MOut !== 'undefined' && PIECES[i]) MOut.applyMode(QUEUE.outFor(famOf(PIECES[i])));
   };
   window.closeFocus = function () {
@@ -1177,12 +1849,23 @@ document.getElementById('oActs').addEventListener('click', e => {
   const ov = document.getElementById('overlay');
   const fsBtn = document.getElementById('stageFS');
   if (!fsBtn) return;
+  // Nima, testing live: the show window was showing the sidebar and every
+  // other bit of library chrome, not just panels. Root cause: .fs on
+  // #overlay is what the ENTIRE fullscreen show layout keys off (sidebar
+  // hidden, stage takes the grid, DBG enabled — see part1_head.html's
+  // #overlay.fs rules), and it only ever gets added by this fullscreenchange
+  // listener — which requires a real document.fullscreenElement, which
+  // Electron's native BrowserWindow.setFullScreen() (ticket #31) never
+  // sets. So the show window never entered the fullscreen layout AT ALL
+  // under Electron, not just "panels visible" — force it, unconditionally,
+  // since the show window is always meant to be in this state (ADR-0003).
+  if (window.ELECTRON_ROLE === 'show') ov.classList.add('fs');
   fsBtn.addEventListener('click', () => {
     if (document.fullscreenElement) document.exitFullscreen();
     else if (ov.requestFullscreen) ov.requestFullscreen();
   });
   document.addEventListener('fullscreenchange', () => {
-    ov.classList.toggle('fs', !!document.fullscreenElement);
+    ov.classList.toggle('fs', !!document.fullscreenElement || window.ELECTRON_ROLE === 'show');
     resetRotation();
   });
   // THE SET LIST — starring a card on the wall is how a scene makes the show
@@ -1207,20 +1890,62 @@ document.getElementById('oActs').addEventListener('click', e => {
     if (nt && nt.cur) { closeFocus(); openFocus(nt.cur.idx); }
     resetRotation();
   };
-  document.getElementById('edgeL').addEventListener('click', () => step(-1));
-  document.getElementById('edgeR').addEventListener('click', () => step(1));
+  // Manual walk of the set. In the show window the left/right 13% of the
+  // PICTURE are click targets, and clicking that window is precisely how it
+  // takes focus — so the gesture that focuses the projector output could
+  // also skip a scene. CSS hides them there (part1_head.html); this is the
+  // second lock, because unlike a debug tab a stray edge click costs a scene
+  // mid-show. The control window gets them instead — its step() walks its
+  // own mirror and relays the open through to the wall, which is where
+  // manual navigation belongs now.
+  const walk = dir => () => { if (window.ELECTRON_ROLE === 'show') return; step(dir); };
+  document.getElementById('edgeL').addEventListener('click', walk(-1));
+  document.getElementById('edgeR').addEventListener('click', walk(1));
   // each scene holds the stage for ITS OWN minutes (MIN in the queue drawer,
   // default 10) — any manual navigation resets the clock
-  let rotT = null, rotAt = 0;
+  let rotT = null, rotAt = 0, rotMs = 0;
   function resetRotation() {
-    clearTimeout(rotT); rotT = null; rotAt = 0;
-    if (document.fullscreenElement && focus.idx >= 0) {
+    clearTimeout(rotT); rotT = null; rotAt = 0; rotMs = 0;
+    // Electron's native BrowserWindow.setFullScreen() (ticket #31) never
+    // sets document.fullscreenElement — that's the web Fullscreen API's own
+    // state, a different thing. Without this, SHOWTIME's dwell timer never
+    // armed at all under Electron, in either window: the show would just
+    // sit on the first scene forever. The show window is unconditionally
+    // "live" once launched (ADR-0003 — always picture-only there), so its
+    // role alone is enough; the control window never independently
+    // arms this (it only mirrors what the show window is actually doing).
+    if ((document.fullscreenElement || window.ELECTRON_ROLE === 'show') && focus.idx >= 0) {
       const ms = QUEUE.dwellMs(famOf(PIECES[focus.idx]));
-      rotAt = Date.now() + ms;
+      rotAt = Date.now() + ms; rotMs = ms;
       rotT = setTimeout(() => step(1), ms);
     }
   }
-  window.SHOW = { next: () => step(1), prev: () => step(-1), resetRotation };
+  /* The operator changed MIN on the scene that is ON STAGE right now (queue
+     sync, below). resetRotation() would be wrong here: it restarts the clock
+     from zero, so nudging MIN on the live scene would silently GRANT it a
+     whole fresh stay — hold the up-arrow and a scene never ends. Re-derive
+     the deadline from the new dwell instead, keeping the time already
+     served; if the new MIN is already used up, advance now. */
+  function retimeRotation() {
+    if (!rotT || focus.idx < 0) return;
+    const ms = QUEUE.dwellMs(famOf(PIECES[focus.idx]));
+    if (ms === rotMs) return;
+    const left = ms - (rotMs - (rotAt - Date.now()));   // new dwell minus time served
+    clearTimeout(rotT);
+    rotMs = ms;
+    if (left <= 0) { rotT = null; rotAt = 0; rotMs = 0; step(1); return; }
+    rotAt = Date.now() + left;
+    rotT = setTimeout(() => step(1), left);
+  }
+  // rotationState() is how telemetry:tick reads the dwell clock without the
+  // countdown having to live out here. rotAt is an absolute Date.now()
+  // deadline on purpose: the control window is the same machine, so it can
+  // interpolate a smooth countdown from one number instead of us shipping a
+  // "seconds left" that would be stale the instant it arrived.
+  window.SHOW = {
+    next: () => step(1), prev: () => step(-1), resetRotation, retimeRotation,
+    rotationState: () => ({ rotAt, rotMs }),
+  };
   // DBG — the little truth window: is the rig actually feeling your hands?
   const dbg = document.getElementById('dbg'), body = document.getElementById('dbgBody');
   document.getElementById('dbgTab').addEventListener('click', () => dbg.classList.toggle('open'));
@@ -1229,7 +1954,18 @@ document.getElementById('oActs').addEventListener('click', e => {
   setInterval(() => {
     const now = performance.now();
     fps = Math.round(frames * 1000 / (now - fpsT)); frames = 0; fpsT = now;
-    if (!dbg.classList.contains('open') || !document.fullscreenElement) return;
+    // telemetry:tick reports this outward — in the control window the useful
+    // number is the SHOW window's frame rate (the wall's), not the console's
+    window.__showFps = fps;
+    // #dbg is display:none unless #overlay.fs, which the show window forces
+    // unconditionally (ADR-0003, above) but the control window never gets
+    // (it is never really document.fullscreenElement) — so DBG belongs to
+    // the control window instead, where the operator actually sits. The
+    // matching CSS lives in part1_head.html, keyed off html.electron-control
+    // on the root element; this just stops the loop early-returning under
+    // that role so the panel has something live to show.
+    const inControl = window.ELECTRON_ROLE === 'control';
+    if (!dbg.classList.contains('open') || !(document.fullscreenElement || inControl)) return;
     const d = focus.idx >= 0 ? PIECES[focus.idx] : null;
     const st = focus.P && focus.P.state;
     const bar = (side) => {
@@ -1239,24 +1975,42 @@ document.getElementById('oActs').addEventListener('click', e => {
     };
     const secs = rotAt ? Math.max(0, Math.round((rotAt - Date.now()) / 1000)) : 0;
     const mmss = rotAt ? String(Math.floor(secs / 60)) + ':' + String(secs % 60).padStart(2, '0') : '—';
+    // control window: midi.map/midi.cal are local and permanently inert
+    // (real MIDI-in is show-only, ADR-0006) — build the line from the
+    // relayed midiRelay.map instead, which already carries plain labels
+    // ("CC1") rather than the raw {note,ch,dev} mapLabel() expects.
     const hand = side => {
+      if (inControl) {
+        const label = midiRelay.map[side];
+        return label ? side + ':' + label : side + ':—';
+      }
       const m = midi.map[side], cal = midi.cal[side];
       if (!m) return side + ':—';
       return side + ':' + mapLabel(m) +
         (cal ? '[' + cal.lo.toFixed(2) + '-' + cal.hi.toFixed(2) + (cal.inv ? ' INV' : '') +
           (cal.rest !== null && cal.rest !== undefined ? ' rest' + cal.rest.toFixed(2) : ' NO-REST') + ']' : '[uncal]');
     };
-    const inMap = (midi.map.L || midi.map.R)
+    const mapped = inControl ? (midiRelay.map.L || midiRelay.map.R) : (midi.map.L || midi.map.R);
+    const inMap = mapped
       ? hand('L') + ' ' + hand('R')
       : 'unmapped (MAP → LEARN)';
+    // MIDI OUT / CLK→LIVE: same relay as the SHOW CHECK rows and oOutState
+    // above — MOut.mode/port/clock are local stand-ins in the control window.
+    const outMode = inControl ? rigRelay.mode : MOut.mode;
+    const outPortName = inControl ? rigRelay.portName : (MOut.port ? MOut.port.name : null);
+    const clockOn = inControl ? rigRelay.clockOn : MOut.clock.on;
+    const clockRunning = inControl ? rigRelay.clockRunning : MOut.clock.running;
+    const bpm = inControl ? rigRelay.bpm : T.bpm;
     body.textContent =
       'SCENE  ' + (d ? d.id + ' · ' + d.title : '—') + (st && d && d.acts ? '\nACT    ' + d.acts[st.act] : '') +
       '\nL HAND ' + bar('L') +
       '\nR HAND ' + bar('R') +
       '\nMIDI IN  ' + inMap +
-      '\nMIDI OUT ' + MOut.mode.toUpperCase() + (MOut.port ? ' → ' + MOut.port.name : '') +
-      '\nCLK→LIVE ' + (!MOut.clock.on ? 'OFF' : MOut.clock.running ? 'DRIVING ' + T.bpm + ' BPM' : 'armed (no transport)') +
-      '\nNEXT SCENE ' + mmss + '   FPS ' + fps +
+      '\nMIDI OUT ' + outMode.toUpperCase() + (outPortName ? ' → ' + outPortName : '') +
+      '\nCLK→LIVE ' + (!clockOn ? 'OFF' : clockRunning ? 'DRIVING ' + bpm + ' BPM' : 'armed (no transport)') +
+      // the dwell timer lives in the show window, not here — never fake a
+      // countdown the control window doesn't actually own
+      '\nNEXT SCENE ' + (inControl ? '— (show window)' : mmss) + '   FPS ' + fps + (inControl ? ' (mirror)' : '') +
       // the frame the scene is actually being handed — 1920x1200 / 1.60 is the show
       (focus.P ? '\nFRAME  ' + focus.P.w + '×' + focus.P.h + ' · ' +
         (focus.P.w / focus.P.h).toFixed(2) + (typeof PROJ !== 'undefined' && PROJ.on ? ' · PROJ' : '') +
@@ -1332,19 +2086,26 @@ QUEUE.boot();
 // PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
 // for debugging. The choice persists across scenes and visits.
 (() => {
+  // ADR-0003: the show window is always picture-only — PANELS doesn't
+  // apply there at all, full stop, not even toggleable. Ignore whatever
+  // srcPanels says (it's shared, ticket #30 — someone debugging in the
+  // control window must never be able to bring chrome onto the real show).
+  const isShow = window.ELECTRON_ROLE === 'show';
   let panels = false;
-  try { panels = localStorage.getItem('srcPanels') === '1'; } catch (e) {}
+  if (!isShow) { try { panels = localStorage.getItem('srcPanels') === '1'; } catch (e) {} }
   const apply = () => overlay.classList.toggle('perf', !panels); // .perf only bites under .fs
   const flip = () => {
+    if (isShow) return;
     panels = !panels;
     try { localStorage.setItem('srcPanels', panels ? '1' : '0'); } catch (e) {}
     apply();
   };
   // starting a show must not inherit yesterday's debugging layout
-  window.setPanels = on => { panels = !!on; apply(); };
+  window.setPanels = on => { panels = isShow ? false : !!on; apply(); };
   const pt = document.getElementById('panelTab');
   if (pt) pt.addEventListener('click', flip);
   window.addEventListener('keydown', e => {
+    if (isShow) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
     if (focus.idx < 0 || !overlay.classList.contains('fs')) return;
@@ -1376,6 +2137,11 @@ QUEUE.boot();
 })();
 applyLibrary();
 
+// ADR-0007 superseded ADR-0005's MIRROR governor and it is gone with it.
+// The governor existed because the control window ran its own copy of every
+// scene and that doubled render cost on the show machine; the control window
+// no longer renders scenes at all — its picture is a video feed of the show
+// window — so there is nothing left to throttle and no pill to throttle it
 let last = 0, fc = 0;
 function frame(ts) {
   const t = ts / 1000;
@@ -1405,35 +2171,49 @@ function frame(ts) {
       if (el && el.textContent !== hud) el.textContent = hud;
     }
     try {
-      P.def.step(P, dt, t, inp);
-      P.def.draw(P, P.g, P.w, P.h, t, inp);
-      // composite scene → display per the VIEW mode (dropdown / V key)
-      const fg = focus.fctx;
-      if (fg) {
-        const vm = (typeof VIEW !== 'undefined') ? VIEW.mode : 'flat';
-        const scrimOK = window.SCRIMVIEW && typeof THREE !== 'undefined';
-        if ((vm === 'scrim' || vm === 'scrim3d') && scrimOK) {
-          SCRIMVIEW.render(fg, P, t);   // the frame thrown into The Cave
-        } else {
-          fg.drawImage(P.canvas, 0, 0);
-          if (vm === 'double') {
-            // the second projector's ghost — cloned signal, worst-case
-            // misregistration of ~0.8% of the frame width
-            fg.save();
-            fg.globalCompositeOperation = 'lighter'; fg.globalAlpha = 0.45;
-            fg.drawImage(P.canvas, Math.max(2, Math.round(P.w * 0.008)), 0);
-            fg.restore();
-          }
-          const fx = P.def.fx;
-          if (fx) {
-            if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
-            if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+      {
+        P.def.step(P, dt, t, inp);
+        P.def.draw(P, P.g, P.w, P.h, t, inp);
+        // Nima, review fix: this composite block (drawImage/ghost-pass/
+        // bloomTo/edgeFadeCtx/SCRIMVIEW.render) used to sit OUTSIDE the
+        // doStep gate above, so the control window's MIRROR governor
+        // (ADR-0005) throttled step/draw but still ran the expensive part —
+        // bloom, for most scenes — every real frame regardless. Moving it in
+        // here means a throttled tick only composites once per step; the
+        // canvas simply keeps its last composited frame in between, which
+        // is the whole point of throttling in the first place.
+        // composite scene → display per the VIEW mode (dropdown / V key)
+        const fg = focus.fctx;
+        if (fg) {
+          const vm = (typeof VIEW !== 'undefined') ? VIEW.mode : 'flat';
+          const scrimOK = window.SCRIMVIEW && typeof THREE !== 'undefined';
+          if ((vm === 'scrim' || vm === 'scrim3d') && scrimOK) {
+            SCRIMVIEW.render(fg, P, t);   // the frame thrown into The Cave
+          } else {
+            fg.drawImage(P.canvas, 0, 0);
+            if (vm === 'double') {
+              // the second projector's ghost — cloned signal, worst-case
+              // misregistration of ~0.8% of the frame width
+              fg.save();
+              fg.globalCompositeOperation = 'lighter'; fg.globalAlpha = 0.45;
+              fg.drawImage(P.canvas, Math.max(2, Math.round(P.w * 0.008)), 0);
+              fg.restore();
+            }
+            const fx = P.def.fx;
+            if (fx) {
+              if (fx.bloom) bloomTo(fg, P.canvas, P.w, P.h, fx.bloom);
+              if (fx.edge) edgeFadeCtx(fg, P.w, P.h);
+            }
           }
         }
       }
     } catch (e) { console.error(P.def.id, e); }
     if (focus.voice && AE.on) { try { focus.voice.tick(inp, dt); } catch (e) {} }
-  } else {
+  } else if (focus.idx < 0) {
+    // Only the LIBRARY WALL renders here. Before ADR-0007, "no focus.P" and
+    // "no scene open" were the same condition; in the control window they no
+    // longer are — a scene IS open, it just has no local instance — and
+    // without this guard the wall's 43 tiles would render behind it.
     fc++;
     insts.forEach((P, i) => {
       if (!P.visible || (fc + i) % 2) return;
@@ -1443,6 +2223,88 @@ function frame(ts) {
       } catch (e) { console.error(P.def.id, e); }
     });
   }
+  // ADR-0007: the console's clock is the thing that must be smooth, so it
+  // repaints every frame off tele.rotAt. textContent only, never innerHTML —
+  // that list carries click targets, and rebuilding DOM at 60fps is exactly
+  // what made SHOW CHECK's buttons flicker.
+  if (window.ELECTRON_ROLE === 'control' && typeof QUEUE !== 'undefined') QUEUE.paintShowPanel();
   requestAnimationFrame(frame);
+}
+// The show window's global controls, driven from the control window over
+// show:control — sound, OUT routing, clock, MIDI OUT port, scene ghosts,
+// reseed and volume all originate as clicks/drags in the control window's
+// UI (the show window is picture-only, nothing to click there), so this is
+// the one place the show window ever acts on them. Placed after QUEUE.boot()
+// and the RIG/focus wiring above (so MOut/T/AE/startVoice/focus/sceneGhosts
+// all already exist) but before the loop starts.
+// Note: the 'R' reseed key itself lives in part2_core.js (not this file) —
+// it is a local show-window keypress, not relayed; only the drawer/queue's
+// explicit RESEED path (if any) would use this 'reseed' kind.
+// Show window: the performance queue, pushed from control on every edit
+// (QUEUE.relay(), above). This is what the show ACTUALLY runs on —
+// SHOWTIME's running order (showList), each scene's dwell (QUEUE.dwellMs),
+// its OUT override (QUEUE.outFor) and PADMAP's slot->scene map all read
+// QUEUE live, so replacing list/cfg here is the whole sync.
+//
+// Deliberately NOT calling QUEUE.refresh(): here QUEUE is DATA, never UI.
+// refresh() re-renders the drawer, repaints every tile badge and re-runs
+// applyLibrary() over all 43 scenes — real DOM work, on the machine driving
+// the projectors, triggered by an operator nudging a number field. Nobody
+// can see this window's wall anyway (it is picture-only by design), so the
+// badges would be decorating a screen no human looks at, at the price of a
+// frame hitch in the middle of a show.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onQueue) {
+  window.electronAPI.onQueue(q => {
+    if (!q) return;
+    // What the scene on stage is currently promised, BEFORE we swap the
+    // queue out — the two things that have to be re-applied live rather
+    // than at the next scene change.
+    const fam = focus.idx >= 0 ? famOf(PIECES[focus.idx]) : null;
+    const outWas = fam ? QUEUE.outFor(fam) : null;
+    QUEUE.list = Array.isArray(q.list) ? q.list.filter(Boolean) : [];
+    QUEUE.cfg = (q.cfg && typeof q.cfg === 'object') ? q.cfg : {};
+    // No save() — control already persisted this, and writing it back from
+    // here would make the show window look like a second author of a queue
+    // it is not allowed to edit.
+    if (!fam) return;
+    // MIN changed on the live scene: keep the time already served.
+    if (window.SHOW) SHOW.retimeRotation();
+    // OUT changed on the live scene: the drawer's own handler applies this
+    // to the CONTROL window's MOut, which routes nothing. This is the one
+    // that reaches Ableton.
+    const outNow = QUEUE.outFor(fam);
+    if (outNow !== outWas && typeof MOut !== 'undefined') MOut.applyMode(outNow);
+  });
+}
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
+  window.electronAPI.onShowControl(({ kind, value }) => {
+    if (kind === 'sound') {
+      AE.on = !!value;
+      const b = document.getElementById('btnSound');
+      if (b) { b.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF'; b.classList.toggle('off', !AE.on); }
+      if (AE.on) { AE.ensure(); startVoice(); }
+      else if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
+    } else if (kind === 'outMode') MOut.setMode(value);
+    else if (kind === 'clock') MOut.clockSet(!!value);
+    else if (kind === 'outPort') MOut.selectPortByName(value);
+    else if (kind === 'ghosts') sceneGhosts = !!value;
+    else if (kind === 'navDevice') { NAV.dev = value || null; NAV.save(); NAV.relay(); }
+    // calibration, driven from the console (ADR-0006's last show-only gap).
+    // The results ride home on the existing midi:devices relay.
+    else if (kind === 'setRest') startRest();
+    else if (kind === 'invert') setInvert(value);
+    else if (kind === 'calClear') clearCal();
+    // reseed carries the SEED control just used, so the mirror and the wall
+    // land on the same picture instead of two different random ones
+    else if (kind === 'reseed') { if (focus.P) focus.P.reinit(typeof value === 'number' ? value : (Math.random() * 1e9) | 0); }
+    else if (kind === 'act') {
+      const d = focus.idx >= 0 ? PIECES[focus.idx] : null;
+      if (d && d.setAct && focus.P) d.setAct(focus.P, value);
+    }
+    else if (kind === 'vol') {
+      const v = document.getElementById('volSlider');
+      if (v) { v.value = value; v.dispatchEvent(new Event('input')); }
+    }
+  });
 }
 requestAnimationFrame(frame);

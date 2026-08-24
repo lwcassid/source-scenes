@@ -75,7 +75,38 @@ step the queue.
 
 One tab renders one picture. Picking a display sends the SHOW there — it does
 not give you a separate control window on the laptop. Control happens on top
-of the picture, via PANELS and DBG.
+of the picture, via PANELS and DBG. **This is the plain-browser path.** If
+you want a real second, always-visible control surface instead — see below.
+
+## Electron: a real control window, separate from the show
+
+`electron/` (see `CLAUDE.md`) runs the exact same offline build as two
+windows instead of one tab: a **show** window (picture only, fullscreens on
+the picked display) and a **control** window (the whole library/queue/SHOW
+CHECK/DBG UI, permanently visible on its own screen — no PANELS toggle
+needed to get it back). This exists specifically because a single browser
+tab *can't* do this — Chrome refuses to let one window trigger fullscreen on
+another, so "control here, show there" was never available in the plain
+path above.
+
+Same pre-show steps apply (freeze the set, `build.sh` + `build_preview.py`,
+rehearse with wifi off, SHOW CHECK green) — the only difference is how you
+launch: `cd electron && npm install && npm start` instead of opening the
+HTML file in Chrome. PLAY / clicking a tile in the control window mirrors
+the scene there *and* opens it for real in the show window, which places
+itself on the picked display — verified working end to end, not just
+wired. Two gaps to know about right now: LEARN/calibration only work by
+interacting with the show window directly (SHOW CHECK's picker dropdowns
+for already-known devices work fine from the control window; *starting a
+fresh LEARN sweep* doesn't yet); and if the show window's own VIEW mode or
+PROJ frame gets switched away from the FLAT/pinned default before PLAY,
+that isn't force-corrected remotely yet (it boots into the right state by
+default, so this only bites if something changed it first).
+
+The MIRROR pill in the control window (next to PANELS/DBG) trades its own
+mirror's frame rate for headroom on the show window's real performance —
+THROTTLED (~20fps) by default, FULL if you want the control window's own
+picture to feel as live as the show's.
 
 ## MIDI clock — Live follows the scene
 

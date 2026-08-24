@@ -223,6 +223,13 @@ const MOut = {
      Sync is off, so leaving this enabled costs nothing. ---------- */
   clock: { on: true, PPQ: 24, LOOKAHEAD: 0.25, n: 0, t0: -1, beat: 0, running: false },
   clockSet(on) {
+    // Relay first: under Electron the control window's own MOut is inert
+    // (no real port/AudioContext transport), so toggling CLOCK there used
+    // to change nothing anyone could hear. Tell the show window, which has
+    // the real clock, and let it run this same setter locally afterward —
+    // ELECTRON_ROLE is 'show' there so this guard is false and there's no
+    // echo back across the wire.
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('clock', !!on);
     this.clock.on = !!on;
     try { localStorage.setItem('srcMidiClock', this.clock.on ? '1' : '0'); } catch (e) {}
     if (!this.clock.on) this.clockStop();
@@ -274,6 +281,14 @@ const MOut = {
   },
   testBurst() {
     const b = document.getElementById('btnTest');
+    // control window has no real port to test — relay to the show window,
+    // which actually has one, and give optimistic feedback here (the show
+    // window's own button text update is invisible — no chrome there).
+    if (window.ELECTRON_ROLE === 'control') {
+      if (window.electronAPI) window.electronAPI.requestMidiTest();
+      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+      return;
+    }
     if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
     const t0 = performance.now();
     [0, 4, 7, 11, 14, 19, 12].forEach((s, i) => {
@@ -285,6 +300,23 @@ const MOut = {
       } catch (e) {}
     });
     if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+  },
+  // Show-window side of the control window's MIDI OUT picker (ticket #7).
+  // MIDIAccess ids are scoped per-window/per-connection, so the control
+  // window (relaying midiRelay's device list) can only ever name a port,
+  // never hand back an id the show window's own MIDIAccess would recognize.
+  // Matching by NAME is therefore the only thing that works across the IPC
+  // boundary. This is now the one place that persists the choice (srcOutPort)
+  // so a fresh launch of either window agrees on the same port next time.
+  selectPortByName(name) {
+    if (!midi.access) return false;
+    const outs = [...midi.access.outputs.values()];
+    const p = outs.find(o => o.name === name);
+    if (!p) return false;
+    this.port = p;
+    try { localStorage.setItem('srcOutPort', name); } catch (e) {}
+    this.refreshUI();
+    return true;
   },
   allOff() {
     this.onModeMidi = null;
@@ -311,6 +343,15 @@ const MOut = {
   // around it and fall back to it, so a show never strands the global toggle
   baseMode: 'web',
   setMode(m) {
+    // Same relay as clockSet above: this is the fix that reaches every call
+    // site at once (OUT pill, fOut on the focus rail, SHOW CHECK's SEND
+    // MIDI fix) since they all funnel through setMode rather than each
+    // needing its own IPC call. Fire-and-forget, so it sits ahead of the
+    // local work rather than in the middle of it.
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('outMode', m);
+    // Lance's held-state fix (main): remember whether MIDI was wanted BEFORE
+    // the switch, so _modeCrossed() below can hand sounding voices over when
+    // web<->MIDI is crossed mid-scene. Must be sampled before this.mode moves.
     const was = this.wants();
     this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
@@ -320,6 +361,14 @@ const MOut = {
     this.refreshUI();
   },
   // transient routing (a queued scene's OUT override) — same plumbing, no save
+  // DELIBERATELY NOT RELAYED: this fires on every scene's own
+  // openFocus, in BOTH windows independently, each applying its OWN scene's
+  // override to its OWN local mode. Relaying it from the control window
+  // would make the show window apply the override twice — once from its
+  // own openFocus, once from the relay — and fight itself if the two
+  // windows aren't showing the same scene at the exact same instant. Leave
+  // this one alone; only setMode/clockSet (the operator's explicit toggles)
+  // get relayed.
   applyMode(m) {
     if (!m) m = this.baseMode;
     if (m === this.mode) return;
@@ -355,12 +404,32 @@ const MOut = {
     }
     const sel = document.getElementById('midiOutSel');
     if (sel) {
-      if (this.mode !== 'web' && midi.access) {
+      // control window (ticket #36): the show window owns the real port —
+      // this only lets the operator SEE the list and pick, same split as
+      // ticket #31's display picker. Applying the pick is relayed over
+      // show:control 'outPort' (the port NAME, since MIDIAccess ids are
+      // per-window) and bound on the show side by selectPortByName(),
+      // which also persists srcOutPort so both windows agree next launch.
+      if (window.ELECTRON_ROLE === 'control') {
+        if (this.mode !== 'web' && midiRelay.connected) {
+          sel.style.display = '';
+          const outs = midiRelay.outputs;
+          if (sel.options.length !== outs.length) {
+            sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
+          }
+        } else sel.style.display = 'none';
+      } else if (this.mode !== 'web' && midi.access) {
         sel.style.display = '';
         const outs = [...midi.access.outputs.values()];
         if (sel.options.length !== outs.length) {
           sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
         }
+        // ticket #37: this.port is never nulled elsewhere, so a disconnected
+        // device left it stale forever — a reconnect (same or fresh object)
+        // never got picked back up. This runs every 1.5s already (see the
+        // setInterval call site), so clearing it here is the whole fix —
+        // the block below already re-acquires whenever !this.port.
+        if (this.port && !outs.includes(this.port)) this.port = null;
         if (!this.port && outs.length) {
           // prefer the port the user picked last time (survives reloads/redeploys)
           let saved = null; try { saved = localStorage.getItem('srcOutPort'); } catch (e) {}
@@ -648,3 +717,9 @@ AE.SB = {
     return voices;
   };
 })();
+// Show window: the control window's TEST button has no real port to test
+// with — relayed here (MOut.testBurst()'s control branch above), where a
+// real one actually exists.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onMidiTestRequested) {
+  window.electronAPI.onMidiTestRequested(() => MOut.testBurst());
+}

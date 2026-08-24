@@ -118,6 +118,95 @@ python3 tools/build_preview.py  # self-contained preview for sighted testing
 git add -A && git commit -m "..." && git push   # Netlify does the rest
 ```
 
+### electron/ — the show-runner
+`electron/` wraps the built `index.html` to run the live show, purely so a
+control UI can live on one screen while the show fullscreens on another — a
+real Chrome limitation (cross-window `requestFullscreen` is refused), not a
+missing feature. It changes NOTHING about how scenes get built, previewed,
+or verified — the plain web app (Netlify, `tools/verify.sh`,
+`docs/PREVIEW.md`) stays the whole dev/rehearsal path; this is only a new
+way to *run* the show. Full design history: `docs/adr/0001` through `0006`
+in order, and the [wayfinder map](https://github.com/lwcassid/source-scenes/issues/27)
+that drove them.
+
+**Run it**: `python3 tools/build_preview.py` from the repo root first (the
+same offline, no-CDN artifact `docs/SHOW-KIT.md` already requires before any
+show — `main.js` loads it specifically, not `index.html`, since `index.html`
+still pulls three.js from a CDN and playa has no internet; `npm start` fails
+loudly with the exact command if you skip this), then `cd electron && npm
+install && npm start`. Two windows open —
+**show** (owns audio + MIDI + rendering, always picture-only, fullscreens
+onto whichever display SHOW CHECK picks) and **control** (the entire
+existing UI, unchanged — library wall, queue, SHOW CHECK, DBG). Both load
+the same `index.html`, told apart by `?role=show`/`?role=control`
+(`window.ELECTRON_ROLE` in `part1_head.html` — `null`, so a no-op, in the
+plain browser). The control window builds a real but silent `AudioContext`
+(full graph, routed through a zero-gain node instead of `destination`) —
+`AE.ensure()` no longer no-ops there, which is what makes the mirror's
+transport, chord readout, MIDI monitor and RIG rack tick correctly; only
+the last hop to audible output is muted. `connectMidi()` no longer no-ops
+either: every caller (CONNECT, TEST, LEARN, mode-switch) still works from
+the control window, because it now relays a connect REQUEST to the show
+window — the sole real owner of `MIDIAccess` — instead of doing nothing.
+Clicking PLAY or a tile in the control window mirrors the scene there too
+(same silent audio, relayed MIDI, no port of its own) **and** tells the
+show window to open the same scene and place itself on the picked display,
+for real — this round trip is wired and verified end to end, not just
+designed.
+
+**What doesn't work yet**: LEARN (hand-sensor CC mapping) and MIDI-input
+device picking now DO run from the control window — relayed to the show
+window over `midi:learnStart` / `midi:learnResult` / `midi:setInput`, same
+shape as the CONNECT/TEST relay. Calibration works from the console too:
+SET REST / INVERT / CLEAR relay over `show:control`, and SHOW CHECK's
+Calibration row has its fix button back. **SET REST samples what the
+sensors read with NOBODY at the instrument** — stand clear before pressing,
+and LEARN both hands first, because REST only samples a source that is
+already bound. The one piece still show-only is the live raw readout in the
+MAP popover: that needs a value stream nothing relays, so it is hidden in
+the console rather than shown empty. Queue edits DO reach the
+show window now (`queue:update`, pushed from `QUEUE.save()` — the choke
+point every mutation already funnels through): reorder the set, drop a
+scene or change a MIN/OUT and SHOWTIME follows live. Changing MIN on the
+scene currently on stage re-times it keeping the minutes already served,
+and cuts to the next scene at once if the new MIN is already spent.
+
+**The show window accepts HANDS, nothing else.** It is a real, focusable OS
+window that `setFullScreen()` raises to the front on PLAY, so keystrokes
+aimed at the laptop land on the PROJECTORS. `V` (ghost / scrim views), `P`
+(un-pin the show frame), `←`/`→` and `Escape` (both scene changes — Escape
+has TWO handlers, and `part5_tail.js`'s guards on `!document.fullscreenElement`,
+which native fullscreen never sets) and the edge-nav click strips are all
+gated off there; `H`/PANELS already was. `W`/`S`/`↑`/`↓` still play, because
+that is what the window is for. Manual next/prev moved to the control
+window, which now shows the edge strips it could never display before (it
+never gets `.fs`). `R` reseed and acts (keys `1`-`4`, the top-bar chips)
+have ONE driver: control applies them locally and relays the same seed /
+act index on, so the mirror and the wall never diverge. Still not wired:
+THE RIG rack's channel remap is control-window-local only.
+
+CLOSE in the control window ends the show: the scene tears down in the show
+window (voice stopped, bed note off, all-notes-off to Ableton) and then that
+window is STOWED — hidden, not destroyed, so the AudioContext, the open MIDI
+ports and the loaded build survive and the next PLAY is instant. Opening a
+scene or pressing PLAY brings it back exactly where it was.
+
+**THE SHOW CONSOLE** (control window, ADR-0007): with a scene open the
+control window is a console, not a second screen. Its stage splits — the
+RUNNING ORDER left (a NOW block with the scene, a big countdown, a draining
+bar and what's next, over the ordered list; current row highlighted and
+counting down, others showing their MIN, every row click-to-jump) and a
+LIVE FEED right. The feed is a real capture of the show window
+(`setDisplayMediaRequestHandler` answers with the show window itself, so
+there's no picker and you can't aim it wrong) — so the control window no
+longer runs scenes AT ALL: no `makeInstance`, no `startVoice`, no second
+performance to diverge from the wall. `telemetry:tick` carries what it can
+no longer compute: the countdown deadline, the chord readout, and the MIDI
+activity THE RIG rack and monitor light from. The MIRROR pill is gone with
+the render it governed. **macOS needs Screen Recording permission** for the
+feed — without it the picture is black (the WALL is unaffected); SHOW
+CHECK's Preview row says so and opens the right settings pane.
+
 ### The frame: 1920×1200, 16:10 — the DEFAULT everywhere
 The show is one WUXGA render fullscreen, cloned to both projectors (Panasonic
 PT-VMZ50, native 1920×1200), so a scene gets `P.w=1920, P.h=1200` (aspect
@@ -209,6 +298,16 @@ never handle polarity; presence via `chan.L.mode === 'live'`),
   timeline (`MOut.clock`), with song-position + Start on scene open and Stop
   on close — Live follows each scene's BPM instead of someone retyping it.
   Header CLOCK toggle; Live needs that port's Sync on and EXT pressed.
+- TWO MIDI INPUTS, two jobs (ADR-0008). The HANDS device plays the
+  instrument. A separate SHOW CONTROL device drives the show: prev/next
+  through the running order, plus pads that jump to queue slots 1-16 (learn
+  PAD 1; the next 15 consecutive numbers follow). Both are mapped in the MAP
+  popover, both learnable from the control window. Notes and CCs are accepted
+  for navigation — CCs fire on the RISING EDGE so a momentary footswitch
+  triggers once per press. Nav gets first look at incoming MIDI, before the
+  hands' device filter, or a second device's CCs would be dropped whenever the
+  hands are pinned to a specific device. Replaces PAD LEARN, whose button sat
+  in the queue drawer and armed a listener in the window that has no MIDI-in.
 - Hand input is CALIBRATED, not raw (`CAL` + `midi.cal` in `part2_core.js`):
   the LEARN sweep's measured range is kept and self-widens, polarity is an
   INVERT toggle, and SET REST samples what the sensors read with nobody

@@ -5,6 +5,12 @@ scratchshots/
 node_modules/
 package.json
 package-lock.json
+# electron/ is a real, committed app (the show-runner wrapper) — its own
+# package.json/lockfile are tracked even though the repo-root ones above
+# aren't; only its node_modules stays ignored (node_modules/ above already
+# matches at any depth).
+!electron/package.json
+!electron/package-lock.json
 
 # agent worktrees (transient, never part of the site)
 .claude/worktrees/

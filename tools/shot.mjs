@@ -9,6 +9,7 @@
 // (areaScale) match the wall. PROJ=0 in the env falls back to a plain window.
 import { chromium } from 'playwright-core';
 import path from 'path';
+import fs from 'fs';
 
 const EXE = process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const pieceId = process.argv[2] || 'SRC-18.16';
@@ -55,7 +56,8 @@ for (const st of spec) {
     }, 300);
   }, { L, R, pres, act: act === undefined ? -1 : +act });
   await page.waitForTimeout(+ms || 3000);
-  const out = `/home/user/source-scenes/scratchshots/${outPrefix}_${label}.png`;
+  fs.mkdirSync('scratchshots', { recursive: true });
+  const out = `scratchshots/${outPrefix}_${label}.png`;
   await page.screenshot({ path: out });
   console.log('shot', out);
 }
