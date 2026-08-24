@@ -238,8 +238,7 @@
   #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
   #sidebar .scrimonly{display:none}
   #overlay.scrimmode #sidebar .scrimonly{display:flex}
-  .ostage{grid-column:2}
-  .oconsole{grid-column:1/-1}
+  .ostage,.oconsole{grid-column:2}
   .conTitle{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--acc);
     font-weight:700;margin:0 0 6px}
   .monHead .conTitle{margin:0 10px 0 0}
@@ -311,9 +310,23 @@
      Live (rig.json, baked). Rows light while their lane is playing. */
   #rackBox{flex:1;min-width:0}
   #rigSplit{display:flex;align-items:flex-start;position:relative}
-  #rigSplit #roleRack{width:470px;flex:none}
+  #rigSplit #roleRack{width:230px;flex:none;overflow:hidden}
   #rigLanes{flex:1;min-width:0;align-self:stretch;border-left:1px solid var(--line)}
-  .rkevts{height:76px;margin:0 0 2px;border:0}
+  /* collapsed = identity + liveness ONLY; the lane beside the row is the
+     activity display. Tools and values live in the expanded panel. */
+  #rigSplit .rkrow{height:22px;flex-wrap:nowrap;overflow:hidden}
+  #rigSplit .rkrow .rki{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rkx[hidden]{display:none}
+  .rkx{height:90px;margin:0 0 2px;padding:4px 6px 4px 30px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+  .rkx .rkxrole{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-dim);font-weight:700}
+  .rkx .rkxrole i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+  .rkx .rkevt{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rkx .rkcc{width:120px;height:5px;background:#1c1c20;border-radius:3px;overflow:hidden;flex:none}
+  .rkx .rkcc u{display:block;height:100%;width:0;background:var(--acc);opacity:.7;transition:width .15s}
+  .rkx .rkxbtns{display:flex;gap:6px;align-items:center}
+  .rkx .rkt,.rkx .rkm{flex:none;font-size:9px;letter-spacing:.08em;padding:1px 8px;background:none;border:1px solid var(--line);border-radius:3px;color:var(--txt-dim);cursor:pointer}
+  .rkx .rkt:hover,.rkx .rkm:hover{color:var(--txt);border-color:var(--txt-dim)}
+  .rkx .rkm.learning{color:var(--acc);border-color:var(--acc)}
   .hsearch{display:flex;align-items:center;gap:10px;flex:1;min-width:0;margin:0 26px}
   .hsearch #searchBox{width:220px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
   .hsearch select{padding:6px 8px}

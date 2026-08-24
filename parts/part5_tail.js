@@ -1930,37 +1930,41 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     sfx: 'one-shots + weather holds — 37 lightning · 38 thunder · 39/40 rain loops',
     bed: 'scene atmospheres — one held note (20+scene#) per scene'
   };
-  // note names in Ableton's convention (C3 = 60), for the readouts
   const NN = n => ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][n % 12] + (Math.floor(n / 12) - 2);
   const roleAt = {};
   for (const r in MOut.roles) roleAt[MOut.roles[r]] = r;
   const rows = [];
+  // COLLAPSED = identity + liveness, EXPANDED = values + tools (the shell
+  // law): a thin row is just CH · dot · Live track name; the lane beside it
+  // is the activity display, so no readout text belongs on the row. Opening
+  // a row reveals the toolbelt and turns its lane into a piano-roll band.
   for (let ch = 1; ch <= 16; ch++) {
     const role = roleAt[ch];
     const name = TRKS[ch] || (role ? role.toUpperCase() : '');
     if (!role && !TRKS[ch]) continue;
     const doc = role ? (DOCS[role] || {}) : {};
-    const draft = role && (!doc.instrument || /\(proposed\)|TBD/i.test(doc.instrument));
     const div = document.createElement('div');
-    div.className = 'rkrow' + (role ? '' : ' spare') + (draft ? ' draft' : '');
+    div.className = 'rkrow' + (role ? '' : ' spare');
     div.title = (role
       ? ((doc.instrument ? doc.instrument + '\n\n' : '') + [DESC[role], doc.use].filter(Boolean).join('\n\n'))
       : 'No role routed here — nothing in the show triggers this track.') +
-      '\n\nClick to expand recent MIDI on this channel.';
+      '\n\nClick to expand: tools + a piano-roll of this channel.';
     div.innerHTML = `<span class="rkch">${ch}</span>
       <i style="background:${role ? MOut.ROLE_COLORS[role] : '#3a3a3a'}"></i>
-      <span class="rki">${esc(name)}</span>${role ? `<b>${role}</b>` : '<b></b>'}
-      <span class="rkevt">—</span>
-      ${role ? '<span class="rkcc"><u></u></span>' : '<span class="rkcc" style="visibility:hidden"><u></u></span>'}
-      <button class="rkt" title="One test note on CH ${ch} (use OUTSIDE Cmd+M) — does the right track answer?">♪</button>
-      ${role ? '<button class="rkm" title="For Cmd+M: click the knob in Live, then this — wiggles ONLY this channel\'s CC74.">MAP</button>' : ''}`;
+      <span class="rki">${esc(name)}</span>`;
     rack.appendChild(div);
-    // the expansion: this channel's recent MIDI, for debugging stacked notes
-    const evts = document.createElement('div');
-    evts.className = 'rkevts'; evts.hidden = true;
-    rack.appendChild(evts);
-    rows.push({ ch, role, div, evts });
-    div.querySelector('.rkt').addEventListener('click', e => {
+    const x = document.createElement('div');
+    x.className = 'rkx'; x.hidden = true;
+    x.innerHTML = `<span class="rkxrole"><i style="background:${role ? MOut.ROLE_COLORS[role] : '#3a3a3a'}"></i>${role || 'no role'} · CH ${ch}</span>
+      <span class="rkevt">—</span>
+      ${role ? '<span class="rkcc"><u></u></span>' : ''}
+      <span class="rkxbtns">
+        <button class="rkt" title="One test note on CH ${ch} (use OUTSIDE Cmd+M) — does the right track answer?">♪ TEST</button>
+        ${role ? '<button class="rkm" title="For Cmd+M: click the knob in Live, then this — wiggles ONLY this channel\'s CC74.">MAP</button>' : ''}
+      </span>`;
+    rack.appendChild(x);
+    rows.push({ ch, role, div, evts: x });
+    x.querySelector('.rkt').addEventListener('click', e => {
       e.stopPropagation();
       AE.ensure(); if (!midi.access) connectMidi();
       if (!role) MOut.rawNote(ch);
@@ -1971,7 +1975,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
       else if (role === 'bed') { MOut.bedOn(48); setTimeout(() => MOut.bedOff(), 2500); }
       else MOut.evNote(role, role === 'bass' ? 65.4 : 261.6, 0.2, 0, 1.2);
     });
-    const bm = div.querySelector('.rkm');
+    const bm = x.querySelector('.rkm');
     if (bm) bm.addEventListener('click', e => {
       e.stopPropagation();
       AE.ensure(); if (!midi.access) connectMidi();
@@ -1987,14 +1991,10 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
         }
       }, 120);
     });
-    div.addEventListener('click', () => { evts.hidden = !evts.hidden; });
+    div.addEventListener('click', () => { x.hidden = !x.hidden; });
   }
 
   // ---- PAUSE EVERYTHING (Lance): one button, whole performance ----------
-  // Pause: scene freezes (frame loop gate), audio timeline suspends, every
-  // Live note is released, clock stops, nothing sends. Play: timeline
-  // resumes, the bed re-strikes, and scenes' hold re-strike machinery
-  // (onModeMidi — the same path that survives the web→MIDI switch) re-arms.
   let pausedBed;
   const bp = document.getElementById('btnPauseAll');
   if (bp) bp.addEventListener('click', () => {
@@ -2019,12 +2019,10 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     }
   });
 
-  // ---- the live refresh: lights, last event, CC74 bars, open tables -----
+  // ---- slow refresh: liveness dots + expanded-panel readouts ------------
   setInterval(() => {
     if (!overlay.classList.contains('open')) return;
     const now = performance.now();
-    // one pass over the outbound log: per channel, is it SOUNDING (holds
-    // count for their whole duration) and what was its latest event
     const hot = {}, lastE = {};
     const L = MOut.log;
     for (let i = L.length - 1; i >= 0; i--) {
@@ -2038,40 +2036,28 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
       r.div.classList.toggle('on', on);
       r.div.querySelector('i').style.boxShadow =
         on ? `0 0 6px 1px ${r.role ? MOut.ROLE_COLORS[r.role] : '#999'}` : '';
+      if (r.evts.hidden) continue;
       const le = lastE[r.ch];
-      const evEl = r.div.querySelector('.rkevt');
+      const evEl = r.evts.querySelector('.rkevt');
       if (le) {
         const hold = le.durMs > 100000 && now - le.p < le.durMs;
-        const txt = NN(le.note) + '·' + le.vel + (hold ? ' HOLD' : '');
+        const txt = 'last: ' + NN(le.note) + ' · v' + le.vel + (hold ? ' · HOLD' : '');
         if (evEl.textContent !== txt) evEl.textContent = txt;
       }
       if (r.role) {
         const st = MOut._exprState[r.role];
-        r.div.querySelector('.rkcc u').style.width = st && st.v >= 0 ? Math.round(st.v / 1.27) + '%' : '0%';
-      }
-      if (!r.evts.hidden) {
-        // the expanded view: last 10 events, newest first; events landing
-        // within 30ms of each other on this channel show red — that's the
-        // "two notes at once sounding like shit" debugging view
-        const es = [];
-        for (let i = L.length - 1; i >= 0 && es.length < 4; i--) if (L[i].ch === r.ch) es.push(L[i]);
-        const html = es.length ? '<table>' + es.map((e, i) => {
-          const sim = (i > 0 && Math.abs(es[i - 1].p - e.p) < 30) || (i < es.length - 1 && Math.abs(es[i + 1].p - e.p) < 30);
-          const ago = Math.max(0, (now - e.p) / 1000);
-          const dur = e.durMs > 100000 ? 'hold' : (e.durMs / 1000).toFixed(2) + 's';
-          return `<tr${sim ? ' class="sim"' : ''}><td>-${ago < 10 ? ago.toFixed(1) : Math.round(ago)}s</td><td>${NN(e.note)}</td><td>v${e.vel}</td><td>${dur}</td><td>${e.role}</td></tr>`;
-        }).join('') + '</table>' : '<span class="rkeNone">no MIDI on this channel yet</span>';
-        if (r.evts.innerHTML !== html) r.evts.innerHTML = html;
+        const u = r.evts.querySelector('.rkcc u');
+        if (u) u.style.width = st && st.v >= 0 ? Math.round(st.v / 1.27) + '%' : '0%';
       }
     }
   }, 250);
 
   // ---- THE TIMELINE (Lance: "exactly how Live looks") --------------------
-  // Full-width canvas beside the rows, one lane per row, MIDI scrolling
-  // left-to-right (newest at the right edge). Collapsed row = when notes
-  // hit or hold; expanded row = a piano-roll band: pitch on Y, velocity as
-  // brightness, note-name labels, co-onsets (<30ms apart) ringed red, and
-  // the channel's CC74 ride as a line underneath.
+  // One lane per row, MIDI scrolling left-to-right, newest at the right
+  // edge. Collapsed lane = when notes hit or hold; expanded lane = a
+  // piano-roll band (pitch on Y, note·vel labels, co-onsets <30ms ringed
+  // red, CC74 ride underneath) — every band CLIPPED to its own rect so
+  // nothing ever bleeds into a neighbor.
   const lanes = document.getElementById('rigLanes');
   const rackEl = document.getElementById('roleRack');
   const WIN = 14000;
@@ -2101,7 +2087,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
       const es = byCh[r.ch] || [];
       const col = r.role ? MOut.ROLE_COLORS[r.role] : '#8a8a8a';
       const rowY = r.div.offsetTop, rowH = r.div.offsetHeight;
-      // collapsed strip: every event as a bar, holds run to the right edge
+      g.save();
+      g.beginPath(); g.rect(0, rowY + 2, W, rowH - 4); g.clip();
       for (const e of es) {
         const sounding = Math.min(e.p + Math.max(150, e.durMs || 0), now);
         const x0 = Math.max(0, x(e.p)), x1 = Math.min(W, x(sounding));
@@ -2110,37 +2097,41 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
         g.fillStyle = col;
         g.fillRect(x0, rowY + 4, Math.max(2, x1 - x0), rowH - 8);
       }
-      g.globalAlpha = 1;
-      if (!r.evts.hidden && es.length) {
-        // the piano-roll band
-        const bY = r.evts.offsetTop + 3, bH = r.evts.offsetHeight - 14;
+      g.restore(); g.globalAlpha = 1;
+      if (!r.evts.hidden) {
+        const bY = r.evts.offsetTop, bH = r.evts.offsetHeight;
+        g.save();
+        g.beginPath(); g.rect(0, bY, W, bH); g.clip();
         g.fillStyle = 'rgba(128,128,128,.05)';
-        g.fillRect(0, bY - 3, W, bH + 14);
-        let lo = 127, hi = 0;
-        for (const e of es) { if (e.note < lo) lo = e.note; if (e.note > hi) hi = e.note; }
-        lo -= 2; hi += 2;
-        if (hi - lo < 12) { const c = (hi + lo) / 2; lo = c - 6; hi = c + 6; }
-        const yOf = n => bY + bH - ((n - lo) / (hi - lo)) * bH;
-        const sorted = es.slice().sort((a, b) => a.p - b.p);
-        for (let i = 0; i < sorted.length; i++) {
-          const e = sorted[i];
-          const sounding = Math.min(e.p + Math.max(150, e.durMs || 0), now);
-          const x0 = Math.max(0, x(e.p)), x1 = Math.min(W, x(sounding));
-          if (x1 <= x0) continue;
-          const y = yOf(e.note);
-          g.globalAlpha = 0.35 + 0.6 * (e.vel / 127);
-          g.fillStyle = col;
-          g.fillRect(x0, y - 3, Math.max(2, x1 - x0), 6);
-          g.globalAlpha = 1;
-          const sim = (i > 0 && e.p - sorted[i - 1].p < 30) || (i < sorted.length - 1 && sorted[i + 1].p - e.p < 30);
-          if (sim) { g.strokeStyle = '#ff5b5b'; g.strokeRect(x0 - 1, y - 4, Math.max(2, x1 - x0) + 2, 8); }
-          if (x1 - x0 > 30 || e.durMs > 100000) {
-            g.fillStyle = 'rgba(200,200,200,.85)';
-            g.font = '8px monospace';
-            g.fillText(NN(e.note) + '\u00b7' + e.vel, x0 + 3, y - 5);
+        g.fillRect(0, bY, W, bH);
+        if (es.length) {
+          const pad = 12, rollH = bH - pad - 14;
+          let lo = 127, hi = 0;
+          for (const e of es) { if (e.note < lo) lo = e.note; if (e.note > hi) hi = e.note; }
+          lo -= 2; hi += 2;
+          if (hi - lo < 12) { const c = (hi + lo) / 2; lo = c - 6; hi = c + 6; }
+          const yOf = n => bY + pad + rollH - ((n - lo) / (hi - lo)) * rollH;
+          const sorted = es.slice().sort((a, b) => a.p - b.p);
+          for (let i = 0; i < sorted.length; i++) {
+            const e = sorted[i];
+            const sounding = Math.min(e.p + Math.max(150, e.durMs || 0), now);
+            const x0 = Math.max(0, x(e.p)), x1 = Math.min(W, x(sounding));
+            if (x1 <= x0) continue;
+            const y = yOf(e.note);
+            g.globalAlpha = 0.35 + 0.6 * (e.vel / 127);
+            g.fillStyle = col;
+            g.fillRect(x0, y - 3, Math.max(2, x1 - x0), 6);
+            g.globalAlpha = 1;
+            const sim = (i > 0 && e.p - sorted[i - 1].p < 30) || (i < sorted.length - 1 && sorted[i + 1].p - e.p < 30);
+            if (sim) { g.strokeStyle = '#ff5b5b'; g.strokeRect(x0 - 1, y - 4, Math.max(2, x1 - x0) + 2, 8); }
+            if (x1 - x0 > 30 || e.durMs > 100000) {
+              g.fillStyle = 'rgba(200,200,200,.85)';
+              g.font = '8px monospace';
+              g.fillText(NN(e.note) + '·' + e.vel, x0 + 3, Math.max(bY + 8, y - 5));
+            }
           }
         }
-        // the CC74 ride under the band
+        // the CC74 ride along the band's floor
         const elog = r.role && MOut._exprLog && MOut._exprLog[r.role];
         if (elog && elog.length) {
           g.strokeStyle = col; g.globalAlpha = 0.55; g.lineWidth = 1;
@@ -2148,12 +2139,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
           let started = false;
           for (const c of elog) {
             if (c.p < now - WIN) continue;
-            const cx = x(c.p), cy = bY + bH + 9 - (c.v / 127) * 8;
+            const cx = x(c.p), cy = bY + bH - 3 - (c.v / 127) * 9;
             if (!started) { g.moveTo(cx, cy); started = true; } else g.lineTo(cx, cy);
           }
-          if (started) { g.lineTo(W, bY + bH + 9 - ((MOut._exprState[r.role] || {}).v || 0) / 127 * 8); g.stroke(); }
+          if (started) { g.lineTo(W, bY + bH - 3 - ((MOut._exprState[r.role] || {}).v || 0) / 127 * 9); g.stroke(); }
           g.globalAlpha = 1;
         }
+        g.restore();
       }
     }
   }

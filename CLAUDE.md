@@ -102,7 +102,10 @@ timeline scrolling left-to-right — click a row for its piano-roll band
 (co-onsets <30ms ring red). Channels are READ-ONLY from rig.json (no
 remap control anywhere — change the Live set, edit rig.json, rebuild).
 The header holds PAUSE (freezes everything; PLAY resumes with holds
-re-struck) and the ⓘ mapping cheat-sheet. PLAY on the wall IS the
+re-struck) and the ⓘ mapping cheat-sheet. Console law: COLLAPSED rows =
+identity + liveness only (CH · dot · track name); EXPANDED = values +
+tools (last event, CC74, TEST, MAP) + the piano-roll band; no text ever
+renders over the timeline (every band is canvas-clipped to its own rect). PLAY on the wall IS the
 pre-flight: it always opens SHOW CHECK and launches from START THE SHOW
 (no separate CHECK button). The library header is the brand (SOURCE SCENES)
 + search / sort / ALL-IN QUEUE / count + theme + help; the scene bar is a
