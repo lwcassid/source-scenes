@@ -193,6 +193,21 @@ app.whenReady().then(() => {
     if (showWindow) showWindow.webContents.send('midi:test');
   });
 
+  // midi:learnStart / midi:learnResult / midi:setInput — Nima: MAP HANDS
+  // should actually work from the control window, same as the wall's own
+  // MAP button, not just point at the show window. LEARN and device
+  // filtering both need the show window's real MIDI-in, so relay start
+  // requests there and the finished/canceled result back.
+  ipcMain.on('midi:learnStart', (_event, side) => {
+    if (showWindow) showWindow.webContents.send('midi:learnStart', side);
+  });
+  ipcMain.on('midi:learnResult', (_event, result) => {
+    if (controlWindow) controlWindow.webContents.send('midi:learnResult', result);
+  });
+  ipcMain.on('midi:setInput', (_event, id) => {
+    if (showWindow) showWindow.webContents.send('midi:setInput', id);
+  });
+
   // audio:status / audio:wake — Nima's SHOW CHECK screenshot: the SOUND row
   // read the control window's own (permanently inert) AudioContext and
   // showed a false "no audio context yet" error even though the show

@@ -254,10 +254,37 @@ const midi = {
 // relayed picture of the show window's real midi.access, same pattern as
 // ticket #31's display list. Picking a device is UI-only here; the show
 // window is what actually binds to it, for lowest latency (Nima's call).
-const midiRelay = { connected: false, inputs: [], outputs: [], map: { L: null, R: null }, calRested: { L: false, R: false } };
+const midiRelay = { connected: false, inputs: [], outputs: [], map: { L: null, R: null }, calRested: { L: false, R: false }, denied: false };
+// Nima: clicking CONNECT in the control window relays the request and
+// returns immediately (the real connect happens in the show window) — with
+// nothing marking that gap, the button just vanished once midiRelay caught
+// up, reading as "it did nothing." This tracks the wait so SHOW CHECK's
+// HANDS row can say "connecting…" instead, and gives up after 6s (denied
+// permission, no navigator.requestMIDIAccess, or the show window just isn't
+// answering) rather than spinning forever.
+let midiConnectPending = false, midiConnectTimer = null;
+function clearMidiConnectPending() { midiConnectPending = false; clearTimeout(midiConnectTimer); midiConnectTimer = null; }
 if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onMidiDevices) {
   window.electronAPI.onMidiDevices(devices => {
     Object.assign(midiRelay, devices);
+    clearMidiConnectPending();
+    if (typeof refreshMidiUI === 'function') refreshMidiUI();
+  });
+}
+// Nima: LEARN now works from the control window too — relayed to the show
+// window, which owns the real device (ADR-0006). Same "the click landed
+// but there's a round trip" problem as CONNECT: track per-side pending so
+// the button can say MOVE L… during the ~2.6s sweep instead of just sitting
+// there, and time out at 3.2s if the show window never answers.
+let midiLearnPending = { L: false, R: false }, midiLearnTimer = { L: null, R: null };
+function clearMidiLearnPending(side) {
+  midiLearnPending[side] = false;
+  clearTimeout(midiLearnTimer[side]); midiLearnTimer[side] = null;
+}
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onMidiLearnResult) {
+  window.electronAPI.onMidiLearnResult(({ side, map }) => {
+    clearMidiLearnPending(side);
+    if (map) midiRelay.map = map;
     if (typeof refreshMidiUI === 'function') refreshMidiUI();
   });
 }
@@ -288,6 +315,13 @@ if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onAudioStatus) {
 // is async and audio can suspend/resume on its own (tab backgrounding
 // etc.), neither of which re-calls ensure().
 if (window.ELECTRON_ROLE === 'show') setInterval(relayAudioStatusIfElectron, 1000);
+// Show window: AE.ensure() normally only runs when a scene opens (or a
+// manual gesture) — so SHOW CHECK read red the moment you opened it, before
+// PLAY/any scene had ever run, even with the autoplay-policy gate lifted
+// (electron/main.js) making the ensure() itself perfectly safe to do early.
+// Nima: "still happening... when I'm in CHECK mode." Start it at boot
+// instead of waiting for a scene to ask for it.
+if (window.ELECTRON_ROLE === 'show') { AE.on = true; AE.ensure(); }
 // Show window: control's WAKE AUDIO fix button has no local AudioContext to
 // wake (see fix above) — relayed here instead, same shape as midi:connect.
 if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onAudioWakeRequested) {
@@ -329,6 +363,15 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onHandDrive) {
 // the very end of this file, after MOut exists).
 if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onMidiConnectRequested) {
   window.electronAPI.onMidiConnectRequested(() => connectMidi());
+}
+// Show window: LEARN clicks and device picks from the control window's own
+// MAP popover, relayed here — startLearn(side)'s existing toggle logic
+// (below) handles both start and cancel from the same channel.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onMidiLearnRequested) {
+  window.electronAPI.onMidiLearnRequested(side => startLearn(side));
+}
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onMidiSetInputRequested) {
+  window.electronAPI.onMidiSetInputRequested(id => { midi.inputId = id; refreshMidiUI(); });
 }
 // restore learned theremin bindings from a previous visit
 try {
@@ -444,6 +487,25 @@ function onMidiMsg(e) {
   }
 }
 function startLearn(side) {
+  // Nima: "it should really be allowing me to pick the device and map it
+  // in" — LEARN needs live MIDI events, which only the show window has
+  // (ADR-0006), so relay the request instead of running a fake sweep here
+  // that can never see anything move. The show window's own startLearn()
+  // already toggles start/cancel on a repeat call for the same side — relay
+  // every click unconditionally and let it decide which; mirror that same
+  // toggle locally for the button's MOVE L…/LEARN L text.
+  if (window.ELECTRON_ROLE === 'control') {
+    if (window.electronAPI) window.electronAPI.requestMidiLearn(side);
+    if (midiLearnPending[side]) {
+      clearMidiLearnPending(side);
+    } else {
+      midiLearnPending[side] = true;
+      clearTimeout(midiLearnTimer[side]);
+      midiLearnTimer[side] = setTimeout(() => clearMidiLearnPending(side), 3200);
+    }
+    if (typeof refreshMidiUI === 'function') refreshMidiUI();
+    return;
+  }
   if (midi.learn === side) { cancelLearn(); return; }
   midi.learn = side;
   midi.learnData = {};
@@ -480,11 +542,21 @@ function finishLearn() {
     saveCal();
   }
   refreshMidiUI();
+  relayMidiLearnResultIfElectron(side);
 }
 function cancelLearn() {
   clearTimeout(midi.learnTimer);
+  const side = midi.learn;
   midi.learn = null; midi.learnData = null;
   refreshMidiUI();
+  if (side) relayMidiLearnResultIfElectron(side);
+}
+// Show window only: tell the control window a sweep ended (bound or not —
+// the fresh map label either way) so its LEARN button stops showing MOVE
+// L… immediately instead of waiting out the 3.2s pending timeout.
+function relayMidiLearnResultIfElectron(side) {
+  if (window.ELECTRON_ROLE !== 'show' || !window.electronAPI?.sendMidiLearnResult) return;
+  window.electronAPI.sendMidiLearnResult({ side, map: { L: mapLabel(midi.map.L), R: mapLabel(midi.map.R) } });
 }
 function connectMidi() {
   // control window never opens real MIDI ports itself — that's still the
@@ -498,15 +570,33 @@ function connectMidi() {
   // no-op'ing: every caller above gets fixed for free.
   if (window.ELECTRON_ROLE === 'control') {
     if (window.electronAPI) window.electronAPI.requestMidiConnect();
+    midiConnectPending = true;
+    midiRelay.denied = false; // retrying — don't keep showing the last failure
+    clearTimeout(midiConnectTimer);
+    midiConnectTimer = setTimeout(clearMidiConnectPending, 6000);
     return;
   }
-  if (!navigator.requestMIDIAccess) { document.getElementById('btnMidi').textContent = 'MIDI: N/A'; return; }
+  if (!navigator.requestMIDIAccess) {
+    document.getElementById('btnMidi').textContent = 'MIDI: N/A';
+    relayMidiFailureIfElectron();
+    return;
+  }
   navigator.requestMIDIAccess().then(a => {
     midi.access = a; bindMidiInputs();
     a.onstatechange = () => { bindMidiInputs(); refreshMidiUI(); relayMidiDevicesIfElectron(); };
     refreshMidiUI();
     relayMidiDevicesIfElectron();
-  }).catch(() => { document.getElementById('btnMidi').textContent = 'MIDI: DENIED'; });
+  }).catch(() => { document.getElementById('btnMidi').textContent = 'MIDI: DENIED'; relayMidiFailureIfElectron(); });
+}
+// Show window only: tell the control window CONNECT didn't work (denied
+// permission, no Web MIDI at all) so it stops showing "connecting…" and
+// gives an actual reason instead of just timing out after 6s.
+function relayMidiFailureIfElectron() {
+  if (window.ELECTRON_ROLE !== 'show' || !window.electronAPI?.sendMidiDevices) return;
+  window.electronAPI.sendMidiDevices({
+    connected: false, inputs: [], outputs: [],
+    map: { L: null, R: null }, calRested: { L: false, R: false }, denied: true,
+  });
 }
 // Show window only (ticket #36): send the real device list to the control
 // window's picker UI, same shape as ticket #31's display:list. Also carries
@@ -525,6 +615,7 @@ function relayMidiDevicesIfElectron() {
       L: !!(midi.cal.L && midi.cal.L.rest !== null && midi.cal.L.rest !== undefined),
       R: !!(midi.cal.R && midi.cal.R.rest !== null && midi.cal.R.rest !== undefined),
     },
+    denied: false, // clears any stale denial from an earlier failed attempt
   });
 }
 // Map/cal can change from LEARN or SET REST, both show-window-only actions
@@ -539,16 +630,22 @@ function refreshMidiUI() {
   const b = document.getElementById('btnMidi');
   const bl = document.getElementById('btnLearnL'), br = document.getElementById('btnLearnR');
   const sel = document.getElementById('midiInSel');
-  // control window (ticket #36): status + input-device picker reflect the
-  // relayed real state (never local — that's still gated, ADR-0003). LEARN
-  // and calibration stay hidden here: picking a device is UI-only in this
-  // window, but LEARN needs live raw values streamed from the show window
-  // during an active sweep, which isn't wired yet — showing working-looking
-  // buttons that do nothing would be worse than not showing them.
+  // control window (ADR-0006): status + input-device picker reflect the
+  // relayed real state (never local — the show window is the sole real
+  // owner). LEARN itself is relayed too — clicking it here starts the exact
+  // same sweep in the show window, same MOVE L…/LEARN L toggle text, driven
+  // by midiLearnPending/midiRelay.map instead of the local midi.learn/map
+  // that's permanently inert in this window. Calibration (REST/INVERT)
+  // still needs a live raw-value stream this doesn't have yet, so that box
+  // stays hidden — SHOW CHECK's CALIBRATION row points at the show window.
   if (window.ELECTRON_ROLE === 'control') {
     b.textContent = midiRelay.connected ? 'MIDI: ON' : 'MIDI: N/A';
     b.classList.toggle('off', !midiRelay.connected);
-    bl.style.display = br.style.display = 'none';
+    bl.style.display = br.style.display = midiRelay.connected ? '' : 'none';
+    bl.textContent = midiLearnPending.L ? 'MOVE L…' : midiRelay.map.L ? 'L=' + midiRelay.map.L : 'LEARN L';
+    br.textContent = midiLearnPending.R ? 'MOVE R…' : midiRelay.map.R ? 'R=' + midiRelay.map.R : 'LEARN R';
+    bl.classList.toggle('learning', midiLearnPending.L);
+    br.classList.toggle('learning', midiLearnPending.R);
     const box = document.getElementById('calBox');
     if (box) box.style.display = 'none';
     if (sel) {
@@ -559,7 +656,7 @@ function refreshMidiUI() {
         if (sel.dataset.sig !== want) {
           sel.dataset.sig = want;
           sel.innerHTML = '<option value="all">IN: ALL DEVICES</option>' +
-            inputs.map(i => `<option value="${i.id}">IN: ${i.name}</option>`).join('');
+            inputs.map(i => `<option value="${i.id}"${i.id === midi.inputId ? ' selected' : ''}>IN: ${i.name}</option>`).join('');
         }
       } else sel.style.display = 'none';
     }
@@ -1036,7 +1133,13 @@ document.getElementById('btnSound').addEventListener('click', e => {
 document.getElementById('btnMidi').addEventListener('click', connectMidi);
 document.getElementById('btnLearnL').addEventListener('click', () => startLearn('L'));
 document.getElementById('btnLearnR').addEventListener('click', () => startLearn('R'));
-document.getElementById('midiInSel').addEventListener('change', e => { midi.inputId = e.target.value; });
+document.getElementById('midiInSel').addEventListener('change', e => {
+  midi.inputId = e.target.value;
+  // control window: this local value only ever drove filtering in the show
+  // window's own MIDI parsing (ADR-0006) — relay the pick there instead of
+  // leaving it inert.
+  if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.setMidiInput(e.target.value);
+});
 document.getElementById('btnRest').addEventListener('click', startRest);
 document.getElementById('btnInvL').addEventListener('click', () => setInvert('L'));
 document.getElementById('btnInvR').addEventListener('click', () => setInvert('R'));

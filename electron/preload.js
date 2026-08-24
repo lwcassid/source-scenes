@@ -49,4 +49,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onAudioWakeRequested(callback) {
     ipcRenderer.on('audio:wake', () => callback());
   },
+  // midi:learn* / midi:setInput — LEARN and device picking now work from
+  // the control window's own MAP popover, relayed to the show window (the
+  // sole owner of real MIDI-in, ADR-0006), same shape as CONNECT/TEST.
+  requestMidiLearn(side) { ipcRenderer.send('midi:learnStart', side); },
+  onMidiLearnRequested(callback) {
+    ipcRenderer.on('midi:learnStart', (_event, side) => callback(side));
+  },
+  sendMidiLearnResult(result) { ipcRenderer.send('midi:learnResult', result); },
+  onMidiLearnResult(callback) {
+    ipcRenderer.on('midi:learnResult', (_event, result) => callback(result));
+  },
+  setMidiInput(id) { ipcRenderer.send('midi:setInput', id); },
+  onMidiSetInputRequested(callback) {
+    ipcRenderer.on('midi:setInput', (_event, id) => callback(id));
+  },
 });

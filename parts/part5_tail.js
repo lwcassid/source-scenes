@@ -535,21 +535,29 @@ const PRE = {
     // null/inert here too (real MIDI-in stays show-only, ADR-0006) — same
     // class of bug as SOUND above. Nima found CONNECT looked broken from
     // here because this row never learned the show window actually
-    // connected. LEARN/SET REST themselves still need doing IN the show
-    // window (no live raw-value feed wired to control yet — see electron/
-    // docs' "what doesn't work yet"), so their fix buttons stay show-only;
-    // control gets accurate status plus that pointer instead of a dead button.
+    // connected. LEARN now relays too (startLearn(), part2_core.js), so
+    // MAP HANDS opens the real thing here — only calibration (REST/INVERT)
+    // still needs doing directly in the show window (no live raw-value
+    // stream relayed for that yet).
     const midiConnected = inControl ? midiRelay.connected : !!midi.access;
     const mapL = inControl ? midiRelay.map.L : mapLabel(midi.map.L);
     const mapR = inControl ? midiRelay.map.R : mapLabel(midi.map.R);
     const bound = (mapL ? 1 : 0) + (mapR ? 1 : 0);
+    // Nima: clicking CONNECT relayed the request fine, but the button just
+    // vanished with nothing said in between — it looked broken even when it
+    // worked. midiConnectPending covers the round trip; midiRelay.denied
+    // covers the show window actually failing (no Web MIDI, permission
+    // refused) instead of silently retrying for 6s with no explanation.
+    const pending = inControl && midiConnectPending;
     r.push({ k: 'hands', sec: 'show', label: 'Hands', lvl: !midiConnected ? 'warn' : bound === 2 ? 'ok' : 'warn',
-      txt: !midiConnected ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
+      txt: !midiConnected
+        ? (pending ? 'connecting to MIDI in the SHOW window…'
+          : inControl && midiRelay.denied ? 'the SHOW window could not get MIDI access — check it directly'
+          : 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall')
         : bound === 2 ? 'L and R both bound (' + mapL + ' · ' + mapR + ')'
-        : bound === 1 ? 'only ' + (mapL ? 'L' : 'R') + ' is bound — the other hand is dead' + (inControl ? ' — map it in the SHOW window' : '')
-        : 'MIDI on, but neither hand is bound yet' + (inControl ? ' — map hands in the SHOW window' : ''),
-      fix: !midiConnected ? ['CONNECT', () => connectMidi()]
-        : inControl ? null
+        : bound === 1 ? 'only ' + (mapL ? 'L' : 'R') + ' is bound — the other hand is dead'
+        : 'MIDI on, but neither hand is bound yet',
+      fix: !midiConnected ? (pending ? null : ['CONNECT', () => connectMidi()])
         : ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
 
     const restedL = inControl ? midiRelay.calRested.L : !!(midi.cal.L && midi.cal.L.rest !== null && midi.cal.L.rest !== undefined);
