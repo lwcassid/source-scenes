@@ -85,6 +85,22 @@ const MOut = {
       } catch (e) {}
     }
   },
+  // RAW channel test — the RIG panel's unassigned rows: one note straight at
+  // a channel number, no role in between, to wire-check benched tracks
+  rawNote(ch, note = 60, vol = 0.2, durSec = 1.2) {
+    if (this.suspend || !(ch >= 1 && ch <= 16)) return;
+    const vel = this.v2v(vol), p = performance.now();
+    this.log.push({ p, role: 'ch' + ch, ch, note, vel, durMs: durSec * 1000 });
+    if (this.wants() && this.port) {
+      try {
+        const st = ch - 1, key = st + ':' + note;
+        if (this._offs[key]) { try { this.port.send([0x80 | st, note, 0]); } catch (e) {} delete this._offs[key]; }
+        this.port.send([0x90 | st, note, vel], p);
+        this._offs[key] = { st, note, t: p + durSec * 1000 };
+        this._startOffPump();
+      } catch (e) {}
+    }
+  },
   // SFX — semantic one-shots (36 ignition · 37 lightning · 38 thunder · 39 rain …)
   sfxNote(note, vol = 0.7, dur = 2) {
     if (this.suspend) return;

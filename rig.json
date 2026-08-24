@@ -45,6 +45,15 @@
     "whenever a scene asks. He is unattached; the scene decides."
   ],
   "port": "IAC Driver Bus 1",
+  "tracks": {
+    "2": "80'S DRUMS (alt kit, unassigned)",
+    "5": "PADS — earmarked: Lumen GLASS audition home",
+    "6": "STRINGS — Arturia Augmented Strings (bench; Event Horizon's gate target)",
+    "10": "Mellotron (bench)",
+    "11": "Choir (bench — Vespers hum candidate)",
+    "12": "SpaceSax (bench — Lumen/Vespers fallback color)",
+    "16": ""
+  },
   "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
   "roles": {
     "lead":    { "ch": 7,  "instrument": "Splice felt piano — the John Legend one (FELT PIANO track, loaded)", "character": "gorgeous, spacious, velocity-sensitive", "use": "melodic triggers — plucks, tones, answers. Rain Atrium's felt piano lives here by design. Chladni sends no lead notes but streams resonance as CC74 — map to a brightness/send macro" },

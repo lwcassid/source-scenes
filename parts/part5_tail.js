@@ -821,8 +821,33 @@ document.getElementById('volSlider').addEventListener('input', e => {
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   function renderRig() {
     rows.innerHTML = '';
-    const order = Object.keys(MOut.roles).sort((a, b) => MOut.roles[a] - MOut.roles[b]);
+    // ALL 16 CHANNELS in mixer order (Lance: the panel should mirror the
+    // whole Live set, not just the cast roles) — role rows keep their
+    // controls; unassigned channels render dim with the track name from
+    // rig.json `tracks` and a raw test note on the swatch.
+    const byCh = {};
+    for (const r in MOut.roles) (byCh[MOut.roles[r]] = byCh[MOut.roles[r]] || []).push(r);
+    const order = [];
+    for (let ch = 1; ch <= 16; ch++) {
+      const rs = (byCh[ch] || []).sort();
+      if (rs.length) order.push(...rs); else order.push(ch); // number = spare channel
+    }
     for (const role of order) {
+      if (typeof role === 'number') {
+        const ch = role;
+        const trk = (typeof RIGDOC !== 'undefined' && RIGDOC.tracks && RIGDOC.tracks[ch]) || '';
+        const row = document.createElement('div');
+        row.className = 'rigrow spare';
+        row.title = 'No role routed here. The swatch sends one raw test note on CH ' + ch + ' — does the track answer?';
+        row.innerHTML = `<div class="swatch" style="background:#4a4a4a"></div>
+          <label>CH ${ch}</label><span>${esc(trk || '(unassigned)')}</span>`;
+        row.querySelector('.swatch').addEventListener('click', () => {
+          AE.ensure(); if (!midi.access) connectMidi();
+          MOut.rawNote(ch);
+        });
+        rows.appendChild(row);
+        continue;
+      }
       const inst = docFor(role).instrument || '';
       const draft = !inst || /\(proposed\)|TBD/i.test(inst);
       // a per-browser remap that disagrees with rig.json is a silent misroute
