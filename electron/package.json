@@ -1,0 +1,16 @@
+{
+  "name": "source-show-runner",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Electron show-runner for the SOURCE Interaction Library — additive to the plain web app, never a replacement for it. See ../docs/adr/0001-electron-wrapper-for-control-show-split.md",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^32.0.0"
+  },
+  "allowScripts": {
+    "electron@32.3.3": true
+  }
+}

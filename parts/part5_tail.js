@@ -383,7 +383,14 @@ const FAV = QUEUE;
    ============================================================ */
 const SCREENS = {
   details: null, chosen: null, denied: false,
-  supported() { return typeof window.getScreenDetails === 'function'; },
+  // Electron path (ticket #31): never touches the web Window Management
+  // API — main has unconditional, permission-free access to real displays,
+  // and is the only thing that can actually fullscreen the SHOW window
+  // (one BrowserWindow's renderer can't trigger fullscreen on another's,
+  // proved resolving ticket #29). Electron's own Display objects already
+  // carry .label/.internal, so label()/aimedInternal() below are untouched.
+  inElectron() { return typeof window.electronAPI !== 'undefined'; },
+  supported() { return this.inElectron() || typeof window.getScreenDetails === 'function'; },
   label(sc) { return (sc.label || '') + ' ' + sc.width + '×' + sc.height + (sc.isPrimary ? ' (primary)' : ''); },
   load() { try { this.chosen = localStorage.getItem('srcShowScreen'); } catch (e) {} },
   pick(label) {
@@ -395,8 +402,10 @@ const SCREENS = {
   },
   async probe() {
     if (!this.supported() || this.details) return this.details;
-    try { this.details = await window.getScreenDetails(); }
-    catch (e) { this.denied = true; }
+    try {
+      const screens = this.inElectron() ? await window.electronAPI.getDisplays() : (await window.getScreenDetails()).screens;
+      this.details = { screens };
+    } catch (e) { this.denied = true; }
     // Default to the display that is almost certainly the projector: the
     // external, non-primary one. Landing the show on the built-in screen is
     // the mistake this whole row exists to prevent.
@@ -433,6 +442,16 @@ function enterShow() {
   if (typeof setPanels === 'function') setPanels(false);
   if (typeof setView === 'function' && typeof VIEW !== 'undefined' && VIEW.mode !== 'flat') setView('flat');
   if (typeof PROJ !== 'undefined' && !PROJ.on && typeof setProj === 'function') setProj(true);
+  // Electron (ticket #31): this document is the CONTROL window when PLAY is
+  // clicked — fullscreening IT would be wrong. Tell main to place+fullscreen
+  // the SHOW window instead; the web Fullscreen API path below never runs.
+  // Forcing panels/flat-view/PROJ *on the show window itself* over IPC is
+  // separate, already-decided (ADR-0003's show:play channel), not-yet-wired
+  // work — this only wires the display placement this ticket is about.
+  if (SCREENS.inElectron()) {
+    window.electronAPI.pickDisplay(SCREENS.chosen);
+    return Promise.resolve(true);
+  }
   if (document.fullscreenElement) return Promise.resolve(true);
   const scr = SCREENS.target();
   const opts = scr ? { screen: scr } : undefined;
@@ -458,7 +477,13 @@ const PRE = {
     SCREENS.probe().then(() => this.render());
     this.render();
     clearInterval(this.timer);
-    this.timer = setInterval(() => this.render(), 600);
+    // render() rebuilds the whole modal via innerHTML, including the display
+    // <select> — don't do that while it has focus, or a picker click gets
+    // torn down and reset mid-selection before it can ever register.
+    this.timer = setInterval(() => {
+      if (document.activeElement?.id === 'preScreenSel') return;
+      this.render();
+    }, 600);
   },
   close() {
     document.getElementById('preModal').classList.remove('open');
@@ -473,13 +498,23 @@ const PRE = {
      PLAY pins the 1920×1200 show frame itself, so there is nothing to check.) */
   rows() {
     const r = [];
-    const ctxOn = AE.ctx && AE.ctx.state === 'running';
+    // control window: AE.ctx is permanently null there (AE.ensure() no-ops
+    // — ADR-0003), so this row must read the show window's relayed real
+    // state (audioRelay) instead of asking local state a question it can
+    // never truthfully answer. Nima found this showing "no audio context
+    // yet" while sound was actually playing fine, from the show window.
+    const inControl = window.ELECTRON_ROLE === 'control';
+    const aOn = inControl ? audioRelay.on : AE.on;
+    const aCtxState = inControl ? audioRelay.ctxState : (AE.ctx ? AE.ctx.state : null);
+    const aRate = inControl ? audioRelay.sampleRate : (AE.ctx ? AE.ctx.sampleRate : null);
+    const ctxOn = aCtxState === 'running';
     r.push({ k: 'audio', sec: 'show', label: 'Sound', lvl: ctxOn ? 'ok' : 'bad',
-      txt: !AE.on ? 'muted — SOUND is OFF in the left rail'
-        : !AE.ctx ? 'no audio context yet — browsers need one click before they make noise'
-        : AE.ctx.state !== 'running' ? 'suspended (' + AE.ctx.state + ') — one click wakes it'
-        : 'running at ' + (AE.ctx.sampleRate / 1000).toFixed(1) + ' kHz',
+      txt: !aOn ? 'muted — SOUND is OFF in the left rail'
+        : !aCtxState ? 'no audio context yet — browsers need one click before they make noise'
+        : aCtxState !== 'running' ? 'suspended (' + aCtxState + ') — one click wakes it'
+        : 'running at ' + (aRate / 1000).toFixed(1) + ' kHz',
       fix: ctxOn ? null : ['WAKE AUDIO', () => {
+        if (inControl) { if (window.electronAPI) window.electronAPI.requestAudioWake(); return; }
         AE.on = true; AE.ensure();
         // only restart a voice if a scene is actually up — startVoice reads
         // PIECES[focus.idx], and focus.idx is -1 on the library wall
@@ -496,22 +531,35 @@ const PRE = {
       lvl: SCREENS.aimedInternal() ? 'warn' : 'ok',
       txt: this.screenText(), screenPicker: true });
 
-    const bound = (midi.map.L ? 1 : 0) + (midi.map.R ? 1 : 0);
-    r.push({ k: 'hands', sec: 'show', label: 'Hands', lvl: !midi.access ? 'warn' : bound === 2 ? 'ok' : 'warn',
-      txt: !midi.access ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
-        : bound === 2 ? 'L and R both bound (' + mapLabel(midi.map.L) + ' · ' + mapLabel(midi.map.R) + ')'
-        : bound === 1 ? 'only ' + (midi.map.L ? 'L' : 'R') + ' is bound — the other hand is dead'
-        : 'MIDI on, but neither hand is bound yet',
-      fix: !midi.access ? ['CONNECT', () => connectMidi()]
+    // control window: midi.access/midi.map/midi.cal are permanently
+    // null/inert here too (real MIDI-in stays show-only, ADR-0006) — same
+    // class of bug as SOUND above. Nima found CONNECT looked broken from
+    // here because this row never learned the show window actually
+    // connected. LEARN/SET REST themselves still need doing IN the show
+    // window (no live raw-value feed wired to control yet — see electron/
+    // docs' "what doesn't work yet"), so their fix buttons stay show-only;
+    // control gets accurate status plus that pointer instead of a dead button.
+    const midiConnected = inControl ? midiRelay.connected : !!midi.access;
+    const mapL = inControl ? midiRelay.map.L : mapLabel(midi.map.L);
+    const mapR = inControl ? midiRelay.map.R : mapLabel(midi.map.R);
+    const bound = (mapL ? 1 : 0) + (mapR ? 1 : 0);
+    r.push({ k: 'hands', sec: 'show', label: 'Hands', lvl: !midiConnected ? 'warn' : bound === 2 ? 'ok' : 'warn',
+      txt: !midiConnected ? 'MIDI not connected — mouse, edge lasers and W/S · ↑/↓ still play the wall'
+        : bound === 2 ? 'L and R both bound (' + mapL + ' · ' + mapR + ')'
+        : bound === 1 ? 'only ' + (mapL ? 'L' : 'R') + ' is bound — the other hand is dead' + (inControl ? ' — map it in the SHOW window' : '')
+        : 'MIDI on, but neither hand is bound yet' + (inControl ? ' — map hands in the SHOW window' : ''),
+      fix: !midiConnected ? ['CONNECT', () => connectMidi()]
+        : inControl ? null
         : ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
 
-    const cal = ['L', 'R'].map(sd => midi.cal[sd]);
-    const rested = cal.filter(c => c && c.rest !== null && c.rest !== undefined).length;
-    r.push({ k: 'cal', sec: 'rig', label: 'Calibration', lvl: !midi.access ? 'ok' : rested === 2 ? 'ok' : 'warn',
-      txt: !midi.access ? 'not needed without hardware'
+    const restedL = inControl ? midiRelay.calRested.L : !!(midi.cal.L && midi.cal.L.rest !== null && midi.cal.L.rest !== undefined);
+    const restedR = inControl ? midiRelay.calRested.R : !!(midi.cal.R && midi.cal.R.rest !== null && midi.cal.R.rest !== undefined);
+    const rested = (restedL ? 1 : 0) + (restedR ? 1 : 0);
+    r.push({ k: 'cal', sec: 'rig', label: 'Calibration', lvl: !midiConnected ? 'ok' : rested === 2 ? 'ok' : 'warn',
+      txt: !midiConnected ? 'not needed without hardware'
         : rested === 2 ? 'both hands ranged and rested — idle detection is live'
-        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle',
-      fix: midi.access ? ['SET REST', () => startRest()] : null });
+        : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle' + (inControl ? ' — set it in the SHOW window' : ''),
+      fix: (midiConnected && !inControl) ? ['SET REST', () => startRest()] : null });
 
     const out = MOut.mode !== 'web';
     r.push({ k: 'out', sec: 'rig', label: 'Ableton', lvl: out && MOut.port ? 'ok' : 'warn',
@@ -571,7 +619,9 @@ const PRE = {
     }
     const note = document.getElementById('preScreenNote');
     if (note) {
-      note.textContent = SCREENS.supported()
+      note.textContent = SCREENS.inElectron()
+        ? 'PLAY places and fullscreens the SHOW window on the display picked here — this control window stays put on its own screen. The DBG tab at the bottom is the truth window.'
+        : SCREENS.supported()
         ? 'One tab renders one picture: choosing a display sends the SHOW there, it does not give you a second control window. During the show, PANELS (or H) brings the hands/MIDI/console back over the picture, and the DBG tab at the bottom is the truth window.'
         : 'Display picking needs Chrome’s window-management support. Without it: drag this window onto the projector screen first, then start the show.';
     }
@@ -768,6 +818,14 @@ document.getElementById('btnOut').addEventListener('click', () => {
   MOut.setMode(next);
 });
 document.getElementById('midiOutSel').addEventListener('change', e => {
+  // control window (ticket #36): no local midi.access to pick a real port
+  // from — write the shared preference the relayed list points at; the
+  // show window applies it next time it doesn't already have a port.
+  if (window.ELECTRON_ROLE === 'control') {
+    const picked = midiRelay.outputs[+e.target.value];
+    try { if (picked) localStorage.setItem('srcOutPort', picked.name); } catch (err) {}
+    return;
+  }
   if (!midi.access) return;
   const outs = [...midi.access.outputs.values()];
   MOut.port = outs[+e.target.value] || null;
@@ -1129,12 +1187,23 @@ document.getElementById('oActs').addEventListener('click', e => {
   const ov = document.getElementById('overlay');
   const fsBtn = document.getElementById('stageFS');
   if (!fsBtn) return;
+  // Nima, testing live: the show window was showing the sidebar and every
+  // other bit of library chrome, not just panels. Root cause: .fs on
+  // #overlay is what the ENTIRE fullscreen show layout keys off (sidebar
+  // hidden, stage takes the grid, DBG enabled — see part1_head.html's
+  // #overlay.fs rules), and it only ever gets added by this fullscreenchange
+  // listener — which requires a real document.fullscreenElement, which
+  // Electron's native BrowserWindow.setFullScreen() (ticket #31) never
+  // sets. So the show window never entered the fullscreen layout AT ALL
+  // under Electron, not just "panels visible" — force it, unconditionally,
+  // since the show window is always meant to be in this state (ADR-0003).
+  if (window.ELECTRON_ROLE === 'show') ov.classList.add('fs');
   fsBtn.addEventListener('click', () => {
     if (document.fullscreenElement) document.exitFullscreen();
     else if (ov.requestFullscreen) ov.requestFullscreen();
   });
   document.addEventListener('fullscreenchange', () => {
-    ov.classList.toggle('fs', !!document.fullscreenElement);
+    ov.classList.toggle('fs', !!document.fullscreenElement || window.ELECTRON_ROLE === 'show');
     resetRotation();
   });
   // THE SET LIST — starring a card on the wall is how a scene makes the show
@@ -1166,7 +1235,15 @@ document.getElementById('oActs').addEventListener('click', e => {
   let rotT = null, rotAt = 0;
   function resetRotation() {
     clearTimeout(rotT); rotT = null; rotAt = 0;
-    if (document.fullscreenElement && focus.idx >= 0) {
+    // Electron's native BrowserWindow.setFullScreen() (ticket #31) never
+    // sets document.fullscreenElement — that's the web Fullscreen API's own
+    // state, a different thing. Without this, SHOWTIME's dwell timer never
+    // armed at all under Electron, in either window: the show would just
+    // sit on the first scene forever. The show window is unconditionally
+    // "live" once launched (ADR-0003 — always picture-only there), so its
+    // role alone is enough; the control window never independently
+    // arms this (it only mirrors what the show window is actually doing).
+    if ((document.fullscreenElement || window.ELECTRON_ROLE === 'show') && focus.idx >= 0) {
       const ms = QUEUE.dwellMs(famOf(PIECES[focus.idx]));
       rotAt = Date.now() + ms;
       rotT = setTimeout(() => step(1), ms);
@@ -1284,19 +1361,26 @@ QUEUE.boot();
 // PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
 // for debugging. The choice persists across scenes and visits.
 (() => {
+  // ADR-0003: the show window is always picture-only — PANELS doesn't
+  // apply there at all, full stop, not even toggleable. Ignore whatever
+  // srcPanels says (it's shared, ticket #30 — someone debugging in the
+  // control window must never be able to bring chrome onto the real show).
+  const isShow = window.ELECTRON_ROLE === 'show';
   let panels = false;
-  try { panels = localStorage.getItem('srcPanels') === '1'; } catch (e) {}
+  if (!isShow) { try { panels = localStorage.getItem('srcPanels') === '1'; } catch (e) {} }
   const apply = () => overlay.classList.toggle('perf', !panels); // .perf only bites under .fs
   const flip = () => {
+    if (isShow) return;
     panels = !panels;
     try { localStorage.setItem('srcPanels', panels ? '1' : '0'); } catch (e) {}
     apply();
   };
   // starting a show must not inherit yesterday's debugging layout
-  window.setPanels = on => { panels = !!on; apply(); };
+  window.setPanels = on => { panels = isShow ? false : !!on; apply(); };
   const pt = document.getElementById('panelTab');
   if (pt) pt.addEventListener('click', flip);
   window.addEventListener('keydown', e => {
+    if (isShow) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
     if (focus.idx < 0 || !overlay.classList.contains('fs')) return;
@@ -1328,6 +1412,34 @@ QUEUE.boot();
 })();
 applyLibrary();
 
+// MIRROR fidelity governor (ADR-0005) — control-window-only. Per ADR-0003
+// the control window renders every focused scene locally, same as the show
+// window; that doubles rendering load while a scene is open. Default
+// Throttled caps how often P.def.step/draw run to ~20fps (a dt-accumulator,
+// not a frame-count stride, since nothing asserts the control window's
+// actual display Hz); the MIRROR pill lets the operator opt up to Full.
+// The show window is untouched either way — ELECTRON_ROLE is never 'control'
+// there, and it's null outside Electron entirely.
+let mirrorFull = false, mirrorAcc = 0;
+const MIRROR_INTERVAL = 1 / 20;
+if (window.ELECTRON_ROLE === 'control') {
+  try { mirrorFull = localStorage.getItem('srcMirrorRate') === 'full'; } catch (e) {}
+  const mt = document.getElementById('mirrorTab');
+  if (mt) {
+    mt.style.display = 'inline-block';
+    const applyMirror = () => {
+      mt.textContent = 'MIRROR: ' + (mirrorFull ? 'FULL' : 'THROTTLED');
+      mt.classList.toggle('on', mirrorFull);
+    };
+    mt.addEventListener('click', () => {
+      mirrorFull = !mirrorFull;
+      try { localStorage.setItem('srcMirrorRate', mirrorFull ? 'full' : 'throttled'); } catch (e) {}
+      applyMirror();
+    });
+    applyMirror();
+  }
+}
+
 let last = 0, fc = 0;
 function frame(ts) {
   const t = ts / 1000;
@@ -1353,9 +1465,17 @@ function frame(ts) {
       const el = document.getElementById('oChord');
       if (el && el.textContent !== hud) el.textContent = hud;
     }
+    let stepDt = dt, doStep = true;
+    if (window.ELECTRON_ROLE === 'control' && !mirrorFull) {
+      mirrorAcc += dt;
+      if (mirrorAcc < MIRROR_INTERVAL) doStep = false;
+      else { stepDt = mirrorAcc; mirrorAcc = 0; }
+    }
     try {
-      P.def.step(P, dt, t, inp);
-      P.def.draw(P, P.g, P.w, P.h, t, inp);
+      if (doStep) {
+        P.def.step(P, stepDt, t, inp);
+        P.def.draw(P, P.g, P.w, P.h, t, inp);
+      }
       // composite scene → display per the VIEW mode (dropdown / V key)
       const fg = focus.fctx;
       if (fg) {

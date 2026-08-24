@@ -118,6 +118,53 @@ python3 tools/build_preview.py  # self-contained preview for sighted testing
 git add -A && git commit -m "..." && git push   # Netlify does the rest
 ```
 
+### electron/ — the show-runner
+`electron/` wraps the built `index.html` to run the live show, purely so a
+control UI can live on one screen while the show fullscreens on another — a
+real Chrome limitation (cross-window `requestFullscreen` is refused), not a
+missing feature. It changes NOTHING about how scenes get built, previewed,
+or verified — the plain web app (Netlify, `tools/verify.sh`,
+`docs/PREVIEW.md`) stays the whole dev/rehearsal path; this is only a new
+way to *run* the show. Full design history: `docs/adr/0001` through `0006`
+in order, and the [wayfinder map](https://github.com/lwcassid/source-scenes/issues/27)
+that drove them.
+
+**Run it**: `python3 tools/build_preview.py` from the repo root first (the
+same offline, no-CDN artifact `docs/SHOW-KIT.md` already requires before any
+show — `main.js` loads it specifically, not `index.html`, since `index.html`
+still pulls three.js from a CDN and playa has no internet; `npm start` fails
+loudly with the exact command if you skip this), then `cd electron && npm
+install && npm start`. Two windows open —
+**show** (owns audio + MIDI + rendering, always picture-only, fullscreens
+onto whichever display SHOW CHECK picks) and **control** (the entire
+existing UI, unchanged — library wall, queue, SHOW CHECK, DBG). Both load
+the same `index.html`, told apart by `?role=show`/`?role=control`
+(`window.ELECTRON_ROLE` in `part1_head.html` — `null`, so a no-op, in the
+plain browser). Clicking PLAY or a tile in the control window mirrors the
+scene there too (silently, no audio/MIDI — `AE.ensure()`/`connectMidi()`
+both no-op for the control role) **and** tells the show window to open the
+same scene and place itself on the picked display, for real — this round
+trip is wired and verified end to end, not just designed.
+
+**What doesn't work yet**: LEARN (hand-sensor CC mapping) and calibration
+(hand-range sweep) can't be run from the control window — the picker
+dropdowns for existing devices work (relayed from the show window's real
+`MIDIAccess`), but starting a fresh LEARN sweep needs live raw-value
+feedback that isn't wired. If you need to (re)learn a controller's mapping
+or run a calibration sweep, do it directly in the show window for now — its
+own SHOW CHECK panel is unaffected by any of this and works exactly as the
+single-tab app always has. Also not yet wired: forcing the show window into
+FLAT view / PROJ frame / panels-off remotely when PLAY fires (it already
+boots into that state by default, so this only matters if something
+switched the show window's own view away from it first).
+
+**MIRROR pill** (control window only, next to PANELS/DBG): toggles the
+control window's own scene mirror between FULL (matches the show window's
+frame rate) and THROTTLED (~20fps, the default) — protects the show
+window's real performance from the mirror's GPU cost. Resolution/downscale
+throttling and automatic FPS-driven throttling are both deliberately
+deferred until real M1 numbers exist to justify either.
+
 ### The frame: 1920×1200, 16:10 — the DEFAULT everywhere
 The show is one WUXGA render fullscreen, cloned to both projectors (Panasonic
 PT-VMZ50, native 1920×1200), so a scene gets `P.w=1920, P.h=1200` (aspect

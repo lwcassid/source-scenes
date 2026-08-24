@@ -34,6 +34,9 @@ function penta(n, base = 220) {
 const AE = {
   ctx: null, master: null, on: true, _noiseBuf: null,
   ensure() {
+    // the control window mirrors scenes silently (ADR-0003) — the show
+    // window is the sole AudioContext owner
+    if (window.ELECTRON_ROLE === 'control') return;
     if (!this.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
@@ -45,6 +48,7 @@ const AE = {
       this.master.connect(comp); comp.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
+    relayAudioStatusIfElectron();
   },
   t() { return this.ctx ? this.ctx.currentTime : 0; },
   out() { return this.master; },
@@ -171,6 +175,14 @@ let nowT = 0;
 // `raw` present means this came off a sensor and is subject to the presence
 // test. A pointer, key or slider is a human by definition and always counts.
 function setChan(side, v, raw) {
+  // Nima, testing live: mouse-driven hand input in the control window
+  // wasn't reaching the show window at all. Real MIDI already doesn't need
+  // this — it's read directly in the show window (ADR-0006) and drives
+  // chan.L/R there natively — but the control window's mouse/keyboard
+  // virtual-theremin fallback (this function, called with no `raw`) had
+  // nowhere else to go. Relay it; the show window's own setChan() call
+  // below (from onHandDrive) doesn't re-relay, so no echo risk.
+  if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.driveHand(side, v);
   const c = chan[side];
   if (raw === undefined) {
     c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
@@ -238,6 +250,86 @@ const midi = {
   cal: { L: null, R: null },
   restSampling: false, restData: { L: [], R: [] }, restTimer: null
 };
+// Electron control window (ticket #36): never opens real MIDI — this is the
+// relayed picture of the show window's real midi.access, same pattern as
+// ticket #31's display list. Picking a device is UI-only here; the show
+// window is what actually binds to it, for lowest latency (Nima's call).
+const midiRelay = { connected: false, inputs: [], outputs: [], map: { L: null, R: null }, calRested: { L: false, R: false } };
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onMidiDevices) {
+  window.electronAPI.onMidiDevices(devices => {
+    Object.assign(midiRelay, devices);
+    if (typeof refreshMidiUI === 'function') refreshMidiUI();
+  });
+}
+// Nima: SHOW CHECK's SOUND row was reading local AE.ctx/AE.on in the
+// control window — permanently null/inert there (AE.ensure() no-ops for
+// control, above), so it showed "no audio context yet" forever regardless
+// of the show window's real, working audio. Same fix shape as MIDI:
+// relay the real state instead of checking local state that can never be
+// real. PRE.rows() (part5_tail.js) reads this when inElectronControl.
+const audioRelay = { on: true, ctxState: null, sampleRate: null };
+function relayAudioStatusIfElectron() {
+  if (window.ELECTRON_ROLE !== 'show' || !window.electronAPI?.sendAudioStatus) return;
+  window.electronAPI.sendAudioStatus({
+    on: AE.on,
+    ctxState: AE.ctx ? AE.ctx.state : null,
+    sampleRate: AE.ctx ? AE.ctx.sampleRate : null,
+  });
+}
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onAudioStatus) {
+  // Just store it — PRE's own 600ms poll (part5_tail.js) already re-renders
+  // the open modal and will pick this up on its next tick. Nima found that
+  // forcing an extra immediate PRE.render() here, racing that poll on its
+  // own out-of-phase ~1s cadence, was rebuilding the modal's innerHTML twice
+  // in quick, unsynced succession — that's what read as button flicker.
+  window.electronAPI.onAudioStatus(status => { Object.assign(audioRelay, status); });
+}
+// Show window: relay periodically too, not just on ensure() — ctx.resume()
+// is async and audio can suspend/resume on its own (tab backgrounding
+// etc.), neither of which re-calls ensure().
+if (window.ELECTRON_ROLE === 'show') setInterval(relayAudioStatusIfElectron, 1000);
+// Show window: control's WAKE AUDIO fix button has no local AudioContext to
+// wake (see fix above) — relayed here instead, same shape as midi:connect.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onAudioWakeRequested) {
+  window.electronAPI.onAudioWakeRequested(() => {
+    AE.on = true; AE.ensure();
+    if (focus.idx >= 0 && typeof startVoice === 'function') startVoice();
+  });
+}
+// Show window (ticket #34): the other half of openFocus()'s relay above —
+// PIECES isn't populated yet at this point in the concatenated build, but
+// this only registers the callback; PIECES is real by the time PLAY fires.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onOpenScene) {
+  window.electronAPI.onOpenScene(sceneId => {
+    const idx = PIECES.findIndex(p => p.id === sceneId);
+    if (idx >= 0) openFocus(idx, true);
+  });
+}
+// Control window: the reverse direction — the show window advanced on its
+// own (SHOWTIME auto-advance, an edge click, PADMAP), so the mirror has to
+// catch up too. fromRelay=true suppresses re-relaying back to show; the
+// idx check skips the redundant re-open when this is just the echo of a
+// scene control opened itself a moment ago.
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onSyncSceneFromShow) {
+  window.electronAPI.onSyncSceneFromShow(sceneId => {
+    const idx = PIECES.findIndex(p => p.id === sceneId);
+    if (idx >= 0 && idx !== focus.idx) openFocus(idx, true);
+  });
+}
+// Show window: the control window's mouse/keyboard virtual theremin has no
+// other way to reach the real engine (real MIDI-in stays exclusively
+// show's own — ADR-0006). setChan() here doesn't re-relay (that only
+// happens for role==='control'), so this can't echo back.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onHandDrive) {
+  window.electronAPI.onHandDrive((side, v) => setChan(side, v));
+}
+// Show window: the control window's CONNECT/TEST/LEARN buttons all funnel
+// through connectMidi()/MOut.testBurst(), which now relay here instead of
+// running locally (see connectMidi() below, MOut.testBurst() override at
+// the very end of this file, after MOut exists).
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onMidiConnectRequested) {
+  window.electronAPI.onMidiConnectRequested(() => connectMidi());
+}
 // restore learned theremin bindings from a previous visit
 try {
   const sm = JSON.parse(localStorage.getItem('srcMidiMap') || 'null');
@@ -395,13 +487,50 @@ function cancelLearn() {
   refreshMidiUI();
 }
 function connectMidi() {
+  // control window never opens real MIDI ports itself — that's still the
+  // rule (ADR-0003/#36). But every existing call site (the CONNECT button,
+  // TEST, LEARN's auto-connect, SHOW CHECK's fix button, mode-switch
+  // auto-connect) calls this function directly, and a plain no-op here
+  // left every one of them silently broken from the control window — the
+  // CONNECT button did nothing, with no way to trigger the real connect
+  // from anywhere else either, since the show window's own button is now
+  // invisible by design (picture-only). Relay the REQUEST instead of
+  // no-op'ing: every caller above gets fixed for free.
+  if (window.ELECTRON_ROLE === 'control') {
+    if (window.electronAPI) window.electronAPI.requestMidiConnect();
+    return;
+  }
   if (!navigator.requestMIDIAccess) { document.getElementById('btnMidi').textContent = 'MIDI: N/A'; return; }
   navigator.requestMIDIAccess().then(a => {
     midi.access = a; bindMidiInputs();
-    a.onstatechange = () => { bindMidiInputs(); refreshMidiUI(); };
+    a.onstatechange = () => { bindMidiInputs(); refreshMidiUI(); relayMidiDevicesIfElectron(); };
     refreshMidiUI();
+    relayMidiDevicesIfElectron();
   }).catch(() => { document.getElementById('btnMidi').textContent = 'MIDI: DENIED'; });
 }
+// Show window only (ticket #36): send the real device list to the control
+// window's picker UI, same shape as ticket #31's display:list. Also carries
+// map/calRested (Nima: SHOW CHECK's HANDS/CALIBRATION rows were reading
+// local midi.access/midi.map/midi.cal — permanently null/inert in the
+// control window, same class of bug as SOUND — so CONNECT looked broken
+// there even after the show window connected for real).
+function relayMidiDevicesIfElectron() {
+  if (window.ELECTRON_ROLE !== 'show' || !window.electronAPI?.sendMidiDevices || !midi.access) return;
+  window.electronAPI.sendMidiDevices({
+    connected: true,
+    inputs: [...midi.access.inputs.values()].map(d => ({ id: d.id, name: d.name })),
+    outputs: [...midi.access.outputs.values()].map(d => ({ id: d.id, name: d.name })),
+    map: { L: mapLabel(midi.map.L), R: mapLabel(midi.map.R) },
+    calRested: {
+      L: !!(midi.cal.L && midi.cal.L.rest !== null && midi.cal.L.rest !== undefined),
+      R: !!(midi.cal.R && midi.cal.R.rest !== null && midi.cal.R.rest !== undefined),
+    },
+  });
+}
+// Map/cal can change from LEARN or SET REST, both show-window-only actions
+// (ticket #36's deferred half) — poll periodically so those changes still
+// reach the control window's SHOW CHECK, same shape as the audio relay.
+if (window.ELECTRON_ROLE === 'show') setInterval(relayMidiDevicesIfElectron, 1000);
 function mapLabel(m) {
   if (!m) return null;
   return m.type === 'cc' ? 'CC' + m.num : m.type === 'bend' ? 'BEND' : 'AT';
@@ -410,6 +539,32 @@ function refreshMidiUI() {
   const b = document.getElementById('btnMidi');
   const bl = document.getElementById('btnLearnL'), br = document.getElementById('btnLearnR');
   const sel = document.getElementById('midiInSel');
+  // control window (ticket #36): status + input-device picker reflect the
+  // relayed real state (never local — that's still gated, ADR-0003). LEARN
+  // and calibration stay hidden here: picking a device is UI-only in this
+  // window, but LEARN needs live raw values streamed from the show window
+  // during an active sweep, which isn't wired yet — showing working-looking
+  // buttons that do nothing would be worse than not showing them.
+  if (window.ELECTRON_ROLE === 'control') {
+    b.textContent = midiRelay.connected ? 'MIDI: ON' : 'MIDI: N/A';
+    b.classList.toggle('off', !midiRelay.connected);
+    bl.style.display = br.style.display = 'none';
+    const box = document.getElementById('calBox');
+    if (box) box.style.display = 'none';
+    if (sel) {
+      if (midiRelay.connected) {
+        sel.style.display = '';
+        const inputs = midiRelay.inputs;
+        const want = ['all', ...inputs.map(i => i.id)].join('|');
+        if (sel.dataset.sig !== want) {
+          sel.dataset.sig = want;
+          sel.innerHTML = '<option value="all">IN: ALL DEVICES</option>' +
+            inputs.map(i => `<option value="${i.id}">IN: ${i.name}</option>`).join('');
+        }
+      } else sel.style.display = 'none';
+    }
+    return;
+  }
   if (midi.access) {
     b.textContent = 'MIDI: ON'; b.classList.remove('off');
     bl.style.display = br.style.display = '';
@@ -612,11 +767,16 @@ function setFrame(w, h) { PROJ.w = w | 0; PROJ.h = h | 0; PROJ.on = true; if (ty
    on the stage or cycled with V; the choice persists across scenes and
    visits. Scrim modes need three.js and are skipped on mobile.          */
 const VIEW = { mode: 'flat', MODES: ['flat', 'double', 'scrim'] };
-try {
-  let v = localStorage.getItem('srcView');
-  if (v === 'scrim3d') v = 'scrim'; // pre-orbit builds had two scrim modes
-  if (VIEW.MODES.includes(v)) VIEW.mode = v;
-} catch (e) {}
+// srcView is shared (ticket #30) — the show window must stay FLAT
+// regardless of whatever the control window last had set while testing;
+// same unconditional-force pattern as PANELS above (ADR-0003).
+if (window.ELECTRON_ROLE !== 'show') {
+  try {
+    let v = localStorage.getItem('srcView');
+    if (v === 'scrim3d') v = 'scrim'; // pre-orbit builds had two scrim modes
+    if (VIEW.MODES.includes(v)) VIEW.mode = v;
+  } catch (e) {}
+}
 function setView(mode) {
   if (mode === 'scrim3d') mode = 'scrim';
   if (!VIEW.MODES.includes(mode)) return;
@@ -695,7 +855,7 @@ function setProj(on) { PROJ.on = !!on; syncStage(true); }
 if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); })
   .observe(focusCanvas.parentElement);
 
-function openFocus(i) {
+function openFocus(i, fromRelay) {
   AE.ensure();
   // deep-link entry: the autoplay policy holds the context suspended until a
   // real gesture — say so instead of sitting silent (wakeAudio clears it)
@@ -709,6 +869,22 @@ function openFocus(i) {
     }
   }
   const def = PIECES[i];
+  // Bidirectional scene relay (tickets #29/#34, extended now). control:
+  // mirror locally (below, unchanged) AND tell the show window to open the
+  // same scene for real — optimistic/no-confirm per ADR-0003 — but only
+  // for a GENUINE local action (fromRelay false), never re-relaying a scene
+  // control was just told about (would ping-pong control->show->control).
+  // show: always relay outward, regardless of trigger — an auto-advance or
+  // edge-click firing locally in the show window (see resetRotation's new
+  // gate below) needs the control window's mirror to catch up too, which
+  // is the same problem this solves either way.
+  if (window.electronAPI) {
+    if (window.ELECTRON_ROLE === 'control' && !fromRelay) window.electronAPI.openScene(def.id);
+    else if (window.ELECTRON_ROLE === 'show') {
+      window.electronAPI.syncSceneToControl(def.id);
+      if (window.SHOW) SHOW.resetRotation();
+    }
+  }
   if (typeof T !== 'undefined') {
     T.start((def.music && def.music.bpm) || 78);
     H.setup(def.music, (Math.random() * 1e9) | 0);

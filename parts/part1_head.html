@@ -279,6 +279,14 @@
   #overlay.fs:not(.perf) #panelTab{color:var(--acc);opacity:.7}
   #overlay.zen.perf #panelTab{opacity:0}
   #overlay.zen.perf #panelTab:hover{opacity:1}
+  /* MIRROR pill (ADR-0005) — Electron control window only; JS flips it to
+     display:inline-block when window.ELECTRON_ROLE === 'control', so it
+     never appears in the plain browser/Netlify path or the show window */
+  #mirrorTab{display:none;position:absolute;left:150px;bottom:12px;z-index:14;padding:5px 11px;border-radius:8px;
+    font-size:10px;letter-spacing:.14em;font-family:var(--mono);background:rgba(10,10,14,.6);
+    border:1px solid rgba(255,255,255,.18);color:#cfd6e4;opacity:.35;cursor:pointer;transition:opacity .4s}
+  #mirrorTab:hover{opacity:1}
+  #mirrorTab.on{color:var(--acc);opacity:.7}
   /* (scrim-only rows live in the sidebar via .scrimonly) */
   #focusCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 
@@ -464,10 +472,21 @@
     .oconsole{display:none}
     .obar{padding:6px 8px}
   }
+  /* Electron show window: picture only, none of the debug chrome ever
+     visible — not even the collapsed DBG/PANELS tabs. This is CSS, not
+     JS, on purpose: no click handler disable can be forgotten later and
+     leave a tab showing on the actual projector output. */
+  html.electron-show #dbgTab,html.electron-show #panelTab{display:none!important}
 </style>
 <script>
 // one flag the scenes can ask: coarse pointer or narrow screen = phone rules
 window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches) || window.innerWidth < 820;
+// electron/main.js sets ?role=show|control on loadFile(); undefined in the
+// plain browser (Netlify, tools/verify.sh, phones) — every check below is
+// gated on the 'control' value specifically so nothing here changes browser
+// behavior. See docs/adr/0003-electron-instance-model-and-ipc-contract.md
+window.ELECTRON_ROLE = new URLSearchParams(location.search).get('role') || null;
+if (window.ELECTRON_ROLE === 'show') document.documentElement.classList.add('electron-show');
 // a #scene= deep link lands ON the scene: keep the wall invisible from the
 // very first paint instead of flashing the library before the stage opens
 if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deeplink');
@@ -700,6 +719,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     <div id="edgeR" class="edgeNav"><span>›</span></div>
     <div id="dbg"><div id="dbgTab">DBG</div><div id="dbgBody"></div></div>
     <div id="panelTab" title="Show/hide the control panels (MIDI, hands, console) — H">PANELS</div>
+    <div id="mirrorTab" title="Control window's own scene render rate — Electron control window only, never affects the show window (ADR-0005)">MIRROR: THROTTLED</div>
     <div id="useHint">reach away from the source = more · left half = L · right half = R</div>
     <div class="lslider left" id="slL">
       <div class="track"></div><div class="fill"></div><div class="knob"></div>

@@ -233,6 +233,14 @@ const MOut = {
   },
   testBurst() {
     const b = document.getElementById('btnTest');
+    // control window has no real port to test — relay to the show window,
+    // which actually has one, and give optimistic feedback here (the show
+    // window's own button text update is invisible — no chrome there).
+    if (window.ELECTRON_ROLE === 'control') {
+      if (window.electronAPI) window.electronAPI.requestMidiTest();
+      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+      return;
+    }
     if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
     const t0 = performance.now();
     [0, 4, 7, 11, 14, 19, 12].forEach((s, i) => {
@@ -295,12 +303,30 @@ const MOut = {
     }
     const sel = document.getElementById('midiOutSel');
     if (sel) {
-      if (this.mode !== 'web' && midi.access) {
+      // control window (ticket #36): the show window owns the real port —
+      // this only lets the operator SEE the list and pick, same split as
+      // ticket #31's display picker. Applying the pick is the show
+      // window's own refreshUI() below, reading the shared srcOutPort key.
+      if (window.ELECTRON_ROLE === 'control') {
+        if (this.mode !== 'web' && midiRelay.connected) {
+          sel.style.display = '';
+          const outs = midiRelay.outputs;
+          if (sel.options.length !== outs.length) {
+            sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
+          }
+        } else sel.style.display = 'none';
+      } else if (this.mode !== 'web' && midi.access) {
         sel.style.display = '';
         const outs = [...midi.access.outputs.values()];
         if (sel.options.length !== outs.length) {
           sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
         }
+        // ticket #37: this.port is never nulled elsewhere, so a disconnected
+        // device left it stale forever — a reconnect (same or fresh object)
+        // never got picked back up. This runs every 1.5s already (see the
+        // setInterval call site), so clearing it here is the whole fix —
+        // the block below already re-acquires whenever !this.port.
+        if (this.port && !outs.includes(this.port)) this.port = null;
         if (!this.port && outs.length) {
           // prefer the port the user picked last time (survives reloads/redeploys)
           let saved = null; try { saved = localStorage.getItem('srcOutPort'); } catch (e) {}
@@ -573,3 +599,9 @@ AE.SB = {
     return voices;
   };
 })();
+// Show window: the control window's TEST button has no real port to test
+// with — relayed here (MOut.testBurst()'s control branch above), where a
+// real one actually exists.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onMidiTestRequested) {
+  window.electronAPI.onMidiTestRequested(() => MOut.testBurst());
+}
