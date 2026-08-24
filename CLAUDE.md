@@ -294,7 +294,7 @@ never handle polarity; presence via `chan.L.mode === 'live'`),
 - MIDI roles → channels: the map lives in `rig.json` (`roles[].ch`, BAKED as
   the browser's default at build time; the RIG panel is a per-browser
   override). Since Aug 2026 it follows Lance's Live set track order — perc 1
-  · bass 3 · sfx 4 · lead 7 · pad 8 · texture 9 · bed 13 · arp 14 · bells 15.
+  · bass 3 · sfx 4 · pad 5 · lead 7 · texture 9 · bed 13 · arp 14 · bells 15.
   Scenes never touch channel numbers (they speak ROLE names).
   CC1/CC2 = raw hands. CC74 per channel = that
   layer's energy (map to filter cutoff in Ableton). Buffer 128. The mirror
