@@ -31,6 +31,29 @@ function penta(n, base = 220) {
 /* ============================================================
    AUDIO ENGINE
    ============================================================ */
+/* Nima: "when I click on a scene and I haven't triggered the set, it should
+   just do what it used to on the web — the detail view, and let me interact
+   with it." ADR-0007 turned the control window into a show console
+   UNCONDITIONALLY, which was wrong: the console is what you want DURING a
+   show, and the plain web app is what you want the rest of the time.
+   showLive is that distinction. PLAY raises it; CLOSE drops it. While it is
+   down the control window is the web app — it renders its own scene, makes
+   its own sound, and does NOT drive the show window (two copies of the same
+   scene would otherwise both play audio). While it is up it is the console:
+   set list, live feed of the wall, silent locally. */
+let showLive = false;
+function setShowLive(on) {
+  showLive = !!on;
+  if (window.ELECTRON_ROLE !== 'control') return;
+  document.documentElement.classList.toggle('showlive', showLive);
+  // the control window's own output is muted only while the wall is live
+  if (AE._mute) AE._mute.gain.value = showLive ? 0 : 1;
+  if (!showLive && focus.idx >= 0 && !focus.P) {
+    // came back from a show with a scene still open and no local instance —
+    // rebuild it so the stage isn't an empty box
+    const i = focus.idx; closeFocus(); openFocus(i);
+  }
+}
 const AE = {
   ctx: null, master: null, on: true, _noiseBuf: null,
   ensure() {
@@ -53,8 +76,12 @@ const AE = {
       this.master.connect(comp);
       if (window.ELECTRON_ROLE === 'control') {
         // silent sink: real graph, zero output — see comment above.
+        // Audible by default: the control window is the plain web app until
+        // PLAY. setShowLive() closes this to 0 for the duration of a show,
+        // when the only thing that should make noise is the show window.
         const mute = this.ctx.createGain();
-        mute.gain.value = 0;
+        mute.gain.value = showLive ? 0 : 1;
+        this._mute = mute;
         comp.connect(mute); mute.connect(this.ctx.destination);
       } else {
         comp.connect(this.ctx.destination);
@@ -1159,7 +1186,7 @@ function openFocus(i, fromRelay) {
   // gate below) needs the control window's mirror to catch up too, which
   // is the same problem this solves either way.
   if (window.electronAPI) {
-    if (window.ELECTRON_ROLE === 'control' && !fromRelay) window.electronAPI.openScene(def.id);
+    if (window.ELECTRON_ROLE === 'control' && showLive && !fromRelay) window.electronAPI.openScene(def.id);
     else if (window.ELECTRON_ROLE === 'show') window.electronAPI.syncSceneToControl(def.id);
   }
   if (typeof T !== 'undefined') {
@@ -1179,7 +1206,7 @@ function openFocus(i, fromRelay) {
   // every bit of scene-IDENTITY UI below (title, tags, versions, history,
   // act chips) keeps working; focus.P stays null, which the render loop and
   // syncStage already guard on.
-  if (window.ELECTRON_ROLE !== 'control') {
+  if (!(window.ELECTRON_ROLE === 'control' && showLive)) {
     const scene = document.createElement('canvas');
     focusCanvas.width = w2; focusCanvas.height = h2;
     focus.fctx = focusCanvas.getContext('2d');
@@ -1222,7 +1249,7 @@ function startVoice() {
   // unconditional cost there — the mirror's DSP ran at full rate whatever
   // the render throttle said. The audio the operator needs to know about is
   // the wall's, and that arrives over telemetry:tick.
-  if (window.ELECTRON_ROLE === 'control') return;
+  if (window.ELECTRON_ROLE === 'control' && showLive) return;
   const def = PIECES[focus.idx];
   if (AE.on && AE.ctx && def.audio && focus.P) {
     try { focus.voice = def.audio(AE, focus.P) || null; } catch (e) { focus.voice = null; }
@@ -1235,8 +1262,10 @@ function closeFocus() {
   // calls closeFocus() then openFocus()) sends the show window a matching
   // close-then-open instead of just stacking a second open on top of
   // whatever scene it's already on.
-  if (window.ELECTRON_ROLE === 'control' && window.electronAPI && focus.idx >= 0)
-    window.electronAPI.closeScene();
+  if (window.ELECTRON_ROLE === 'control' && showLive && window.electronAPI && focus.idx >= 0) {
+    window.electronAPI.closeScene();   // stows the show window
+    setShowLive(false);                // CLOSE ends the show; back to web behaviour
+  }
   if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
   if (typeof MOut !== 'undefined') { MOut.bedOff(); MOut.allOff(); }
   if (typeof T !== 'undefined') { T.stop(); H.listeners = []; }

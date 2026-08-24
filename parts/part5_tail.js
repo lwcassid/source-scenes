@@ -336,6 +336,9 @@ const QUEUE = {
       PRE.open();
       return;
     }
+    // Raise the show flag FIRST: openFocus only relays to the wall while a
+    // show is live, and this open is the first scene of one.
+    if (typeof setShowLive === 'function') setShowLive(true);
     const first = this.list.find(id => this.tileFor(id));
     if (!(first && this.goToFamily(first)) && focus.idx < 0) openFocus(0);
     document.getElementById('queuePop').classList.remove('open');
@@ -712,6 +715,10 @@ if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onTelemetry) {
   window.electronAPI.onTelemetry(t => {
     if (!t) return;
     Object.assign(tele, t, { log: tele.log });
+    // Only let the wall's numbers drive this window while the wall IS the
+    // thing on screen. Outside a show the control window runs its own scene,
+    // and stale telemetry would fight its HUD and pollute its MIDI monitor.
+    if (!showLive) return;
     // Feed the relayed notes into the LOCAL MOut.log the monitor already
     // draws from, rather than teaching drawMonitor a second data source.
     if (t.log && t.log.length) {
@@ -888,6 +895,7 @@ function enterShow() {
   // fullscreens the show window right where it already is, so PLAY is
   // never a silent no-op just because nothing was ever picked.
   if (SCREENS.inElectron()) {
+    if (typeof setShowLive === 'function') setShowLive(true);
     const t = SCREENS.target();
     window.electronAPI.pickDisplay({ id: t ? t.id : null, label: SCREENS.chosen || null });
     return Promise.resolve(true);
@@ -1031,11 +1039,25 @@ const PRE = {
     const restedL = inControl ? midiRelay.calRested.L : !!(midi.cal.L && midi.cal.L.rest !== null && midi.cal.L.rest !== undefined);
     const restedR = inControl ? midiRelay.calRested.R : !!(midi.cal.R && midi.cal.R.rest !== null && midi.cal.R.rest !== undefined);
     const rested = (restedL ? 1 : 0) + (restedR ? 1 : 0);
-    r.push({ k: 'cal', sec: 'rig', label: 'Calibration', lvl: !midiConnected ? 'ok' : rested === 2 ? 'ok' : 'warn',
+    // Nima: "I click SET REST and nothing happens." Two reasons, both fixed
+    // here. (a) The sample takes 1.6s and its result only arrives on the next
+    // device poll, so for ~2.6s the row said exactly what it said before —
+    // the click looked dead. It now reports the sample WHILE it runs, and
+    // PRE's own 600ms poll paints it. (b) restData only collects from a hand
+    // that is already BOUND, so with nothing learned SET REST genuinely does
+    // nothing, forever — that is a different problem and it now says so
+    // instead of offering a button that cannot work.
+    const restBusy = inControl ? restPending : midi.restSampling;
+    r.push({ k: 'cal', sec: 'rig', label: 'Calibration',
+      lvl: !midiConnected ? 'ok' : restBusy ? 'warn' : rested === 2 ? 'ok' : 'warn',
       txt: !midiConnected ? 'not needed without hardware'
+        : restBusy ? 'SAMPLING — stand clear of the instrument, hands away, until this settles'
         : rested === 2 ? 'both hands ranged and rested — idle detection is live'
+        : bound === 0 ? 'no hand is bound yet, so there is nothing to take a rest reading FROM — LEARN L and R first, then set REST'
         : 'REST not set' + (rested ? ' on one hand' : '') + ' — a sensor that streams all night will read as PLAYING forever, so scenes never go idle. Stand clear of the instrument first: REST is what the sensors read with NOBODY there.',
-      fix: midiConnected ? ['SET REST', () => startRest()] : null });
+      fix: !midiConnected || restBusy ? null
+        : bound === 0 ? ['MAP HANDS', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }]
+        : ['SET REST', () => startRest()] });
 
     // control window: MOut.mode/port/clock are local stand-ins that never
     // reflect what the show window is actually sending (same bug class as
