@@ -179,8 +179,13 @@ const MOut = {
     const v = Math.round(clamp(v01) * 127);
     if (v === st.v) return;
     st.t = now; st.v = v;
+    // short history ring so the console timeline can draw the CC74 ride
+    const lg = this._exprLog[role] || (this._exprLog[role] = []);
+    lg.push({ p: now, v });
+    if (lg.length > 300) lg.splice(0, 100);
     this.cc(this.chFor(role), 74, v);
   },
+  _exprLog: {},
   _lastCC: { L: -1, R: -1 }, _lastCCt: 0,
   tickCC(inp) {
     const now = performance.now();

@@ -331,7 +331,10 @@ const QUEUE = {
   // on the chosen display. If something is actually broken (no audio) it opens
   // the check instead of starting a silent show.
   play(force) {
-    if (!force && typeof PRE !== 'undefined' && PRE.worst() === 'bad') {
+    // PLAY is the pre-flight (Lance): every play walks the check — display,
+    // sound, set, hands — and launches from its START THE SHOW button.
+    // force=true is that button itself (and PADMAP/console jumps mid-show).
+    if (!force && typeof PRE !== 'undefined') {
       document.getElementById('queuePop').classList.remove('open');
       PRE.open();
       return;
@@ -347,7 +350,7 @@ const QUEUE = {
   },
   refresh() {
     const btn = document.getElementById('btnQueue');
-    if (btn) { btn.textContent = 'QUEUE ' + this.list.length; btn.classList.toggle('off', !this.list.length); }
+    if (btn) { btn.textContent = 'PERFORMANCE QUEUE \u00b7 ' + this.list.length; btn.classList.toggle('off', !this.list.length); }
     document.querySelectorAll('.tile').forEach(tile => {
       const id = tile.dataset.pid, box = tile.querySelector('.qbox');
       if (!box) return;
@@ -618,7 +621,6 @@ const QUEUE = {
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
     document.getElementById('btnQueuePlay').addEventListener('click', () => this.play());
-    document.getElementById('btnQueueCheck').addEventListener('click', () => { pop.classList.remove('open'); this.wake(false); PRE.open(); });
     document.getElementById('btnQueueFocus').addEventListener('click', () => {
       if (focus.idx >= 0) this.toggle(famOf(PIECES[focus.idx]));
     });
@@ -1422,19 +1424,25 @@ document.getElementById('volSlider').addEventListener('input', e => {
   // whichever window you're staring at (control, always) — it has nothing
   // to do with what the show window renders, so there is no show:control
   // kind for it.
+  const paintGhostBtns = () => {
+    const b = document.getElementById('btnGhosts'), f = document.getElementById('fGhosts');
+    if (b) { b.textContent = 'GHOSTS: ' + (ghostsOn ? 'ON' : 'OFF'); b.classList.toggle('off', !ghostsOn); }
+    if (f) { f.textContent = 'GHOSTS: ' + (sceneGhosts ? 'ON' : 'OFF'); f.classList.toggle('off', !sceneGhosts); }
+  };
   document.getElementById('btnGhosts').addEventListener('click', () => {
     ghostsOn = !ghostsOn;
-    document.getElementById('btnGhosts').classList.toggle('off', !ghostsOn);
+    paintGhostBtns();
   });
   // ghost hands INSIDE a focused scene — off by default (a scene starts still),
   // handy when you want the scene to demo itself while you work the rig
   document.getElementById('fGhosts').addEventListener('click', () => {
     sceneGhosts = !sceneGhosts;
-    document.getElementById('fGhosts').classList.toggle('off', !sceneGhosts);
+    paintGhostBtns();
     // control window: sceneGhosts here only drives the LOCAL mirror's ghost
     // hands — relay it so the real show window's scene actually ghosts too.
     if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('ghosts', sceneGhosts);
   });
+  paintGhostBtns();
   document.getElementById('fVol').addEventListener('input', e => {
     const v = document.getElementById('volSlider');
     v.value = e.target.value;
@@ -1494,7 +1502,7 @@ document.getElementById('btnPreStart').addEventListener('click', () => { PRE.clo
   });
 })();
 document.getElementById('railPlay').addEventListener('click', () => QUEUE.play());
-document.getElementById('railCheck').addEventListener('click', () => PRE.open());
+document.getElementById('btnBack').addEventListener('click', () => document.getElementById('btnClose').click());
 document.getElementById('searchBox').addEventListener('input', applyLibrary);
 document.getElementById('sortSel').addEventListener('change', applyLibrary);
 document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => {
@@ -2046,7 +2054,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
         // within 30ms of each other on this channel show red — that's the
         // "two notes at once sounding like shit" debugging view
         const es = [];
-        for (let i = L.length - 1; i >= 0 && es.length < 10; i--) if (L[i].ch === r.ch) es.push(L[i]);
+        for (let i = L.length - 1; i >= 0 && es.length < 4; i--) if (L[i].ch === r.ch) es.push(L[i]);
         const html = es.length ? '<table>' + es.map((e, i) => {
           const sim = (i > 0 && Math.abs(es[i - 1].p - e.p) < 30) || (i < es.length - 1 && Math.abs(es[i + 1].p - e.p) < 30);
           const ago = Math.max(0, (now - e.p) / 1000);
@@ -2057,6 +2065,118 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
       }
     }
   }, 250);
+
+  // ---- THE TIMELINE (Lance: "exactly how Live looks") --------------------
+  // Full-width canvas beside the rows, one lane per row, MIDI scrolling
+  // left-to-right (newest at the right edge). Collapsed row = when notes
+  // hit or hold; expanded row = a piano-roll band: pitch on Y, velocity as
+  // brightness, note-name labels, co-onsets (<30ms apart) ringed red, and
+  // the channel's CC74 ride as a line underneath.
+  const lanes = document.getElementById('rigLanes');
+  const rackEl = document.getElementById('roleRack');
+  const WIN = 14000;
+  function drawLanes() {
+    requestAnimationFrame(drawLanes);
+    if (!lanes || !overlay.classList.contains('open')) return;
+    const W = lanes.clientWidth | 0, Hh = rackEl.offsetHeight | 0;
+    if (!W || !Hh) return;
+    if (lanes.width !== W || lanes.height !== Hh) { lanes.width = W; lanes.height = Hh; }
+    const g = lanes.getContext('2d');
+    g.clearRect(0, 0, W, Hh);
+    const now = performance.now();
+    const x = p => W - (now - p) / WIN * W;
+    g.strokeStyle = 'rgba(128,128,128,.10)'; g.lineWidth = 1;
+    for (let tt = now - (now % 1000); tt > now - WIN; tt -= 1000) {
+      const xx = Math.round(x(tt)) + 0.5;
+      g.beginPath(); g.moveTo(xx, 0); g.lineTo(xx, Hh); g.stroke();
+    }
+    const L = MOut.log, byCh = {};
+    for (let i = 0; i < L.length; i++) {
+      const e = L[i];
+      if (e.p > now + 60) continue;
+      if (e.p + Math.max(150, e.durMs || 0) < now - WIN) continue;
+      (byCh[e.ch] = byCh[e.ch] || []).push(e);
+    }
+    for (const r of rows) {
+      const es = byCh[r.ch] || [];
+      const col = r.role ? MOut.ROLE_COLORS[r.role] : '#8a8a8a';
+      const rowY = r.div.offsetTop, rowH = r.div.offsetHeight;
+      // collapsed strip: every event as a bar, holds run to the right edge
+      for (const e of es) {
+        const sounding = Math.min(e.p + Math.max(150, e.durMs || 0), now);
+        const x0 = Math.max(0, x(e.p)), x1 = Math.min(W, x(sounding));
+        if (x1 <= x0) continue;
+        g.globalAlpha = 0.25 + 0.65 * (e.vel / 127);
+        g.fillStyle = col;
+        g.fillRect(x0, rowY + 4, Math.max(2, x1 - x0), rowH - 8);
+      }
+      g.globalAlpha = 1;
+      if (!r.evts.hidden && es.length) {
+        // the piano-roll band
+        const bY = r.evts.offsetTop + 3, bH = r.evts.offsetHeight - 14;
+        g.fillStyle = 'rgba(128,128,128,.05)';
+        g.fillRect(0, bY - 3, W, bH + 14);
+        let lo = 127, hi = 0;
+        for (const e of es) { if (e.note < lo) lo = e.note; if (e.note > hi) hi = e.note; }
+        lo -= 2; hi += 2;
+        if (hi - lo < 12) { const c = (hi + lo) / 2; lo = c - 6; hi = c + 6; }
+        const yOf = n => bY + bH - ((n - lo) / (hi - lo)) * bH;
+        const sorted = es.slice().sort((a, b) => a.p - b.p);
+        for (let i = 0; i < sorted.length; i++) {
+          const e = sorted[i];
+          const sounding = Math.min(e.p + Math.max(150, e.durMs || 0), now);
+          const x0 = Math.max(0, x(e.p)), x1 = Math.min(W, x(sounding));
+          if (x1 <= x0) continue;
+          const y = yOf(e.note);
+          g.globalAlpha = 0.35 + 0.6 * (e.vel / 127);
+          g.fillStyle = col;
+          g.fillRect(x0, y - 3, Math.max(2, x1 - x0), 6);
+          g.globalAlpha = 1;
+          const sim = (i > 0 && e.p - sorted[i - 1].p < 30) || (i < sorted.length - 1 && sorted[i + 1].p - e.p < 30);
+          if (sim) { g.strokeStyle = '#ff5b5b'; g.strokeRect(x0 - 1, y - 4, Math.max(2, x1 - x0) + 2, 8); }
+          if (x1 - x0 > 30 || e.durMs > 100000) {
+            g.fillStyle = 'rgba(200,200,200,.85)';
+            g.font = '8px monospace';
+            g.fillText(NN(e.note) + '\u00b7' + e.vel, x0 + 3, y - 5);
+          }
+        }
+        // the CC74 ride under the band
+        const elog = r.role && MOut._exprLog && MOut._exprLog[r.role];
+        if (elog && elog.length) {
+          g.strokeStyle = col; g.globalAlpha = 0.55; g.lineWidth = 1;
+          g.beginPath();
+          let started = false;
+          for (const c of elog) {
+            if (c.p < now - WIN) continue;
+            const cx = x(c.p), cy = bY + bH + 9 - (c.v / 127) * 8;
+            if (!started) { g.moveTo(cx, cy); started = true; } else g.lineTo(cx, cy);
+          }
+          if (started) { g.lineTo(W, bY + bH + 9 - ((MOut._exprState[r.role] || {}).v || 0) / 127 * 8); g.stroke(); }
+          g.globalAlpha = 1;
+        }
+      }
+    }
+  }
+  requestAnimationFrame(drawLanes);
+})();
+
+// COLLAPSIBLE GROUPS (Lance: treat the UX like a design tool) — every rail/
+// sidebar group folds on its header; the choice persists per-browser.
+(function () {
+  let fold = {};
+  try { fold = JSON.parse(localStorage.getItem('srcFold') || '{}'); } catch (e) {}
+  document.querySelectorAll('#librail .sgroup, #sidebar .sgroup').forEach(g => {
+    const h = g.querySelector('h5');
+    if (!h) return;
+    const key = h.textContent.trim().split('\n')[0].slice(0, 20);
+    if (fold[key]) g.classList.add('fold');
+    h.addEventListener('click', e => {
+      if (e.target !== h) return; // controls inside the header keep working
+      g.classList.toggle('fold');
+      fold[key] = g.classList.contains('fold');
+      try { localStorage.setItem('srcFold', JSON.stringify(fold)); } catch (err) {}
+    });
+  });
 })();
 
 QUEUE.boot();

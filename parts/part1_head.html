@@ -238,7 +238,8 @@
   #frameInfo{font-family:var(--mono);color:var(--txt-dim)}
   #sidebar .scrimonly{display:none}
   #overlay.scrimmode #sidebar .scrimonly{display:flex}
-  .ostage,.oconsole{grid-column:2}
+  .ostage{grid-column:2}
+  .oconsole{grid-column:1/-1}
   .conTitle{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--acc);
     font-weight:700;margin:0 0 6px}
   .monHead .conTitle{margin:0 10px 0 0}
@@ -308,7 +309,24 @@
   .whint b{color:var(--txt)}
   /* THE RIG rack — what each role is, which channel it rides, what answers in
      Live (rig.json, baked). Rows light while their lane is playing. */
-  #rackBox{flex:1;min-width:0;max-width:980px}
+  #rackBox{flex:1;min-width:0}
+  #rigSplit{display:flex;align-items:flex-start;position:relative}
+  #rigSplit #roleRack{width:470px;flex:none}
+  #rigLanes{flex:1;min-width:0;align-self:stretch;border-left:1px solid var(--line)}
+  .rkevts{height:76px;margin:0 0 2px;border:0}
+  .hsearch{display:flex;align-items:center;gap:10px;flex:1;min-width:0;margin:0 26px}
+  .hsearch #searchBox{width:220px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+  .hsearch select{padding:6px 8px}
+  .hsearch .fchips{display:flex;gap:6px}
+  .hsearch .sinfo{font-size:9.5px;color:var(--txt-faint);letter-spacing:.06em;white-space:nowrap}
+  button.cta{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:800;letter-spacing:.18em}
+  button.cta:hover{background:var(--acc);color:#fff;opacity:.9}
+  .sgroup h5{cursor:pointer;user-select:none}
+  .sgroup h5::before{content:'▾ ';color:var(--txt-faint);font-size:8px}
+  .sgroup.fold h5::before{content:'▸ '}
+  .sgroup.fold > *:not(h5){display:none}
+  #btnBack{margin-right:10px}
+  #histGroup h5 #oVers select{font-size:9px;padding:2px 4px;margin-left:8px}
   .rkrow .rki{min-width:130px}
   .rkrow b.rkrole{width:56px}
   #roleRack{display:flex;flex-direction:column;gap:2px;cursor:pointer}
@@ -613,7 +631,21 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
 
 <header>
   <div class="brand">
-    <h1>THE CAVE <span>·</span> SOURCE</h1>
+    <h1>SOURCE SCENES</h1>
+  </div>
+  <div class="hsearch" id="hSearch">
+    <input id="searchBox" type="search" placeholder="search scenes…" autocomplete="off">
+    <select id="sortSel" title="Sort — MOST WORKED ON weighs how recently a scene was touched against how many versions it has">
+      <option value="love">most worked on</option>
+      <option value="id">SRC number</option>
+      <option value="title">title A–Z</option>
+      <option value="ver">most versions</option>
+    </select>
+    <div class="fchips">
+      <button class="fchip on" data-f="all">ALL</button>
+      <button class="fchip" data-f="queue">IN QUEUE</button>
+    </div>
+    <span class="sinfo" id="libCount"></span>
   </div>
   <div class="hright">
     <button id="btnTheme" class="icon" title="Theme — light matches the camper portal; dark is stage mode">◐</button>
@@ -680,8 +712,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
   <ol id="queueList"></ol>
   <p id="queueEmpty">Nothing queued yet. With an empty queue the show falls back to playing the whole wall in library order — which is how you end up performing 43 scenes sorted by number.</p>
   <div class="row">
-    <button id="btnQueuePlay">▶ PLAY</button>
-    <button id="btnQueueCheck">SHOW CHECK</button>
+    <button id="btnQueuePlay" class="cta">▶ PLAY</button>
     <button id="btnQueueLink">COPY LINK</button>
     <button id="btnQueueClear">CLEAR</button>
   </div>
@@ -700,32 +731,12 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
        uses for the same things. SOURCE INPUT and MUSIC are literally the same
        groups, in the same order, on both views. -->
   <aside id="librail">
-    <section class="sgroup libgrp">
-      <h5>Library</h5>
-      <div class="srow"><input id="searchBox" type="search" placeholder="search scenes…" autocomplete="off"></div>
-      <div class="srow">
-        <select id="sortSel" title="Sort — MOST WORKED ON weighs how recently a scene was touched against how many versions it has">
-          <option value="love">most worked on</option>
-          <option value="id">SRC number</option>
-          <option value="title">title A–Z</option>
-          <option value="ver">most versions</option>
-        </select>
-      </div>
-      <div class="srow fchips">
-        <button class="fchip on" data-f="all">ALL</button>
-        <button class="fchip" data-f="queue">IN QUEUE</button>
-      </div>
-      <p class="sinfo" id="libCount"></p>
-    </section>
     <button id="railToggle" class="off">CONTROLS ▾</button>
     <section class="sgroup railfold">
       <h5>The set</h5>
-      <div class="srow">
-        <button id="railPlay" title="Start the show on the first queued scene — picture only, fullscreen">▶ PLAY</button>
-        <button id="railCheck" title="Pre-flight: sound, set, hands, calibration, Ableton, tempo, frame, display">CHECK</button>
-      </div>
-      <div class="srow"><button id="btnQueue" class="off" title="The performance queue — the scenes you play, in the order you play them">QUEUE 0</button></div>
-      <p class="sinfo">tick a scene to queue it — the queue's <b>order</b> is the running order</p>
+      <div class="srow"><button id="btnQueue" class="off" title="The performance queue — the scenes you play, in the order you play them">PERFORMANCE QUEUE · 0</button></div>
+      <div class="srow"><button id="railPlay" class="cta" title="Play the show — runs the pre-flight first (display, sound, set, hands), then START THE SHOW">▶ PLAY</button></div>
+      <p class="sinfo">tick a scene to queue it — the queue's <b>order</b> is the running order · PLAY always walks the pre-flight first</p>
     </section>
     <section class="sgroup railfold">
       <h5>Source input</h5>
@@ -774,7 +785,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
 <!-- ================= FOCUS OVERLAY ================= -->
 <div id="overlay">
   <div class="obar">
-    <div class="otitle"><span class="tid" id="oTid"></span><h2 id="oTitle"></h2><span class="ttag" id="oTag"></span><span id="oVers"></span><span id="oActs"></span></div>
+    <div class="otitle"><button id="btnBack" class="icon" title="Back to the library">←</button><h2 id="oTitle"></h2><span class="ttag" id="oTag"></span><span class="tid" id="oTid" style="display:none"></span><span id="oActs"></span></div>
     <div class="obtns">
       <button id="btnQueueFocus" title="Add this scene to the performance queue">+ QUEUE</button>
       <button id="btnThemeF" class="icon" title="Theme">◐</button>
@@ -785,12 +796,6 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     <!-- the notes live where you act on them: the EXPERIENCE summary heads the
          column; the input paradigm folds under SOURCE INPUT; the Ableton build
          notes fold under MUSIC. One summary, then read up where you're working. -->
-    <section class="sgroup" id="sceneNotes">
-      <h5>This scene</h5>
-      <p class="snote" id="ipDesc"></p>
-      <span class="stoggle" id="sNotesTog">more</span>
-      <div class="chips" id="ipChips"></div>
-    </section>
     <section class="sgroup">
       <h5>View</h5>
       <div class="srow">
@@ -830,10 +835,17 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <p class="sinfo">the rig rack below the stage shows role → channel → instrument, live</p>
     </section>
     <section class="sgroup" id="histGroup">
-      <h5>History</h5>
+      <h5>History <span id="oVers"></span></h5>
       <p class="sinfo" id="histWho" style="margin:0 0 8px"></p>
       <div id="histList"></div>
     </section>
+    <section class="sgroup" id="sceneNotes">
+      <h5>This scene</h5>
+      <p class="snote" id="ipDesc"></p>
+      <span class="stoggle" id="sNotesTog">more</span>
+      <div class="chips" id="ipChips"></div>
+    </section>
+
   </div>
   <!-- THE SHOW CONSOLE (ADR-0007) — Electron control window only; CSS keeps it
        out of the plain browser and out of the show window entirely. -->
@@ -876,7 +888,10 @@ Rows light while their channel is SOUNDING. Click a row to expand its recent MID
 ♪ = one test note on that channel (use it OUTSIDE Live's Cmd+M mode) — does the right track answer?
 MAP = for Live's Cmd+M mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then MAP — it wiggles ONLY that channel's CC74.
 CC1/CC2 stream the raw hands (enable Remote on the IAC input to map them). CC74 per channel = that layer's energy — the bar on each row is its live value.">ⓘ</span></div>
-      <div id="roleRack"></div>
+      <div id="rigSplit">
+        <div id="roleRack"></div>
+        <canvas id="rigLanes"></canvas>
+      </div>
     </div>
   </div>
 </div>
