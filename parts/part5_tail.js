@@ -850,18 +850,15 @@ document.getElementById('volSlider').addEventListener('input', e => {
       }
       const inst = docFor(role).instrument || '';
       const draft = !inst || /\(proposed\)|TBD/i.test(inst);
-      // a per-browser remap that disagrees with rig.json is a silent misroute
-      // (Lance heard Chladni's HandPan voice on SHRINE ch8) — flag it loudly
-      const docCh = docFor(role).ch;
-      const offdoc = docCh >= 1 && docCh <= 16 && MOut.roles[role] !== docCh;
+      // READ-ONLY (Lance: "this is what the software understands — remove
+      // room for error"): the channel comes from rig.json, full stop.
+      // Changing the map = edit rig.json + rebuild, never a browser control.
       const row = document.createElement('div');
       row.className = 'rigrow' + (draft ? ' draft' : '');
       row.title = [DESC[role], docFor(role).use].filter(Boolean).join('\n\n');
       row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}" title="Click: send one test note on this channel — does the right Ableton track answer?"></div>
         <label>${role}</label>
-        <select data-role="${role}">${Array.from({ length: 16 }, (_, i) =>
-          `<option value="${i + 1}"${i + 1 === MOut.roles[role] ? ' selected' : ''}>CH ${i + 1}</option>`).join('')}</select>
-        ${offdoc ? `<span class="rwarn" title="rig.json says CH ${docCh}; this browser's stored remap wins. RESET below to follow the set.">≠ rig.json CH ${docCh}</span>` : ''}
+        <span class="rchro">CH ${MOut.roles[role]}</span>
         <span>${esc(inst || DESC[role] || '')}</span>
         <button class="rping" title="For Live's MIDI mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then press MAP — it wiggles ONLY this channel's CC74 for a second, so the mapping can't be stolen by the hand streams.">MAP</button>
         <span class="rstate">${draft ? 'DRAFT' : 'LOADED'}</span>`;
@@ -894,34 +891,8 @@ document.getElementById('volSlider').addEventListener('input', e => {
           }
         }, 120);
       });
-      row.querySelector('select').addEventListener('change', e => {
-        MOut.allOff();
-        MOut.roles[role] = +e.target.value;
-        // persist as a diff against rig.json's map, so untouched roles keep
-        // following the doc across rebuilds while this remap survives reloads
-        try {
-          const doc = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) || {};
-          const ov = {};
-          for (const r in MOut.roles) if (!doc[r] || MOut.roles[r] !== doc[r].ch) ov[r] = MOut.roles[r];
-          localStorage.setItem('srcRoleMap', JSON.stringify(ov));
-        } catch (err) {}
-        renderRig(); // re-sort so the panel keeps mirroring the mixer
-      });
     }
-    // the drift banner + reset show only when a stored remap disagrees
-    const dp = document.getElementById('rigDrift');
-    if (dp) dp.style.display = order.some(r => {
-      const d = docFor(r).ch; return d >= 1 && d <= 16 && MOut.roles[r] !== d;
-    }) ? '' : 'none';
   }
-  const bReset = document.getElementById('btnRigReset');
-  if (bReset) bReset.addEventListener('click', () => {
-    try { localStorage.removeItem('srcRoleMap'); } catch (e) {}
-    MOut.allOff();
-    const doc = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) || {};
-    for (const r in MOut.roles) if (doc[r] && doc[r].ch >= 1 && doc[r].ch <= 16) MOut.roles[r] = doc[r].ch;
-    renderRig();
-  });
   renderRig();
   document.getElementById('btnRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
   // live activity lights: a role's swatch glows while that lane is playing,
@@ -1280,43 +1251,62 @@ setInterval(() => {
 }, 300);
 
 /* ============================================================
-   THE RIG RACK — the music work surface under the stage.
-   One row per role: color · role · channel · what answers in the
-   Live set (rig.json, baked as RIGDOC — fill in `instrument` and
-   the rack names your actual patches). Rows light while their
-   lane is playing, so with a scene open you can SEE which
-   instruments it is using and on which channels. Click to remap.
+   THE RIG RACK — the music work surface under the stage, laid
+   out LIKE THE ABLETON MIXER (Lance: "a simple DAW sort of
+   view — what's being triggered, what channel is which"): one
+   row per channel 1-16 in numerical order, printed with the
+   EXACT Live track name (rig.json `tracks`) plus the role that
+   drives it. The row lights the moment anything triggers that
+   channel — the association between instrument and trigger is
+   the whole point. Read-only; click opens THE RIG reference.
    ============================================================ */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 (function () {
   const rack = document.getElementById('roleRack');
   if (!rack || typeof MOut === 'undefined') return;
   const DOCS = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) ? RIGDOC.roles : {};
-  const rows = {};
-  for (const role of Object.keys(MOut.roles)) {
-    const doc = DOCS[role] || {};
+  const TRKS = (typeof RIGDOC !== 'undefined' && RIGDOC.tracks) ? RIGDOC.tracks : {};
+  const roleAt = {};
+  for (const r in MOut.roles) roleAt[MOut.roles[r]] = r;
+  const rows = [];
+  for (let ch = 1; ch <= 16; ch++) {
+    const role = roleAt[ch];
+    const name = TRKS[ch] || (role ? role.toUpperCase() : '');
+    if (!role && !TRKS[ch]) continue;
+    const doc = role ? (DOCS[role] || {}) : {};
     const div = document.createElement('div');
-    div.className = 'rkrow';
-    div.title = (doc.instrument ? doc.instrument + ' — ' : '') + (doc.use || '');
-    div.innerHTML = `<i style="background:${MOut.ROLE_COLORS[role]}"></i>
-      <b>${role}</b><span class="rkch">CH${MOut.roles[role]}</span>
-      <span class="rki">${esc(doc.instrument || doc.use || '')}</span>`;
+    div.className = 'rkrow' + (role ? '' : ' spare');
+    div.title = role
+      ? ((doc.instrument ? doc.instrument + ' — ' : '') + (doc.use || ''))
+      : 'No role routed here — nothing in the show triggers this track.';
+    div.innerHTML = `<span class="rkch">${ch}</span>
+      <i style="background:${role ? MOut.ROLE_COLORS[role] : '#3a3a3a'}"></i>
+      <span class="rki">${esc(name)}</span>${role ? `<b>${role}</b>` : ''}`;
     rack.appendChild(div);
-    rows[role] = div;
+    rows.push({ ch, role, div });
   }
   rack.addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
   setInterval(() => {
     if (!overlay.classList.contains('open')) return;
     const now = performance.now();
-    for (const role in rows) {
-      const on = MOut.lastByRole[role] && now - MOut.lastByRole[role] < 1200;
-      rows[role].classList.toggle('on', !!on);
-      rows[role].querySelector('i').style.boxShadow = on ? `0 0 6px 1px ${MOut.ROLE_COLORS[role]}` : '';
-      const ch = 'CH' + MOut.roles[role]; // live: the RIG modal can remap
-      const el = rows[role].querySelector('.rkch');
-      if (el.textContent !== ch) el.textContent = ch;
+    // per-CHANNEL activity straight from the outbound log: a scheduled note
+    // lights its row when it SOUNDS (p reached), and a HOLD (weather loops,
+    // the beat-loop pad, the bed) keeps its row lit for its whole duration —
+    // "what is playing right now", not "what was struck lately"
+    const hot = {};
+    const L = MOut.log;
+    for (let i = L.length - 1; i >= 0; i--) {
+      const e = L[i];
+      const age = now - e.p;
+      if (age > -50 && age < Math.max(1200, e.durMs || 0)) hot[e.ch] = true;
     }
-  }, 300);
+    for (const r of rows) {
+      const on = !!hot[r.ch];
+      r.div.classList.toggle('on', on);
+      r.div.querySelector('i').style.boxShadow =
+        on ? `0 0 6px 1px ${r.role ? MOut.ROLE_COLORS[r.role] : '#999'}` : '';
+    }
+  }, 200);
 })();
 
 QUEUE.boot();

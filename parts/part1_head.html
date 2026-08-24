@@ -361,7 +361,7 @@
   #helpModal b,#rigModal b{color:var(--txt)}
   .rigrow{display:flex;align-items:center;gap:10px;margin:7px 0}
   .rigrow .swatch{width:10px;height:10px;flex:none;border-radius:3px}
-  .rigrow .rwarn{font-size:9px;letter-spacing:.08em;color:#e8a24a;border:1px solid rgba(232,162,74,.4);border-radius:3px;padding:1px 5px;flex:none;white-space:nowrap}
+  .rigrow .rchro{font-size:10px;letter-spacing:.1em;color:var(--txt);flex:none;width:44px;font-weight:700}
   .rigrow.spare{opacity:.5}
   .rigrow.spare span{font-style:italic}
   .rigrow label{font-size:10px;letter-spacing:.14em;color:var(--txt);text-transform:uppercase;width:70px;font-weight:600}
@@ -755,10 +755,9 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
 <div id="rigModal">
   <div class="box">
     <h2>THE RIG — ROLE → CHANNEL ROUTING</h2>
-    <p><b>The rig is global:</b> one mapping, identical for every scene. A scene never remaps channels — it just plays a subset of the roles below, so your Ableton set works for the whole wall.</p>
-    <p>Every musical role the pieces generate is routed to a MIDI channel. Give each of your Ableton instruments its own channel (track's MIDI From = IAC, Ch. N) and one browser drives the whole rack. Remap freely — changes apply instantly.</p>
+    <p><b>The rig is global and READ-ONLY here:</b> one mapping, identical for every scene and every browser, straight from <b>rig.json</b> in the repo — this is what the software understands, so what you see is always what plays. To change a channel, change the Live set, then say so in a Claude session (it edits rig.json and rebuilds) — there is deliberately no remap control to fat-finger.</p>
+    <p>Each track's MIDI From = IAC, Ch. N as listed. The <b>color swatch</b> sends one test note on that channel — the fastest way to check the right Ableton track answers, top to bottom.</p>
     <div id="rigRows"></div>
-    <p id="rigDrift" style="display:none;margin-top:8px">⚠ <b>This browser overrides rig.json</b> on the flagged rows — sound lands on different channels than the set expects. <button id="btnRigReset">RESET TO RIG.JSON</button></p>
     <h3>Expression</h3>
     <p><b>CC1 / CC2</b> = left / right hand, streamed always — enable <b>Remote</b> on the IAC input in Live's MIDI prefs, then Cmd+M-map any knob (filter, macro, send) to a hand. <b>CC74</b> is sent per role channel as that layer's energy — map it to each instrument's filter cutoff for free movement. <b>To make that mapping</b>: in Live press Cmd+M, click the knob you want moving, then press that row's <b>MAP</b> button above — it wiggles only that channel's CC74, Live catches it, Cmd+M again to finish. The <b>color swatch</b> sends one test note (use it outside Cmd+M) to check the right track answers.</p>
     <p style="margin-top:14px"><button id="btnRigClose">CLOSE</button></p>

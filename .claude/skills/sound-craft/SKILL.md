@@ -250,6 +250,26 @@ Live set changes.
 
 ## The rig is the finish (Lance, Aug 2026)
 
+- **NEW SCENE = RIG WALK FIRST (Lance, Aug 2026 — process law).** Before
+  revising a scene's sound, walk Lance through its casting seat by seat:
+  list every role the scene sends, what track/patch answers on his rack
+  (rig.json), have him fire each row's swatch, and AGREE each seat before
+  building anything. One instrument at a time, collaboratively — never
+  audition a scene cold and iterate from the wreckage. (Chladni's first
+  audition happened rig-unchecked; three of its verdicts were rig mismatches.)
+- **The pad channel is INTENTIONAL, never a wash (Lance, Chladni V24).** A
+  standing stack of held pad voices drowns the rack ("SHRINE is really
+  busy"). A scene whose floor is a pad stack keeps it browser-side
+  (`A.padVoices(..., {midi:false})`); pad MIDI is for single placed notes.
+- **The ARP is rhythmic and enters WITH the drums (Lance, Chladni V24).**
+  Channel 14 ARP SYNTH plays grid-locked lines gated by the scene's beat
+  window — never nature-timed, never under held notes. Conversely the bells
+  role (nature-timed strikes, the toll) must carry NO internal rhythm.
+- **The channel map is read-only in the browser (Lance, Aug 2026).** rig.json
+  is the only truth — no per-browser remap exists ("remove room for error").
+  Live set changes → edit rig.json (+ its `tracks` = exact Live track names)
+  → rebuild.
+
 - The WebAudio helpers are the SKETCH and the offline fallback; the Live rack
   on the mirror is the finished sound. Write MIDI (role choice, velocity,
   CC74 rides) as if a quality velocity-sensitive patch will expose it.
