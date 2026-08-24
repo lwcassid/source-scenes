@@ -265,6 +265,11 @@ Live set changes.
   Channel 14 ARP SYNTH plays grid-locked lines gated by the scene's beat
   window — never nature-timed, never under held notes. Conversely the bells
   role (nature-timed strikes, the toll) must carry NO internal rhythm.
+- **ASSUME RIGGED, MAP 1:1 (Lance, Aug 2026).** Scenes always send full
+  MIDI for every role — never gate or thin content because a patch is
+  missing; a silent console row is Lance's cue to drop an instrument on
+  that track. Roles sit on the Live track bearing their name (pad=PADS,
+  bells=BELLS); no "browser-only until rigged" states, ever.
 - **The channel map is read-only in the browser (Lance, Aug 2026).** rig.json
   is the only truth — no per-browser remap exists ("remove room for error").
   Live set changes → edit rig.json (+ its `tracks` = exact Live track names)
