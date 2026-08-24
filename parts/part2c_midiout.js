@@ -243,7 +243,9 @@ const MOut = {
   },
   clockPump() {
     const c = this.clock;
-    const live = c.on && this.wants() && this.port &&
+    // suspend (the console's PAUSE) silences the clock too — otherwise the
+    // pump would re-Start Live the moment allOff cleared the running flag
+    const live = c.on && !this.suspend && this.wants() && this.port &&
       typeof T !== 'undefined' && T.running && AE.ctx;
     if (!live) { if (c.running) this.clockStop(); return; }
     // a new scene (or a live tempo change) re-pins the grid — resync to its beat 0

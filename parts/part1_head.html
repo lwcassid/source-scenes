@@ -308,7 +308,9 @@
   .whint b{color:var(--txt)}
   /* THE RIG rack — what each role is, which channel it rides, what answers in
      Live (rig.json, baked). Rows light while their lane is playing. */
-  #rackBox{width:300px;flex:none}
+  #rackBox{flex:1;min-width:0;max-width:980px}
+  .rkrow .rki{min-width:130px}
+  .rkrow b.rkrole{width:56px}
   #roleRack{display:flex;flex-direction:column;gap:2px;cursor:pointer}
   .rkrow{display:flex;align-items:center;gap:6px;padding:2px 6px;border:1px solid transparent;
     border-radius:5px;font-size:9px;color:var(--txt-faint);line-height:1.5}
@@ -319,6 +321,24 @@
   .rkrow.on{border-color:var(--line)}
   .rkrow.on i{opacity:1}
   .rkrow.on b,.rkrow.on .rkch{color:var(--txt)}
+  .rkrow{cursor:pointer}
+  .rkrow.spare{opacity:.5}
+  .rkrow.spare .rki{font-style:italic}
+  .rkrow .rkevt{width:120px;flex:none;font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);overflow:hidden;white-space:nowrap}
+  .rkrow .rkcc{width:56px;height:5px;flex:none;background:#1c1c20;border-radius:3px;overflow:hidden}
+  .rkrow .rkcc u{display:block;height:100%;width:0;background:var(--acc);opacity:.7;transition:width .15s}
+  .rkrow .rkt,.rkrow .rkm{flex:none;font-size:9px;letter-spacing:.08em;padding:1px 7px;background:none;border:1px solid var(--line);border-radius:3px;color:var(--txt-dim);cursor:pointer}
+  .rkrow .rkt:hover,.rkrow .rkm:hover{color:var(--txt);border-color:var(--txt-dim)}
+  .rkrow .rkm.learning{color:var(--acc);border-color:var(--acc)}
+  .rkevts{margin:0 6px 4px 44px;font-family:var(--mono);font-size:9.5px;color:var(--txt-dim)}
+  .rkevts table{border-collapse:collapse}
+  .rkevts td{padding:1px 12px 1px 0;white-space:nowrap}
+  .rkevts tr.sim td{color:#ff6b6b}
+  .rkevts .rkeNone{opacity:.6;font-style:italic}
+  #btnPauseAll{margin-left:auto;flex:none;font-size:9.5px;letter-spacing:.14em;padding:2px 12px;background:none;border:1px solid var(--line);border-radius:3px;color:var(--txt);cursor:pointer}
+  #btnPauseAll.paused{color:#ffb14a;border-color:#ffb14a;box-shadow:0 0 8px rgba(255,177,74,.35)}
+  .rinfo{flex:none;cursor:help;color:var(--txt-dim);border:1px solid var(--line);border-radius:50%;width:15px;height:15px;line-height:14px;text-align:center;font-size:10px}
+  #rackBox.paused #roleRack{opacity:.35}
   .monHead{display:flex;gap:14px;align-items:baseline;font-size:10px;letter-spacing:.14em;font-family:var(--mono)}
   .monHead #oChord{color:var(--acc)}
   .monHead .mflag{color:var(--txt-dim)}
@@ -726,8 +746,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <div class="srow"><button id="btnOut" class="off" title="Route the generated music: internal WebAudio, MIDI out to your DAW, or both">OUT: WEB AUDIO</button></div>
       <div class="srow"><select id="midiOutSel" style="display:none"></select></div>
       <div class="srow"><button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button></div>
-      <div class="srow"><button id="btnRig" title="Role → MIDI channel routing for your DAW">MIDI RIG</button></div>
-      <p class="sinfo">role → channel map comes from rig.json (MIDI RIG shows it live; remap there sticks in this browser)</p>
+      <p class="sinfo">role → channel map comes from rig.json, read-only — THE RIG console under an open scene shows it live</p>
     </section>
   </aside>
   <div class="gridwrap"><div class="grid" id="grid"></div></div>
@@ -806,7 +825,6 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <div class="srow"><button id="fSound">SOUND: ON</button><input type="range" id="fVol" min="0" max="100" value="85" title="Master volume"></div>
       <div class="srow"><button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button></div>
       <div class="srow"><button id="fClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM (Live: port Sync on, EXT lit)">CLOCK OUT: ON</button></div>
-      <div class="srow"><button id="fRig" title="Role → MIDI channel routing (global, same for every scene)">MIDI RIG</button></div>
       <span class="stoggle sntog" data-for="ipSound">▸ ableton build notes</span>
       <p class="snote snfold" id="ipSound"></p>
       <p class="sinfo">the rig rack below the stage shows role → channel → instrument, live</p>
@@ -850,14 +868,15 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </div>
   </div>
   <div class="oconsole">
-    <div class="conBox" id="rackBox">
-      <div class="monHead"><h5 class="conTitle">The rig</h5><span class="mflag" id="oOutState"></span></div>
-      <div id="roleRack" title="Role → channel → what answers in Live (rig.json) — rows light while their lane plays. Click to remap."></div>
-    </div>
-    <div class="conBox grow">
-      <div class="monHead"><h5 class="conTitle">MIDI out</h5><span id="oChord">—</span></div>
-      <canvas id="midiMon" width="1240" height="148"></canvas>
-      <div class="whint"><b>CC1/CC2</b> stream the hands · <b>CC74</b> per role = that layer's energy (map to filter cutoff) · fill <b>rig.json</b> and the rack names your Live instruments</div>
+    <div class="conBox grow" id="rackBox">
+      <div class="monHead"><h5 class="conTitle">The rig</h5><span class="mflag" id="oOutState"></span><span id="oChord">—</span>
+        <button id="btnPauseAll" title="PAUSE EVERYTHING — the scene freezes, every note in Live is released, the clock stops. PLAY resumes right where you were: bed and held notes re-strike on their own.">⏸ PAUSE</button>
+        <span class="rinfo" title="THE RIG — one row per MIDI channel, straight from rig.json (read-only: change the Live set → tell a Claude session → it updates rig.json and rebuilds).
+Rows light while their channel is SOUNDING. Click a row to expand its recent MIDI events — simultaneous notes show in red.
+♪ = one test note on that channel (use it OUTSIDE Live's Cmd+M mode) — does the right track answer?
+MAP = for Live's Cmd+M mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then MAP — it wiggles ONLY that channel's CC74.
+CC1/CC2 stream the raw hands (enable Remote on the IAC input to map them). CC74 per channel = that layer's energy — the bar on each row is its live value.">ⓘ</span></div>
+      <div id="roleRack"></div>
     </div>
   </div>
 </div>
@@ -887,17 +906,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
   </div>
 </div>
 
-<!-- ================= RIG (role → channel routing) ================= -->
-<div id="rigModal">
-  <div class="box">
-    <h2>THE RIG — ROLE → CHANNEL ROUTING</h2>
-    <p><b>The rig is global and READ-ONLY here:</b> one mapping, identical for every scene and every browser, straight from <b>rig.json</b> in the repo — this is what the software understands, so what you see is always what plays. To change a channel, change the Live set, then say so in a Claude session (it edits rig.json and rebuilds) — there is deliberately no remap control to fat-finger.</p>
-    <p>Each track's MIDI From = IAC, Ch. N as listed. The <b>color swatch</b> sends one test note on that channel — the fastest way to check the right Ableton track answers, top to bottom.</p>
-    <div id="rigRows"></div>
-    <h3>Expression</h3>
-    <p><b>CC1 / CC2</b> = left / right hand, streamed always — enable <b>Remote</b> on the IAC input in Live's MIDI prefs, then Cmd+M-map any knob (filter, macro, send) to a hand. <b>CC74</b> is sent per role channel as that layer's energy — map it to each instrument's filter cutoff for free movement. <b>To make that mapping</b>: in Live press Cmd+M, click the knob you want moving, then press that row's <b>MAP</b> button above — it wiggles only that channel's CC74, Live catches it, Cmd+M again to finish. The <b>color swatch</b> sends one test note (use it outside Cmd+M) to check the right track answers.</p>
-    <p style="margin-top:14px"><button id="btnRigClose">CLOSE</button></p>
-  </div>
-</div>
+<!-- THE RIG modal is gone (Lance: "I don't think we need it") — the console
+     under the stage is the one rig surface; its ⓘ hover carries the how-to. -->
 
 <script>

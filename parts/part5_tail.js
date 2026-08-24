@@ -1396,110 +1396,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
 });
 // RIG panel
 (function () {
-  const rows = document.getElementById('rigRows');
-  const DESC = {
-    lead: 'melodic triggers — plucks, tones, runs', pad: 'sustained voice-led chords',
-    bass: 'low anchors', arp: 'sequenced arps (Night Circuit)', bells: 'bells, chimes, sparkles',
-    texture: 'reserved for texture layers',
-    perc: 'kick 36 · hat 37/42 · snare 38 · clap 39 · toms 43/45 · open 46 · crash 49 · perc 51',
-    sfx: 'one-shot events — 36 ignition · 37 lightning · 38 thunder · 39 rain',
-    bed: 'scene atmospheres — each scene HOLDS note 20+scene# while open (SRC-18 → 38)'
-  };
-  /* The panel is the racking walk's DASHBOARD, and it matures with the rig:
-     rows sit in CHANNEL ORDER (mirroring the Live set's mixer left-to-right),
-     each names the instrument rig.json says is actually on that channel, and
-     an entry still carrying "(proposed)"/TBD renders dimmed as a DRAFT.
-     Solidify a patch → record it in rig.json → rebuild → the row turns real.
-     The role's generic job + its `use` notes live in the row's tooltip. */
-  const docFor = r => ((typeof RIGDOC !== 'undefined' && RIGDOC.roles && RIGDOC.roles[r]) || {});
-  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  function renderRig() {
-    rows.innerHTML = '';
-    // ALL 16 CHANNELS in mixer order (Lance: the panel should mirror the
-    // whole Live set, not just the cast roles) — role rows keep their
-    // controls; unassigned channels render dim with the track name from
-    // rig.json `tracks` and a raw test note on the swatch.
-    const byCh = {};
-    for (const r in MOut.roles) (byCh[MOut.roles[r]] = byCh[MOut.roles[r]] || []).push(r);
-    const order = [];
-    for (let ch = 1; ch <= 16; ch++) {
-      const rs = (byCh[ch] || []).sort();
-      if (rs.length) order.push(...rs); else order.push(ch); // number = spare channel
-    }
-    for (const role of order) {
-      if (typeof role === 'number') {
-        const ch = role;
-        const trk = (typeof RIGDOC !== 'undefined' && RIGDOC.tracks && RIGDOC.tracks[ch]) || '';
-        const row = document.createElement('div');
-        row.className = 'rigrow spare';
-        row.title = 'No role routed here. The swatch sends one raw test note on CH ' + ch + ' — does the track answer?';
-        row.innerHTML = `<div class="swatch" style="background:#4a4a4a"></div>
-          <label>CH ${ch}</label><span>${esc(trk || '(unassigned)')}</span>`;
-        row.querySelector('.swatch').addEventListener('click', () => {
-          AE.ensure(); if (!midi.access) connectMidi();
-          MOut.rawNote(ch);
-        });
-        rows.appendChild(row);
-        continue;
-      }
-      const inst = docFor(role).instrument || '';
-      const draft = !inst || /\(proposed\)|TBD/i.test(inst);
-      // READ-ONLY (Lance: "this is what the software understands — remove
-      // room for error"): the channel comes from rig.json, full stop.
-      // Changing the map = edit rig.json + rebuild, never a browser control.
-      const row = document.createElement('div');
-      row.className = 'rigrow' + (draft ? ' draft' : '');
-      row.title = [DESC[role], docFor(role).use].filter(Boolean).join('\n\n');
-      row.innerHTML = `<div class="swatch" data-role="${role}" style="background:${MOut.ROLE_COLORS[role]}" title="Click: send one test note on this channel — does the right Ableton track answer?"></div>
-        <label>${role}</label>
-        <span class="rchro">CH ${MOut.roles[role]}</span>
-        <span>${esc(inst || DESC[role] || '')}</span>
-        <button class="rping" title="For Live's MIDI mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then press MAP — it wiggles ONLY this channel's CC74 for a second, so the mapping can't be stolen by the hand streams.">MAP</button>
-        <span class="rstate">${draft ? 'DRAFT' : 'LOADED'}</span>`;
-      rows.appendChild(row);
-      // one-click wiring checks, no console required:
-      // swatch = a single test note on this role's channel (use OUTSIDE Live's
-      // Cmd+M mode); MAP = a CC74-only wiggle burst FOR Cmd+M mode — values
-      // alternate low/high so Live detects the sweep, and nothing else sends.
-      row.querySelector('.swatch').addEventListener('click', () => {
-        AE.ensure(); if (!midi.access) connectMidi();
-        if (role === 'perc') MOut.evDrum(36, 0.3);
-        // sfx tests the RAIN slot (note 39) — its Live zones are narrowed to
-        // 39/40, so a middle-C test note would make a CORRECT setup look
-        // broken (it did, for Lance); bed tests a real scene-atmosphere note
-        else if (role === 'sfx') MOut.evNote('sfx', 78.7, 0.25, 0, 2.5);
-        else if (role === 'bed') MOut.bedOn(48), setTimeout(() => MOut.bedOff(), 2500);
-        else MOut.evNote(role, role === 'bass' ? 65.4 : 261.6, 0.2, 0, 1.2);
-      });
-      row.querySelector('.rping').addEventListener('click', e => {
-        AE.ensure(); if (!midi.access) connectMidi();
-        const b = e.target;
-        b.classList.add('learning'); b.textContent = 'CC74…';
-        let n = 0;
-        const iv = setInterval(() => {
-          MOut.expr(role, (n % 2 ? 0.12 : 0.82) + Math.random() * 0.08);
-          if (++n > 11) {
-            clearInterval(iv); b.classList.remove('learning'); b.textContent = 'MAP';
-            // always END OPEN — the wiggle must never leave a filter shut
-            setTimeout(() => MOut.expr(role, 1), 130);
-          }
-        }, 120);
-      });
-    }
-  }
-  renderRig();
-  document.getElementById('btnRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
-  // live activity lights: a role's swatch glows while that lane is playing,
-  // so with a scene open the RIG shows exactly which roles the scene uses
-  setInterval(() => {
-    if (!document.getElementById('rigModal').classList.contains('open')) return;
-    const now = performance.now();
-    rows.querySelectorAll('.swatch').forEach(sw => {
-      const role = sw.dataset.role;
-      const act = MOut.lastByRole[role] && now - MOut.lastByRole[role] < 1500;
-      sw.style.boxShadow = act ? `0 0 10px 3px ${MOut.ROLE_COLORS[role]}` : '';
-    });
-  }, 300);
+  // (THE RIG modal is gone — the console under the stage is the rig surface)
   // focus-bar controls mirror the library header — no need to leave the scene
   const syncFocus = () => {
     const pairs = [['btnSound', 'fSound', ''], ['btnOut', 'fOut', ''], ['btnClock', 'fClock', '']];
@@ -1520,7 +1417,6 @@ document.getElementById('volSlider').addEventListener('input', e => {
   };
   document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
   document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
-  document.getElementById('fRig').addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
   document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
   // NOT relayed: this is the library wall's own ambient drift, local to
   // whichever window you're staring at (control, always) — it has nothing
@@ -1546,8 +1442,6 @@ document.getElementById('volSlider').addEventListener('input', e => {
   });
   setInterval(syncFocus, 1200);
   syncFocus();
-  document.getElementById('btnRigClose').addEventListener('click', () => document.getElementById('rigModal').classList.remove('open'));
-  document.getElementById('rigModal').addEventListener('click', e => { if (e.target.id === 'rigModal') e.target.classList.remove('open'); });
 })();
 
 /* ============================================================
@@ -2020,6 +1914,16 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   if (!rack || typeof MOut === 'undefined') return;
   const DOCS = (typeof RIGDOC !== 'undefined' && RIGDOC.roles) ? RIGDOC.roles : {};
   const TRKS = (typeof RIGDOC !== 'undefined' && RIGDOC.tracks) ? RIGDOC.tracks : {};
+  const DESC = {
+    lead: 'melodic triggers — plucks, tones, runs', pad: 'sustained voice-led chords',
+    bass: 'low anchors', arp: 'sequenced grid lines, gated by beat mode', bells: 'bells, chimes, the toll',
+    texture: 'continuous-voice mirror + strikes',
+    perc: 'kick 36 · hat 42 · snare 38 · open 46 · loop pad F2/53',
+    sfx: 'one-shots + weather holds — 37 lightning · 38 thunder · 39/40 rain loops',
+    bed: 'scene atmospheres — one held note (20+scene#) per scene'
+  };
+  // note names in Ableton's convention (C3 = 60), for the readouts
+  const NN = n => ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][n % 12] + (Math.floor(n / 12) - 2);
   const roleAt = {};
   for (const r in MOut.roles) roleAt[MOut.roles[r]] = r;
   const rows = [];
@@ -2028,39 +1932,131 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     const name = TRKS[ch] || (role ? role.toUpperCase() : '');
     if (!role && !TRKS[ch]) continue;
     const doc = role ? (DOCS[role] || {}) : {};
+    const draft = role && (!doc.instrument || /\(proposed\)|TBD/i.test(doc.instrument));
     const div = document.createElement('div');
-    div.className = 'rkrow' + (role ? '' : ' spare');
-    div.title = role
-      ? ((doc.instrument ? doc.instrument + ' — ' : '') + (doc.use || ''))
-      : 'No role routed here — nothing in the show triggers this track.';
+    div.className = 'rkrow' + (role ? '' : ' spare') + (draft ? ' draft' : '');
+    div.title = (role
+      ? ((doc.instrument ? doc.instrument + '\n\n' : '') + [DESC[role], doc.use].filter(Boolean).join('\n\n'))
+      : 'No role routed here — nothing in the show triggers this track.') +
+      '\n\nClick to expand recent MIDI on this channel.';
     div.innerHTML = `<span class="rkch">${ch}</span>
       <i style="background:${role ? MOut.ROLE_COLORS[role] : '#3a3a3a'}"></i>
-      <span class="rki">${esc(name)}</span>${role ? `<b>${role}</b>` : ''}`;
+      <span class="rki">${esc(name)}</span>${role ? `<b>${role}</b>` : '<b></b>'}
+      <span class="rkevt">—</span>
+      ${role ? '<span class="rkcc"><u></u></span>' : '<span class="rkcc" style="visibility:hidden"><u></u></span>'}
+      <button class="rkt" title="One test note on CH ${ch} (use OUTSIDE Cmd+M) — does the right track answer?">♪</button>
+      ${role ? '<button class="rkm" title="For Cmd+M: click the knob in Live, then this — wiggles ONLY this channel\'s CC74.">MAP</button>' : ''}`;
     rack.appendChild(div);
-    rows.push({ ch, role, div });
+    // the expansion: this channel's recent MIDI, for debugging stacked notes
+    const evts = document.createElement('div');
+    evts.className = 'rkevts'; evts.hidden = true;
+    rack.appendChild(evts);
+    rows.push({ ch, role, div, evts });
+    div.querySelector('.rkt').addEventListener('click', e => {
+      e.stopPropagation();
+      AE.ensure(); if (!midi.access) connectMidi();
+      if (!role) MOut.rawNote(ch);
+      else if (role === 'perc') MOut.evDrum(36, 0.3);
+      // sfx tests the RAIN slot (39) — its Live zones are narrowed to 39/40,
+      // so a middle-C test would make a CORRECT setup look broken (it did)
+      else if (role === 'sfx') MOut.evNote('sfx', 78.7, 0.25, 0, 2.5);
+      else if (role === 'bed') { MOut.bedOn(48); setTimeout(() => MOut.bedOff(), 2500); }
+      else MOut.evNote(role, role === 'bass' ? 65.4 : 261.6, 0.2, 0, 1.2);
+    });
+    const bm = div.querySelector('.rkm');
+    if (bm) bm.addEventListener('click', e => {
+      e.stopPropagation();
+      AE.ensure(); if (!midi.access) connectMidi();
+      const b = e.target;
+      b.classList.add('learning'); b.textContent = 'CC74…';
+      let n = 0;
+      const iv = setInterval(() => {
+        MOut.expr(role, (n % 2 ? 0.12 : 0.82) + Math.random() * 0.08);
+        if (++n > 11) {
+          clearInterval(iv); b.classList.remove('learning'); b.textContent = 'MAP';
+          // always END OPEN — the wiggle must never leave a filter shut
+          setTimeout(() => MOut.expr(role, 1), 130);
+        }
+      }, 120);
+    });
+    div.addEventListener('click', () => { evts.hidden = !evts.hidden; });
   }
-  rack.addEventListener('click', () => document.getElementById('rigModal').classList.add('open'));
+
+  // ---- PAUSE EVERYTHING (Lance): one button, whole performance ----------
+  // Pause: scene freezes (frame loop gate), audio timeline suspends, every
+  // Live note is released, clock stops, nothing sends. Play: timeline
+  // resumes, the bed re-strikes, and scenes' hold re-strike machinery
+  // (onModeMidi — the same path that survives the web→MIDI switch) re-arms.
+  let pausedBed;
+  const bp = document.getElementById('btnPauseAll');
+  if (bp) bp.addEventListener('click', () => {
+    if (!window.SHOWPAUSE) {
+      pausedBed = MOut._bed;
+      MOut.allOff();
+      MOut.suspend = true;
+      try { if (AE.ctx) AE.ctx.suspend(); } catch (e) {}
+      window.SHOWPAUSE = true;
+      bp.textContent = '▶ PLAY'; bp.classList.add('paused');
+      document.getElementById('rackBox').classList.add('paused');
+    } else {
+      MOut.suspend = false;
+      try { if (AE.ctx) AE.ctx.resume(); } catch (e) {}
+      window.SHOWPAUSE = false;
+      if (pausedBed !== undefined && pausedBed !== null) MOut.bedOn(pausedBed);
+      // scenes re-register onModeMidi on their first resumed tick; poking it
+      // shortly after resets their hold flags so weather/loop holds re-strike
+      setTimeout(() => { try { if (MOut.onModeMidi) MOut.onModeMidi(); } catch (e) {} }, 400);
+      bp.textContent = '⏸ PAUSE'; bp.classList.remove('paused');
+      document.getElementById('rackBox').classList.remove('paused');
+    }
+  });
+
+  // ---- the live refresh: lights, last event, CC74 bars, open tables -----
   setInterval(() => {
     if (!overlay.classList.contains('open')) return;
     const now = performance.now();
-    // per-CHANNEL activity straight from the outbound log: a scheduled note
-    // lights its row when it SOUNDS (p reached), and a HOLD (weather loops,
-    // the beat-loop pad, the bed) keeps its row lit for its whole duration —
-    // "what is playing right now", not "what was struck lately"
-    const hot = {};
+    // one pass over the outbound log: per channel, is it SOUNDING (holds
+    // count for their whole duration) and what was its latest event
+    const hot = {}, lastE = {};
     const L = MOut.log;
     for (let i = L.length - 1; i >= 0; i--) {
       const e = L[i];
       const age = now - e.p;
       if (age > -50 && age < Math.max(1200, e.durMs || 0)) hot[e.ch] = true;
+      if (!lastE[e.ch] && age > -50) lastE[e.ch] = e;
     }
     for (const r of rows) {
       const on = !!hot[r.ch];
       r.div.classList.toggle('on', on);
       r.div.querySelector('i').style.boxShadow =
         on ? `0 0 6px 1px ${r.role ? MOut.ROLE_COLORS[r.role] : '#999'}` : '';
+      const le = lastE[r.ch];
+      const evEl = r.div.querySelector('.rkevt');
+      if (le) {
+        const hold = le.durMs > 100000 && now - le.p < le.durMs;
+        const txt = NN(le.note) + '·' + le.vel + (hold ? ' HOLD' : '');
+        if (evEl.textContent !== txt) evEl.textContent = txt;
+      }
+      if (r.role) {
+        const st = MOut._exprState[r.role];
+        r.div.querySelector('.rkcc u').style.width = st && st.v >= 0 ? Math.round(st.v / 1.27) + '%' : '0%';
+      }
+      if (!r.evts.hidden) {
+        // the expanded view: last 10 events, newest first; events landing
+        // within 30ms of each other on this channel show red — that's the
+        // "two notes at once sounding like shit" debugging view
+        const es = [];
+        for (let i = L.length - 1; i >= 0 && es.length < 10; i--) if (L[i].ch === r.ch) es.push(L[i]);
+        const html = es.length ? '<table>' + es.map((e, i) => {
+          const sim = (i > 0 && Math.abs(es[i - 1].p - e.p) < 30) || (i < es.length - 1 && Math.abs(es[i + 1].p - e.p) < 30);
+          const ago = Math.max(0, (now - e.p) / 1000);
+          const dur = e.durMs > 100000 ? 'hold' : (e.durMs / 1000).toFixed(2) + 's';
+          return `<tr${sim ? ' class="sim"' : ''}><td>-${ago < 10 ? ago.toFixed(1) : Math.round(ago)}s</td><td>${NN(e.note)}</td><td>v${e.vel}</td><td>${dur}</td><td>${e.role}</td></tr>`;
+        }).join('') + '</table>' : '<span class="rkeNone">no MIDI on this channel yet</span>';
+        if (r.evts.innerHTML !== html) r.evts.innerHTML = html;
+      }
     }
-  }, 200);
+  }, 250);
 })();
 
 QUEUE.boot();
@@ -2137,6 +2133,9 @@ function frame(ts) {
   const t = ts / 1000;
   const dt = Math.min(0.05, last ? t - last : 0.016);
   last = t;
+  // PAUSE EVERYTHING (Lance): the whole performance freezes — no input, no
+  // stepping, no audio ticks — while the console's PLAY brings it all back.
+  if (window.SHOWPAUSE) { requestAnimationFrame(frame); return; }
   applyKeys(dt);
   updateChannels(t, dt);
   // NEAR = MORE lives HERE and only here: channels are hand space (0 = at
@@ -2147,10 +2146,7 @@ function frame(ts) {
   if (overlay.classList.contains('open')) {
     drawWidget(document.getElementById('widgetFocus'), t);
     refreshSliders();
-    if (typeof MOut !== 'undefined') {
-      MOut.tickCC(inp);
-      MOut.drawMonitor(document.getElementById('midiMon'));
-    }
+    if (typeof MOut !== 'undefined') MOut.tickCC(inp);
   }
   if (focus.P) {
     const P = focus.P;
