@@ -22,30 +22,48 @@ resources. That reducibility mechanism is its own ticket (Show window's
 picture is not up for negotiation; the control window's is) — see
 [Control-window mirror fidelity/rate governor](https://github.com/lwcassid/source-scenes/issues/35).
 
-**Audio/MIDI stay exclusively the show window's**, enforced by two gates,
-not three: `AE.ensure()` (`part2_core.js`) short-circuits when
-`ELECTRON_ROLE === 'control'`, and `connectMidi()` (same file) does too.
-Gating `connectMidi()` alone is sufficient for MIDI: `MOut`'s real
-`this.port.send(...)` calls are already only reachable once `midi.access`
-exists, and `midi.access` is only ever set inside `connectMidi()` — so
-blocking that one call blocks hand-sensor MIDI-in *and* MOut's MIDI-out
-together, with zero changes to `part2c_midiout.js` or any scene file.
+**Real MIDI-in/out and audible output stay exclusively the show window's.**
+`AE.ensure()` (`part2_core.js`) no longer short-circuits for
+`ELECTRON_ROLE === 'control'` — it builds the SAME graph there (so
+`T`/`H`, the MIDI monitor and the RIG rack all tick correctly in the
+mirror) but routes it through a zero-gain node before `destination`, so
+nothing is ever audible. `connectMidi()` still gates the one thing that
+actually matters: it never opens a real `MIDIAccess` in the control
+window. What changed is it no longer just no-ops there either — every
+existing caller (CONNECT, TEST, LEARN's auto-connect, mode-switch) works
+from the control window now, because `connectMidi()` relays a connect
+REQUEST to the show window instead of doing nothing. `midi.access` is
+still only ever assigned inside the show window's branch, so `MOut`'s real
+`this.port.send(...)` and hand-sensor MIDI-in stay exactly where they
+were — only the picking UI moved, not the signal path (ADR-0006).
 
 Renderers never talk to each other directly (Electron doesn't allow it) —
 every message relays through `main.js`: `preload.js` exposes
 `window.electronAPI` via `contextBridge`, which calls `ipcRenderer`; `main.js`
-forwards to the other window's `webContents`. The full channel set decided
-here: `queue:update`, `show:play`, `show:openScene`, `show:closeScene`,
-`hand:drive` (control→show, for mouse-driven virtual theremin input),
-`display:pick` (control→main only — main directly manages the show window's
-screen placement via Electron's native `screen` API, no need to also forward
-to the show renderer), and `telemetry:tick` + `midi:monitor` (show→control,
-throttled to avoid IPC spam — exact rate not yet pinned down). Also decided:
-the show window is **always** picture-only in Electron mode — the existing
-PANELS toggle (bring chrome back over the picture) doesn't apply to it at
-all; that concept only ever existed to keep the *show* clean, and the
-control window was never the show, so it doesn't need a "hide my chrome"
-mode either.
+forwards to the other window's `webContents`. The channel set:
+
+| channel(s) | direction | purpose |
+|---|---|---|
+| `show:openScene` | control→show | tile/PLAY click opens the same scene in show |
+| `control:syncScene` | show→control | show echoes its open scene back (e.g. after auto-advance) so control's mirror stays honest |
+| `show:closeScene` | control→show | control's CLOSE drops show back to the library wall |
+| `hand:drive` | control→show | mouse-driven virtual theremin input |
+| `hand:mirror` | show→control | show's real calibrated hand values, so control's rail/sidebar reflect what's actually driving the scene |
+| `show:control` | control→show | one generic channel for global toggles — `{kind: sound\|outMode\|clock\|outPort\|ghosts\|reseed\|vol, value}` |
+| `rig:status` | show→control | MOut mode/port/clock/bpm mirrored so THE RIG rack lights up in control |
+| `display:list` / `display:pick` | control↔main | ADR-0004's native-screen picker; `display:pick` now carries `{id, label}` — `id: null` deliberately means "fullscreen the show window where it already is," so PLAY is never a silent no-op on one display |
+| `display:changed` | main→control | re-lists displays on hot-plug (add/remove/metrics-changed), not just at boot |
+| `midi:devices` / `midi:connect` / `midi:test` | show↔control (via main) | ADR-0006's device-list relay and the CONNECT/TEST relay |
+| `midi:learnStart` / `midi:learnResult` / `midi:setInput` | control↔show | LEARN sweep and specific-input-device relay — wired since ADR-0006 was written; see its Consequences |
+| `audio:status` / `audio:wake` | show↔control | SOUND row mirror + wake request |
+| `queue:update` | control→show | the performance queue (`{list, cfg}`) on every edit — one way, control authoritative. Cached in main and replayed on the show window's `did-finish-load` so a slow boot or a reload can't miss it |
+| `show:play` | control→show | decided, still not built — forcing FLAT view / PROJ frame / panels-off remotely when PLAY fires |
+
+Also decided: the show window is **always** picture-only in Electron
+mode — the existing PANELS toggle (bring chrome back over the picture)
+doesn't apply to it at all; that concept only ever existed to keep the
+*show* clean, and the control window was never the show, so it doesn't
+need a "hide my chrome" mode either.
 
 ## Verified, not just decided
 
@@ -54,22 +72,48 @@ each via the Chrome DevTools Protocol:
 - Each window reports its own correct role (`window.ELECTRON_ROLE` and
   `window.electronAPI.role`) — `"show"` and `"control"` respectively.
 - Triggering `AE.ensure()` + `connectMidi()` in each: the show window ends
-  up with a real `AudioContext` and a real `MIDIAccess` object; the control
-  window's `AE.ctx` stays `null` and `midi.access` stays `null` — the gate
-  works.
-- The one wired channel (`show:openScene`) round-trips for real: calling
+  up with a real `AudioContext` and a real `MIDIAccess`; the control
+  window ends up with its own real (muted-output) `AudioContext` too, and
+  `midi.access` stays `null` there — confirming the gate is on MIDI-in/out
+  ownership specifically, not on having any graph to tick against.
+- `show:openScene` round-trips for real: calling
   `window.electronAPI.openScene(id)` in the control window's renderer
   reaches a listener registered in the show window's renderer, via the main
-  process relay, with the exact value sent.
+  process relay, with the exact value sent. (At the time of this pass it
+  was the only wired channel; the rest of the table has since followed the
+  same relay pattern — see Consequences for what's still open.)
 
 ## Consequences
 
-- Only `show:openScene` is wired end-to-end (`ipcMain.on`/`webContents.send`
-  in `main.js`, `contextBridge` methods in `preload.js`). The rest of the
-  channel list above is a decided contract, not yet built — real remaining
-  implementation, tracked informally rather than as a new ticket, since the
-  decision is complete.
-- The control window renders every open scene live, same as the show
-  window, until the fidelity/rate governor (issue #35) lands. Until then,
-  running both windows with a scene open costs roughly 2x the rendering
-  load of today's single-tab app.
+- Every channel in the table above is wired end-to-end. `show:play` was
+  dropped rather than built: it existed to CORRECT the show window after
+  something moved it off FLAT / PROJ / panels-off, and the better answer is
+  that nothing can. The show window is a focusable OS window raised to the
+  front by `setFullScreen()`, so V / P / Escape / arrows / edge clicks were
+  all landing on the projector output; they are now gated off there, the
+  way PANELS already was. Prevention beats correction on a live wall.
+  The resulting law: **the show window accepts hands and nothing else.**
+  Everything with two possible drivers (R reseed, acts) has exactly one —
+  control acts locally and relays the same seed/index, so the mirror and
+  the wall cannot diverge.
+- `queue:update` is one way on purpose. The show window is picture-only,
+  so no human can ever edit a queue there — control is authoritative and
+  there is nothing to merge. The show window treats QUEUE as DATA, never
+  UI: it swaps `list`/`cfg` and deliberately does NOT call `QUEUE.refresh()`
+  (which would re-render the drawer, repaint 43 tile badges and re-run
+  `applyLibrary()` on the machine driving the projectors, to decorate a
+  wall nobody can see). It also never `save()`s what it receives — writing
+  back would make it a second author of a queue it cannot edit.
+- Changing MIN on the scene that is ON STAGE re-times rather than restarts:
+  `SHOW.retimeRotation()` keeps the time already served, and advances
+  immediately if the new MIN is already used up. Restarting the clock would
+  mean nudging MIN on the live scene silently granted it a whole fresh
+  stay — hold the up-arrow and a scene never ends.
+- The fidelity/rate governor (issue #35) landed as ADR-0005: the control
+  window's mirror defaults to throttled step/draw/composite. That
+  mitigates, not eliminates, the 2x-rendering-load risk this ADR flagged —
+  the control window also runs a full (muted) audio graph per the gate
+  change above, unconditionally, regardless of the mirror throttle.
+- Calibration (SET REST / INVERT) and forcing the show window's view/
+  frame/panels state remotely on PLAY remain show-window-only — see
+  CLAUDE.md's electron/ section for the current list.

@@ -40,25 +40,28 @@ the control window's `midiRelay` received `{connected: true, inputs:
 [{name: "e-ther"}], outputs: [{name: "e-ther"}]}` via the real IPC round
 trip. Confirmed `refreshMidiUI()`/`MOut.refreshUI()` render correctly from
 it in the control window: status badge reads "MIDI: ON," the input picker
-lists the real device, the output picker lists it too — while LEARN buttons
-and the calibration box stay hidden there (honest: not wired this session,
-would be non-functional if shown). Simulated picking the output device from
-the control window's dropdown and confirmed `srcOutPort` landed in
-`localStorage` and was immediately visible from the show window too.
+lists the real device, the output picker lists it too. Simulated picking
+the output device from the control window's dropdown and confirmed
+`srcOutPort` landed in `localStorage` and was immediately visible from the
+show window too. (LEARN buttons and the calibration box were hidden at
+the time this was verified — see Consequences for what a later pass wired.)
 
 ## Consequences
 
-- LEARN (CC mapping) and calibration (hand-range sweep) still can't be
-  performed from the control window — both need live raw-value feedback
-  during an active sweep, which needs its own narrow, temporary relay
-  (extending the `telemetry:tick` concept from ADR-0003), not yet built.
-  The control window's SHOW CHECK correctly hides those controls rather
-  than showing broken ones.
-- Picking a specific input device (not "all") from the control window's
-  `midiInSel` isn't relayed to the show window yet — that preference was
-  never persisted even in today's single-tab app (`midi.inputId` is
-  in-memory only), so this doesn't regress anything, but it's also not a
-  complete feature.
+- LEARN now runs from the control window too, on the same shape as
+  CONNECT/TEST: clicking MAP L/R sends `midi:learnStart`, the show window
+  runs the exact sweep it always did and reports the result back over
+  `midi:learnResult`, so both windows show the same MOVE L…/LEARN L toggle
+  text. Picking a specific input device (not "all") relays the same way,
+  over `midi:setInput` — `midi.inputId` is still in-memory only in the
+  show window, so neither window persists that choice across a restart,
+  matching pre-existing single-tab behavior.
+- Calibration (hand-range sweep: SET REST / INVERT) is the one thing still
+  show-window-only — it needs live raw-value feedback during an active
+  sweep, which needs its own narrow, temporary relay (extending the
+  `telemetry:tick` concept from ADR-0003), not yet built. The control
+  window's SHOW CHECK correctly hides that box rather than showing broken
+  controls.
 - Auto-reconnect resilience for MIDI/display after a mid-show interruption
   is explicitly out of this ticket's scope — graduated into [Auto-reconnect
   MIDI and display after an interruption during a live show](https://github.com/lwcassid/source-scenes/issues/37).

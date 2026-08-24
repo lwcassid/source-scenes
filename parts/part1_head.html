@@ -281,8 +281,14 @@
   #overlay.zen.perf #panelTab:hover{opacity:1}
   /* MIRROR pill (ADR-0005) — Electron control window only; JS flips it to
      display:inline-block when window.ELECTRON_ROLE === 'control', so it
-     never appears in the plain browser/Netlify path or the show window */
-  #mirrorTab{display:none;position:absolute;left:150px;bottom:12px;z-index:14;padding:5px 11px;border-radius:8px;
+     never appears in the plain browser/Netlify path or the show window.
+     Sits at left:76px, #panelTab's normal slot (ticket #19): #panelTab
+     itself is display:none in the control window (it only ever shows under
+     #overlay.fs, which control never reaches — see the #dbg rule above), so
+     left:150px used to leave MIRROR floating with an unexplained gap next
+     to #dbg at left:12px. Taking #panelTab's spot lines the two pills up
+     with no hole between them. */
+  #mirrorTab{display:none;position:absolute;left:76px;bottom:12px;z-index:14;padding:5px 11px;border-radius:8px;
     font-size:10px;letter-spacing:.14em;font-family:var(--mono);background:rgba(10,10,14,.6);
     border:1px solid rgba(255,255,255,.18);color:#cfd6e4;opacity:.35;cursor:pointer;transition:opacity .4s}
   #mirrorTab:hover{opacity:1}
@@ -477,6 +483,22 @@
      JS, on purpose: no click handler disable can be forgotten later and
      leave a tab showing on the actual projector output. */
   html.electron-show #dbgTab,html.electron-show #panelTab{display:none!important}
+  /* Control window's own truth window (ticket #9): #dbg's normal trigger is
+     #overlay.fs, which the control window never gets — native BrowserWindow
+     fullscreen (main.js) never sets document.fullscreenElement, so .fs isn't
+     available as a hook here. .electron-control + #overlay.open stands in
+     for it, so DBG still shows once a scene is open in the control window. */
+  html.electron-control #overlay.open #dbg{display:block}
+  /* SHOWTIME's manual next/prev. Normally the left/right 13% of a fullscreen
+     picture; under Electron that picture IS the projector output, and
+     clicking the show window is exactly how it takes keyboard focus — so
+     the gesture that focuses it could also skip a scene. Move the control
+     to the operator: off in the show window, on in the control window
+     (which never gets .fs, so it had no manual walk at all before this).
+     CSS first, per the rule above the DBG/PANELS block — a hidden target
+     cannot be clicked even if a handler is forgotten later. */
+  html.electron-show .edgeNav{display:none!important}
+  html.electron-control #overlay.open .edgeNav{display:flex}
 </style>
 <script>
 // one flag the scenes can ask: coarse pointer or narrow screen = phone rules
@@ -487,6 +509,11 @@ window.IS_MOBILE = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
 // behavior. See docs/adr/0003-electron-instance-model-and-ipc-contract.md
 window.ELECTRON_ROLE = new URLSearchParams(location.search).get('role') || null;
 if (window.ELECTRON_ROLE === 'show') document.documentElement.classList.add('electron-show');
+// control window gets its own class (ticket #9/#19): #dbg's real trigger is
+// #overlay.fs, but a native BrowserWindow fullscreen (main.js) never sets
+// document.fullscreenElement, so .fs can't ever land here — this class is
+// the hook the CSS below keys off instead so DBG still has a home.
+if (window.ELECTRON_ROLE === 'control') document.documentElement.classList.add('electron-control');
 // a #scene= deep link lands ON the scene: keep the wall invisible from the
 // very first paint instead of flashing the library before the stage opens
 if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deeplink');

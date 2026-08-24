@@ -456,6 +456,14 @@ window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
   if (typeof focus === 'undefined' || focus.idx < 0) return;
+  // Electron show window: THIS WINDOW IS THE PROJECTORS. GHOST is a
+  // two-projector misregistration preview and SCRIM is the 3D room — both
+  // are design tools, and CLAUDE.md is explicit that neither must ever be
+  // what the wall gets. Being on a second screen is not protection: the
+  // show window is a real focusable OS window that setFullScreen() raises
+  // to the front on PLAY, so a stray V on the laptop keyboard landed HERE
+  // rather than on the control window. Rehearse views in control.
+  if (window.ELECTRON_ROLE === 'show') return;
   const k = e.key.toLowerCase();
   if (k === 'v' && typeof setView === 'function') {
     const order = VIEW.MODES;

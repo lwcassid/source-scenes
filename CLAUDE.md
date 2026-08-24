@@ -140,30 +140,56 @@ onto whichever display SHOW CHECK picks) and **control** (the entire
 existing UI, unchanged — library wall, queue, SHOW CHECK, DBG). Both load
 the same `index.html`, told apart by `?role=show`/`?role=control`
 (`window.ELECTRON_ROLE` in `part1_head.html` — `null`, so a no-op, in the
-plain browser). Clicking PLAY or a tile in the control window mirrors the
-scene there too (silently, no audio/MIDI — `AE.ensure()`/`connectMidi()`
-both no-op for the control role) **and** tells the show window to open the
-same scene and place itself on the picked display, for real — this round
-trip is wired and verified end to end, not just designed.
+plain browser). The control window builds a real but silent `AudioContext`
+(full graph, routed through a zero-gain node instead of `destination`) —
+`AE.ensure()` no longer no-ops there, which is what makes the mirror's
+transport, chord readout, MIDI monitor and RIG rack tick correctly; only
+the last hop to audible output is muted. `connectMidi()` no longer no-ops
+either: every caller (CONNECT, TEST, LEARN, mode-switch) still works from
+the control window, because it now relays a connect REQUEST to the show
+window — the sole real owner of `MIDIAccess` — instead of doing nothing.
+Clicking PLAY or a tile in the control window mirrors the scene there too
+(same silent audio, relayed MIDI, no port of its own) **and** tells the
+show window to open the same scene and place itself on the picked display,
+for real — this round trip is wired and verified end to end, not just
+designed.
 
-**What doesn't work yet**: LEARN (hand-sensor CC mapping) and calibration
-(hand-range sweep) can't be run from the control window — the picker
-dropdowns for existing devices work (relayed from the show window's real
-`MIDIAccess`), but starting a fresh LEARN sweep needs live raw-value
-feedback that isn't wired. If you need to (re)learn a controller's mapping
-or run a calibration sweep, do it directly in the show window for now — its
-own SHOW CHECK panel is unaffected by any of this and works exactly as the
-single-tab app always has. Also not yet wired: forcing the show window into
-FLAT view / PROJ frame / panels-off remotely when PLAY fires (it already
-boots into that state by default, so this only matters if something
-switched the show window's own view away from it first).
+**What doesn't work yet**: LEARN (hand-sensor CC mapping) and MIDI-input
+device picking now DO run from the control window — relayed to the show
+window over `midi:learnStart` / `midi:learnResult` / `midi:setInput`, same
+shape as the CONNECT/TEST relay. Calibration (SET REST / INVERT) is the
+one MIDI thing still show-window-only — it needs a live raw-value stream
+during an active sweep that isn't relayed; do it directly in the show
+window, whose own SHOW CHECK panel is unaffected. Queue edits DO reach the
+show window now (`queue:update`, pushed from `QUEUE.save()` — the choke
+point every mutation already funnels through): reorder the set, drop a
+scene or change a MIN/OUT and SHOWTIME follows live. Changing MIN on the
+scene currently on stage re-times it keeping the minutes already served,
+and cuts to the next scene at once if the new MIN is already spent.
+
+**The show window accepts HANDS, nothing else.** It is a real, focusable OS
+window that `setFullScreen()` raises to the front on PLAY, so keystrokes
+aimed at the laptop land on the PROJECTORS. `V` (ghost / scrim views), `P`
+(un-pin the show frame), `←`/`→` and `Escape` (both scene changes — Escape
+has TWO handlers, and `part5_tail.js`'s guards on `!document.fullscreenElement`,
+which native fullscreen never sets) and the edge-nav click strips are all
+gated off there; `H`/PANELS already was. `W`/`S`/`↑`/`↓` still play, because
+that is what the window is for. Manual next/prev moved to the control
+window, which now shows the edge strips it could never display before (it
+never gets `.fs`). `R` reseed and acts (keys `1`-`4`, the top-bar chips)
+have ONE driver: control applies them locally and relays the same seed /
+act index on, so the mirror and the wall never diverge. Still not wired:
+THE RIG rack's channel remap is control-window-local only.
 
 **MIRROR pill** (control window only, next to PANELS/DBG): toggles the
 control window's own scene mirror between FULL (matches the show window's
-frame rate) and THROTTLED (~20fps, the default) — protects the show
-window's real performance from the mirror's GPU cost. Resolution/downscale
-throttling and automatic FPS-driven throttling are both deliberately
-deferred until real M1 numbers exist to justify either.
+frame rate) and THROTTLED (~20fps, the default) — on a throttled tick,
+`P.def.step()`/`draw()` AND the composite pass after them (drawImage /
+ghost pass / bloom / scrim render) are all skipped together, not just
+step/draw, protecting the show window's real performance from the mirror's
+GPU (and, since the audio graph above runs unconditionally, CPU) cost.
+Resolution/downscale throttling and automatic FPS-driven throttling are
+both deliberately deferred until real M1 numbers exist to justify either.
 
 ### The frame: 1920×1200, 16:10 — the DEFAULT everywhere
 The show is one WUXGA render fullscreen, cloned to both projectors (Panasonic

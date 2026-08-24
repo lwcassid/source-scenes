@@ -197,6 +197,13 @@ const MOut = {
      Sync is off, so leaving this enabled costs nothing. ---------- */
   clock: { on: true, PPQ: 24, LOOKAHEAD: 0.12, n: 0, t0: -1, beat: 0, running: false },
   clockSet(on) {
+    // Relay first: under Electron the control window's own MOut is inert
+    // (no real port/AudioContext transport), so toggling CLOCK there used
+    // to change nothing anyone could hear. Tell the show window, which has
+    // the real clock, and let it run this same setter locally afterward —
+    // ELECTRON_ROLE is 'show' there so this guard is false and there's no
+    // echo back across the wire.
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('clock', !!on);
     this.clock.on = !!on;
     try { localStorage.setItem('srcMidiClock', this.clock.on ? '1' : '0'); } catch (e) {}
     if (!this.clock.on) this.clockStop();
@@ -253,6 +260,23 @@ const MOut = {
     });
     if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
   },
+  // Show-window side of the control window's MIDI OUT picker (ticket #7).
+  // MIDIAccess ids are scoped per-window/per-connection, so the control
+  // window (relaying midiRelay's device list) can only ever name a port,
+  // never hand back an id the show window's own MIDIAccess would recognize.
+  // Matching by NAME is therefore the only thing that works across the IPC
+  // boundary. This is now the one place that persists the choice (srcOutPort)
+  // so a fresh launch of either window agrees on the same port next time.
+  selectPortByName(name) {
+    if (!midi.access) return false;
+    const outs = [...midi.access.outputs.values()];
+    const p = outs.find(o => o.name === name);
+    if (!p) return false;
+    this.port = p;
+    try { localStorage.setItem('srcOutPort', name); } catch (e) {}
+    this.refreshUI();
+    return true;
+  },
   allOff() {
     this.clockStop();
     if (this._voices) { this._voices.forEach(h => this.holdOff(h)); this._voices.clear(); }
@@ -275,6 +299,11 @@ const MOut = {
   // around it and fall back to it, so a show never strands the global toggle
   baseMode: 'web',
   setMode(m) {
+    // Same relay as clockSet above: this is the fix that reaches every call
+    // site at once (OUT pill, fOut on the focus rail, SHOW CHECK's SEND
+    // MIDI fix) since they all funnel through setMode rather than each
+    // needing its own IPC call.
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('outMode', m);
     this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
     if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
@@ -282,6 +311,14 @@ const MOut = {
     this.refreshUI();
   },
   // transient routing (a queued scene's OUT override) — same plumbing, no save
+  // DELIBERATELY NOT RELAYED: this fires on every scene's own
+  // openFocus, in BOTH windows independently, each applying its OWN scene's
+  // override to its OWN local mode. Relaying it from the control window
+  // would make the show window apply the override twice — once from its
+  // own openFocus, once from the relay — and fight itself if the two
+  // windows aren't showing the same scene at the exact same instant. Leave
+  // this one alone; only setMode/clockSet (the operator's explicit toggles)
+  // get relayed.
   applyMode(m) {
     if (!m) m = this.baseMode;
     if (m === this.mode) return;
@@ -305,8 +342,10 @@ const MOut = {
     if (sel) {
       // control window (ticket #36): the show window owns the real port —
       // this only lets the operator SEE the list and pick, same split as
-      // ticket #31's display picker. Applying the pick is the show
-      // window's own refreshUI() below, reading the shared srcOutPort key.
+      // ticket #31's display picker. Applying the pick is relayed over
+      // show:control 'outPort' (the port NAME, since MIDIAccess ids are
+      // per-window) and bound on the show side by selectPortByName(),
+      // which also persists srcOutPort so both windows agree next launch.
       if (window.ELECTRON_ROLE === 'control') {
         if (this.mode !== 'web' && midiRelay.connected) {
           sel.style.display = '';

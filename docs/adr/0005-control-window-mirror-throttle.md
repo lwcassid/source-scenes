@@ -10,12 +10,17 @@ being met.
 
 The throttle lives entirely in the shared `frame()` loop (`part5_tail.js`):
 when `window.ELECTRON_ROLE === 'control'` and a scene is focused, a
-`dt`-accumulator gates how often `P.def.step()`/`P.def.draw()` run — a
-fixed-ms target interval, not an `fc % N` frame-count stride, because
-nothing in the codebase asserts the control window's actual display refresh
-rate (only the two identical show projectors' Hz is known; the operator's
-laptop panel is unasserted). No scene-side code changes, no canvas/resolution
-changes — the show window's picture is untouched either way.
+`dt`-accumulator gates how often a tick runs — a fixed-ms target interval,
+not an `fc % N` frame-count stride, because nothing in the codebase
+asserts the control window's actual display refresh rate (only the two
+identical show projectors' Hz is known; the operator's laptop panel is
+unasserted). A throttled tick covers `P.def.step()`/`P.def.draw()` AND the
+composite pass right after them (drawImage / ghost pass / bloom / scrim
+render) — an earlier pass gated only step/draw and left composite running
+on every real frame regardless, which defeated most of the point on
+bloom-heavy scenes; the canvas now just holds its last composited frame
+between ticks. No scene-side code changes, no canvas/resolution changes —
+the show window's picture is untouched either way.
 
 It's a manual Full/Throttled toggle, not automatic/adaptive. Adaptive
 throttling off live show-window FPS was considered and rejected for now:
@@ -73,6 +78,13 @@ has none — only PANELS does). Entirely gated behind `ELECTRON_ROLE ===
 - The show window's rendering path and picture are completely untouched by
   this ADR — the gate only ever fires inside a document whose
   `ELECTRON_ROLE` is `'control'`.
+- This throttle doesn't touch audio. `AE.ensure()` now builds a full
+  (muted) graph in the control window regardless of mirror rate (ADR-0003),
+  so a focused scene's `audio()` — its oscillators, filters, the MOut note
+  pump — runs its real DSP cost in the control window whether the mirror
+  is Full or Throttled. That cost is a separate, unconditional line item
+  this ADR doesn't manage; #33's real M1 numbers should say whether it
+  needs its own mitigation.
 - The plain browser/Netlify path is unaffected: `ELECTRON_ROLE` is `null`
   there, so the pill never renders and `frame()`'s existing behavior is
   unchanged — same code path as today.
