@@ -58,6 +58,7 @@ forwards to the other window's `webContents`. The channel set:
 | `audio:status` / `audio:wake` | show↔control | SOUND row mirror + wake request |
 | `queue:update` | control→show | the performance queue (`{list, cfg}`) on every edit — one way, control authoritative. Cached in main and replayed on the show window's `did-finish-load` so a slow boot or a reload can't miss it |
 | `telemetry:tick` | show→control | 4Hz: `{sceneId, act, rotAt, rotMs, chordHud, beatPhase, fps, lastByRole, log}` — the countdown's deadline, and the MIDI activity the monitor/rack light from now that only the show window runs scenes (ADR-0007). `rotAt` is absolute so control interpolates smoothly; `log` timestamps are epoch-converted because `performance.now()`'s origin is per-document |
+| `nav:learn` / `nav:state` | control↔show | SHOW CONTROL's LEARN round trip (ADR-0008) — the second MIDI device, for prev/next and queue slots 1-16. Same shape as the hands' `midi:learnStart`/`midi:learnResult`: control owns the buttons, show owns the listening |
 | `preview:status` / `preview:openSettings` | control↔main | macOS Screen Recording state for SHOW CHECK's Preview row, and the button that opens the settings pane (ADR-0007) |
 | `show:play` | control→show | dropped, not built — see ADR-0007: it existed to CORRECT the show window's view/frame/panels state, and the input lockdown made that state unreachable instead |
 

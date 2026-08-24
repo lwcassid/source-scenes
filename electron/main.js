@@ -283,6 +283,12 @@ app.whenReady().then(() => {
     sendTo(showWindow, 'show:openScene', sceneId);
   });
   ipcMain.on('control:syncScene', (_event, sceneId) => {
+    // The show window announcing it opened something ITSELF — SHOWTIME
+    // auto-advance, an edge click, or the SHOW CONTROL pad (ADR-0008). If it
+    // was stowed after a CLOSE, main never saw a show:openScene to un-stow
+    // it on, so the pad would look dead while the scene ran on a hidden
+    // window. Reveal on the announcement instead.
+    revealShowWindow();
     sendTo(controlWindow, 'control:syncScene', sceneId);
   });
 
@@ -448,6 +454,16 @@ app.whenReady().then(() => {
   });
   ipcMain.on('midi:setInput', (_event, id) => {
     sendTo(showWindow, 'midi:setInput', id);
+  });
+
+  // nav:learn / nav:state (ADR-0008) — SHOW CONTROL's LEARN round trip, the
+  // same relay shape as the hands': request out to the window with the real
+  // MIDI-in, resulting bindings back to the window with the buttons.
+  ipcMain.on('nav:learn', (_event, what) => {
+    sendTo(showWindow, 'nav:learn', what);
+  });
+  ipcMain.on('nav:state', (_event, state) => {
+    sendTo(controlWindow, 'nav:state', state);
   });
 
   // audio:status / audio:wake — Nima's SHOW CHECK screenshot: the SOUND row

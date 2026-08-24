@@ -294,6 +294,16 @@ never handle polarity; presence via `chan.L.mode === 'live'`),
   timeline (`MOut.clock`), with song-position + Start on scene open and Stop
   on close — Live follows each scene's BPM instead of someone retyping it.
   Header CLOCK toggle; Live needs that port's Sync on and EXT pressed.
+- TWO MIDI INPUTS, two jobs (ADR-0008). The HANDS device plays the
+  instrument. A separate SHOW CONTROL device drives the show: prev/next
+  through the running order, plus pads that jump to queue slots 1-16 (learn
+  PAD 1; the next 15 consecutive numbers follow). Both are mapped in the MAP
+  popover, both learnable from the control window. Notes and CCs are accepted
+  for navigation — CCs fire on the RISING EDGE so a momentary footswitch
+  triggers once per press. Nav gets first look at incoming MIDI, before the
+  hands' device filter, or a second device's CCs would be dropped whenever the
+  hands are pinned to a specific device. Replaces PAD LEARN, whose button sat
+  in the queue drawer and armed a listener in the window that has no MIDI-in.
 - Hand input is CALIBRATED, not raw (`CAL` + `midi.cal` in `part2_core.js`):
   the LEARN sweep's measured range is kept and self-widens, polarity is an
   INVERT toggle, and SET REST samples what the sensors read with nobody

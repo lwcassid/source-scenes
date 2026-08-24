@@ -565,18 +565,41 @@ function onMidiMsg(e) {
   // PAD LEARN or hand LEARN poisons the mapping.
   if (typeof MOut !== 'undefined' && MOut.port && e.target &&
       e.target.name && e.target.name === MOut.port.name) return;
-  // Note-ons are a separate namespace: the hand system runs on CC/bend/AT
-  // only, so pad-controller notes route to the queue's PAD MAP (part5_tail)
-  // and can never be mistaken for a hand.
+  // SHOW CONTROL (ADR-0008) gets first look, BEFORE the hands' midi.inputId
+  // filter below. That filter is one global scalar: the moment an operator
+  // picks a specific device for the hands, a second device's CCs would be
+  // dropped before the nav pad ever saw them. Note-ons already bypassed it —
+  // CCs must too, or the nav controller only half works.
+  //
+  // Note-ons are also a separate NAMESPACE: the hand system binds cc/bend/at
+  // only, so pad notes can never be mistaken for a hand.
   const hi0 = e.data[0] & 0xF0;
-  if (hi0 === 0x90 && e.data[2] > 0 && window.PADMAP) {
-    window.PADMAP.onNote({ note: e.data[1], ch: e.data[0] & 15, dev: (e.target && e.target.id) || 'dev' });
+  const navDev = (e.target && e.target.id) || 'dev';
+  const navDevName = (e.target && e.target.name) || '';
+  if (window.NAV) {
+    if (hi0 === 0x90 && e.data[2] > 0) {
+      window.NAV.onMsg({ type: 'note', ch: e.data[0] & 15, num: e.data[1], dev: navDev, devName: navDevName });
+    } else if (hi0 === 0xB0) {
+      // RISING EDGE ONLY — a momentary switch sends 127 then 0, and firing on
+      // both would advance two scenes per press.
+      const key = (e.data[0] & 15) + ':' + e.data[1] + ':' + navDev;
+      const was = window.NAV._last[key] || 0, now = e.data[2];
+      window.NAV._last[key] = now;
+      if (now > 63 && was <= 63) {
+        window.NAV.onMsg({ type: 'cc', ch: e.data[0] & 15, num: e.data[1], dev: navDev, devName: navDevName });
+      }
+    }
   }
   const p = parseMidi(e);
   if (!p) return;
   if (midi.learn) {
     // device filter applies during learn too, unless listening to all
     if (midi.inputId !== 'all' && p.dev !== midi.inputId) return;
+    // ...and never bind something SHOW CONTROL already owns: a nav pad
+    // pressed during a hand sweep would otherwise steal the hand. claims()
+    // covers the pad SLOT RANGE as well as prev/next — checking only
+    // prev/next left a CC-based pad base stealable.
+    if (window.NAV && NAV.claims(p)) return;
     const key = p.type + ':' + p.ch + ':' + p.num + ':' + p.dev;
     const d = midi.learnData[key] || (midi.learnData[key] = { min: 1, max: 0, n: 0, src: { type: p.type, ch: p.ch, num: p.num, dev: p.dev } });
     d.min = Math.min(d.min, p.val); d.max = Math.max(d.max, p.val); d.n++;

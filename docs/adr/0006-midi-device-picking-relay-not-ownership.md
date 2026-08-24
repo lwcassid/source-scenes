@@ -1,6 +1,8 @@
 # MIDI device picking is a relayed UI, not moved ownership
 
-Status: accepted
+Status: accepted. Extended by ADR-0008, which adds a SECOND input device for
+show navigation under the same rule: the control window owns its picker and
+its LEARN buttons, the show window owns the listening.
 
 The show window keeps the real, active `MIDIAccess` — ADR-0003's original
 gate (`connectMidi()` blocked for `ELECTRON_ROLE === 'control'`) is

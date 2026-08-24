@@ -74,6 +74,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onTelemetry(callback) {
     ipcRenderer.on('telemetry:tick', (_event, t) => callback(t));
   },
+  // nav:learn / nav:state (ADR-0008) — SHOW CONTROL, the second MIDI device.
+  // Same shape as the hands' midi:learnStart/midi:learnResult: real MIDI-in
+  // is show-window-only, so the control window relays a LEARN REQUEST and
+  // gets the resulting bindings back. Without this its LEARN buttons would
+  // arm a listener in a window that can never hear a note — which is exactly
+  // what the old PAD LEARN button did.
+  requestNavLearn(what) { ipcRenderer.send('nav:learn', what); },
+  onNavLearnRequested(callback) {
+    ipcRenderer.on('nav:learn', (_event, what) => callback(what));
+  },
+  sendNavState(state) { ipcRenderer.send('nav:state', state); },
+  onNavState(callback) {
+    ipcRenderer.on('nav:state', (_event, state) => callback(state));
+  },
   // preview:* (ADR-0007) — the control window's picture is a live capture of
   // the show window. main answers the getDisplayMedia request with the show
   // window itself, so there is no source picker; these two only exist so

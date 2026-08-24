@@ -15,50 +15,210 @@ function syncChips() {
 }
 const famOf = def => def.family || def.id;
 
-/* PAD MAP — a 4×4 pad controller walks the queue, so scenes switch from the
-   source with no computer touch. LEARN once: hit the controller's PAD 1
-   (bottom-left) and its 16 consecutive notes become queue slots 1–16 in
-   running order. Learned rather than hard-coded because pad controllers
-   disagree about their base note (the M-VAVE's moves with its presets).
-   Device- and channel-filtered, and the hand system never sees notes at
-   all (part2_core routes only note-ons here) — so pads and hand sensors
-   can never collide. Persists per-browser like the hand calibration. */
-const PADMAP = {
-  base: null, learn: false,
-  load() { try { this.base = JSON.parse(localStorage.getItem('srcPadMap') || 'null'); } catch (e) { this.base = null; } },
-  save() { try { localStorage.setItem('srcPadMap', JSON.stringify(this.base)); } catch (e) {} },
-  onNote(p) {
+/* SHOW CONTROL — the second MIDI device (ADR-0008). The HANDS device plays
+   the instrument; this one drives the SHOW: previous/next through the running
+   order, and 16 pads that jump straight to queue slots 1-16. Two devices, two
+   jobs, learned separately.
+
+   Replaces PADMAP, which did the slot half only and whose LEARN button was a
+   no-op where it lived: it sat in the queue drawer — the CONTROL window — and
+   armed a listener in a window that can never receive a MIDI note, because
+   real MIDI-in is show-window-only (ADR-0006). There was no pad:* IPC to
+   close that gap. NAV learns over nav:learn/nav:state, the same round trip
+   the hands' LEARN uses.
+
+   LEARN IS ONE-SHOT, not the hands' 2.6s sweep. A continuous controller has
+   to reveal its RANGE before you know what it is; a button is decisive on its
+   first press. Times out at 6s so a stray click doesn't leave it listening.
+
+   Bindings are the same {type, ch, num, dev} 4-tuple the hands use, so
+   srcMatches()/srcKey() work on them unchanged — but `type` here is 'note' or
+   'cc', a namespace the hands never touch (they bind cc/bend/at, and note-ons
+   are routed here before the hands ever parse them). CC binds fire on the
+   RISING EDGE ONLY, so a momentary footswitch triggers once per press instead
+   of on press and release.
+
+   Slots are anchor + offset: slot N is the base's `num` + (N-1) on the same
+   type/channel/device. One press to learn all 16 — but it does assume the
+   pads are consecutive, which is true of a 4x4 grid and not true of every
+   controller. Slots past the end of the queue are inert. */
+const NAV = {
+  dev: null,                       // {id, name} — which device is the pad
+  prev: null, next: null, base: null,
+  learn: null,                     // 'prev' | 'next' | 'slots' | null
+  _timer: null, _last: {},         // _last: CC value per source, for edges
+  SLOTS: 16,
+  load() {
+    let m = null;
+    try { m = JSON.parse(localStorage.getItem('srcNavMap') || 'null'); } catch (e) {}
+    if (m) { this.dev = m.dev || null; this.prev = m.prev || null; this.next = m.next || null; this.base = m.base || null; return; }
+    // migrate PADMAP: an already-mapped 4x4 keeps every pad, no re-learn
+    try {
+      const old = JSON.parse(localStorage.getItem('srcPadMap') || 'null');
+      if (old && old.note !== undefined) {
+        this.base = { type: 'note', ch: old.ch, num: old.note, dev: old.dev };
+        this.dev = { id: old.dev, name: '' };
+        this.save();
+      }
+    } catch (e) {}
+  },
+  save() {
+    try {
+      localStorage.setItem('srcNavMap', JSON.stringify({ dev: this.dev, prev: this.prev, next: this.next, base: this.base }));
+    } catch (e) {}
+  },
+  label(m) { return m ? (m.type === 'note' ? 'NOTE' : 'CC') + m.num : null; },
+  // In the control window the real bindings live in the show window, so the
+  // buttons read the relayed labels (_relay) instead of local state that is
+  // permanently empty there — the same split refreshMidiUI makes for hands.
+  _relay: null,
+  /* Review: this used to return _relay unconditionally in the control window,
+     which is null until the show window happens to relay — and the show
+     window never relayed at BOOT. So every launch showed LEARN PREV / "no
+     show controller mapped" even with a controller mapped, which reads as a
+     broken rig and invites a pointless re-learn.
+     The control window is not actually ignorant: load() is not role-gated and
+     localStorage is shared between the two windows, so it already has the
+     real bindings. Fall back to them; _relay only has to cover CHANGES made
+     after boot, and those always follow a control-initiated LEARN. */
+  labels() {
+    if (window.ELECTRON_ROLE === 'control' && this._relay) return this._relay;
+    return { prev: this.label(this.prev), next: this.label(this.next), base: this.label(this.base) };
+  },
+  baseNum() {
+    if (window.ELECTRON_ROLE === 'control' && this._relay) return this._relayBase;
+    return this.base ? this.base.num : null;
+  },
+  // Which slot (if any) this source is — one definition, used both to fire a
+  // pad and to tell the hands' LEARN to keep its hands off (claims()).
+  slotOf(p) {
+    const b = this.base;
+    if (!b || b.type !== p.type || b.ch !== p.ch || b.dev !== p.dev) return -1;
+    const slot = p.num - b.num;
+    return (slot >= 0 && slot < this.SLOTS) ? slot : -1;
+  },
+  // Does SHOW CONTROL own this source? The hands' LEARN asks before binding.
+  // Review: the old guard checked prev/next only, so a CC-based pad BASE
+  // could still be stolen as a hand — the ADR claimed a guard in both
+  // directions that the code only half had.
+  claims(p) { return srcMatches(this.prev, p) || srcMatches(this.next, p) || this.slotOf(p) >= 0; },
+  /* The device gate. MIDIInput ids are NOT stable across a replug or a BLE
+     re-pair — the MIDI-OUT path already learned this the hard way and
+     persists by NAME (MOut.selectPortByName). Match on id, fall back to name,
+     so re-pairing the pad mid-show doesn't silently kill navigation. */
+  isOurDevice(p) {
+    if (!this.dev) return true;              // nothing picked = listen to all
+    if (this.dev.id && p.dev === this.dev.id) return true;
+    return !!(this.dev.name && p.devName && p.devName === this.dev.name);
+  },
+  arm(what) {
+    this.learn = (this.learn === what) ? null : what;   // click again to cancel
+    clearTimeout(this._timer);
+    if (this.learn) this._timer = setTimeout(() => { this.learn = null; this.ui(); this.relay(); }, 6000);
+    // Control has no MIDI-in of its own (ADR-0006) — relay the REQUEST and
+    // let the show window run the real listen. The local toggle above is
+    // only so the button says HIT IT… during the round trip; nav:state
+    // overwrites it the moment the show window actually binds.
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.requestNavLearn) {
+      window.electronAPI.requestNavLearn(this.learn);
+    }
+    this.ui(); this.relay();
+  },
+  onMsg(p) {
     if (this.learn) {
-      this.base = { note: p.note, ch: p.ch, dev: p.dev };
-      this.learn = false; this.save(); this.ui();
+      // Review: the device gate used to sit BELOW this branch, so learning
+      // was device-blind. Pick your pad, learn PADS on it, then click LEARN
+      // NEXT and have the theremin twitch a CC first — NAV.dev silently
+      // became the theremin and every pad binding went unreachable, with
+      // nothing on screen saying so. Once a device is named, only that
+      // device can bind; adopting a NEW one is something you do through the
+      // picker (set it to ANY), not by accident.
+      if (this.dev && !this.isOurDevice(p)) return;
+      // Don't bind something the HANDS already own — a theremin sweeping
+      // during nav-learn would otherwise steal the binding.
+      if (typeof midi !== 'undefined' && (srcMatches(midi.map.L, p) || srcMatches(midi.map.R, p))) return;
+      const src = { type: p.type, ch: p.ch, num: p.num, dev: p.dev };
+      if (this.learn === 'slots') this.base = src; else this[this.learn] = src;
+      if (!this.dev) this.dev = { id: p.dev, name: p.devName || '' };
+      this.learn = null; clearTimeout(this._timer);
+      this.save(); this.ui(); this.relay();
       return;
     }
-    if (!this.base || p.dev !== this.base.dev || p.ch !== this.base.ch) return;
-    const slot = p.note - this.base.note;
-    if (slot >= 0 && slot < 16) this.go(slot);
+    // A hands LEARN sweep is running: don't navigate off it. Crossing a CC
+    // that happens to be bound to PREV would jump the show mid-sweep.
+    if (typeof midi !== 'undefined' && midi.learn) return;
+    if (!this.isOurDevice(p)) return;
+    // Backfill a name for a mapping that only ever had an id — a migrated
+    // PADMAP, or a bind from an input that hadn't reported its name — so the
+    // name fallback in isOurDevice() can rescue it after a replug.
+    if (this.dev && !this.dev.name && p.devName) { this.dev.name = p.devName; this.save(); }
+    if (srcMatches(this.prev, p)) return this.fire('prev');
+    if (srcMatches(this.next, p)) return this.fire('next');
+    const slot = this.slotOf(p);
+    if (slot >= 0) this.fire('slot', slot);
   },
-  go(slot) {
-    const id = QUEUE.list[slot];
-    if (!id) return;
-    const tile = QUEUE.tileFor(id);
-    if (!tile || !tile.cur) return;
-    const already = focus.idx >= 0 && famOf(PIECES[focus.idx]) === id;
-    if (!already) {
-      if (focus.idx >= 0) closeFocus();
-      openFocus(tile.cur.idx);
-    }
-    if (window.SHOW) SHOW.resetRotation();
+  fire(what, slot) {
+    if (what === 'slot') { QUEUE.goToSlot(slot); return; }
+    // step() is a no-op with nothing on stage, which would make the pad feel
+    // dead exactly when someone is trying to START the show — open the top of
+    // the running order instead.
+    if (focus.idx < 0) { QUEUE.goToSlot(0); return; }
+    if (window.SHOW) (what === 'next' ? SHOW.next() : SHOW.prev());
   },
-  toggleLearn() { this.learn = !this.learn; this.ui(); },
   ui() {
-    const b = document.getElementById('btnPadLearn');
-    if (!b) return;
-    b.textContent = this.learn ? 'HIT PAD 1…' : this.base ? 'PADS ✓' : 'PAD LEARN';
-    b.classList.toggle('learning', this.learn);
-  }
+    const set = (id, txt, on) => {
+      const b = document.getElementById(id);
+      if (!b) return;
+      b.textContent = txt;
+      b.classList.toggle('learning', !!on);
+    };
+    const L = this.labels();
+    set('btnNavPrev', this.learn === 'prev' ? 'HIT IT…' : L.prev ? 'PREV=' + L.prev : 'LEARN PREV', this.learn === 'prev');
+    set('btnNavNext', this.learn === 'next' ? 'HIT IT…' : L.next ? 'NEXT=' + L.next : 'LEARN NEXT', this.learn === 'next');
+    set('btnNavSlots', this.learn === 'slots' ? 'HIT PAD 1…' : L.base ? 'PADS=' + L.base : 'LEARN PADS', this.learn === 'slots');
+    const r = document.getElementById('navRange');
+    const bn = this.baseNum();
+    if (r) r.textContent = (bn === null || bn === undefined) ? '' : '1-' + this.SLOTS + ' → ' + bn + '-' + (bn + this.SLOTS - 1);
+  },
+  // show -> control, so the console's buttons reflect the real bindings
+  relay() {
+    if (window.ELECTRON_ROLE !== 'show' || !window.electronAPI?.sendNavState) return;
+    window.electronAPI.sendNavState({
+      learn: this.learn, labels: this.labels(),
+      baseNum: this.base ? this.base.num : null, dev: this.dev,
+    });
+  },
 };
-PADMAP.load();
-window.PADMAP = PADMAP;
+NAV.load();
+window.NAV = NAV;
+// Show window: announce the bindings once at boot. The console is already
+// correct without this (shared localStorage + the fallback in labels()), but
+// this keeps _relay authoritative from the first moment rather than only
+// after the first LEARN.
+if (window.ELECTRON_ROLE === 'show') setTimeout(() => NAV.relay(), 1200);
+// Show window: run the real listen when the console's LEARN is clicked.
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onNavLearnRequested) {
+  window.electronAPI.onNavLearnRequested(what => {
+    // control already toggled its own copy, so set rather than toggle here —
+    // arm()'s click-again-cancels logic would otherwise invert the request
+    NAV.learn = what || null;
+    clearTimeout(NAV._timer);
+    if (NAV.learn) NAV._timer = setTimeout(() => { NAV.learn = null; NAV.ui(); NAV.relay(); }, 6000);
+    NAV.ui(); NAV.relay();
+  });
+}
+// Control window: the real bindings, mirrored back for the buttons.
+if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onNavState) {
+  window.electronAPI.onNavState(st => {
+    if (!st) return;
+    NAV._relay = st.labels || null;
+    NAV._relayBase = st.baseNum;
+    NAV.learn = st.learn || null;
+    NAV.dev = st.dev || null;
+    clearTimeout(NAV._timer);
+    NAV.ui();
+  });
+}
 
 const QUEUE = {
   list: [], shared: null,
@@ -141,6 +301,28 @@ const QUEUE = {
   },
   // the tile a family lives on — the queue stores family ids, not versions
   tileFor(id) { return [...grid.children].find(t => t.dataset.pid === id) || null; },
+  /* Put a family id on stage. This move — resolve id -> tile -> latest
+     version -> close-then-open -> restart the dwell clock — was written out
+     four separate times (PADMAP.go, the console row click, play(), the arrow
+     walk) before the nav controller would have made it five. One helper.
+     Re-selecting the scene already on stage deliberately does NOT reopen it
+     (that would restart its audio and reseed it mid-show) but DOES restart
+     the dwell clock, so hitting a pad for the current scene means "give this
+     one another full stay". */
+  goToFamily(id) {
+    const tile = this.tileFor(id);
+    if (!tile || !tile.cur) return false;
+    const already = focus.idx >= 0 && famOf(PIECES[focus.idx]) === id;
+    if (!already) {
+      if (focus.idx >= 0) closeFocus();
+      openFocus(tile.cur.idx);
+    }
+    if (window.SHOW) SHOW.resetRotation();
+    return true;
+  },
+  // 0-based into the running order; slots past the end are simply inert, so a
+  // 16-pad controller over a 9-scene set costs nothing.
+  goToSlot(i) { const id = this.list[i]; return id ? this.goToFamily(id) : false; },
   titleOf(id) {
     const t = this.tileFor(id);
     return t ? (t.querySelector('h3').textContent || id) : id + ' (not on this build)';
@@ -155,9 +337,7 @@ const QUEUE = {
       return;
     }
     const first = this.list.find(id => this.tileFor(id));
-    const tile = first ? this.tileFor(first) : null;
-    if (tile && tile.cur) { closeFocus(); openFocus(tile.cur.idx); }
-    else if (focus.idx < 0) openFocus(0);
+    if (!(first && this.goToFamily(first)) && focus.idx < 0) openFocus(0);
     document.getElementById('queuePop').classList.remove('open');
     this.wake(false);
     if (typeof enterShow === 'function') enterShow();
@@ -259,9 +439,7 @@ const QUEUE = {
     }).join('');
     // click a row to jump the SHOW there — openFocus already relays
     ol.querySelectorAll('li').forEach(li => li.addEventListener('click', () => {
-      const tile = this.tileFor(li.dataset.sqid);
-      if (!tile || !tile.cur) return;
-      closeFocus(); openFocus(tile.cur.idx);
+      this.goToFamily(li.dataset.sqid);   // openFocus relays to the wall
     }));
     this.paintShowPanel();
   },
@@ -431,8 +609,8 @@ const QUEUE = {
       if (pop.contains(e.target) || e.target.closest && e.target.closest('#btnQueue')) return;
       pop.classList.remove('open'); this.wake(false);
     });
-    document.getElementById('btnPadLearn').addEventListener('click', () => PADMAP.toggleLearn());
-    PADMAP.ui();
+    // (PAD LEARN moved to MAP -> SHOW CONTROL, ADR-0008: it could never work
+    // from this drawer, which lives in the window with no MIDI-in.)
     document.getElementById('btnSetPublish').addEventListener('click', () => this.publish());
     document.getElementById('btnQueueClear').addEventListener('click', () => this.clear());
     document.getElementById('btnQueueLink').addEventListener('click', () => this.link());
@@ -867,6 +1045,16 @@ const PRE = {
     const clockOn = inControl ? rigRelay.clockOn : MOut.clock.on;
     const clockRunning = inControl ? rigRelay.clockRunning : MOut.clock.running;
     const bpm = inControl ? rigRelay.bpm : T.bpm;
+    // SHOW CONTROL (ADR-0008): optional hardware, so THE RIG tier and never
+    // worse than warn — PRE.worst() === 'bad' refuses to start the show, and
+    // a missing nav pad must never be the reason a show doesn't run.
+    const nl = NAV.labels(), navBound = (nl.prev ? 1 : 0) + (nl.next ? 1 : 0) + (nl.base ? 1 : 0);
+    r.push({ k: 'nav', sec: 'rig', label: 'Show control', lvl: navBound ? 'ok' : 'warn',
+      txt: !navBound ? 'no show controller mapped — the console, the arrow keys and the edge arrows still walk the set'
+        : [nl.prev ? 'PREV=' + nl.prev : null, nl.next ? 'NEXT=' + nl.next : null,
+           nl.base ? 'PADS=' + nl.base : null].filter(Boolean).join(' · '),
+      fix: ['MAP CONTROL', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+
     const out = outMode !== 'web';
     r.push({ k: 'out', sec: 'rig', label: 'Ableton', lvl: out && outPortName ? 'ok' : 'warn',
       txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
@@ -1429,6 +1617,41 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   QUEUE.refresh();
 }));
 
+// SHOW CONTROL bindings (ADR-0008) — the second device's LEARN buttons and
+// its own device picker, both inside the MAP popover.
+(() => {
+  const wire = (id, what) => {
+    const b = document.getElementById(id);
+    if (b) b.addEventListener('click', e => { e.stopPropagation(); NAV.arm(what); });
+  };
+  wire('btnNavPrev', 'prev'); wire('btnNavNext', 'next'); wire('btnNavSlots', 'slots');
+  const sel = document.getElementById('navInSel');
+  if (sel) sel.addEventListener('change', e => {
+    const id = e.target.value;
+    // 'any' keeps the old PADMAP behaviour (listen to every device); picking
+    // one stores id AND name, because MIDIInput ids do not survive a replug
+    const opt = e.target.selectedOptions[0];
+    NAV.dev = id === 'all' ? null : { id, name: opt ? opt.dataset.name || '' : '' };
+    NAV.save();
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.sendShowControl) {
+      // the show window owns the listening, so it needs the pick too
+      window.electronAPI.sendShowControl('navDevice', NAV.dev);
+    }
+  });
+  // keep the picker's options in step with whatever device list this window has
+  setInterval(() => {
+    if (!sel || !document.getElementById('mapPop').classList.contains('open')) return;
+    const inputs = (window.ELECTRON_ROLE === 'control') ? midiRelay.inputs
+      : (midi.access ? [...midi.access.inputs.values()].map(d => ({ id: d.id, name: d.name })) : []);
+    const cur = NAV.dev ? NAV.dev.id : 'all';
+    const sig = ['all', ...inputs.map(i => i.id)].join('|') + '#' + cur;
+    if (sel.dataset.sig === sig) return;
+    sel.dataset.sig = sig;
+    sel.innerHTML = '<option value="all"' + (cur === 'all' ? ' selected' : '') + '>DEVICE: ANY</option>' +
+      inputs.map(i => `<option value="${i.id}" data-name="${esc(i.name)}"${i.id === cur ? ' selected' : ''}>${esc(i.name)}</option>`).join('');
+  }, 800);
+  NAV.ui();
+})();
 // MAP popover — the source's hardware bindings live here (library AND scene view)
 (() => {
   const pop = document.getElementById('mapPop');
@@ -2043,6 +2266,7 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     else if (kind === 'clock') MOut.clockSet(!!value);
     else if (kind === 'outPort') MOut.selectPortByName(value);
     else if (kind === 'ghosts') sceneGhosts = !!value;
+    else if (kind === 'navDevice') { NAV.dev = value || null; NAV.save(); NAV.relay(); }
     // reseed carries the SEED control just used, so the mirror and the wall
     // land on the same picture instead of two different random ones
     else if (kind === 'reseed') { if (focus.P) focus.P.reinit(typeof value === 'number' ? value : (Math.random() * 1e9) | 0); }
