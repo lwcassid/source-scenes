@@ -2,6 +2,7 @@
 // Usage: node tools/shotevt.mjs <outPrefix> "<label:act:evtT:L:R>,..."
 import { chromium } from 'playwright-core';
 import path from 'path';
+import fs from 'fs';
 const EXE = process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const outPrefix = process.argv[2] || 'evt';
 const spec = (process.argv[3] || 'manta:0:6:0:0').split(',');
@@ -22,7 +23,8 @@ for (const st of spec) {
     window.__di = setInterval(() => { setChan('L', +L); setChan('R', +R); const s = focus.P.state; s.pres = 1; s.evtT = +evtT; }, 120);
   }, { act, evtT, L, R });
   await p.waitForTimeout(2200);
-  const out = `/home/user/source-scenes/scratchshots/${outPrefix}_${label}.png`;
+  fs.mkdirSync('scratchshots', { recursive: true });
+  const out = `scratchshots/${outPrefix}_${label}.png`;
   await p.screenshot({ path: out });
   console.log('shot', out, 'evtT', evtT);
 }

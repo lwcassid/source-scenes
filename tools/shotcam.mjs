@@ -2,6 +2,7 @@
 // spec entries: label:camMode:L:R:act:ms
 import { chromium } from 'playwright-core';
 import path from 'path';
+import fs from 'fs';
 const EXE = process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const outPrefix = process.argv[2] || 'cam';
 const spec = (process.argv[3] || 'chase:0:0:0:0:9000').split(',');
@@ -22,7 +23,8 @@ for (const st of spec) {
     window.__di = setInterval(() => { setChan('L', +L); setChan('R', +R); const s = focus.P.state; s.pres = 1; s.camMode = cam|0; }, 200);
   }, { cam, L, R, act });
   await p.waitForTimeout(+ms || 9000);
-  const out = `/home/user/source-scenes/scratchshots/${outPrefix}_${label}.png`;
+  fs.mkdirSync('scratchshots', { recursive: true });
+  const out = `scratchshots/${outPrefix}_${label}.png`;
   await p.screenshot({ path: out });
   console.log('shot', out);
 }
