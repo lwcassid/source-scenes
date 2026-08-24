@@ -187,6 +187,17 @@ function ghostR(t) { return clamp(0.5 + 0.40 * Math.sin(t * 0.094 + 4.2) + 0.10 
 let nowT = 0;
 // `raw` present means this came off a sensor and is subject to the presence
 // test. A pointer, key or slider is a human by definition and always counts.
+/* NEAR = MORE (Lance, Aug 2026) — one global flip of the hand grammar:
+   physically approaching the source reads as intensity. Applied here, at
+   the single gate every REAL input passes through (mouse, keys, learned
+   sensors alike), so all nine scenes keep ONE grammar; ghosts author their
+   drift in scene units and are deliberately untouched. Presence detection
+   runs on raw readings and is unaffected. THE CHANNEL STAYS IN HAND SPACE
+   (0 = at the source, 1 = arm's reach) so beams, widgets and the DBG bars
+   track the physical hands truthfully — Lance caught the lazy version,
+   which flipped the value here and mirrored the laser against the hand.
+   The semantic flip (near = intense) happens at the ONE place scenes read
+   input: the inp construction in part5_tail. Unconditional, no state. */
 function setChan(side, v, raw) {
   // Nima, testing live: mouse-driven hand input in the control window
   // wasn't reaching the show window at all. Real MIDI already doesn't need
@@ -246,7 +257,35 @@ function updateChannels(t, dt) {
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);
     c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : 2.2));
   }
+  SUMMON.step(t, dt);
 }
+
+/* THE SUMMONS (Lance, Aug 2026) — the master code, ONE grammar across every
+   scene: park the LEFT hand at the source and WIGGLE the right hand for a
+   few seconds. The charge fills (~3.5s), then a ~45s BEAT WINDOW opens for
+   any scene that gates its groove on it. The scenes stay ambient art for
+   strangers; whoever knows the code brings the band in to jam. Per-scene
+   secret unlocks (Chladni's rail) remain their own thing on top.
+   LIVE HANDS ONLY — ghosts can never summon. Scenes read window.SUMMON
+   ({charge 0..1, active 0|1}) or inp.summon / inp.summonCharge. */
+const SUMMON = {
+  charge: 0, active: 0, until: 0, _dir: 0, _flips: 0, _flipT: -9, _lastR: 0,
+  step(t, dt) {
+    const live = chan.L.mode === 'live' && chan.R.mode === 'live';
+    const parked = live && chan.L.v < 0.18;          // raw hand space: AT the source
+    const dR = chan.R.v - this._lastR; this._lastR = chan.R.v;
+    if (Math.abs(dR) > 0.006) {
+      const d = dR > 0 ? 1 : -1;
+      if (d !== this._dir) { this._dir = d; this._flips++; this._flipT = t; }
+    }
+    if (t - this._flipT > 0.8) this._flips = 0;
+    if (parked && this._flips >= 4) this.charge = Math.min(1, this.charge + dt / 3.5);
+    else if (!this.active) this.charge = Math.max(0, this.charge - dt / 1.5);
+    if (this.charge >= 1 && !this.active) { this.active = 1; this.until = t + 45; }
+    if (this.active && t > this.until) { this.active = 0; this.charge = 0; this._flips = 0; }
+  }
+};
+window.SUMMON = SUMMON;
 
 /* ============================================================
    MIDI IN — device picker + range-based learn.
@@ -518,6 +557,14 @@ function srcMatches(m, p) {
   return m && m.type === p.type && m.ch === p.ch && m.num === p.num && m.dev === p.dev;
 }
 function onMidiMsg(e) {
+  // OUR OWN ECHO (Lance's queue-jump bug, Aug 2026): a mac IAC bus mirrors
+  // everything sent into it back out to every listener, so the browser
+  // hears every note it plays into Live. Drop anything arriving from the
+  // port MIDI OUT is talking to — otherwise scene notes masquerade as pad
+  // hits (opening Rain "pressed" a queue pad) and a stray echo during
+  // PAD LEARN or hand LEARN poisons the mapping.
+  if (typeof MOut !== 'undefined' && MOut.port && e.target &&
+      e.target.name && e.target.name === MOut.port.name) return;
   // Note-ons are a separate namespace: the hand system runs on CC/bend/AT
   // only, so pad-controller notes route to the queue's PAD MAP (part5_tail)
   // and can never be mistaken for a hand.
@@ -795,11 +842,11 @@ function drawWidget(cv, t) {
   const sy = floorY - ph - r + 1; // sphere center height
   const inX = { L: cx - r - 6, R: cx + r + 6 };       // v = 0 (at the source — rest)
   const outX = { L: w * 0.05, R: w * 0.95 };          // v = 1 (arm's reach — full)
-  const intensity = (chan.L.v + chan.R.v) / 2;
+  const intensity = 1 - (chan.L.v + chan.R.v) / 2;   // glow = leaning in
   for (const side of ['L', 'R']) {
     const v = chan[side].v;
     const live = chan[side].mode === 'live';
-    // REVERSED like the physical source: pull AWAY from the sphere = more
+    // beams live in hand space — they track the hands; intensity is read inverted
     const hx = inX[side] + (outX[side] - inX[side]) * v;
     // sensing rail the hand travels on
     g.strokeStyle = LT ? 'rgba(80,80,80,0.3)' : 'rgba(140,140,140,0.22)'; g.lineWidth = 1;
@@ -1252,6 +1299,9 @@ document.getElementById('midiInSel').addEventListener('change', e => {
   if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.setMidiInput(e.target.value);
 });
 document.getElementById('btnRest').addEventListener('click', startRest);
+// stale NEAR=MORE toggle state from the brief toggle era must never pin a
+// browser to the old grammar again — the flip is unconditional now
+try { localStorage.removeItem('srcNearMore'); } catch (e) {}
 document.getElementById('btnInvL').addEventListener('click', () => setInvert('L'));
 document.getElementById('btnInvR').addEventListener('click', () => setInvert('R'));
 document.getElementById('btnCalClear').addEventListener('click', clearCal);

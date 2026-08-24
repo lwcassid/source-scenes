@@ -85,6 +85,22 @@ const MOut = {
       } catch (e) {}
     }
   },
+  // RAW channel test — the RIG panel's unassigned rows: one note straight at
+  // a channel number, no role in between, to wire-check benched tracks
+  rawNote(ch, note = 60, vol = 0.2, durSec = 1.2) {
+    if (this.suspend || !(ch >= 1 && ch <= 16)) return;
+    const vel = this.v2v(vol), p = performance.now();
+    this.log.push({ p, role: 'ch' + ch, ch, note, vel, durMs: durSec * 1000 });
+    if (this.wants() && this.port) {
+      try {
+        const st = ch - 1, key = st + ':' + note;
+        if (this._offs[key]) { try { this.port.send([0x80 | st, note, 0]); } catch (e) {} delete this._offs[key]; }
+        this.port.send([0x90 | st, note, vel], p);
+        this._offs[key] = { st, note, t: p + durSec * 1000 };
+        this._startOffPump();
+      } catch (e) {}
+    }
+  },
   // SFX — semantic one-shots (36 ignition · 37 lightning · 38 thunder · 39 rain …)
   sfxNote(note, vol = 0.7, dur = 2) {
     if (this.suspend) return;
@@ -103,6 +119,7 @@ const MOut = {
   // so a sampler on the bed channel fades that scene's atmosphere in/out
   bedOn(note) {
     this.bedOff();
+    this.parkExpr();     // scene open: every channel's energy starts OPEN
     this._bed = note;
     const ch = this.chFor('bed'), p = performance.now();
     this.lastByRole.bed = p;
@@ -188,14 +205,23 @@ const MOut = {
      change re-pins Live to the new BPM on its own.
 
      LOOKAHEAD is deliberately short. Web MIDI cannot cancel a queued
-     message, so anything already scheduled WILL arrive: 120ms is enough to
-     ride out a stalled frame and short enough that a scene change spills
-     only a couple of stale ticks past the Stop.
+     message, so anything already scheduled WILL arrive: 250ms rides out a
+     stalled frame yet spills only a few stale ticks past a Stop on scene
+     change (the next scene's song-position + Start re-pins Live anyway).
+
+     PHASE IS KING (Lance's drift bug, Aug 2026): a warped loop in Live
+     lives entirely on tick COUNT, so a skipped tick is a permanent slip
+     between Live and the browser's grid. The pump therefore (a) also runs
+     off a Worker timer — Chrome throttles a hidden OR fully-occluded
+     window's timers to 1Hz+, and mixing with Live fullscreen occludes the
+     browser — and (b) never skips: short gaps send the missed ticks late
+     (Live's tempo smoothing rides out the burst, phase stays true), long
+     gaps re-pin cleanly with Stop + song-position + Start.
 
      In Live: Preferences -> Link/Tempo/MIDI -> switch this port's "Sync" on,
      then press EXT in the transport bar. Live ignores clock entirely when
      Sync is off, so leaving this enabled costs nothing. ---------- */
-  clock: { on: true, PPQ: 24, LOOKAHEAD: 0.12, n: 0, t0: -1, beat: 0, running: false },
+  clock: { on: true, PPQ: 24, LOOKAHEAD: 0.25, n: 0, t0: -1, beat: 0, running: false },
   clockSet(on) {
     // Relay first: under Electron the control window's own MOut is inert
     // (no real port/AudioContext transport), so toggling CLOCK there used
@@ -228,10 +254,25 @@ const MOut = {
       this._clk([0xFA], this.ts(c.t0));       // start, landing on beat 0
     }
     const tick = c.beat / c.PPQ, now = AE.ctx.currentTime;
-    // fell behind (throttled tab, GC pause)? jump the counter to now instead of
-    // firing a burst of late ticks, which would shove Live's tempo around
     const nMin = Math.ceil((now - c.t0) / tick);
-    if (c.n < nMin) c.n = nMin;
+    if (c.n < nMin) {
+      if (nMin - c.n <= c.PPQ) {
+        // late by under a beat: send the missed ticks NOW. A tick skipped is
+        // a PERMANENT phase slip (Live counts ticks, the warped loop rides
+        // that count); a late burst is only a moment of tempo wobble.
+        while (c.n < nMin) { this._clk([0xF8]); c.n++; }
+      } else {
+        // real suspension (hidden window, laptop lid, huge stall): re-pin
+        // cleanly at an upcoming 16th — Stop, song position, Start — so Live
+        // rejoins the grid instead of running forever behind it
+        this._clk([0xFC]);
+        const sx = c.beat / 4;
+        const pos = Math.ceil((now - c.t0) / sx) + 1;
+        this._clk([0xF2, pos & 0x7F, (pos >> 7) & 0x7F]);
+        this._clk([0xFA], this.ts(c.t0 + pos * sx));
+        c.n = pos * (c.PPQ / 4);
+      }
+    }
     const horizon = now + c.LOOKAHEAD;
     while (c.t0 + c.n * tick < horizon) {
       this._clk([0xF8], this.ts(c.t0 + c.n * tick));
@@ -278,18 +319,21 @@ const MOut = {
     return true;
   },
   allOff() {
+    this.onModeMidi = null;
     this.clockStop();
     if (this._voices) { this._voices.forEach(h => this.holdOff(h)); this._voices.clear(); }
     if (this.port) {
       try { for (let ch = 0; ch < 16; ch++) this.port.send([0xB0 | ch, 123, 0]); } catch (e) {}
     }
-    // PARK THE ENERGY OPEN — CC74 is "open at rest" by convention, but a
-    // scene that streams it leaves the last value standing when it closes,
-    // and the next scene may never touch that channel: a filter parked shut
-    // by one scene would silence an instrument for the rest of the night
-    // (Lance hit exactly this in W1). So every all-off resets CC74 to 127
-    // on every role channel and clears the dedupe cache so the next stream
-    // always re-sends.
+    this.parkExpr();
+  },
+  // PARK THE ENERGY OPEN — CC74 is "open at rest" by convention, but a
+  // scene that streams it leaves the last value standing, and LIVE SAVES
+  // KNOB POSITIONS in the set file — so a filter that was shut at save
+  // time stays shut forever on a channel no scene streams (Lance hit this
+  // twice in W1). Parked on scene CLOSE (allOff) AND scene OPEN (bedOn):
+  // every scene starts from open, whatever Live remembered.
+  parkExpr() {
     if (this.port && this.wants()) {
       try { for (const r in this.roles) this.port.send([0xB0 | (this.roles[r] - 1), 74, 127]); } catch (e) {}
     }
@@ -302,12 +346,18 @@ const MOut = {
     // Same relay as clockSet above: this is the fix that reaches every call
     // site at once (OUT pill, fOut on the focus rail, SHOW CHECK's SEND
     // MIDI fix) since they all funnel through setMode rather than each
-    // needing its own IPC call.
+    // needing its own IPC call. Fire-and-forget, so it sits ahead of the
+    // local work rather than in the middle of it.
     if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('outMode', m);
+    // Lance's held-state fix (main): remember whether MIDI was wanted BEFORE
+    // the switch, so _modeCrossed() below can hand sounding voices over when
+    // web<->MIDI is crossed mid-scene. Must be sampled before this.mode moves.
+    const was = this.wants();
     this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
     if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
     if (m !== 'web' && !midi.access) connectMidi();
+    this._modeCrossed(was);
     this.refreshUI();
   },
   // transient routing (a queued scene's OUT override) — same plumbing, no save
@@ -322,10 +372,24 @@ const MOut = {
   applyMode(m) {
     if (!m) m = this.baseMode;
     if (m === this.mode) return;
+    const was = this.wants();
     this.mode = m;
     if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
     if (m !== 'web' && !midi.access) connectMidi();
+    this._modeCrossed(was);
     this.refreshUI();
+  },
+  // web → MIDI mid-scene must not strand held state: one-shot strikes sent
+  // while the mode was web went nowhere (Lance opened Rain in web mode, then
+  // flipped to MIDI — every continuous stream recovered but the scene's
+  // held rain never re-fired). Re-assert what the engine knows (the bed
+  // note, CC74 park) and tell the scene to re-strike its own holds.
+  onModeMidi: null,   // a scene may register a re-assert callback (cleared on close)
+  _modeCrossed(was) {
+    if (was || !this.wants()) return;
+    this.parkExpr();
+    if (this._bed && this.port) { try { this.port.send([0x90 | (this.chFor('bed') - 1), this._bed, 90]); } catch (e) {} }
+    if (this.onModeMidi) { try { this.onModeMidi(); } catch (e) {} }
   },
   refreshUI() {
     const b = document.getElementById('btnOut');
@@ -470,6 +534,14 @@ try {
   if (ck !== null) MOut.clock.on = ck === '1';
 } catch (e) {}
 setInterval(() => MOut.clockPump(), 20);
+// Chrome throttles a hidden window's timers to 1Hz+ — and on mac a window
+// fully COVERED by Live counts as hidden. Worker timers are exempt, so a
+// tiny Worker heartbeat keeps the clock's cadence while you mix behind Live.
+try {
+  const _ckw = new Worker(URL.createObjectURL(
+    new Blob(['setInterval(() => postMessage(0), 100)'], { type: 'text/javascript' })));
+  _ckw.onmessage = () => { try { MOut.clockPump(); } catch (e) {} };
+} catch (e) {}
 // leaving the page must not strand Live running on a clock that stopped arriving
 window.addEventListener('pagehide', () => { try { MOut.clockStop(); } catch (e) {} });
 
@@ -542,7 +614,11 @@ AE.SB = {
      different instruments without leaving the engine. */
   const _tone = AE.tone.bind(AE);
   AE.tone = function (freq, opts = {}) {
-    MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.15, opts.at || 0, opts.dur !== undefined ? opts.dur : 0.8);
+    // opts.midi === false: this tone is a PARTIAL of a composite voice (a
+    // stacked overtone, a sub-thump) — it colors the browser sound but must
+    // not mirror as its own MIDI note, or one composite note becomes a
+    // chord in Live (Rain Atrium's felt piano sent 4 notes per drop).
+    if (opts.midi !== false) MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.15, opts.at || 0, opts.dur !== undefined ? opts.dur : 0.8);
     if (!MOut.suspend) AE.SB.push(freq, opts.vol, opts.at, opts.dur !== undefined ? opts.dur : 0.8);
     const sp = MOut.suspend; MOut.suspend = true; _tone(freq, opts); MOut.suspend = sp;
   };
@@ -565,9 +641,9 @@ AE.SB = {
     const sp = MOut.suspend; MOut.suspend = true; _bassNote(freq, opts); MOut.suspend = sp;
   };
   const _kick = AE.kick.bind(AE);
-  AE.kick = function (at, vol) { MOut.evDrum(36, vol !== undefined ? vol : 0.32, at || 0); _kick(at, vol); };
+  AE.kick = function (at, vol, opts = {}) { if (opts.midi !== false) MOut.evDrum(36, vol !== undefined ? vol : 0.32, at || 0); _kick(at, vol); };
   const _hat = AE.hat.bind(AE);
-  AE.hat = function (at, opts = {}) { MOut.evDrum(opts.open ? 46 : 42, opts.vol !== undefined ? opts.vol : 0.045, at || 0); _hat(at, opts); };
+  AE.hat = function (at, opts = {}) { if (opts.midi !== false) MOut.evDrum(opts.open ? 46 : 42, opts.vol !== undefined ? opts.vol : 0.045, at || 0); _hat(at, opts); };
   /* AE.hit — filtered-noise percussion. It was the LOUDEST hole in the mirror
      (113 call sites; White Study's whole click language is hits). Map the
      filter's center frequency onto the drum-rack notes the rig already uses:
@@ -576,7 +652,10 @@ AE.SB = {
   AE.hit = function (opts = {}) {
     const f = opts.freq !== undefined ? opts.freq : 2000;
     const note = f < 250 ? 36 : f < 1200 ? 38 : f < 4500 ? 42 : 46;
-    MOut.evDrum(note, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0);
+    // opts.midi === false: a noise-hit that is browser color, not a drum —
+    // e.g. thunder's low booms, which otherwise mirror as kick 36 and
+    // double the drum lane in Live (Lance heard it at full groove).
+    if (opts.midi !== false) MOut.evDrum(note, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0);
     _hit(opts);
   };
   /* AE.voice — continuous voices, the other hole. A voice has no note events,

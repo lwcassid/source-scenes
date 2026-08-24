@@ -185,6 +185,21 @@ cd "$(dirname "$0")/.."
   cat parts/part131_av10.js
   cat parts/part132_av11.js
   cat parts/part109_iris6.js
+  cat parts/part133_rainatrium7.js
+  cat parts/part134_rainatrium8.js
+  cat parts/part135_rainatrium9.js
+  cat parts/part136_rainatrium10.js
+  cat parts/part137_rainatrium11.js
+  cat parts/part138_rainatrium12.js
+  cat parts/part139_rainatrium13.js
+  cat parts/part140_rainatrium14.js
+  cat parts/part141_rainatrium15.js
+  cat parts/part142_rainatrium16.js
+  cat parts/part143_rainatrium17.js
+  cat parts/part144_rainatrium18.js
+  cat parts/part145_rainatrium19.js
+  cat parts/part146_rainatrium20.js
+  cat parts/part147_chladni23.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'

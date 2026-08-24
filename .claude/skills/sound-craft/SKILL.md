@@ -152,6 +152,11 @@ music: {
   move (1 bar beats 2–4), and keep gesture hits quiet, fixed-register and
   one-at-a-time UNDER it — loud variable-octave hits read as random and
   bury the music.
+- **THE SUMMONS is the beat paradigm (Lance, Aug 2026).** Scenes are vibes
+  first: earned drums belong behind the cross-scene master code (core
+  `SUMMON`: left hand parked at the source + right wiggling ≈4s → ~45s
+  window, gate floored ~0.3 inside it so the pocket holds for jamming; live
+  hands only). Rain V13 is the reference. Per-scene secret unlocks stay.
 - **Danceability follows interaction legibility (Lance).** Beats belong
   only to scenes whose mapping is commanded within seconds (flick, stab,
   drop). If discovering what the hands do takes minutes (Weather Station's
@@ -227,10 +232,14 @@ note on the TEXTURE channel (retunes re-strike, kill closes it) and pooled
 voice gain streams as texture CC74. Only pure-noise beds mirror nothing
 (Rain Atrium is the one such scene — that's by design, not a bug). Write
 `MOut.evNote(role, freq, vol, at, dur)` yourself only to pick a better
-role than the default. `MOut.expr(role, v)` streams CC74 energy — and scene close parks every
-role channel's CC74 back at 127 (open-at-rest, enforced in `allOff`), so a
-scene that rests its energy low can never leave the next scene's rack
-filtered shut. Note-offs
+role than the default. `MOut.expr(role, v)` streams CC74 energy — and scene OPEN and CLOSE both
+park every role channel's CC74 back at 127 (`parkExpr`): Live saves knob
+positions in the set file, so without the open-side park a filter saved
+shut stays shut on any channel a scene never streams (bit Lance twice).
+**Composite voices mirror ONE note**: stacked partials/sub-thumps built
+from extra `A.tone` calls must pass `midi: false` — otherwise each partial
+becomes its own MIDI note and one felt-piano drop is a chord in Live
+(Rain V7's find). Note-offs
 are managed by MOut's pump — NEVER hand-schedule them. CC1/CC2 stream raw
 hands globally.
 
