@@ -284,7 +284,14 @@ Live set changes.
   Daft Punk funk only where the scene's verb is funky.
 - A Live patch with its own arp/motion gets a HELD chord and lets the clock
   drive it — never for the reactive layer, whose answers stay per-note.
-  Record the choice in `rig.json`.
+  And the hold is STRUCK ON THE GRID: first strike on the next beat,
+  re-struck on every bar line, so the patch's pattern re-pins its phase to
+  the downbeat (the Chladni V28 grid lock — an un-quantized note-on starts
+  the patch's rhythm at a random point against the kick; Lance: "it was
+  more in time before"). Record the choice in `rig.json`.
+- **`evDrum` notes must land on pads that EXIST in the kit** (36 38 39 42
+  43/45 46 49 51 53 — rig.json's pad map). Ferro's log drums fired 63/64
+  for months and Live heard nothing; a made-up pad number fails SILENTLY.
 - **OUT is a casting decision per scene (Lance, Aug 2026).** Some scenes keep
   the browser sound blended under the rack (`both`) because its character is
   part of the piece — Ikeda's flat clicks, physics-true plate beating,
