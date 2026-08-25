@@ -660,7 +660,8 @@ AE.SB = {
   };
   const _bell = AE.bell.bind(AE);
   AE.bell = function (freq, opts = {}) {
-    MOut.evNote(opts.role || 'bells', freq, opts.vol !== undefined ? opts.vol : 0.12, opts.at || 0, opts.dur !== undefined ? opts.dur : 2.2);
+    // opts.midi === false: browser-color only (same contract as tone/kick/hat)
+    if (opts.midi !== false) MOut.evNote(opts.role || 'bells', freq, opts.vol !== undefined ? opts.vol : 0.12, opts.at || 0, opts.dur !== undefined ? opts.dur : 2.2);
     if (!MOut.suspend) AE.SB.push(freq, opts.vol !== undefined ? opts.vol : 0.12, opts.at, opts.dur !== undefined ? opts.dur : 2.2);
     const sp = MOut.suspend; MOut.suspend = true; _bell(freq, opts); MOut.suspend = sp;
   };
