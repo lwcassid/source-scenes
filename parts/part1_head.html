@@ -322,7 +322,10 @@
   /* collapsed = identity + liveness ONLY; the lane beside the row is the
      activity display. Tools and values live in the expanded panel. */
   #rigSplit .rkrow{height:22px;flex-wrap:nowrap;overflow:hidden}
-  #rigSplit .rkrow .rki{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #rigSplit .rkrow .rki{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt)}
+  #rigSplit .rkrow .rkch{color:var(--txt-dim)}
+  #rigSplit .rkrow i{width:9px;height:9px;opacity:.85;cursor:pointer}
+  #rigSplit .rkrow i:hover{opacity:1;box-shadow:0 0 6px 1px currentColor}
   .rkx[hidden]{display:none}
   .rkx{height:64px;margin:0 0 2px;padding:5px 6px 0 30px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
   .rkx .rkxtools{display:flex;gap:8px;align-items:center}
@@ -360,8 +363,7 @@
   .rkrow.on i{opacity:1}
   .rkrow.on b,.rkrow.on .rkch{color:var(--txt)}
   .rkrow{cursor:pointer}
-  .rkrow.spare{opacity:.5}
-  .rkrow.spare .rki{font-style:italic}
+
   .rkrow .rkevt{width:120px;flex:none;font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);overflow:hidden;white-space:nowrap}
   .rkrow .rkcc{width:56px;height:5px;flex:none;background:#1c1c20;border-radius:3px;overflow:hidden}
   .rkrow .rkcc u{display:block;height:100%;width:0;background:var(--acc);opacity:.7;transition:width .15s}

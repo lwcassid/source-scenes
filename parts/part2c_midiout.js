@@ -27,6 +27,12 @@ const MOut = {
     return performance.now() + Math.max(0, (atAudio - AE.ctx.currentTime)) * 1000;
   },
   wants() { return this.mode !== 'web'; },
+  // THE TILE GATE (Lance's library-lightning bug): wall tiles run every
+  // scene's step() with the ghost hands, and old versions call sfxNote &
+  // friends straight from step — so without this, a ghost-charged storm on
+  // a TILE throws real lightning into Live while you browse the library.
+  // A scene may only speak MIDI while it is THE focused scene.
+  _focused() { try { return typeof focus === 'undefined' || focus.idx >= 0; } catch (e) { return true; } },
   // MANAGED NOTE-OFFS — Web MIDI can't cancel a queued message, so a scheduled
   // note-off from a previous hit of the same pitch would strangle the new note
   // (fine in the browser synth, haywire in Ableton). Offs now run through our
@@ -46,7 +52,7 @@ const MOut = {
     }, 25);
   },
   evNote(role, freq, vol, atAudio, durSec) {
-    if (this.suspend || !isFinite(freq)) return;
+    if (this.suspend || !this._focused() || !isFinite(freq)) return;
     const ch = this.chFor(role);
     const note = this.f2n(freq), vel = this.v2v(vol);
     const p = this.ts(atAudio), durMs = Math.max(60, durSec * 1000);
@@ -67,7 +73,7 @@ const MOut = {
     }
   },
   evDrum(note, vol, atAudio) {
-    if (this.suspend) return;
+    if (this.suspend || !this._focused()) return;
     const ch = this.chFor('perc');
     const vel = this.v2v(vol), p = this.ts(atAudio);
     this.lastByRole.perc = p;
@@ -103,7 +109,7 @@ const MOut = {
   },
   // SFX — semantic one-shots (36 ignition · 37 lightning · 38 thunder · 39 rain …)
   sfxNote(note, vol = 0.7, dur = 2) {
-    if (this.suspend) return;
+    if (this.suspend || !this._focused()) return;
     const ch = this.chFor('sfx');
     const vel = this.v2v(vol), p = performance.now();
     this.lastByRole.sfx = p;
@@ -123,7 +129,9 @@ const MOut = {
     this._bed = note;
     const ch = this.chFor('bed'), p = performance.now();
     this.lastByRole.bed = p;
-    this.log.push({ p, role: 'bed', ch, note, vel: 90, durMs: 4000 });
+    // durMs = scene-length: the bed note holds until bedOff, and the
+    // console lane should show that truth (HOLD), not a 4s blip
+    this.log.push({ p, role: 'bed', ch, note, vel: 90, durMs: 3600000 });
     if (this.wants() && this.port) { try { this.port.send([0x90 | (ch - 1), note, 90], p); } catch (e) {} }
   },
   bedOff() {

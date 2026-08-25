@@ -1931,6 +1931,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     bed: 'scene atmospheres — one held note (20+scene#) per scene'
   };
   const NN = n => ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][n % 12] + (Math.floor(n / 12) - 2);
+  // every channel gets a color (Lance) — roles keep their role color, bench
+  // channels get a stable spread hue, so the whole mixer reads in color
+  const chCol = (ch, role) => role ? MOut.ROLE_COLORS[role] : `hsl(${(ch * 61) % 360},38%,64%)`;
   const roleAt = {};
   for (const r in MOut.roles) roleAt[MOut.roles[r]] = r;
   const rows = [];
@@ -1950,13 +1953,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     if (!role && !TRKS[ch]) continue;
     const doc = role ? (DOCS[role] || {}) : {};
     const div = document.createElement('div');
-    div.className = 'rkrow' + (role ? '' : ' spare');
+    div.className = 'rkrow';
     div.title = (role
       ? ((doc.instrument ? doc.instrument + '\n\n' : '') + [DESC[role], doc.use].filter(Boolean).join('\n\n'))
-      : 'No role routed here — nothing in the show triggers this track.') +
-      '\n\nClick to expand: tools + a piano-roll of this channel.';
+      : 'No role routed here — nothing in the show triggers this track (yet).') +
+      '\n\nDOT = one test note on this channel (outside Cmd+M). Click the row to expand.';
     div.innerHTML = `<span class="rkch">${ch}</span>
-      <i style="background:${role ? MOut.ROLE_COLORS[role] : '#3a3a3a'}"></i>
+      <i style="background:${chCol(ch, role)}"></i>
       <span class="rki">${esc(name)}</span>${role ? `<em class="rkr">${role}</em>` : ''}`;
     rack.appendChild(div);
     const x = document.createElement('div');
@@ -1964,12 +1967,12 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     x.innerHTML = `<span class="rkevt">—</span>
       <span class="rkxtools">
         ${role ? '<span class="rkcc" title="This channel\'s live CC74 (energy) value"><u></u></span>' : ''}
-        <button class="rkt" title="One test note on this channel (use OUTSIDE Cmd+M) — does the right track answer?">♪ TEST</button>
         ${role ? '<button class="rkm" title="For Cmd+M: click the knob in Live, then this — wiggles ONLY this channel\'s CC74.">MAP</button>' : ''}
       </span>`;
     rack.appendChild(x);
     rows.push({ ch, role, div, evts: x });
-    x.querySelector('.rkt').addEventListener('click', e => {
+    // the colored DOT is the test button (Lance: simpler than a TEST chip)
+    div.querySelector('i').addEventListener('click', e => {
       e.stopPropagation();
       AE.ensure(); if (!midi.access) connectMidi();
       if (!role) MOut.rawNote(ch);
@@ -2066,7 +2069,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
       const on = !!hot[r.ch];
       r.div.classList.toggle('on', on);
       r.div.querySelector('i').style.boxShadow =
-        on ? `0 0 6px 1px ${r.role ? MOut.ROLE_COLORS[r.role] : '#999'}` : '';
+        on ? `0 0 6px 1px ${chCol(r.ch, r.role)}` : '';
       if (r.evts.hidden) continue;
       const le = lastE[r.ch];
       const evEl = r.evts.querySelector('.rkevt');
@@ -2153,7 +2156,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     }
     for (const r of rows) {
       const es = byCh[r.ch] || [];
-      const col = r.role ? MOut.ROLE_COLORS[r.role] : '#8a8a8a';
+      const col = chCol(r.ch, r.role);
       const rowY = r.div.offsetTop, rowH = r.div.offsetHeight;
       g.save();
       g.beginPath(); g.rect(0, rowY + 2, W, rowH - 4); g.clip();
