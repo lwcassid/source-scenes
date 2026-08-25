@@ -734,8 +734,14 @@ AE.SB = {
       const o = g > 0.004 && h._oscs &&
         h._oscs.find(o2 => isFinite(o2.frequency.value) && o2.frequency.value > 25); // skip LFOs
       if (o) {
-        M.holdOn(h, 'texture', o.frequency.value, Math.round(30 + Math.min(1, g) * 60));
-        energy = Math.max(energy, g);
+        // group gain is the fade master (~1 once a scene is up), not the
+        // voice's real loudness -- so scale the hold by the focused scene's
+        // PRESENCE, or an idle drone strikes the HandPan at vel 90 for an
+        // empty room (Ferro, caught in the idle audit)
+        const pres = (typeof focus !== 'undefined' && focus && focus.P && focus.P.state &&
+          typeof focus.P.state.pres === 'number') ? focus.P.state.pres : 1;
+        M.holdOn(h, 'texture', o.frequency.value, Math.round((30 + Math.min(1, g) * 60) * (0.4 + 0.6 * pres)));
+        energy = Math.max(energy, g * (0.4 + 0.6 * pres));
       } else M.holdOff(h);
     });
     M.expr('texture', Math.min(1, energy));
