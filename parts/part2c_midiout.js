@@ -667,13 +667,18 @@ AE.SB = {
   };
   const _pluck2 = AE.pluck2.bind(AE);
   AE.pluck2 = function (freq, opts = {}) {
-    MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.16, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.1);
+    // opts.midi === false: browser-color only (same contract as tone/bell) —
+    // for plucks that a scene mirrors explicitly on a different role, or
+    // percussion-ish ticks that would spam the lead channel (Ferro's clave)
+    if (opts.midi !== false) MOut.evNote(opts.role || 'lead', freq, opts.vol !== undefined ? opts.vol : 0.16, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.1);
     if (!MOut.suspend) AE.SB.push(freq, opts.vol !== undefined ? opts.vol : 0.16, opts.at, opts.dur !== undefined ? opts.dur : 1.1);
     const sp = MOut.suspend; MOut.suspend = true; _pluck2(freq, opts); MOut.suspend = sp;
   };
   const _bassNote = AE.bassNote.bind(AE);
   AE.bassNote = function (freq, opts = {}) {
-    MOut.evNote(opts.role || 'bass', freq, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.6);
+    // opts.midi === false: same contract — a scene that writes its own bass
+    // evNote (better velocity than the browser gain implies) opts out here
+    if (opts.midi !== false) MOut.evNote(opts.role || 'bass', freq, opts.vol !== undefined ? opts.vol : 0.2, opts.at || 0, opts.dur !== undefined ? opts.dur : 1.6);
     if (!MOut.suspend) AE.SB.push(freq, opts.vol !== undefined ? opts.vol : 0.2, opts.at, opts.dur !== undefined ? opts.dur : 1.6);
     const sp = MOut.suspend; MOut.suspend = true; _bassNote(freq, opts); MOut.suspend = sp;
   };
