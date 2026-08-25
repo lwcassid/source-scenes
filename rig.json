@@ -47,6 +47,14 @@
     "whenever a scene asks. He is unattached; the scene decides."
   ],
   "port": "IAC Driver Bus 1",
+  "_cc74_mappings": [
+    "THE MAPPING REGISTRY (facts only — update when a mapping is made or removed; sessions must NOT assume beyond this list):",
+    "ch1 perc: CC74 → LEX loop pad chain volume (Min -inf, Max 0dB)",
+    "ch4 sfx: CC74 → ThunderRain chain vol (-61..-9dB) + Rain chain vol (-22..-2.4dB) — the weather crossfade",
+    "ch7 lead: CC74 → FELT PIANO Auto Filter freq (20Hz..20kHz)",
+    "ALL OTHER CHANNELS: CC74 UNMAPPED — it does nothing in Live yet.",
+    "Worth mapping next (Lance, when ready): ch15 bells → Dreamies Master Filter cutoff (Omnisphere right-click → MIDI CC Learn → BELLS row MAP) · ch14 arp → Science Class cutoff (same trick) · ch5 pad → Jup-8 Brightness (Arturia exposes it as a host param: Live Configure) · ch9 texture → HandPan brightness/send."
+  ],
   "tracks": {
     "1": "R&B DRUMS",
     "2": "80'S DRUMS",
