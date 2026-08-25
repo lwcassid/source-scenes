@@ -32,8 +32,45 @@
     {
       "name": "THE MAGNIFICENT NINE",
       "default": true,
-      "note": "Lance, Aug 2026 — the favourite set so far. Nine scenes that hold up on the wall, in this order: Chladni's sand finds the silent lines, Lumen Film opens the aperture, Ferro Bloom puts the colour on, Ridge Loom and Weather Station take the room wide, then it narrows — Attractor Vespers to smoke, White Study to black and white, Rain Atrium to a dark pool, and Cable Strum leaves one string in the air.",
-      "scenes": ["SRC-28", "SRC-38", "SRC-15", "SRC-42", "SRC-10", "SRC-09", "SRC-34", "SRC-16", "SRC-13"]
+      "note": "Lance, Aug 2026 — the favourite set so far. Nine scenes that hold up on the wall, in this order: Chladni's sand finds the silent lines, Lumen Film opens the aperture, Ferro Bloom puts the colour on, Ridge Loom and Weather Station take the room wide, then it narrows — Attractor Vespers to smoke, White Study to black and white, Rain Atrium to a dark pool, and Cable Strum leaves one string in the air. OUT casting baked from docs/ABLETON-RIG.md (Rain: midi per the V20 loop-is-the-kit round; Chladni: both carries the browser bells; Weather/others per the table).",
+      "scenes": [
+        {
+          "id": "SRC-28",
+          "out": "both"
+        },
+        {
+          "id": "SRC-38",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-15",
+          "out": "both"
+        },
+        {
+          "id": "SRC-42",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-10",
+          "out": "both"
+        },
+        {
+          "id": "SRC-09",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-34",
+          "out": "both"
+        },
+        {
+          "id": "SRC-16",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-13",
+          "out": "both"
+        }
+      ]
     }
   ]
 }
