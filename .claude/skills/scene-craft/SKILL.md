@@ -115,6 +115,12 @@ density it gets live. Two consequences:
   Corollary for "too big, make it denser": add a subdivision level (smaller
   cells, more of them, structure preserved) and SHORTEN the radius — do not
   just shrink, or you lose the layers you were asked to keep.
+- **Deform a MESH by position, never by cell (Nima, Penrose Bloom V6's
+  elasticity).** To make a tiling/lattice stretch without tearing, displace
+  every vertex by a pure function of WHERE IT IS — two cells sharing a corner
+  then move it identically and the sheet stays welded. Cap the amplitude so
+  the displacement's gradient stays under 1 (`amp * waveNumber < 1`) or
+  shells cross through each other and the mesh turns inside out.
 
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
