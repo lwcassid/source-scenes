@@ -230,6 +230,8 @@ cd "$(dirname "$0")/.."
   cat parts/part173_front9.js
   cat parts/part174_front10.js
   cat parts/part175_front11.js
+  cat parts/part176_front12.js
+  cat parts/part177_front13.js
   cat parts/part176_penrose.js
   cat parts/part177_penrose2.js
   cat parts/part178_penrose3.js

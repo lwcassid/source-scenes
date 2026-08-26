@@ -188,6 +188,13 @@ the reference implementation; read it before building a second one.
   `onset`-edge fallback for the test hook; `setAudioKick(strength)` fires
   one hit in harnesses. `node tools/kicktest.mjs` measures it — read the
   `exact` series (poll latency there is the headless frame interval).
+- **Hand SPEED is an input in its own right (Nima, Cell Front V12).** On an
+  audio-reactive scene the hands' position may have nothing left to say;
+  |d(inp)/dt| into a snap-up / ~2s-fade envelope makes a gesture paint and
+  stillness leave the scene alone — no stale ghost-drift value can lie
+  about it, because a held value has zero velocity. Palette borrowed from
+  a sibling scene (Ridge Loom's violet / orange / cyan) is allowed; drop
+  the accent stop when the ask says so.
 - No sound of its own is not a requirement — a scene can listen AND still
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
