@@ -200,6 +200,16 @@ the reference implementation; read it before building a second one.
   one end of the ramp and the mosaic went flat, which is a LOST palette, not
   a louder one. Move the ramp's CENTRE most of its length (~0.58) and leave
   the structural terms room to spread tiles around it.
+- **Colour a FIGURE, not every cell (Nima, Penrose Bloom V4).** An even tint
+  across a structured field is wallpaper; the reference plates people bring
+  in are always colouring a SUB-PATTERN out of a mostly bare ground. Find the
+  special sites in the geometry you already have — Penrose's sun vertices are
+  exactly ten fat triangle-corners and no thin ones — and let colour diagnose
+  them: heart, ring, bare paper, roughly a quarter / a fifth / the rest. Give
+  bare paper the palette's own cream, dim, and let EXCITEMENT set the
+  contrast between figure and ground, so quiet reads as one lattice and loud
+  resolves into the plate. Classify once per geometry and cache it; it is
+  fixed data, never per-frame work.
 - **SHOOT the audio states — `node tools/shotaudio.mjs <id> <prefix>`.**
   `shot.mjs` can only drive hands, so an audio-in scene's whole instrument
   is invisible to it. shotaudio drives `setAudioIn`/`setAudioKick` through a
