@@ -1318,19 +1318,13 @@ FAMS.forEach(F => {
   tile.addEventListener('click', () => openFocus(tile.cur.idx));
 });
 
-// version dropdown in fullscreen focus — flip live between versions to compare
+// No version dropdown in the HISTORY header (Lance): the version rows right
+// below it are already click-to-open, and a control that exists twice is a
+// bug. The span stays in the markup; it just stays empty.
 function renderFocusVersions(i) {
   const el = document.getElementById('oVers');
-  if (!el) return;
-  const F = FAMS.find(x => x.fam === famOf(PIECES[i]));
-  el.innerHTML = (F && F.entries.length > 1)
-    ? `<select class="vsel" id="oVerSel">${F.entries.map(e => `<option value="${e.idx}"${e.idx === i ? ' selected' : ''}>V${e.def.ver || 1}</option>`).join('')}</select>`
-    : '';
+  if (el) el.innerHTML = '';
 }
-document.getElementById('oVers').addEventListener('change', e => {
-  const idx = +e.target.value;
-  if (idx !== focus.idx) { closeFocus(); openFocus(idx); }
-});
 
 /* ============================================================
    HISTORY — the scene's change log, in its sidebar.
@@ -1754,6 +1748,16 @@ document.getElementById('oActs').addEventListener('click', e => {
     if (best < 0) best = PIECES.findIndex(p => p.id === id);
     return best;
   };
+  // What the URL should say for scene i: always the bare FAMILY id, which
+  // resolves to "latest". A refresh therefore ALWAYS opens the family's
+  // newest version, even if it shipped after the page loaded (Lance: "why
+  // doesn't it always select the latest when I refresh?"). An exact .N in
+  // an INCOMING link is still honored on arrival — sceneFromHash reads it
+  // before boot rewrites the URL — so shared round links keep working.
+  const hashIdFor = i => {
+    const p = PIECES[i];
+    return p ? (p.family || p.id) : '';
+  };
   // wrap open/close so the URL always mirrors the stage
   const _open = openFocus, _close = closeFocus;
   let syncing = false;
@@ -1768,7 +1772,7 @@ document.getElementById('oActs').addEventListener('click', e => {
   window.openFocus = function (i, fromRelay) {
     _open(i, fromRelay);
     if (!syncing && PIECES[i]) {
-      try { history.replaceState(null, '', location.pathname + '#scene=' + PIECES[i].id); } catch (e) {}
+      try { history.replaceState(null, '', location.pathname + '#scene=' + hashIdFor(i)); } catch (e) {}
     }
   };
   window.closeFocus = function () {
@@ -1783,9 +1787,21 @@ document.getElementById('oActs').addEventListener('click', e => {
   // The head sets html.deeplink at first paint to hold the wall invisible;
   // lifted here once the stage owns the screen (or the link was a dud).
   const boot = () => {
-    const i = sceneFromHash();
+    let i = sceneFromHash();
+    // a RELOAD always resolves to the family's latest, even over an exact
+    // .N pin left in the address bar from before this rule shipped — only
+    // FOLLOWING a link honors the exact version it names
+    try {
+      const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+      if (i >= 0 && nav && nav.type === 'reload') {
+        const fam = PIECES[i].family || PIECES[i].id;
+        let best = i, bv = 0;
+        PIECES.forEach((p, pi) => { if ((p.family || p.id) === fam && (p.ver || 1) >= bv) { bv = p.ver || 1; best = pi; } });
+        i = best;
+      }
+    } catch (e) {}
     if (i >= 0) { syncing = true; window.openFocus(i); syncing = false;
-      try { history.replaceState(null, '', location.pathname + '#scene=' + PIECES[i].id); } catch (e) {} }
+      try { history.replaceState(null, '', location.pathname + '#scene=' + hashIdFor(i)); } catch (e) {} }
     document.documentElement.classList.remove('deeplink');
   };
   setTimeout(boot, 0);
