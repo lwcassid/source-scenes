@@ -163,16 +163,19 @@ const MOut = {
     if (this.wants() && this.port) { try { this.port.send([0x80 | (h._mCh - 1), h._mNote, 0]); } catch (e) {} }
     h._mNote = undefined; h._mCh = undefined;
   },
-  padSet(voiceObj, freq, vel = 58) {
-    const ch = this.chFor('pad');
+  padSet(voiceObj, freq, vel = 58, role = 'pad') {
+    // role: a padVoices stack can be cast onto any role's channel (EH's
+    // string wall lives on the STRINGS track, not PADS) — note-offs chase
+    // the channel the note actually went out on
+    const ch = this.chFor(role);
     const note = this.f2n(freq);
-    if (voiceObj._mNote === note) return;
+    if (voiceObj._mNote === note && voiceObj._mCh === ch) return;
     const p = performance.now();
     if (voiceObj._mNote !== undefined && this.wants() && this.port) {
-      try { this.port.send([0x80 | (ch - 1), voiceObj._mNote, 0], p); } catch (e) {}
+      try { this.port.send([0x80 | ((voiceObj._mCh || ch) - 1), voiceObj._mNote, 0], p); } catch (e) {}
     }
-    voiceObj._mNote = note;
-    this.log.push({ p, role: 'pad', ch, note, vel, durMs: 1400 });
+    voiceObj._mNote = note; voiceObj._mCh = ch;
+    this.log.push({ p, role, ch, note, vel, durMs: 1400 });
     if (this.wants() && this.port) { try { this.port.send([0x90 | (ch - 1), note, vel], p); } catch (e) {} }
   },
   cc(ch, ccNum, val) {
@@ -539,7 +542,11 @@ try {
      browser matches the set, always. The stale key is purged. */
   try {
     if (typeof RIGDOC !== 'undefined' && RIGDOC.roles) {
-      for (const r in MOut.roles) {
+      // iterate RIG.JSON'S keys, not the built-in nine — every role rig.json
+      // declares exists (the bench roles: strings/shrine/mellotron/choir/sax).
+      // Iterating MOut.roles silently dropped new roles and chFor() fell back
+      // to channel 1: bench notes would have landed on the DRUM KIT.
+      for (const r in RIGDOC.roles) {
         const d = RIGDOC.roles[r];
         if (d && d.ch >= 1 && d.ch <= 16) MOut.roles[r] = d.ch;
       }
@@ -755,6 +762,8 @@ AE.SB = {
     // Chladni's five held SHRINE notes drowned everything; the pad channel
     // is for INTENTIONAL notes, not washes)
     if (opts && opts.midi === false) return voices;
+    // opts.role: cast the stack onto another role's channel (default pad)
+    const mRole = (opts && opts.role) || 'pad';
     for (const vc of voices) {
       const _set = vc.set.bind(vc);
       // velocity from the voice's ACTUAL gain, not a constant — measured
@@ -763,7 +772,7 @@ AE.SB = {
       // Scenes that swell a pad voice's gain now speak at that loudness.
       vc.set = function (freq, glide) {
         let g = 0.045; try { g = vc.g.gain.value; } catch (e) {}
-        MOut.padSet(vc, freq, Math.round(Math.max(25, Math.min(105, 25 + (g / 0.05) * 45))));
+        MOut.padSet(vc, freq, Math.round(Math.max(25, Math.min(105, 25 + (g / 0.05) * 45))), mRole);
         _set(freq, glide);
       };
     }

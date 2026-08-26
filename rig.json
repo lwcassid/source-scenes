@@ -44,7 +44,8 @@
     "CONFIDENCE (Lance, Aug 2026): drums, SFX one-shots, felt piano and Augmented",
     "Strings are his calls; bass builds to the CHARACTER spec; every other seat is",
     "provisional — designed to the briefs in docs/ABLETON-RIG.md, moved freely",
-    "whenever a scene asks. He is unattached; the scene decides."
+    "whenever a scene asks. He is unattached; the scene decides.",
+    "BENCH ROLES (Aug 2026): strings 6 · shrine 8 · mellotron 10 · choir 11 · sax 12 — every racked track is now a role under the 1:1 law; scenes cast onto them directly (EH wall→strings, Vespers beam→sax + choir double, Ferro answers→mellotron). The MIDI-From casting-bench move is retired for these; it remains the trick for kit swaps (80'S DRUMS listening on ch1)."
   ],
   "port": "IAC Driver Bus 1",
   "_cc74_mappings": [
@@ -54,7 +55,8 @@
     "ch7 lead: CC74 → FELT PIANO Auto Filter freq (20Hz..20kHz)",
     "ALL OTHER CHANNELS: CC74 UNMAPPED — it does nothing in Live yet.",
     "Worth mapping next (Lance, when ready): ch15 bells → Dreamies Master Filter cutoff (Omnisphere right-click → MIDI CC Learn → BELLS row MAP) · ch14 arp → Science Class cutoff (same trick) · ch5 pad → Jup-8 Brightness (Arturia exposes it as a host param: Live Configure) · ch9 texture → HandPan brightness/send.",
-    "When loops land on 54/55/56 (Chladni/Ridge/EH loop seats): map ch1 CC74 to each pad's chain volume, Min -inf — same move as the LEX pad; one CC fades whichever loop its scene holds."
+    "When loops land on 54/55/56 (Chladni/Ridge/EH loop seats): map ch1 CC74 to each pad's chain volume, Min -inf — same move as the LEX pad; one CC fades whichever loop its scene holds.",
+    "New lanes worth mapping: ch6 strings → Augmented Strings GATE dial (the marquee — EH streams gate depth here now) · ch12 sax → the beam patch's cutoff (Vespers streams THE MOUTH here now)."
   ],
   "tracks": {
     "1": "R&B DRUMS",
@@ -130,6 +132,36 @@
       "instrument": "Nebula track is the home — (proposed) Sampler of the sci-fi spaceship / analog-ambient atmospheres",
       "character": "deep room tone with bass",
       "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades. Chladni = note 48"
+    },
+    "strings": {
+      "ch": 6,
+      "instrument": "Arturia Augmented Strings (STRINGS track ch6) — now a first-class ROLE: Event Horizon casts its string wall here (V18), gate depth streams on ch6 CC74 — map it to the Augmented gate dial (the marquee mapping's real home)",
+      "character": "dark low string ensemble with a rhythmic gate the CC74 stream drives",
+      "use": "EH's chairs + chord rolls; any scene wanting bowed weight"
+    },
+    "shrine": {
+      "ch": 8,
+      "instrument": "SHRINE (Sacred Shrine color, ch8) — role reserved; no scene casts it yet (Lance: 'really busy' — audition at low volume before casting)",
+      "character": "dense sacred color",
+      "use": "wildcard seat"
+    },
+    "mellotron": {
+      "ch": 10,
+      "instrument": "Mellotron (ch10) — Lance: 'makes a fun lead, pretty high'. Ferro casts its call-and-response answers here (V21)",
+      "character": "tape-flute lead, high register",
+      "use": "high answering lines; audition against White Study's summon roll"
+    },
+    "choir": {
+      "ch": 11,
+      "instrument": "Choir (ch11) — Vespers holds a soft root+color double under the hum (V13), velocity breathing with the light",
+      "character": "human undertone",
+      "use": "hum doubles, walls at totality; keep the fader low — seasoning, not lead"
+    },
+    "sax": {
+      "ch": 12,
+      "instrument": "SpaceSax (ch12) — Vespers casts THE BEAM here (V13): held mono voice, retuned rung by rung, THE MOUTH streams on ch12 CC74 (map to cutoff/brightness). Load any legato patch here and the beam speaks it; the felt piano no longer plinks the beam",
+      "character": "swelling, breathy — or whatever legato patch is loaded",
+      "use": "continuous voices with articulation"
     }
   },
   "_benchCasting": [
