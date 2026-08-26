@@ -186,6 +186,20 @@ the reference implementation; read it before building a second one.
   mid/treble balance re-deals which tile class takes which stop, quantised
   and held so it steps on a chord change instead of shimmering)". Same
   engine, same palette, two instruments — not one scene twice.
+- **Spend the dynamic range on the RIGHT axis (Nima, Penrose Bloom V2→V3).**
+  V2 gave the radius almost all of it and the palette almost none: "the size
+  change is too sensitive and the color change is not sensitive enough."
+  Two fixes worth stealing. SIZE: put a HIGH-WATER MARK between the audio and
+  whatever the picture counts — growth instant, retreat a slow melt (~1.1/s).
+  A live front sweeping a sorted list crystallises AND dissolves a whole ring
+  on every wobble, which is a binary strobing edge; a hwm makes the boundary
+  hold while the beat reads as LIGHT (brighten the ring off the kick
+  ENVELOPE, not the front's velocity). COLOUR: the sensitivity comes from
+  NARROWING THE INPUT WINDOW to where music actually lives (centroid
+  0.36-0.66), not from cranking the weight — at 1.25 every tile clamped to
+  one end of the ramp and the mosaic went flat, which is a LOST palette, not
+  a louder one. Move the ramp's CENTRE most of its length (~0.58) and leave
+  the structural terms room to spread tiles around it.
 - **SHOOT the audio states — `node tools/shotaudio.mjs <id> <prefix>`.**
   `shot.mjs` can only drive hands, so an audio-in scene's whole instrument
   is invisible to it. shotaudio drives `setAudioIn`/`setAudioKick` through a
