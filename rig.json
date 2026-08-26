@@ -56,7 +56,8 @@
     "ALL OTHER CHANNELS: CC74 UNMAPPED — it does nothing in Live yet.",
     "Worth mapping next (Lance, when ready): ch15 bells → Dreamies Master Filter cutoff (Omnisphere right-click → MIDI CC Learn → BELLS row MAP) · ch14 arp → Science Class cutoff (same trick) · ch5 pad → Jup-8 Brightness (Arturia exposes it as a host param: Live Configure) · ch9 texture → HandPan brightness/send.",
     "When loops land on 54/55/56 (Chladni/Ridge/EH loop seats): map ch1 CC74 to each pad's chain volume, Min -inf — same move as the LEX pad; one CC fades whichever loop its scene holds.",
-    "New lanes worth mapping: ch6 strings → Augmented Strings GATE dial (the marquee — EH streams gate depth here now) · ch12 sax → the beam patch's cutoff (Vespers streams THE MOUTH here now)."
+    "New lanes worth mapping: ch6 strings → Augmented Strings GATE dial (the marquee — EH streams gate depth here now) · ch12 sax → the beam patch's cutoff (Vespers streams THE MOUTH here now).",
+    "THE EXPRESSION ROUND (Lance wants it): map CC74 on every seat so scenes can swell/ramp instead of hitting - ch3 bass (Lumen's breath swell is already streaming it), ch5 pad, ch8 shrine, ch11 choir, ch12 sax, ch6 strings gate, ch10 mellotron. Each mapping ~2 min (Configure/CC-Learn + the row's MAP button); say each one as it lands and it gets recorded here."
   ],
   "tracks": {
     "1": "R&B DRUMS",
@@ -87,7 +88,7 @@
     },
     "pad": {
       "ch": 5,
-      "instrument": "Arturia Jup-8 V4 — Deep Blue Voices (PADS track ch5, Lance, Aug 2026). 1:1 rule: the pad ROLE plays the track NAMED PADS. SHRINE ch8 is bench color now; planned chains: GLASS organ (Lumen) · analog poly pad (Vespers) · Augmented Strings (EH, Macro 1 = gate dial). RULE (Lance, Aug 2026): the pad is INTENTIONAL — single placed notes, never a constant wash; a scene that holds a stack of pad voices drowns everything else (Chladni keeps its floor browser-side now)",
+      "instrument": "Ethereal Journey - an Augmented Strings patch (PADS ch5, Lance, Aug 2026 - swapped in over Jup-8 Deep Blue Voices: 'those were too gritty'). 1:1 rule: the pad ROLE plays the track NAMED PADS. RULE (Lance): the pad is INTENTIONAL - single placed notes, never a constant wash.",
       "character": "the most scene-divergent channel — glass / cathedral air / analog light-pad / dark gated strings; chain per scene (manual first, bed-note chain-select later)",
       "use": "sustained voice-led chords; glides on chord changes. Event Horizon (SRC-13) streams its rhythmic GATE DEPTH here as CC74 — map it to Augmented Strings' gate dial and the plugin throbs with the picture"
     },
@@ -143,7 +144,7 @@
       "ch": 8,
       "instrument": "SHRINE (Sacred Shrine, ch8) — Lance's ear: 'a little more tone' than Nebula. Role reserved; the tonal-atmosphere wildcard (audition low before casting — his earlier verdict: 'really busy' as a lead pad).",
       "character": "tonal sacred atmosphere — more pitch than Nebula's hum",
-      "use": "wildcard seat"
+      "use": "THE TEASE SEAT (Lance, Aug 2026): 'hit it for a second, just one note, and that's a 10-second tease.' Rest-state single notes ride the long tail - Lumen V24 breathes on it. Still audition low anywhere it plays under other material."
     },
     "mellotron": {
       "ch": 10,
