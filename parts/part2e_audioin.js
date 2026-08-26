@@ -44,6 +44,23 @@ const AUDIOIN = {
   // change between two samples means at least one hit happened in between,
   // regardless of exactly when.
   onsetCount: 0, _pulseWasHigh: false,
+  // KICK (Nima, Cell Front V11 round): a second, TIME-DOMAIN detector that
+  // runs beside `onset`, never instead of it. onset is the byte-FFT bass-band
+  // rise polled once per frame — measured at ~60ms median on a synthetic
+  // 128 BPM techno bed (tools/kicktest.mjs), with the 16th-note bassline
+  // false-triggering it. This one low-passes the input at 150Hz (hats and
+  // snare top gone), scans EVERY sample the analyser ring holds since the
+  // last frame (gap-free, so a frame hitch loses nothing), runs a 3ms/100ms
+  // power envelope against a 60ms/400ms lagging reference, and fires on the
+  // rising edge when the envelope exceeds K× the reference. A sustained bass
+  // note lets the reference catch up (no fire); a new bass note is a slower
+  // edge than a kick; a layered kick+bass only adds. Harness: ~5ms median,
+  // 0 misses. `t` is the SAMPLE-ACCURATE AudioContext time of the hit, so a
+  // scene can back-date its response by the hit's true age; `n` is a
+  // monotonic counter (compare to detect a new hit, never truthiness).
+  kick: { t: -1, strength: 0, n: 0 },
+  kickBpm: 0,
+  _kLastCt: 0, _kEnv: 0, _kRef: 0, _kPrev: 0, _kGap: 1e9, _kSeeded: false, _kConnectT: 0, _kIoi: [], _kFiredThisTick: false,
 
   // self-widening range per band (Q16: "same as CAL"), one shared REST
   // sample rather than per-side — there is one signal here, not two hands.
@@ -198,6 +215,22 @@ const AUDIOIN = {
     this.freqBuf = new Uint8Array(this.analyserMono.frequencyBinCount);
     this._fluxPrimed = false; this._fluxSlow = 0; this._onsetGap = 0; this._onsetEnv = 0; this._prevBassRaw = 0;
 
+    // kick detector graph (see `kick` above): lowpass 150Hz → time-domain
+    // analyser (8192 samples ≈ 170ms ring @48k — a frame stall analyses instead of dropping; smoothing 0 so the ring is
+    // raw). An AnalyserNode is a valid sink — nothing connects onward.
+    this.kickLP = this.ctx.createBiquadFilter();
+    this.kickLP.type = 'lowpass'; this.kickLP.frequency.value = 150; this.kickLP.Q.value = 0.7071;
+    this.kickAn = this.ctx.createAnalyser();
+    this.kickAn.fftSize = 8192; this.kickAn.smoothingTimeConstant = 0;
+    this.kickAn.channelCount = 1; this.kickAn.channelCountMode = 'explicit';
+    this.kickBuf = new Float32Array(this.kickAn.fftSize);
+    this.srcNode.connect(this.kickLP); this.kickLP.connect(this.kickAn);
+    const SR = this.ctx.sampleRate, C = sec => 1 - Math.exp(-1 / (sec * SR));
+    this._kCoef = { eA: C(0.003), eR: C(0.100), rA: C(0.060), rR: C(0.400), REFR: Math.round(0.090 * SR), K: 2.2, FLOOR2: 0.015 * 0.015 };
+    this._kLastCt = this.ctx.currentTime; this._kEnv = 0; this._kRef = 0; this._kPrev = 0; this._kGap = 1e9;
+    this._kSeeded = false; this._kConnectT = this.ctx.currentTime; this._kIoi = [];
+    this.kick = { t: -1, strength: 0, n: this.kick ? this.kick.n : 0 };
+
     // a 2-channel split feeds two small time-domain analysers, used only to
     // compute per-channel RMS for stereo pan — not the band analysis above.
     this.splitter = this.ctx.createChannelSplitter(2);
@@ -216,11 +249,44 @@ const AUDIOIN = {
     if (this.ctx) { try { this.ctx.close(); } catch (e) {} }
     this.stream = null; this.ctx = null; this.srcNode = null; this.splitter = null;
     this.analyserMono = this.analyserL = this.analyserR = null;
+    this.kickLP = this.kickAn = null;
   },
 
   // Show window: run the analysis, called once per frame from part5_tail.js
   // regardless of which scene is open — the library wall's own ambient
   // step() calls read inp.audio too, so this stays live the whole show.
+  _kickScan() {
+    this._kFiredThisTick = false;
+    if (!this.kickAn || !this.ctx) return;
+    const c = this._kCoef, SR = this.ctx.sampleRate, ct = this.ctx.currentTime;
+    let n = Math.round((ct - this._kLastCt) * SR); this._kLastCt = ct;
+    if (n <= 0) return;
+    const L = this.kickBuf.length, dropped = n > L;   // >170ms hitch: audio lost — analyse, don't fire
+    if (dropped) n = L;
+    this.kickAn.getFloatTimeDomainData(this.kickBuf);
+    const armed = ct - this._kConnectT > 0.5;
+    for (let i = L - n; i < L; i++) {
+      const x = this.kickBuf[i], r = x * x;
+      this._kEnv += (r - this._kEnv) * (r > this._kEnv ? c.eA : c.eR);
+      this._kRef += (r - this._kRef) * (r > this._kRef ? c.rA : c.rR);
+      if (!this._kSeeded) { this._kRef = this._kEnv; this._kSeeded = true; }
+      this._kGap++;
+      const rising = this._kEnv > this._kPrev; this._kPrev = this._kEnv;
+      if (!dropped && armed && rising && this._kGap > c.REFR && this._kEnv > this._kRef * c.K + c.FLOOR2) {
+        this._kGap = 0;
+        const t = ct - (L - 1 - i) / SR;
+        const strength = clamp(Math.log10(this._kEnv / (this._kRef + 1e-9)) / 1.2);
+        this.kick = { t, strength, n: this.kick.n + 1 };
+        this._kFiredThisTick = true;
+        this._kIoi.push(t); if (this._kIoi.length > 8) this._kIoi.shift();
+        if (this._kIoi.length >= 4) {
+          const d = []; for (let j = 1; j < this._kIoi.length; j++) d.push(this._kIoi[j] - this._kIoi[j - 1]);
+          d.sort((a, b) => a - b); const m = d[d.length >> 1];
+          if (m > 0.25 && m < 1.2) this.kickBpm = Math.round(60 / m);
+        }
+      }
+    }
+  },
   tick(dt) {
     if (window.ELECTRON_ROLE === 'control') return;
     // Test hook active (setAudioIn, no real device wired) — leave whatever
@@ -240,6 +306,7 @@ const AUDIOIN = {
       return;
     }
 
+    this._kickScan();
     this.analyserMono.getByteFrequencyData(this.freqBuf);
     const sr = this.ctx.sampleRate, binHz = sr / this.analyserMono.fftSize;
     const bandEnergy = ([lo, hi]) => {
@@ -295,6 +362,9 @@ const AUDIOIN = {
         this._onsetEnv = 1;
         this._onsetGap = 0;
       }
+      // the time-domain kick raises onset too (same envelope, same decay, same
+      // refractory) — existing onset readers get the earlier edge for free.
+      if (this._kFiredThisTick && this._onsetGap > 0.15) { this._onsetEnv = 1; this._onsetGap = 0; }
     } else {
       // first tick after connecting: seed the baseline, don't fire — every
       // reading looks like a "rise" off a zeroed start otherwise.
@@ -407,3 +477,9 @@ function setAudioIn(vals) {
   AUDIOIN._testOverride = true;
 }
 window.setAudioIn = setAudioIn;
+// Kick test hook: a single hit, `strength` 0..1. Bumps `n` so scenes see a
+// NEW hit; `t` is on the perf clock (no ctx), which scenes treat as age 0.
+function setAudioKick(strength) {
+  setAudioIn({ kick: { t: performance.now() / 1000, strength: clamp(strength === undefined ? 0.8 : strength), n: (AUDIOIN.kick ? AUDIOIN.kick.n : 0) + 1, perfClock: true } });
+}
+window.setAudioKick = setAudioKick;

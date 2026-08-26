@@ -299,7 +299,11 @@ has focus. `reg({audioIn:true})` also gates SHOW CHECK's conditional AUDIO
 IN row — most scenes never touch it, so it only appears when one that
 declares it is open or queued. `setAudioIn({level, bass, mid, treble, onset,
 pan})` is the test hook (mirrors `setChan`) for `playtest.js`/`shotcam.mjs`,
-since sandboxes have no real mic — Cell Front V4 (SRC-43.4) is the reference
+since sandboxes have no real mic. `inp.audio.kick = {t, strength, n}` is the
+sample-accurate time-domain KICK (LP150 scanner beside onset; a new hit is
+`n` changing; `setAudioKick()` is its test hook; `tools/kicktest.mjs` measures
+it) — Cell Front V11 (SRC-43.11) is the reference for reading it. Cell Front
+V4 (SRC-43.4) is the original reference
 implementation, including hands staying live as a manual override
 (`Math.max(audioBand, handValue)`) when nothing is connected.
 

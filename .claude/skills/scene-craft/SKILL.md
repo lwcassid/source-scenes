@@ -164,6 +164,17 @@ the reference implementation; read it before building a second one.
   that sizes the whole ensemble, with each element's share bending only
   gently (±25%) toward its own band. Derive any "reform on change" flux
   from the slow bands, not the fast ones.
+- **The kick is `inp.audio.kick`, not `onset` (Nima, Cell Front V11).**
+  `onset` is the frame-polled FFT rise — ~60ms late and it fires on
+  bassline notes. `kick = {t, strength, n}` is the engine's time-domain
+  LP150 scanner: sample-accurate `t` on the audio clock (`inp.audio.now`),
+  a NEW hit is `n` CHANGING (never truthiness). Apply it UNSMOOTHED (a
+  per-frame multiplier on a slowly-smoothed base, never through the base's
+  attack filter) and back-date the response by `now - t` (+ a display
+  LEAD) so the frame is right for the vsync it lands on. Keep an
+  `onset`-edge fallback for the test hook; `setAudioKick(strength)` fires
+  one hit in harnesses. `node tools/kicktest.mjs` measures it — read the
+  `exact` series (poll latency there is the headless frame interval).
 - No sound of its own is not a requirement — a scene can listen AND still
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
