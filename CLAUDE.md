@@ -288,6 +288,21 @@ never handle polarity; presence via `chan.L.mode === 'live'`),
 `clamp`, `TAU`, `areaScale(P)`, `H.chordTone(deg, oct)`, `T.beat`, `T.next()`,
 `MOut.evNote/evDrum/expr`. Music cfg: `music: {bpm, root, mode, prog, chordBars}`.
 
+A scene can also LISTEN instead of (or alongside) playing: `reg({audioIn:
+true, ...})` populates `inp.audio = {level, bass, mid, treble, onset, pan}`
+from a real mic/line-in (`AUDIOIN`, `parts/part2e_audioin.js` — ADR-0009).
+`level`/`bass`/`mid`/`treble` are engine-smoothed 0..1; `onset` is a raw,
+un-smoothed hit pulse (test rising-edge `onset > 0.7`, not a boolean); `pan`
+is stereo balance, −1..1. Capture is show-window-only (ADR-0006's split) and
+connect-once/continuous, same lifecycle as MIDI, regardless of which scene
+has focus. `reg({audioIn:true})` also gates SHOW CHECK's conditional AUDIO
+IN row — most scenes never touch it, so it only appears when one that
+declares it is open or queued. `setAudioIn({level, bass, mid, treble, onset,
+pan})` is the test hook (mirrors `setChan`) for `playtest.js`/`shotcam.mjs`,
+since sandboxes have no real mic — Cell Front V4 (SRC-43.4) is the reference
+implementation, including hands staying live as a manual override
+(`Math.max(audioBand, handValue)`) when nothing is connected.
+
 ## Hardware truths
 - Projection surface is MESH SCRIM: black is invisible, thin lines vanish,
   perspective shatters across segmented drapes. See the scene-craft skill.

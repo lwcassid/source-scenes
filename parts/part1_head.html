@@ -63,6 +63,7 @@
 
   /* MAP popover — the source's own settings, with coaching */
   #mapPop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;width:340px;
+    max-height:82vh;overflow-y:auto;
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.3)}
   #mapPop.open{display:block}
@@ -70,7 +71,7 @@
   #mapPop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
   #mapPop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
   #mapPop b{color:var(--txt)}
-  #mapPop #calBox,#mapPop #navBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+  #mapPop #calBox,#mapPop #navBox,#mapPop #audioBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
   #mapPop #navInSel{font-size:9.5px;max-width:100%}
   #mapPop .navrange{font:9px var(--mono);color:var(--txt-faint);letter-spacing:.06em}
   #mapPop #calRead{font:9.5px/1.5 ui-monospace,monospace;color:var(--txt-dim);white-space:pre;
@@ -382,7 +383,21 @@
   #btnPauseAll{margin-left:auto;flex:none;font-size:9.5px;letter-spacing:.14em;padding:2px 12px;background:none;border:1px solid var(--line);border-radius:3px;color:var(--txt);cursor:pointer}
   #btnPauseAll.paused{color:#ffb14a;border-color:#ffb14a;box-shadow:0 0 8px rgba(255,177,74,.35)}
   .rinfo{flex:none;cursor:help;color:var(--txt-dim);border:1px solid var(--line);border-radius:50%;width:15px;height:15px;line-height:14px;text-align:center;font-size:10px}
-  #rackBox.paused #roleRack{opacity:.35}
+  #rackBox.paused #roleRack,#rackBox.paused #audioRack{opacity:.35}
+  /* AUDIO IN monitor — same rack+lanes shape as THE RIG, swapped in for
+     scenes that declare reg({audioIn:true}) instead of Ableton/MIDI-out,
+     which those scenes mostly don't touch. */
+  #audioSplit{display:flex;align-items:flex-start;position:relative}
+  #audioSplit #audioRack{width:230px;flex:none;overflow:hidden;display:flex;flex-direction:column;gap:2px}
+  #audioLanes{flex:1;min-width:0;align-self:flex-start;border-left:1px solid var(--line)}
+  .arkrow{display:flex;align-items:center;gap:6px;padding:2px 6px;height:22px;font-size:9px;color:var(--txt-faint);line-height:1.5}
+  .arkrow b{width:46px;flex:none;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .arkbar{flex:1;height:6px;background:#1c1c20;border-radius:3px;overflow:hidden;position:relative}
+  .arkbar u{display:block;position:absolute;top:0;bottom:0;width:0;background:var(--acc);opacity:.8}
+  .arkrow .arkdot{width:7px;height:7px;flex:none;border-radius:50%;background:var(--acc);opacity:.25;transition:opacity .08s,box-shadow .08s}
+  .arkrow .arkdot.hit{opacity:1;box-shadow:0 0 8px 2px var(--acc)}
+  #audioStat{font-size:9.5px;color:var(--txt-dim);padding:6px 6px 8px;line-height:1.6}
+  #audioStat b{color:var(--txt)}
   .monHead{display:flex;gap:14px;align-items:baseline;font-size:10px;letter-spacing:.14em;font-family:var(--mono)}
   .monHead #oChord{color:var(--acc)}
   .monHead .mflag{color:var(--txt-dim)}
@@ -710,6 +725,21 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <span id="navRange" class="navrange"></span>
     </div>
   </div>
+  <div id="audioBox">
+    <h4>Audio in</h4>
+    <p>Some scenes react to a live audio signal instead of (or alongside) the hands. Pick a mic/line-in device and connect, OR capture a running app's own sound directly — Spotify, a browser tab, any app making noise on this machine — no mic needed. Either way, press SET REST with the room quiet so the scene can tell silence from music.</p>
+    <div class="row">
+      <select id="audioInSel" title="Which device to listen to"><option value="">DEVICE: DEFAULT</option></select>
+      <button id="btnAudioConnect" class="off">AUDIO: CONNECT</button>
+    </div>
+    <div class="row">
+      <button id="btnAudioAppCapture" title="Pick a running app or window and capture its own audio — the OS will ask you to allow sharing, and to switch Share Audio on">CAPTURE APP AUDIO</button>
+    </div>
+    <div class="row">
+      <button id="btnAudioRest" title="Stand clear, keep it quiet, then press — whatever the source reads with nothing playing becomes the floor">SET REST</button>
+      <span id="audioLevel" class="navrange"></span>
+    </div>
+  </div>
   <div id="calBox" style="display:none">
     <h4>Calibrate the sensors</h4>
     <div class="row">
@@ -908,9 +938,9 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
   <div class="oconsole">
     <div id="conDrag" title="Drag to resize the split between the picture and the music area — it sticks"></div>
     <div class="conBox grow" id="rackBox">
-      <div class="monHead"><h5 class="conTitle">The rig</h5><span class="mflag" id="oOutState"></span><span id="oChord">—</span>
+      <div class="monHead"><h5 class="conTitle" id="rackTitle">The rig</h5><span class="mflag" id="oOutState"></span><span id="oChord">—</span>
         <button id="btnPauseAll" title="PAUSE EVERYTHING — the scene freezes, every note in Live is released, the clock stops. PLAY resumes right where you were: bed and held notes re-strike on their own.">⏸ PAUSE</button>
-        <span class="rinfo" title="THE RIG — one row per MIDI channel, straight from rig.json (read-only: change the Live set → tell a Claude session → it updates rig.json and rebuilds).
+        <span class="rinfo" id="rackInfo" title="THE RIG — one row per MIDI channel, straight from rig.json (read-only: change the Live set → tell a Claude session → it updates rig.json and rebuilds).
 Rows light while their channel is SOUNDING. Click a row to expand its recent MIDI events — simultaneous notes show in red.
 ♪ = one test note on that channel (use it OUTSIDE Live's Cmd+M mode) — does the right track answer?
 MAP = for Live's Cmd+M mapping: press Cmd+M in Live, click the knob you want this layer's energy on, then MAP — it wiggles ONLY that channel's CC74.
@@ -918,6 +948,14 @@ CC1/CC2 stream the raw hands (enable Remote on the IAC input to map them). CC74 
       <div id="rigSplit">
         <div id="roleRack"></div>
         <canvas id="rigLanes"></canvas>
+      </div>
+      <!-- AUDIO IN monitor — swaps in for #rigSplit when the open scene
+           declares reg({audioIn:true}) (Cell Front V4 is the reference).
+           THE RIG is about Ableton/MIDI-out, which an audioIn scene mostly
+           doesn't touch; this shows the live signal driving it instead. -->
+      <div id="audioSplit" style="display:none">
+        <div id="audioRack"></div>
+        <canvas id="audioLanes"></canvas>
       </div>
     </div>
   </div>

@@ -709,6 +709,11 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendTelemetry) {
       fps: window.__showFps || 0,
       lastByRole: MOut.lastByRole,
       log: log.slice(-120).map(e => ({ ...e, p: e.p + toEpoch })),
+      // Audio in monitor panel (replaces THE RIG for audioIn scenes): the
+      // control window never runs AUDIOIN's real analysis (ADR-0006/0007 —
+      // no scene instance there at all), so it has to ride the one channel
+      // that already ticks 4x/second rather than adding a second one.
+      audioIn: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan, onsetCount: AUDIOIN.onsetCount },
       at: Date.now(),
     });
   }, 250);
@@ -717,9 +722,24 @@ if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onTelemetry) {
   window.electronAPI.onTelemetry(t => {
     if (!t) return;
     Object.assign(tele, t, { log: tele.log });
-    // Only let the wall's numbers drive this window while the wall IS the
-    // thing on screen. Outside a show the control window runs its own scene,
-    // and stale telemetry would fight its HUD and pollute its MIDI monitor.
+    // Audio in monitor panel: AUDIOIN.tick() never runs here (no real
+    // analysis in the control window, same split as MIDI), so both the
+    // live bars AND the scrolling trace have to come from telemetry. This
+    // runs UNCONDITIONALLY, ahead of the showLive gate below — Nima found
+    // the panel permanently frozen at zero because that gate gated this
+    // too. The gate's own reasoning ("outside a show the control window
+    // runs its own scene") is ADR-0007's PREVIOUS model; the control window
+    // hasn't run a local scene at all since — and the whole point of this
+    // panel is checking the mic is picked up BEFORE a show starts, which is
+    // exactly the state the gate was blocking it in.
+    if (t.audioIn) {
+      Object.assign(AUDIOIN, t.audioIn);
+      AUDIOIN.history.push({ p: performance.now(), ...t.audioIn });
+      if (AUDIOIN.history.length > 200) AUDIOIN.history.shift();
+    }
+    // Only let the wall's MIDI/chord numbers drive this window while the
+    // wall IS the thing on screen — those really are performance telemetry,
+    // unlike the audio monitor above.
     if (!showLive) return;
     // Feed the relayed notes into the LOCAL MOut.log the monitor already
     // draws from, rather than teaching drawMonitor a second data source.
@@ -1079,6 +1099,39 @@ const PRE = {
            nl.base ? 'PADS=' + nl.base : null].filter(Boolean).join(' · '),
       fix: ['MAP CONTROL', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
 
+    // AUDIO IN — Nima found the conditional version (only appearing when a
+    // queued scene declares reg({audioIn:true})) genuinely hard to find
+    // when trying to set the source up in the first place — you can't queue
+    // Cell Front V4 from inside SHOW CHECK, so the row that would tell you
+    // how to configure it was hidden until you'd already gone and done that
+    // some other way. Standing row now, like SOUND/HANDS. Never worse than
+    // warn — a missing mic must never be the reason a show doesn't start;
+    // hands keep driving any scene that listens, regardless of this row.
+    {
+      const aConnected = inControl ? audioInRelay.connected : AUDIOIN.connected;
+      const aDenied = inControl ? audioInRelay.denied : AUDIOIN.denied;
+      const aRestSet = inControl ? audioInRelay.restSet : !!AUDIOIN.cal.rest;
+      const aDeviceLabel = (inControl ? audioInRelay.device : AUDIOIN.device)?.label;
+      // Nima: the CONNECT button read as "glitchy/flickery" — PRE.render()
+      // rebuilds this whole modal's innerHTML every 600ms regardless of
+      // whether anything changed, and this row used to print a live level
+      // percentage that's virtually never the same number twice. Every
+      // single poll was therefore a genuinely different rebuild — a
+      // pre-flight row should say WHETHER it's working, not jitter with a
+      // live reading; the actual VU meter lives in the Audio in panel under
+      // the stage now.
+      r.push({ k: 'audioin', sec: 'rig', label: 'Audio in',
+        lvl: !aConnected ? 'warn' : !aRestSet ? 'warn' : 'ok',
+        txt: !aConnected
+          ? (aDenied ? 'no audio input — permission was denied, or nothing is plugged in. Scenes that listen still play from hands.'
+            : 'not connected — only scenes that listen (Cell Front V4) need this. Scenes that listen still play from hands.')
+          : !aRestSet ? 'connected to ' + (aDeviceLabel || 'the default device') + ' — SET REST with the room quiet so silence reads as silence'
+          : 'connected to ' + (aDeviceLabel || 'the default device') + ' — signal live (see the Audio in panel under the stage)',
+        fix: !aConnected ? ['CONNECT', () => AUDIOIN.connect()]
+          : !aRestSet ? ['SET REST', () => AUDIOIN.startRest()]
+          : ['AUDIO IN', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+    }
+
     const out = outMode !== 'web';
     r.push({ k: 'out', sec: 'rig', label: 'Ableton', lvl: out && outPortName ? 'ok' : 'warn',
       txt: !out ? 'WEB AUDIO only — Ableton will not hear the wall'
@@ -1420,10 +1473,15 @@ document.getElementById('volSlider').addEventListener('input', e => {
   document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
   document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
   document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
-  // NOT relayed: this is the library wall's own ambient drift, local to
-  // whichever window you're staring at (control, always) — it has nothing
-  // to do with what the show window renders, so there is no show:control
-  // kind for it.
+  // Nima: this WAS "not relayed" on the theory that the wall's ambient
+  // drift is local to whichever window you're staring at and the show
+  // window never renders it — wrong, because hand:mirror (below) pushes
+  // the show window's REAL chan.L/R to control 20x/s UNCONDITIONALLY,
+  // overwriting control's own local value regardless of control's own
+  // ghost toggle. With this un-relayed, toggling GHOSTS off in control
+  // did nothing to the show window's still-true ghostsOn, so control kept
+  // mirroring drift it thought it had turned off. Relay it like sceneGhosts
+  // already does.
   const paintGhostBtns = () => {
     const b = document.getElementById('btnGhosts'), f = document.getElementById('fGhosts');
     if (b) { b.textContent = 'GHOSTS: ' + (ghostsOn ? 'ON' : 'OFF'); b.classList.toggle('off', !ghostsOn); }
@@ -1432,6 +1490,7 @@ document.getElementById('volSlider').addEventListener('input', e => {
   document.getElementById('btnGhosts').addEventListener('click', () => {
     ghostsOn = !ghostsOn;
     paintGhostBtns();
+    if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('wallGhosts', ghostsOn);
   });
   // ghost hands INSIDE a focused scene — off by default (a scene starts still),
   // handy when you want the scene to demo itself while you work the rig
@@ -1546,6 +1605,53 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
       inputs.map(i => `<option value="${i.id}" data-name="${esc(i.name)}"${i.id === cur ? ' selected' : ''}>${esc(i.name)}</option>`).join('');
   }, 800);
   NAV.ui();
+})();
+// AUDIO IN bindings — device picker, CONNECT and SET REST, inside the MAP
+// popover (same home as the hands' and SHOW CONTROL's own device pickers).
+(() => {
+  AUDIOIN.ui = function () {
+    const inControl = window.ELECTRON_ROLE === 'control';
+    const connected = inControl ? audioInRelay.connected : this.connected;
+    const denied = inControl ? audioInRelay.denied : this.denied;
+    const restSet = inControl ? audioInRelay.restSet : !!this.cal.rest;
+    const device = inControl ? audioInRelay.device : this.device;
+    const isAppAudio = connected && device?.id === 'app-audio';
+    const b = document.getElementById('btnAudioConnect');
+    if (b) {
+      b.textContent = connected ? (isAppAudio ? 'AUDIO: MIC' : 'AUDIO: ON') : denied ? 'AUDIO: DENIED' : 'AUDIO: CONNECT';
+      b.classList.toggle('off', !connected || isAppAudio);
+    }
+    const ab = document.getElementById('btnAudioAppCapture');
+    if (ab) {
+      ab.textContent = this._appAudioPending ? 'PICKING…' : isAppAudio ? 'APP AUDIO: ' + (device.label || 'ON') : 'CAPTURE APP AUDIO';
+      ab.classList.toggle('learning', !!this._appAudioPending);
+      ab.classList.toggle('off', isAppAudio);
+    }
+    const rb = document.getElementById('btnAudioRest');
+    if (rb) { rb.textContent = this.restSampling ? 'SAMPLING…' : 'SET REST'; rb.classList.toggle('learning', this.restSampling); }
+    // static status, not a live number — the Audio in panel under the stage
+    // is the actual meter; a jittering percentage here just reads as noise
+    const stat = document.getElementById('audioLevel');
+    if (stat) stat.textContent = !connected ? '' : (isAppAudio ? 'capturing ' + (device.label || 'an app') : 'signal live') + (restSet ? '' : ' — REST not set');
+  };
+  document.getElementById('btnAudioConnect')?.addEventListener('click', () => AUDIOIN.connect());
+  document.getElementById('btnAudioAppCapture')?.addEventListener('click', () => AUDIOIN.captureAppAudio());
+  document.getElementById('btnAudioRest')?.addEventListener('click', () => AUDIOIN.startRest());
+  const sel = document.getElementById('audioInSel');
+  if (sel) sel.addEventListener('change', e => AUDIOIN.setDevice(e.target.value || null));
+  setInterval(() => {
+    if (!sel || !document.getElementById('mapPop').classList.contains('open')) return;
+    const inControl = window.ELECTRON_ROLE === 'control';
+    const devices = inControl ? audioInRelay.devices : AUDIOIN.devices;
+    const cur = (inControl ? audioInRelay.device : AUDIOIN.device)?.id || '';
+    const sig = devices.map(d => d.id).join('|') + '#' + cur;
+    if (sel.dataset.sig === sig) return;
+    sel.dataset.sig = sig;
+    sel.innerHTML = '<option value=""' + (cur === '' ? ' selected' : '') + '>DEVICE: DEFAULT</option>' +
+      devices.map(d => `<option value="${d.id}"${d.id === cur ? ' selected' : ''}>${esc(d.label)}</option>`).join('');
+    AUDIOIN.ui();
+  }, 800);
+  AUDIOIN.ui();
 })();
 // MAP popover — the source's hardware bindings live here (library AND scene view)
 (() => {
@@ -2225,6 +2331,144 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   requestAnimationFrame(drawLanes);
 })();
 
+/* ============================================================
+   AUDIO IN MONITOR — Nima: "instead of showing THE RIG, on scenes with
+   audio reactivity it should show something similar to the rig but show
+   the data coming in from audio." Swaps in for the rack+lanes above
+   whenever the open scene declares reg({audioIn:true}) — THE RIG is about
+   Ableton/MIDI-out, which those scenes mostly don't touch; this shows the
+   live signal actually driving the picture instead. Same rack+lanes
+   shape, four continuous traces (level/bass/mid/treble) instead of a
+   piano roll — there are no discrete notes here — plus a flash dot on
+   each detected onset and a stereo pan indicator.
+   ============================================================ */
+(function () {
+  const rack = document.getElementById('audioRack');
+  const split = document.getElementById('audioSplit');
+  const rigSplit = document.getElementById('rigSplit');
+  const title = document.getElementById('rackTitle');
+  const info = document.getElementById('rackInfo');
+  if (!rack || !split || !rigSplit) return;
+  const RIG_TITLE = 'The rig', RIG_INFO = info ? info.title : '';
+  const AUDIO_TITLE = 'Audio in';
+  const AUDIO_INFO = "AUDIO IN — the live signal driving this scene, not Ableton/MIDI-out (which it mostly doesn't touch).\nLEVEL/BASS/MID/TREBLE are the smoothed 0-100 values the scene reads; ONSET flashes on a detected hit; PAN is stereo balance, left/right.\nConnect and calibrate from MAP → Audio in.";
+
+  const BARROWS = [['level', 'LEVEL'], ['bass', 'BASS'], ['mid', 'MID'], ['treble', 'TREBLE']];
+  const bars = {};
+  for (const [k, label] of BARROWS) {
+    const div = document.createElement('div');
+    div.className = 'arkrow';
+    div.innerHTML = `<b>${label}</b><span class="arkbar"><u></u></span>`;
+    rack.appendChild(div);
+    bars[k] = div.querySelector('.arkbar u');
+  }
+  // PAN — bidirectional, fills from the center toward whichever side
+  const panRow = document.createElement('div');
+  panRow.className = 'arkrow';
+  panRow.innerHTML = '<b>PAN</b><span class="arkbar"><u></u></span>';
+  rack.appendChild(panRow);
+  const panBar = panRow.querySelector('.arkbar u');
+  // ONSET — a dot that flashes on a hit, not a continuous bar
+  const onsetRow = document.createElement('div');
+  onsetRow.className = 'arkrow';
+  onsetRow.innerHTML = '<b>ONSET</b><span class="arkdot"></span>';
+  rack.appendChild(onsetRow);
+  const onsetDot = onsetRow.querySelector('.arkdot');
+  let lastOnsetCount = AUDIOIN.onsetCount, onsetOffT = null;
+
+  const stat = document.createElement('div');
+  stat.id = 'audioStat';
+  rack.appendChild(stat);
+
+  const isAudioScene = () => focus.idx >= 0 && PIECES[focus.idx] && PIECES[focus.idx].audioIn;
+  function syncPanel() {
+    const on = isAudioScene();
+    split.style.display = on ? 'flex' : 'none';
+    rigSplit.style.display = on ? 'none' : 'flex';
+    if (title) title.textContent = on ? AUDIO_TITLE : RIG_TITLE;
+    if (info) info.title = on ? AUDIO_INFO : RIG_INFO;
+  }
+  // openFocus() has no "scene changed" hook to call out to — piggyback the
+  // same 250ms cadence the rig rack's own liveness dots already poll at.
+  setInterval(syncPanel, 250);
+  syncPanel();
+
+  function frameTick() {
+    requestAnimationFrame(frameTick);
+    if (!isAudioScene() || !overlay.classList.contains('open')) return;
+    const inControl = window.ELECTRON_ROLE === 'control';
+    // Live values are mirrored onto the shared AUDIOIN object regardless of
+    // role — real analysis in the show window (part2e_audioin.js's tick()),
+    // telemetry:tick's payload in the control window (above) — so reading
+    // AUDIOIN directly here works either way; only connection/device status
+    // still needs the separate audioInRelay (ADR-0006's split).
+    for (const [k] of BARROWS) bars[k].style.width = Math.round(clamp(AUDIOIN[k]) * 100) + '%';
+    const pv = clamp(AUDIOIN.pan, -1, 1);
+    panBar.style.left = (pv < 0 ? 50 + pv * 50 : 50) + '%';
+    panBar.style.width = Math.abs(pv) * 50 + '%';
+    // A monotonic counter, not the raw onset value — in the control window
+    // this only ever arrives via telemetry:tick's 4Hz samples, and a single
+    // onset pulse can decay in ~150ms, well under that period. Comparing
+    // counts survives the gap between samples; comparing raw values doesn't.
+    if (AUDIOIN.onsetCount !== lastOnsetCount) {
+      lastOnsetCount = AUDIOIN.onsetCount;
+      onsetDot.classList.add('hit');
+      clearTimeout(onsetOffT);
+      onsetOffT = setTimeout(() => onsetDot.classList.remove('hit'), 180);
+    }
+    const connected = inControl ? audioInRelay.connected : AUDIOIN.connected;
+    const deviceLabel = (inControl ? audioInRelay.device : AUDIOIN.device)?.label;
+    const restSet = inControl ? audioInRelay.restSet : !!AUDIOIN.cal.rest;
+    const txt = !connected ? 'not connected — <b>MAP</b> → Audio in to pick a source'
+      : !restSet ? 'connected to <b>' + esc(deviceLabel || 'the default device') + '</b> — REST not set'
+      : 'connected to <b>' + esc(deviceLabel || 'the default device') + '</b>';
+    if (stat.dataset.sig !== txt) { stat.dataset.sig = txt; stat.innerHTML = txt; }
+  }
+  requestAnimationFrame(frameTick);
+
+  // Same drawing shape as rigLanes above (grid + a scrolling ride line),
+  // simplified to four continuous traces plus a tick mark per onset.
+  const lanes = document.getElementById('audioLanes');
+  const AWIN = 15000;
+  const traceCol = { level: 'rgba(220,220,220,.75)', bass: '#ffb14a', mid: '#7fd8d8', treble: '#c09aff' };
+  function drawAudioLanes() {
+    requestAnimationFrame(drawAudioLanes);
+    if (!lanes || !isAudioScene() || !overlay.classList.contains('open')) return;
+    const W = lanes.clientWidth | 0, H = rack.offsetHeight | 0;
+    if (!W || !H) return;
+    if (lanes.width !== W || lanes.height !== H) { lanes.width = W; lanes.height = H; lanes.style.height = H + 'px'; }
+    const g = lanes.getContext('2d');
+    g.clearRect(0, 0, W, H);
+    const now = performance.now();
+    const x = p => W - (now - p) / AWIN * W;
+    g.strokeStyle = 'rgba(128,128,128,.10)';
+    for (let tt = now - (now % 1000); tt > now - AWIN; tt -= 1000) {
+      const xx = Math.round(x(tt)) + 0.5;
+      g.beginPath(); g.moveTo(xx, 0); g.lineTo(xx, H); g.stroke();
+    }
+    const hist = AUDIOIN.history;
+    for (const key in traceCol) {
+      g.strokeStyle = traceCol[key]; g.globalAlpha = key === 'level' ? 0.9 : 0.65; g.lineWidth = key === 'level' ? 1.5 : 1;
+      g.beginPath();
+      let started = false;
+      for (const s of hist) {
+        if (s.p < now - AWIN) continue;
+        const cx = x(s.p), cy = H - 4 - clamp(s[key] || 0) * (H - 8);
+        if (!started) { g.moveTo(cx, cy); started = true; } else g.lineTo(cx, cy);
+      }
+      if (started) g.stroke();
+    }
+    g.globalAlpha = 0.5; g.strokeStyle = '#fff'; g.lineWidth = 1;
+    for (const s of hist) {
+      if (s.p < now - AWIN || s.onset < 0.9) continue;
+      const xx = Math.round(x(s.p)) + 0.5;
+      g.beginPath(); g.moveTo(xx, 0); g.lineTo(xx, H); g.stroke();
+    }
+    g.globalAlpha = 1;
+  }
+  requestAnimationFrame(drawAudioLanes);
+})();
+
 // COLLAPSIBLE GROUPS (Lance: treat the UX like a design tool) — every rail/
 // sidebar group folds on its header; the choice persists per-browser.
 (function () {
@@ -2329,10 +2573,14 @@ function frame(ts) {
   if (window.SHOWPAUSE) { requestAnimationFrame(frame); return; }
   applyKeys(dt);
   updateChannels(t, dt);
+  if (typeof AUDIOIN !== 'undefined') AUDIOIN.tick(dt);
   // NEAR = MORE lives HERE and only here: channels are hand space (0 = at
   // the source), scenes read intensity — leaning in = 1. Beams, ghosts and
   // the DBG bars stay truthful to the hands.
-  const inp = { L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge };
+  const inp = {
+    L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge,
+    audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan },
+  };
   drawWidget(document.getElementById('widgetTop'), t);
   if (overlay.classList.contains('open')) {
     drawWidget(document.getElementById('widgetFocus'), t);
@@ -2465,12 +2713,14 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     else if (kind === 'clock') MOut.clockSet(!!value);
     else if (kind === 'outPort') MOut.selectPortByName(value);
     else if (kind === 'ghosts') sceneGhosts = !!value;
+    else if (kind === 'wallGhosts') ghostsOn = !!value;
     else if (kind === 'navDevice') { NAV.dev = value || null; NAV.save(); NAV.relay(); }
     // calibration, driven from the console (ADR-0006's last show-only gap).
     // The results ride home on the existing midi:devices relay.
     else if (kind === 'setRest') startRest();
     else if (kind === 'invert') setInvert(value);
     else if (kind === 'calClear') clearCal();
+    else if (kind === 'audioinRest') AUDIOIN.startRest();
     // reseed carries the SEED control just used, so the mirror and the wall
     // land on the same picture instead of two different random ones
     else if (kind === 'reseed') { if (focus.P) focus.P.reinit(typeof value === 'number' ? value : (Math.random() * 1e9) | 0); }

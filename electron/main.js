@@ -181,6 +181,15 @@ function createWindow(role) {
   const win = new BrowserWindow({
     width: 1920,
     height: 1200,
+    // Nima: the show window used to pop up visible at every launch, before
+    // PLAY or any scene had been touched — two windows showing the same
+    // idle library wall with nothing to do yet. It still needs to LOAD now
+    // (AudioContext, MIDI, the build) so the first real PLAY is instant, not
+    // a cold boot — it just doesn't need to be SEEN until something actually
+    // asks for it. show:false + showStowed=true (bootWindows, below) means
+    // it stays hidden until the existing revealShowWindow() call sites
+    // (show:openScene, display:pick) bring it up for a real reason.
+    show: role !== 'show',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -231,9 +240,60 @@ function linkWindowLifetimes(show, control) {
 // show window.
 let lastQueue = null;
 
+// ADR-0007's control-window mirror: getDisplayMedia calls answered
+// unconditionally with the show window, no picker, so the operator can
+// never aim it at the wrong window. session.setDisplayMediaRequestHandler
+// is ONE handler for the whole session — swapped out below (registerXXX
+// functions replace each other) for the getDisplayMedia AUDIOIN.
+// captureAppAudio() makes from the SHOW window to pick a running app's
+// audio, which needs the real OS picker instead.
+function registerMirrorDisplayMediaHandler() {
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    if (!showWindow || showWindow.isDestroyed()) return callback({});
+    // Must be a WebFrameMain or a DesktopCapturerSource — passing the
+    // BrowserWindow itself throws "video must be a WebFrameMain or
+    // DesktopCapturerSource". mainFrame is the better of the two anyway:
+    // it captures the show window's rendered WEB CONTENT directly rather
+    // than going out through the OS window compositor, which means it
+    // keeps working when the show window is behind something, and it does
+    // not lean on macOS Screen Recording the way desktop capture does.
+    try { callback({ video: showWindow.webContents.mainFrame }); }
+    catch (e) { console.error('display-media handler failed:', e); callback({}); }
+  }, { useSystemPicker: false });
+}
+// Nima: "make it possible to choose the output of any active app... as the
+// audio input." macOS's own ScreenCaptureKit picker (useSystemPicker:true,
+// Electron 31+/macOS 13+) already does exactly this — pick a running
+// app/window, toggle Share Audio, get that app's isolated audio track —
+// but useSystemPicker is a REGISTRATION-time option, not per-call, so the
+// handler has to be swapped out for the single getDisplayMedia call
+// AUDIOIN.captureAppAudio() makes and swapped back immediately after, or
+// every later control-window mirror reconnect would raise the same picker.
+let appAudioRevertTimer = null;
+function armAppAudioPicker() {
+  clearTimeout(appAudioRevertTimer);
+  // useSystemPicker:true means the OS picker handles selection directly;
+  // Electron docs note the handler itself won't be invoked on platforms
+  // that support it — this is only a fallback for one that doesn't.
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => callback({}), { useSystemPicker: true });
+  // Safety net: if the renderer never reports back (a crash, a dropped
+  // IPC), don't leave the picker armed for the control window's own next
+  // mirror reconnect — revert on a timeout either way.
+  appAudioRevertTimer = setTimeout(registerMirrorDisplayMediaHandler, 12000);
+}
+function disarmAppAudioPicker() {
+  clearTimeout(appAudioRevertTimer);
+  registerMirrorDisplayMediaHandler();
+}
+
 function bootWindows() {
   showWindow = createWindow('show');
   controlWindow = createWindow('control');
+  // Created hidden (show:false above) — mark it stowed so the first real
+  // reveal (a scene mirrored over, or a display picked) goes through
+  // revealShowWindow()'s normal path instead of it already being visible.
+  showStowed = true;
+  showWasFullScreen = false;
   showWindow.webContents.on('did-finish-load', () => {
     if (lastQueue) sendTo(showWindow, 'queue:update', lastQueue);
   });
@@ -252,18 +312,7 @@ app.whenReady().then(() => {
     // show window moves displays, and it captures the real composited
     // output rather than re-running the scene.
     // useSystemPicker:false keeps macOS's own picker out of a kiosk app.
-    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-      if (!showWindow || showWindow.isDestroyed()) return callback({});
-      // Must be a WebFrameMain or a DesktopCapturerSource — passing the
-      // BrowserWindow itself throws "video must be a WebFrameMain or
-      // DesktopCapturerSource". mainFrame is the better of the two anyway:
-      // it captures the show window's rendered WEB CONTENT directly rather
-      // than going out through the OS window compositor, which means it
-      // keeps working when the show window is behind something, and it does
-      // not lean on macOS Screen Recording the way desktop capture does.
-      try { callback({ video: showWindow.webContents.mainFrame }); }
-      catch (e) { console.error('display-media handler failed:', e); callback({}); }
-    }, { useSystemPicker: false });
+    registerMirrorDisplayMediaHandler();
   } catch (err) {
     const { dialog } = require('electron');
     dialog.showErrorBox('SOURCE show-runner', err.message);
@@ -465,6 +514,29 @@ app.whenReady().then(() => {
   ipcMain.on('nav:state', (_event, state) => {
     sendTo(controlWindow, 'nav:state', state);
   });
+
+  // audioin:* (grill-me session) — same relay shape as midi:devices/connect/
+  // setInput, for a scene that reacts to a live mic/line-in instead of (or
+  // alongside) the hands. Real capture stays show-window-only (ADR-0006's
+  // precedent); control only ever sees the relayed devices+status push.
+  ipcMain.on('audioin:connect', () => {
+    sendTo(showWindow, 'audioin:connect');
+  });
+  ipcMain.on('audioin:setDevice', (_event, id) => {
+    sendTo(showWindow, 'audioin:setDevice', id);
+  });
+  ipcMain.on('audioin:devices', (_event, status) => {
+    sendTo(controlWindow, 'audioin:devices', status);
+  });
+  // audioin:captureAppAudio — "choose the output of any active app... as
+  // the audio input." Relayed to the show window like connect(); the arm/
+  // done pair around it swaps the display-media handler to the real OS
+  // picker for exactly the one getDisplayMedia call this makes.
+  ipcMain.on('audioin:captureAppAudio', () => {
+    sendTo(showWindow, 'audioin:captureAppAudio');
+  });
+  ipcMain.on('audioin:armAppAudioPicker', () => armAppAudioPicker());
+  ipcMain.on('audioin:appAudioPickDone', () => disarmAppAudioPicker());
 
   // audio:status / audio:wake — Nima's SHOW CHECK screenshot: the SOUND row
   // read the control window's own (permanently inert) AudioContext and

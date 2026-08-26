@@ -130,6 +130,35 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
   reverb so single gestures bloom, silence between events (silence is what
   makes thunder work). Ableton recipe lives in `docs/SCRIM-SURVEY.md` §Sound.
 
+## Audio-reactive scenes (a scene can LISTEN instead of playing)
+`reg({audioIn: true, ...})` gets `inp.audio = {level, bass, mid, treble,
+onset, pan}` from a real mic/line-in instead of (or alongside) the hands —
+`AUDIOIN` (`parts/part2e_audioin.js`, ADR-0009). Cell Front V5 (SRC-43.5) is
+the reference implementation; read it before building a second one.
+- `level`/`bass`/`mid`/`treble` are already engine-smoothed 0..1 — don't
+  re-smooth them, but DO still ease them into your own state the way `inp.L`
+  gets eased (`s.bass += (audioBand - s.bass) * dt*6`), same as hands.
+- `onset` is a raw, un-smoothed pulse — detect the RISING EDGE yourself
+  (`onset > 0.7 && prevOnset <= 0.7`, then store `prevOnset`) for anything
+  that should fire once per hit, not once per frame it stays above threshold.
+- **Hands = sensitivity, not a competing value (Nima, on Cell Front V5).**
+  Don't blend a hand into the audio band with `Math.max(audioBand,
+  handValue)` — that was V4's choice and it broke: a hand frozen mid-value by
+  the wall's ambient ghost-drift (mode `'drift'` HOLDS wherever drift last
+  left it, it does NOT reset to neutral) reads as a permanent, wrong audio
+  level with no way to tell it apart from a real signal. Make the hand a GAIN
+  on the band instead — `sens = SENS_BASE + clamp(inp.hand) * SENS_RANGE`,
+  then `target = clamp(audioBand * sens)` — so reach controls how reactive
+  the scene IS, a stale hand value just leaves sensitivity near its base
+  floor instead of lying about the signal, and a performer can visibly "tune"
+  the picture's touchiness live without ever overriding what the mic hears.
+  Silence still gets the same idle-breathing drift every other still scene
+  gets (`Math.max(idle*(1-pres), clamp(audioBand*sens))`), never true
+  stillness.
+- No sound of its own is not a requirement — a scene can listen AND still
+  have an `audio()` block. Cell Front V5 just doesn't, because there was
+  nothing left to say once the picture was the instrument's answer.
+
 ## Building a new version of a scene (the checklist)
 1. NEW part file `parts/partNN_<scene>vN.js` — copy the previous version's
    `reg({...})`, bump `ver`, new `id: 'SRC-XX.N'`, same `family`. Never edit
