@@ -297,8 +297,15 @@ Live set changes.
   performs to an empty room (Weather rang 81 bells/40s; Lumen and the
   texture-hold mirror sent full velocity). Gate grid figures and holds by
   `s.pres`, scale mirror velocities by presence; deliberate idle sends
-  (breaths, tolls, teases) whisper. Test it: open the scene, touch
-  nothing for 40s, read MOut.log — the idle audit catches the class.
+  (breaths, tolls, teases) whisper. And the SIMULATION itself must
+  release on absence: Lumen's film stayed open wherever the drift left
+  it (input smoothing must target ZERO when not live, slow-released so
+  nothing snaps). Chord-change retunes and pedal strikes gate on hand
+  RECENCY (last input < ~0.8s), never on `mode === 'live'` — the live
+  flag lingers ~2s and a chord change in that tail re-voices everything
+  at full velocity as the player walks away. Test it: open the scene,
+  play, touch nothing for 40s, read a TIME-STAMPED MOut.log — the idle
+  audit catches the class.
 - **OUT is a casting decision per scene (Lance, Aug 2026).** Some scenes keep
   the browser sound blended under the rack (`both`) because its character is
   part of the piece — Ikeda's flat clicks, physics-true plate beating,
