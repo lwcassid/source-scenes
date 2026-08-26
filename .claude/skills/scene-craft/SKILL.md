@@ -155,6 +155,15 @@ the reference implementation; read it before building a second one.
   Silence still gets the same idle-breathing drift every other still scene
   gets (`Math.max(idle*(1-pres), clamp(audioBand*sens))`), never true
   stillness.
+- **Two clocks: the kick swells, the bands size the field (Nima, Cell
+  Front V9).** On techno/house every band is busy at once, so a shape whose
+  size chases its own band (attack ≥ ~8/s) twitches on every note — that
+  read as JITTER. `onset` is the engine's bass-rise kick detector: let its
+  rising edge be the ONLY fast size move (per-element envelope, instant up,
+  ~a beat down), and ease bass/mid/treble at ~1.5-2.5/s into a FIELD scale
+  that sizes the whole ensemble, with each element's share bending only
+  gently (±25%) toward its own band. Derive any "reform on change" flux
+  from the slow bands, not the fast ones.
 - No sound of its own is not a requirement — a scene can listen AND still
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
