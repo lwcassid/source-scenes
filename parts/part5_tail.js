@@ -2039,7 +2039,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   const NN = n => ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][n % 12] + (Math.floor(n / 12) - 2);
   // every channel gets a color (Lance) — roles keep their role color, bench
   // channels get a stable spread hue, so the whole mixer reads in color
-  const chCol = (ch, role) => role ? MOut.ROLE_COLORS[role] : `hsl(${(ch * 61) % 360},38%,64%)`;
+  // fallback INSIDE the role branch too: a role missing from ROLE_COLORS
+  // must never render black (bit us when the bench roles landed)
+  const chCol = (ch, role) => (role && MOut.ROLE_COLORS[role]) || `hsl(${(ch * 61) % 360},38%,64%)`;
   const roleAt = {};
   for (const r in MOut.roles) roleAt[MOut.roles[r]] = r;
   const rows = [];

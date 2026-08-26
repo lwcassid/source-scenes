@@ -16,7 +16,10 @@ const MOut = {
   mode: 'web',            // 'web' | 'both' | 'midi'
   port: null, suspend: false,
   roles: { lead: 1, pad: 2, bass: 3, arp: 4, bells: 5, texture: 6, perc: 10, sfx: 11, bed: 12 },
-  ROLE_COLORS: { lead: '#ffd977', pad: '#8fd4ff', bass: '#ff9d6b', arp: '#9fffc4', bells: '#d4b0ff', texture: '#7fe8d8', perc: '#ff6ba8', sfx: '#ff4f4f', bed: '#5e8bff' },
+  ROLE_COLORS: { lead: '#ffd977', pad: '#8fd4ff', bass: '#ff9d6b', arp: '#9fffc4', bells: '#d4b0ff', texture: '#7fe8d8', perc: '#ff6ba8', sfx: '#ff4f4f', bed: '#5e8bff',
+    // the bench roles (Aug 2026) — a role without a color rendered BLACK
+    // in the console (Lance caught it); every role in rig.json gets one
+    strings: '#c9a2ff', shrine: '#ffb84d', mellotron: '#ffe14d', choir: '#ffc2e0', sax: '#8affab' },
   lastByRole: {},
   log: [], ccLog: { L: [], R: [] },
   chFor(role) { return this.roles[role] || 1; },
