@@ -108,6 +108,13 @@ density it gets live. Two consequences:
   radii, `areaScale(P)` for counts. Never hardcode pixel sizes or element
   counts tuned to one window, and never let a composition depend on a wide
   strip (a horizon band 400px tall reads as a stripe at 1200).
+- **A radial composition scales off `min(w,h)`, never `hypot(w,h)` (Nima,
+  Penrose Bloom V5).** hypot is dominated by WIDTH: a disc sized to it looks
+  right at 16:10 and runs off the top and bottom of any wider window, while
+  the HUD still reports a modest radius, so you debug the wrong number.
+  Corollary for "too big, make it denser": add a subdivision level (smaller
+  cells, more of them, structure preserved) and SHORTEN the radius — do not
+  just shrink, or you lose the layers you were asked to keep.
 
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
