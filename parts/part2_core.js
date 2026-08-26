@@ -1225,10 +1225,14 @@ function openFocus(i, fromRelay) {
   if (typeof renderFocusVersions === 'function') renderFocusVersions(i);
   if (typeof renderFocusHistory === 'function') renderFocusHistory(i);
   if (typeof renderFocusActs === 'function') renderFocusActs(i);
-  // scene atmosphere: hold this scene's bed note while it is open
+  // scene atmosphere: the bed HUMS THE SCENE'S ROOT, an octave down,
+  // clamped to the hum band. The old 20+SRC formula climbed to shrill
+  // keys on the pitched Nebula sampler (Lumen's bed was B-flat 3 —
+  // Lance: "a little shrill"). Low, musical, spaceship register.
   if (typeof MOut !== 'undefined') {
     const fm = (def.family || def.id).match(/(\d+)/);
-    if (fm) MOut.bedOn(20 + +fm[1]);
+    const br = (def.music && def.music.root) ? def.music.root : (fm ? 20 + +fm[1] : 45);
+    MOut.bedOn(Math.max(24, Math.min(43, br - 12)));
   }
   startVoice();
   // the bars settle a frame later; take the frame that actually survives

@@ -129,9 +129,9 @@
     },
     "bed": {
       "ch": 13,
-      "instrument": "Nebula track is the home — (proposed) Sampler of the sci-fi spaceship / analog-ambient atmospheres",
+      "instrument": "Nebula (ch13) — Lance's ear: 'sounds like you're on a spaceship cruising — has some bass and hum to it that's nice.' Exactly the bed.",
       "character": "deep room tone with bass",
-      "use": "one held note per scene (20 + SRC number) — scene-atmosphere sampler fades. Chladni = note 48"
+      "use": "one held note per scene = THE SCENE'S ROOT minus an octave, clamped to the hum band 24-43 (Aug 2026 — the old 20+SRC formula climbed to shrill keys on the pitched sampler; Lumen's bed was B-flat 3). Scene-atmosphere chain selection, if ever built, will use its own mechanism, not the bed pitch."
     },
     "strings": {
       "ch": 6,
@@ -141,8 +141,8 @@
     },
     "shrine": {
       "ch": 8,
-      "instrument": "SHRINE (Sacred Shrine color, ch8) — role reserved; no scene casts it yet (Lance: 'really busy' — audition at low volume before casting)",
-      "character": "dense sacred color",
+      "instrument": "SHRINE (Sacred Shrine, ch8) — Lance's ear: 'a little more tone' than Nebula. Role reserved; the tonal-atmosphere wildcard (audition low before casting — his earlier verdict: 'really busy' as a lead pad).",
+      "character": "tonal sacred atmosphere — more pitch than Nebula's hum",
       "use": "wildcard seat"
     },
     "mellotron": {
@@ -159,9 +159,9 @@
     },
     "sax": {
       "ch": 12,
-      "instrument": "SpaceSax (ch12) — Vespers casts THE BEAM here (V13): held mono voice, retuned rung by rung, THE MOUTH streams on ch12 CC74 (map to cutoff/brightness). Load any legato patch here and the beam speaks it; the felt piano no longer plinks the beam",
-      "character": "swelling, breathy — or whatever legato patch is loaded",
-      "use": "continuous voices with articulation"
+      "instrument": "SpaceSax (ch12) — Lance's ear: 'a RECORDING of a sax playing a soulful note... never really play a run with it. A really high-quality SWELL on the mid-to-top end with nice texture.' It is a swell COLOR, not a melodic voice — pitch-tracking a recording across register chipmunks. For Vespers' beam, load a mono analog (Mini V, legato+glide) as a second chain on this track and use the sax swell where a held color is wanted.",
+      "character": "soulful sax swell recording — mid/top texture, one-note color",
+      "use": "SWELLS: a single held color that blooms (Lumen aperture peaks, Ferro sustained-lead hole). NOT runs, NOT the retuning beam - that needs the mono-analog chain beside it"
     }
   },
   "_benchCasting": [
