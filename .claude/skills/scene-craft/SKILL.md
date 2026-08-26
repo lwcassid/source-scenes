@@ -178,6 +178,21 @@ the reference implementation; read it before building a second one.
 - No sound of its own is not a requirement — a scene can listen AND still
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
+- **A second listener must not be the first one again (Nima, Penrose Bloom
+  V2).** Before writing an audio-in scene, read the one already in the set
+  and take a DIFFERENT job for each band. Cell Front owns "three pockets,
+  one per band, hands paint the palette"; Penrose Bloom owns "loudness is
+  SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
+  mid/treble balance re-deals which tile class takes which stop, quantised
+  and held so it steps on a chord change instead of shimmering)". Same
+  engine, same palette, two instruments — not one scene twice.
+- **SHOOT the audio states — `node tools/shotaudio.mjs <id> <prefix>`.**
+  `shot.mjs` can only drive hands, so an audio-in scene's whole instrument
+  is invisible to it. shotaudio drives `setAudioIn`/`setAudioKick` through a
+  plausible track (silence · quiet · groove · ON the kick · drop · treble
+  section · drive floor · cool anchor) and lands each shot a known distance
+  after a hit, so "on the beat" and "between beats" are reproducible states
+  rather than luck. Sandboxes have no mic; this is the only way to see it.
 
 ## Building a new version of a scene (the checklist)
 1. NEW part file `parts/partNN_<scene>vN.js` — copy the previous version's
