@@ -27,6 +27,7 @@ cd "$(dirname "$0")/.."
   cat parts/part2b_music.js
   cat parts/part2c_midiout.js
   cat parts/part2d_scrimview.js
+  cat parts/part2e_audioin.js
   cat parts/part3_pieces_a.js
   cat parts/part4_pieces_b.js
   cat parts/part6_pieces_c.js
@@ -224,6 +225,22 @@ cd "$(dirname "$0")/.."
   cat parts/part168_av13.js
   cat parts/part169_eh18.js
   cat parts/part170_fb21.js
+  cat parts/part168_front4.js
+  cat parts/part169_front5.js
+  cat parts/part170_front6.js
+  cat parts/part171_front7.js
+  cat parts/part172_front8.js
+  cat parts/part173_front9.js
+  cat parts/part174_front10.js
+  cat parts/part175_front11.js
+  cat parts/part176_front12.js
+  cat parts/part177_front13.js
+  cat parts/part176_penrose.js
+  cat parts/part177_penrose2.js
+  cat parts/part178_penrose3.js
+  cat parts/part179_penrose4.js
+  cat parts/part180_penrose5.js
+  cat parts/part181_penrose6.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'

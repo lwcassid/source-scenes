@@ -152,4 +152,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMidiSetInputRequested(callback) {
     ipcRenderer.on('midi:setInput', (_event, id) => callback(id));
   },
+  // audioin:* — a scene can react to a live mic/line-in (grill-me session,
+  // Cell Front V4). Same split as the hands' MIDI-in: real capture is
+  // show-window-only, control just relays a connect request and a device
+  // pick, and gets back one combined devices+status push (same shape as
+  // midi:devices carrying connected/map/calRested together).
+  requestAudioInConnect() { ipcRenderer.send('audioin:connect'); },
+  onAudioInConnectRequested(callback) {
+    ipcRenderer.on('audioin:connect', () => callback());
+  },
+  setAudioInDevice(id) { ipcRenderer.send('audioin:setDevice', id); },
+  onAudioInSetDeviceRequested(callback) {
+    ipcRenderer.on('audioin:setDevice', (_event, id) => callback(id));
+  },
+  sendAudioInDevices(status) { ipcRenderer.send('audioin:devices', status); },
+  onAudioInDevices(callback) {
+    ipcRenderer.on('audioin:devices', (_event, status) => callback(status));
+  },
+  // audioin:captureAppAudio — pick a running app/window's own audio via the
+  // OS's native picker (ScreenCaptureKit on macOS) instead of a microphone.
+  // armAppAudioPicker/appAudioPickDone swap main's getDisplayMedia handler
+  // to that real picker for the one call this makes, then back.
+  requestAppAudioCapture() { ipcRenderer.send('audioin:captureAppAudio'); },
+  onAppAudioCaptureRequested(callback) {
+    ipcRenderer.on('audioin:captureAppAudio', () => callback());
+  },
+  armAppAudioPicker() { ipcRenderer.send('audioin:armAppAudioPicker'); },
+  appAudioPickDone() { ipcRenderer.send('audioin:appAudioPickDone'); },
 });

@@ -108,6 +108,19 @@ density it gets live. Two consequences:
   radii, `areaScale(P)` for counts. Never hardcode pixel sizes or element
   counts tuned to one window, and never let a composition depend on a wide
   strip (a horizon band 400px tall reads as a stripe at 1200).
+- **A radial composition scales off `min(w,h)`, never `hypot(w,h)` (Nima,
+  Penrose Bloom V5).** hypot is dominated by WIDTH: a disc sized to it looks
+  right at 16:10 and runs off the top and bottom of any wider window, while
+  the HUD still reports a modest radius, so you debug the wrong number.
+  Corollary for "too big, make it denser": add a subdivision level (smaller
+  cells, more of them, structure preserved) and SHORTEN the radius — do not
+  just shrink, or you lose the layers you were asked to keep.
+- **Deform a MESH by position, never by cell (Nima, Penrose Bloom V6's
+  elasticity).** To make a tiling/lattice stretch without tearing, displace
+  every vertex by a pure function of WHERE IT IS — two cells sharing a corner
+  then move it identically and the sheet stays welded. Cap the amplitude so
+  the displacement's gradient stays under 1 (`amp * waveNumber < 1`) or
+  shells cross through each other and the mesh turns inside out.
 
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
@@ -129,6 +142,101 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
 - Sound design direction: minor/modal, sub root under everything, long-tail
   reverb so single gestures bloom, silence between events (silence is what
   makes thunder work). Ableton recipe lives in `docs/SCRIM-SURVEY.md` §Sound.
+
+## Audio-reactive scenes (a scene can LISTEN instead of playing)
+`reg({audioIn: true, ...})` gets `inp.audio = {level, bass, mid, treble,
+onset, pan}` from a real mic/line-in instead of (or alongside) the hands —
+`AUDIOIN` (`parts/part2e_audioin.js`, ADR-0009). Cell Front V5 (SRC-43.5) is
+the reference implementation; read it before building a second one.
+- `level`/`bass`/`mid`/`treble` are already engine-smoothed 0..1 — don't
+  re-smooth them, but DO still ease them into your own state the way `inp.L`
+  gets eased (`s.bass += (audioBand - s.bass) * dt*6`), same as hands.
+- `onset` is a raw, un-smoothed pulse — detect the RISING EDGE yourself
+  (`onset > 0.7 && prevOnset <= 0.7`, then store `prevOnset`) for anything
+  that should fire once per hit, not once per frame it stays above threshold.
+- **Hands = sensitivity, not a competing value (Nima, on Cell Front V5).**
+  Don't blend a hand into the audio band with `Math.max(audioBand,
+  handValue)` — that was V4's choice and it broke: a hand frozen mid-value by
+  the wall's ambient ghost-drift (mode `'drift'` HOLDS wherever drift last
+  left it, it does NOT reset to neutral) reads as a permanent, wrong audio
+  level with no way to tell it apart from a real signal. Make the hand a GAIN
+  on the band instead — `sens = SENS_BASE + clamp(inp.hand) * SENS_RANGE`,
+  then `target = clamp(audioBand * sens)` — so reach controls how reactive
+  the scene IS, a stale hand value just leaves sensitivity near its base
+  floor instead of lying about the signal, and a performer can visibly "tune"
+  the picture's touchiness live without ever overriding what the mic hears.
+  Silence still gets the same idle-breathing drift every other still scene
+  gets (`Math.max(idle*(1-pres), clamp(audioBand*sens))`), never true
+  stillness.
+- **Two clocks: the kick swells, the bands size the field (Nima, Cell
+  Front V9).** On techno/house every band is busy at once, so a shape whose
+  size chases its own band (attack ≥ ~8/s) twitches on every note — that
+  read as JITTER. `onset` is the engine's bass-rise kick detector: let its
+  rising edge be the ONLY fast size move (per-element envelope, instant up,
+  ~a beat down), and ease bass/mid/treble at ~1.5-2.5/s into a FIELD scale
+  that sizes the whole ensemble, with each element's share bending only
+  gently (±25%) toward its own band. Derive any "reform on change" flux
+  from the slow bands, not the fast ones.
+- **The kick is `inp.audio.kick`, not `onset` (Nima, Cell Front V11).**
+  `onset` is the frame-polled FFT rise — ~60ms late and it fires on
+  bassline notes. `kick = {t, strength, n}` is the engine's time-domain
+  LP150 scanner: sample-accurate `t` on the audio clock (`inp.audio.now`),
+  a NEW hit is `n` CHANGING (never truthiness). Apply it UNSMOOTHED (a
+  per-frame multiplier on a slowly-smoothed base, never through the base's
+  attack filter) and back-date the response by `now - t` (+ a display
+  LEAD) so the frame is right for the vsync it lands on. Keep an
+  `onset`-edge fallback for the test hook; `setAudioKick(strength)` fires
+  one hit in harnesses. `node tools/kicktest.mjs` measures it — read the
+  `exact` series (poll latency there is the headless frame interval).
+- **Hand SPEED is an input in its own right (Nima, Cell Front V12).** On an
+  audio-reactive scene the hands' position may have nothing left to say;
+  |d(inp)/dt| into a snap-up / ~2s-fade envelope makes a gesture paint and
+  stillness leave the scene alone — no stale ghost-drift value can lie
+  about it, because a held value has zero velocity. Palette borrowed from
+  a sibling scene (Ridge Loom's violet / orange / cyan) is allowed; drop
+  the accent stop when the ask says so.
+- No sound of its own is not a requirement — a scene can listen AND still
+  have an `audio()` block. Cell Front V5 just doesn't, because there was
+  nothing left to say once the picture was the instrument's answer.
+- **A second listener must not be the first one again (Nima, Penrose Bloom
+  V2).** Before writing an audio-in scene, read the one already in the set
+  and take a DIFFERENT job for each band. Cell Front owns "three pockets,
+  one per band, hands paint the palette"; Penrose Bloom owns "loudness is
+  SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
+  mid/treble balance re-deals which tile class takes which stop, quantised
+  and held so it steps on a chord change instead of shimmering)". Same
+  engine, same palette, two instruments — not one scene twice.
+- **Spend the dynamic range on the RIGHT axis (Nima, Penrose Bloom V2→V3).**
+  V2 gave the radius almost all of it and the palette almost none: "the size
+  change is too sensitive and the color change is not sensitive enough."
+  Two fixes worth stealing. SIZE: put a HIGH-WATER MARK between the audio and
+  whatever the picture counts — growth instant, retreat a slow melt (~1.1/s).
+  A live front sweeping a sorted list crystallises AND dissolves a whole ring
+  on every wobble, which is a binary strobing edge; a hwm makes the boundary
+  hold while the beat reads as LIGHT (brighten the ring off the kick
+  ENVELOPE, not the front's velocity). COLOUR: the sensitivity comes from
+  NARROWING THE INPUT WINDOW to where music actually lives (centroid
+  0.36-0.66), not from cranking the weight — at 1.25 every tile clamped to
+  one end of the ramp and the mosaic went flat, which is a LOST palette, not
+  a louder one. Move the ramp's CENTRE most of its length (~0.58) and leave
+  the structural terms room to spread tiles around it.
+- **Colour a FIGURE, not every cell (Nima, Penrose Bloom V4).** An even tint
+  across a structured field is wallpaper; the reference plates people bring
+  in are always colouring a SUB-PATTERN out of a mostly bare ground. Find the
+  special sites in the geometry you already have — Penrose's sun vertices are
+  exactly ten fat triangle-corners and no thin ones — and let colour diagnose
+  them: heart, ring, bare paper, roughly a quarter / a fifth / the rest. Give
+  bare paper the palette's own cream, dim, and let EXCITEMENT set the
+  contrast between figure and ground, so quiet reads as one lattice and loud
+  resolves into the plate. Classify once per geometry and cache it; it is
+  fixed data, never per-frame work.
+- **SHOOT the audio states — `node tools/shotaudio.mjs <id> <prefix>`.**
+  `shot.mjs` can only drive hands, so an audio-in scene's whole instrument
+  is invisible to it. shotaudio drives `setAudioIn`/`setAudioKick` through a
+  plausible track (silence · quiet · groove · ON the kick · drop · treble
+  section · drive floor · cool anchor) and lands each shot a known distance
+  after a hit, so "on the beat" and "between beats" are reproducible states
+  rather than luck. Sandboxes have no mic; this is the only way to see it.
 
 ## Building a new version of a scene (the checklist)
 1. NEW part file `parts/partNN_<scene>vN.js` — copy the previous version's
