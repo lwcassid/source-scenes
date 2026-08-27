@@ -220,6 +220,7 @@ cd "$(dirname "$0")/.."
   cat parts/part163_ws17.js
   cat parts/part164_ws18.js
   cat parts/part165_chladni29.js
+  cat parts/part191_chladni30.js
   cat parts/part166_ridge14.js
   cat parts/part167_eh17.js
   cat parts/part168_av13.js
@@ -243,6 +244,8 @@ cd "$(dirname "$0")/.."
   cat parts/part186_eh26.js
   cat parts/part187_eh27.js
   cat parts/part188_eh28.js
+  cat parts/part189_eh29.js
+  cat parts/part190_eh30.js
   cat parts/part168_front4.js
   cat parts/part169_front5.js
   cat parts/part170_front6.js

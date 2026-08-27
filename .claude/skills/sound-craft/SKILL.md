@@ -244,7 +244,11 @@ shut stays shut on any channel a scene never streams (bit Lance twice).
 **Composite voices mirror ONE note**: stacked partials/sub-thumps built
 from extra `A.tone` calls must pass `midi: false` — otherwise each partial
 becomes its own MIDI note and one felt-piano drop is a chord in Live
-(Rain V7's find). Note-offs
+(Rain V7's find). **Silencing a layer from MIDI means `midi:false` on
+EVERY helper in it, then a `MOut.log` dump through the driven state to
+prove it** — Event Horizon's bar pulse was an `A.kick` + `A.hit` pair,
+and V28 cut only the quiet `A.hit` body while `A.kick` kept pounding kit
+pad 36 at vel ~115; the leak cost a second round (V29). Note-offs
 are managed by MOut's pump — NEVER hand-schedule them. CC1/CC2 stream raw
 hands globally.
 
