@@ -164,6 +164,16 @@ music: {
   ambient however high its visual energy ceiling.
 - **Bright major-9 cadences read "Mario power-up"** on a colorful scene.
   Minor pedal color-shift reads tasteful and badass. When in doubt, darker.
+  Even an all-minor progression can READ major if the voicings are lush
+  add9/maj9 colors with a major-chord arrival — Vespers' E♭maj9 bar felt
+  "very major sounding" (Lance) inside G aeolian; ♭2/♭6 as color, no
+  major arrivals, keeps a dark scene dark.
+- **Vespers is THE ANNIHILATION ALIEN (Lance, Aug 2026).** Its core voice
+  is a creature, not a chorister: it scoops UP into every landing (start
+  low, land exactly on the rung — never park off-ladder), growls from the
+  FIGURE's own sharpness, and its expression is the rig controls Lance
+  mapped on ch16 — pitch bend = the scoop, CC74 = the panner riding the
+  figure's centroid, CC71 = the growl. Alien intensity, never horror.
 - **One voice per visual element** (a bloom = a pad voice, panned to its
   side). Willing things in literally thickens the chord.
 - Bed voice gains ~0.007–0.011 each; bells 0.03–0.05; perc 0.01–0.02 × gate.
@@ -241,6 +251,10 @@ role than the default. `MOut.expr(role, v)` streams CC74 energy — and scene OP
 park every role channel's CC74 back at 127 (`parkExpr`): Live saves knob
 positions in the set file, so without the open-side park a filter saved
 shut stays shut on any channel a scene never streams (bit Lance twice).
+**The mapped control's DIRECTION must match the park**: CC74 points only
+at controls where 127 = OPEN/FULL — parked-open on Lance's pad Morph read
+100% = thinnest sound; an inverted control gets Min/Max swapped in the
+Live MIDI mapping (Min 127, Max 0), never a scene-side workaround.
 **Composite voices mirror ONE note**: stacked partials/sub-thumps built
 from extra `A.tone` calls must pass `midi: false` — otherwise each partial
 becomes its own MIDI note and one felt-piano drop is a chord in Live

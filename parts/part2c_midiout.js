@@ -377,9 +377,29 @@ const MOut = {
       // the second lane (CC71) parks at ZERO: it carries intensity-type
       // targets (ACID amount, FX depth) where stuck-high is the hazard
       try { for (const r in this._expr2State) this.port.send([0xB0 | (this.chFor(r) - 1), 71, 0]); } catch (e) {}
+      // pitch bend parks at CENTER: a scene that died mid-scoop must not
+      // leave the next scene's synth a semitone flat (Vespers V15's lane)
+      try { for (const r in this._bendState) this.port.send([0xE0 | (this.chFor(r) - 1), 0, 64]); } catch (e) {}
     }
     this._exprState = {};
     this._expr2State = {};
+    this._bendState = {};
+  },
+  /* PITCH BEND, per role — the third expression lane (Vespers V15: the
+     alien voice scoops up into its landings). v is -1..1 of the patch's
+     own bend range (set ±2 st in the synth); rate-limited by the caller
+     sending only on real change. Parked at center by parkExpr. */
+  bend(role, v) {
+    if (this.suspend) return;
+    if (!this._bendState) this._bendState = {};
+    const vv = Math.max(-1, Math.min(1, v || 0));
+    const last = this._bendState[role];
+    if (last !== undefined && Math.abs(last - vv) < 0.008) return;
+    this._bendState[role] = vv;
+    if (this.wants() && this.port) {
+      const b = Math.max(0, Math.min(16383, Math.round(8192 + vv * 8191)));
+      try { this.port.send([0xE0 | (this.chFor(role) - 1), b & 0x7f, b >> 7]); } catch (e) {}
+    }
   },
   // the operator's persistent choice — per-scene queue overrides applyMode()
   // around it and fall back to it, so a show never strands the global toggle
