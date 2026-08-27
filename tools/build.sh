@@ -234,6 +234,7 @@ cd "$(dirname "$0")/.."
   cat parts/part177_lumen26.js
   cat parts/part178_fb22.js
   cat parts/part179_eh19.js
+  cat parts/part180_eh20.js
   cat parts/part168_front4.js
   cat parts/part169_front5.js
   cat parts/part170_front6.js
