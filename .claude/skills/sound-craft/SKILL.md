@@ -241,6 +241,10 @@ role than the default. `MOut.expr(role, v)` streams CC74 energy — and scene OP
 park every role channel's CC74 back at 127 (`parkExpr`): Live saves knob
 positions in the set file, so without the open-side park a filter saved
 shut stays shut on any channel a scene never streams (bit Lance twice).
+**The mapped control's DIRECTION must match the park**: CC74 points only
+at controls where 127 = OPEN/FULL — parked-open on Lance's pad Morph read
+100% = thinnest sound; an inverted control gets Min/Max swapped in the
+Live MIDI mapping (Min 127, Max 0), never a scene-side workaround.
 **Composite voices mirror ONE note**: stacked partials/sub-thumps built
 from extra `A.tone` calls must pass `midi: false` — otherwise each partial
 becomes its own MIDI note and one felt-piano drop is a chord in Live

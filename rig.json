@@ -1,188 +1,188 @@
 {
-  "_readme": [
-    "THE RIG — what is actually on the other end of each MIDI channel.",
-    "",
-    "The browser's contract is fixed: nine ROLES on nine channels, CC74 per",
-    "channel as that layer's energy, CC1/CC2 the raw hands, MIDI clock for",
-    "tempo. This file is the OTHER half of the contract: what instrument sits",
-    "on each channel in the Live set, how it sounds, and when a scene should",
-    "reach for it. It is design-time knowledge, not runtime — nothing in the",
-    "page reads it. It exists so a Claude session designing a scene's sound",
-    "can write for YOUR rack instead of an imaginary one, and so the three of",
-    "you agree on what channel 5 IS.",
-    "",
-    "Fill in `instrument` (device/preset name as it appears in Live),",
-    "`character` (how it actually sounds — dark/glassy/plucky/breathy...),",
-    "and `use` (when a scene should want it). Honest beats aspirational:",
-    "describe the patch you have, not the one you plan.",
-    "",
-    "Keep it current the cheap way: change the Live set → update this file in",
-    "the same breath, commit both. A Claude session can also scaffold this",
-    "file from the .als itself (it is gzipped XML — drop it in the repo and",
-    "ask), or eventually via an Ableton MCP link. Until then, hand-edited.",
-    "",
-    "Per-track convention that makes CC74 work everywhere: each track is an",
-    "Instrument Rack whose MACRO 1 is mapped to the patch's brightness/cutoff,",
-    "and CC74 on that channel drives Macro 1. Swap the instrument inside the",
-    "rack freely — the mapping survives."
-  ],
-  "_channelMap": [
-    "ASSUME RIGGED, MAP 1:1 (Lance's law, Aug 2026): the browser always sends FULL MIDI for every role — nothing is ever held back because a patch is missing. A silent console row = drop an instrument on that track. Channels map 1:1 to the Live set:",
-    "tracks left-to-right = ch 1-15, and it is PENCIL, not ink: we reshape it together",
-    "as the racking walk meets each scene. The rack serves the scenes and the art;",
-    "no assignment below is precious except where marked as Lance's own call:",
-    "1 R&B DRUMS=perc (renamed from TRANCE DRUMS, Aug 2026) · 2 80'S DRUMS (alt kit, unassigned) · 3 SYNTH BASS=bass ·",
-    "4 SFX=sfx · 5 PADS=pad (Jup-8 V4 Deep Blue Voices) · 6 STRINGS = Arturia Augmented Strings (RACKED & READY — bench; Event Horizon's gate target) ·",
-    "7 FELT PIANO=lead · 8 SHRINE (RACKED & READY — Sacred Shrine color, bench) · 9 HANDPAN=texture · 10 Mellotron (RACKED & READY, bench) ·",
-    "11 Choir (RACKED & READY — Vespers hum candidate) · 12 SpaceSax (RACKED & READY — Lumen/Vespers fallback color) · 13 Nebula=bed (racked) ·",
-    "14 ARP SYNTH=arp (Lance renamed the Omnisphere track; his rule: rhythmic, enters WITH drums, on grid) ·",
-    "15 BELLS=bells (Omnisphere KPRO Dreamies) · 16 MIDI (utility, ch16 — fixed).",
-    "CASTING BENCH: a racked track with no role gets cast PER SCENE in Live — set its MIDI From to the role channel the scene needs (e.g. Vespers: CHOIR listens on Ch. 5 for that scene). Two clicks, reversible; the 1:1 map stays the default.",
-    "The `ch` values below are BAKED as the browser's default map at build time",
-    "(part2c reads RIGDOC.roles[].ch) — edit here, rebuild, and every browser",
-    "matches the set. The RIG panel remap is a per-browser override on top.",
-    "CONFIDENCE (Lance, Aug 2026): drums, SFX one-shots, felt piano and Augmented",
-    "Strings are his calls; bass builds to the CHARACTER spec; every other seat is",
-    "provisional — designed to the briefs in docs/ABLETON-RIG.md, moved freely",
-    "whenever a scene asks. He is unattached; the scene decides.",
-    "BENCH ROLES (Aug 2026): strings 6 · shrine 8 · mellotron 10 · choir 11 · sax 12 — every racked track is now a role under the 1:1 law; scenes cast onto them directly (EH wall→strings, Vespers beam→sax + choir double, Ferro answers→mellotron). The MIDI-From casting-bench move is retired for these; it remains the trick for kit swaps (80'S DRUMS listening on ch1)."
-  ],
-  "port": "IAC Driver Bus 1",
-  "_cc74_mappings": [
-    "THE MAPPING REGISTRY (facts only — update when a mapping is made or removed; sessions must NOT assume beyond this list):",
-    "ch1 perc: CC74 → LEX loop pad chain volume (Min -inf, Max 0dB)",
-    "ch4 sfx: CC74 → ThunderRain chain vol (-61..-9dB) + Rain chain vol (-22..-2.4dB) — the weather crossfade",
-    "ch7 lead: CC74 → FELT PIANO Auto Filter freq (20Hz..20kHz)",
-    "ALL OTHER CHANNELS: CC74 UNMAPPED — it does nothing in Live yet.",
-    "Worth mapping next (Lance, when ready): ch15 bells → Dreamies Master Filter cutoff (Omnisphere right-click → MIDI CC Learn → BELLS row MAP) · ch14 arp → Science Class cutoff (same trick) · ch5 pad → Jup-8 Brightness (Arturia exposes it as a host param: Live Configure) · ch9 texture → HandPan brightness/send.",
-    "When loops land on 54/55/56/57 (Chladni/Ridge/EH/Ferro loop seats): map ch1 CC74 to each pad's chain volume, Min -inf — same move as the LEX pad; one CC fades whichever loop its scene holds.",
-    "New lanes worth mapping: ch6 strings → Augmented Strings GATE dial (the marquee — EH streams gate depth here now) · ch12 sax → the beam patch's cutoff (Vespers streams THE MOUTH here now).",
-    "THE EXPRESSION ROUND (Lance wants it): map CC74 on every seat so scenes can swell/ramp instead of hitting - ch3 bass (Lumen's breath swell is already streaming it), ch5 pad, ch8 shrine, ch11 choir, ch12 sax, ch6 strings gate, ch10 mellotron. Each mapping ~2 min (Configure/CC-Learn + the row's MAP button); say each one as it lands and it gets recorded here.",
-    "DONE ch2 TRANCE DRUM: CC74 -> pad 56 chain volume Min -inf (Lance, Aug 2026)",
-    "DONE ch16 SYNTH CZV: CC74 -> filter cutoff. WANTED ch16 CC71 -> the ACID/FX macro (the SECOND LANE: MOut.expr2 streams CC71, parked at 0; EH drives it with motion + window energy)"
-  ],
-  "tracks": {
-    "1": "R&B DRUMS",
-    "2": "TRANCE DRUM",
-    "3": "SYNTH BASS",
-    "4": "SFX",
-    "5": "PADS",
-    "6": "STRINGS",
-    "7": "FELT PIANO",
-    "8": "SHRINE",
-    "9": "HANDPAN",
-    "10": "Mellotron",
-    "11": "Choir",
-    "12": "SpaceSax",
-    "13": "Nebula",
-    "14": "ARP SYNTH",
-    "15": "BELLS",
-    "16": "SYNTH CZV"
+ "_readme": [
+  "THE RIG — what is actually on the other end of each MIDI channel.",
+  "",
+  "The browser's contract is fixed: nine ROLES on nine channels, CC74 per",
+  "channel as that layer's energy, CC1/CC2 the raw hands, MIDI clock for",
+  "tempo. This file is the OTHER half of the contract: what instrument sits",
+  "on each channel in the Live set, how it sounds, and when a scene should",
+  "reach for it. It is design-time knowledge, not runtime — nothing in the",
+  "page reads it. It exists so a Claude session designing a scene's sound",
+  "can write for YOUR rack instead of an imaginary one, and so the three of",
+  "you agree on what channel 5 IS.",
+  "",
+  "Fill in `instrument` (device/preset name as it appears in Live),",
+  "`character` (how it actually sounds — dark/glassy/plucky/breathy...),",
+  "and `use` (when a scene should want it). Honest beats aspirational:",
+  "describe the patch you have, not the one you plan.",
+  "",
+  "Keep it current the cheap way: change the Live set → update this file in",
+  "the same breath, commit both. A Claude session can also scaffold this",
+  "file from the .als itself (it is gzipped XML — drop it in the repo and",
+  "ask), or eventually via an Ableton MCP link. Until then, hand-edited.",
+  "",
+  "Per-track convention that makes CC74 work everywhere: each track is an",
+  "Instrument Rack whose MACRO 1 is mapped to the patch's brightness/cutoff,",
+  "and CC74 on that channel drives Macro 1. Swap the instrument inside the",
+  "rack freely — the mapping survives."
+ ],
+ "_channelMap": [
+  "ASSUME RIGGED, MAP 1:1 (Lance's law, Aug 2026): the browser always sends FULL MIDI for every role — nothing is ever held back because a patch is missing. A silent console row = drop an instrument on that track. Channels map 1:1 to the Live set:",
+  "tracks left-to-right = ch 1-15, and it is PENCIL, not ink: we reshape it together",
+  "as the racking walk meets each scene. The rack serves the scenes and the art;",
+  "no assignment below is precious except where marked as Lance's own call:",
+  "1 R&B DRUMS=perc (renamed from TRANCE DRUMS, Aug 2026) · 2 80'S DRUMS (alt kit, unassigned) · 3 SYNTH BASS=bass ·",
+  "4 SFX=sfx · 5 PADS=pad (Jup-8 V4 Deep Blue Voices) · 6 STRINGS = Arturia Augmented Strings (RACKED & READY — bench; Event Horizon's gate target) ·",
+  "7 FELT PIANO=lead · 8 SHRINE (RACKED & READY — Sacred Shrine color, bench) · 9 HANDPAN=texture · 10 Mellotron (RACKED & READY, bench) ·",
+  "11 Choir (RACKED & READY — Vespers hum candidate) · 12 SpaceSax (RACKED & READY — Lumen/Vespers fallback color) · 13 Nebula=bed (racked) ·",
+  "14 ARP SYNTH=arp (Lance renamed the Omnisphere track; his rule: rhythmic, enters WITH drums, on grid) ·",
+  "15 BELLS=bells (Omnisphere KPRO Dreamies) · 16 MIDI (utility, ch16 — fixed).",
+  "CASTING BENCH: a racked track with no role gets cast PER SCENE in Live — set its MIDI From to the role channel the scene needs (e.g. Vespers: CHOIR listens on Ch. 5 for that scene). Two clicks, reversible; the 1:1 map stays the default.",
+  "The `ch` values below are BAKED as the browser's default map at build time",
+  "(part2c reads RIGDOC.roles[].ch) — edit here, rebuild, and every browser",
+  "matches the set. The RIG panel remap is a per-browser override on top.",
+  "CONFIDENCE (Lance, Aug 2026): drums, SFX one-shots, felt piano and Augmented",
+  "Strings are his calls; bass builds to the CHARACTER spec; every other seat is",
+  "provisional — designed to the briefs in docs/ABLETON-RIG.md, moved freely",
+  "whenever a scene asks. He is unattached; the scene decides.",
+  "BENCH ROLES (Aug 2026): strings 6 · shrine 8 · mellotron 10 · choir 11 · sax 12 — every racked track is now a role under the 1:1 law; scenes cast onto them directly (EH wall→strings, Vespers beam→sax + choir double, Ferro answers→mellotron). The MIDI-From casting-bench move is retired for these; it remains the trick for kit swaps (80'S DRUMS listening on ch1)."
+ ],
+ "port": "IAC Driver Bus 1",
+ "_cc74_mappings": [
+  "THE MAPPING REGISTRY (facts only — update when a mapping is made or removed; sessions must NOT assume beyond this list):",
+  "ch1 perc: CC74 → LEX loop pad chain volume (Min -inf, Max 0dB)",
+  "ch4 sfx: CC74 → ThunderRain chain vol (-61..-9dB) + Rain chain vol (-22..-2.4dB) — the weather crossfade",
+  "ch7 lead: CC74 → FELT PIANO Auto Filter freq (20Hz..20kHz)",
+  "ALL OTHER CHANNELS: CC74 UNMAPPED — it does nothing in Live yet.",
+  "Worth mapping next (Lance, when ready): ch15 bells → Dreamies Master Filter cutoff (Omnisphere right-click → MIDI CC Learn → BELLS row MAP) · ch14 arp → Science Class cutoff (same trick) · ch5 pad → Jup-8 Brightness (Arturia exposes it as a host param: Live Configure) · ch9 texture → HandPan brightness/send.",
+  "When loops land on 54/55/56/57 (Chladni/Ridge/EH/Ferro loop seats): map ch1 CC74 to each pad's chain volume, Min -inf — same move as the LEX pad; one CC fades whichever loop its scene holds.",
+  "New lanes worth mapping: ch6 strings → Augmented Strings GATE dial (the marquee — EH streams gate depth here now) · ch12 sax → the beam patch's cutoff (Vespers streams THE MOUTH here now).",
+  "THE EXPRESSION ROUND (Lance wants it): map CC74 on every seat so scenes can swell/ramp instead of hitting - ch3 bass (Lumen's breath swell is already streaming it), ch5 pad, ch8 shrine, ch11 choir, ch12 sax, ch6 strings gate, ch10 mellotron. Each mapping ~2 min (Configure/CC-Learn + the row's MAP button); say each one as it lands and it gets recorded here.",
+  "DONE ch2 TRANCE DRUM: CC74 -> pad 56 chain volume Min -inf (Lance, Aug 2026)",
+  "DONE ch16 SYNTH CZV: CC74 -> filter cutoff. WANTED ch16 CC71 -> the ACID/FX macro (the SECOND LANE: MOut.expr2 streams CC71, parked at 0; EH drives it with motion + window energy)"
+ ],
+ "tracks": {
+  "1": "R&B DRUMS",
+  "2": "TRANCE DRUM",
+  "3": "SYNTH BASS",
+  "4": "SFX",
+  "5": "PADS",
+  "6": "STRINGS",
+  "7": "FELT PIANO",
+  "8": "SHRINE",
+  "9": "HANDPAN",
+  "10": "Mellotron",
+  "11": "Choir",
+  "12": "SpaceSax",
+  "13": "Nebula",
+  "14": "ARP SYNTH",
+  "15": "BELLS",
+  "16": "SYNTH CZV"
+ },
+ "_tracks_note": "EXACT Live track names, left to right = ch 1-16 — the console rack and RIG panel print these so the browser reads like the Ableton mixer. Rename a track in Live → rename it here in the same breath.",
+ "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
+ "roles": {
+  "lead": {
+   "ch": 7,
+   "instrument": "Splice felt piano — the John Legend one (FELT PIANO track, loaded)",
+   "character": "gorgeous, spacious, velocity-sensitive",
+   "use": "melodic triggers — plucks, tones, answers. Rain Atrium's felt piano lives here by design. Chladni sends no lead notes but streams resonance as CC74 — map to a brightness/send macro"
   },
-  "_tracks_note": "EXACT Live track names, left to right = ch 1-16 — the console rack and RIG panel print these so the browser reads like the Ableton mixer. Rename a track in Live → rename it here in the same breath.",
-  "clock": "24 PPQN from the page; enable Sync on the port, press EXT",
-  "roles": {
-    "lead": {
-      "ch": 7,
-      "instrument": "Splice felt piano — the John Legend one (FELT PIANO track, loaded)",
-      "character": "gorgeous, spacious, velocity-sensitive",
-      "use": "melodic triggers — plucks, tones, answers. Rain Atrium's felt piano lives here by design. Chladni sends no lead notes but streams resonance as CC74 — map to a brightness/send macro"
-    },
-    "pad": {
-      "ch": 5,
-      "instrument": "Ethereal Journey - an Augmented Strings patch (PADS ch5, Lance, Aug 2026 - swapped in over Jup-8 Deep Blue Voices: 'those were too gritty'). 1:1 rule: the pad ROLE plays the track NAMED PADS. RULE (Lance): the pad is INTENTIONAL - single placed notes, never a constant wash.",
-      "character": "the most scene-divergent channel — glass / cathedral air / analog light-pad / dark gated strings; chain per scene (manual first, bed-note chain-select later)",
-      "use": "sustained voice-led chords; glides on chord changes. Event Horizon (SRC-13) streams its rhythmic GATE DEPTH here as CC74 — map it to Augmented Strings' gate dial and the plugin throbs with the picture"
-    },
-    "bass": {
-      "ch": 3,
-      "instrument": "SYNTH BASS track, loaded — patch name TBD (say it in a session and it lands here). Design brief: Serum-style sine sub always on + CHARACTER macro: round (Ridge bans saw) → bite (White Study) → detuned-saw maw (Vespers' own spec)",
-      "character": "clean and fat at rest, teeth up the CHARACTER macro; sidechain-ducked by the perc kick (comp keyed to the R&B DRUMS ch1 group, LP 150Hz sidechain EQ) so the pump exists only when a groove is earned",
-      "use": "root movement; keep the sub for the wall (bass-mono below ~120Hz). Chladni's lock bass and beat-mode doubling land here; Ridge's funk figure and White Study's pump live mid-macro. Full recipe: docs/ABLETON-RIG.md"
-    },
-    "arp": {
-      "ch": 14,
-      "instrument": "ARP SYNTH (Lance's track 14, loaded — his Omnisphere rhythmic patch). RULE (Lance, Aug 2026): the ARP is RHYTHMIC — it enters WITH the drums, on the grid; never nature-timed, never under held notes",
-      "character": "arpeggiating synth; cutoff + resonance ARE the performance controls",
-      "use": "sequenced grid patterns only, gated by a scene's beat mode (Night Circuit, Chladni's unlock). CC74 → cutoff is this patch's native play. Vespers' churn arrives here as CC74 only"
-    },
-    "bells": {
-      "ch": 15,
-      "instrument": "Omnisphere — KPRO Dreamies (BELLS ch15) — Lance's verdict after playing: 'not really bells, more Canadian-boards pads' — a patch he loves but not a bell. SEAT OPEN: still wanted here = real bells + the deep TOLL (tam-tam, long tail). Until then Chladni rings its bells BROWSER-side (midi:false) — scene OUT=BOTH to hear them",
-      "character": "glass strikes for Lumen, chimes for Weather's heading bells, one enormous struck-metal toll for Chladni's lure — velocity sensitivity ON, NO internal rhythm (a groove patch here fights nature-timed strikes)",
-      "use": "chimes, sparkles, lock blooms, White Study's summon roll; Chladni's 1-in-7 lure toll goes to the TOLL chain — a real tam-tam, not a piano (docs/ABLETON-RIG.md Part 3)"
-    },
-    "texture": {
-      "ch": 9,
-      "instrument": "Omnisphere Hand Pan (HandPan track, loaded)",
-      "character": "huge reverb, crackly REAL strikes",
-      "use": "the continuous-voice mirror: held notes that re-strike on retune, CC74 = pooled voice energy. Chladni's mode tones: every detent catch is a mallet strike on a literal resonant plate"
-    },
-    "perc": {
-      "ch": 1,
-      "instrument": "THE R&B KIT (Lance's call, Aug 2026) — the loaded drum rack IS the R&B/lo-fi kit, built out per the pad map: 36 kick (round boom-bap thump + ghost layer) · 38 snare/side-stick · 39 clap/snap · 42 closed hat (dusty) · 43/45 toms lo/mid · 46 OPEN hat (dusty, medium decay) · 49 soft crash wash · 51 shaker · 53/F2 = Rain Atrium's LEX loop pad — and THE LOOP SEATS (Aug 2026, loop-first drums): 54/F#2 = Chladni's break loop · 55/G2 = Ridge's funk loop (~96 BPM) · 56/G#2 = Event Horizon's dark techno loop (128-feel) · 57/A2 = Ferro Bloom's dub loop (TL_LD_140_Drums_Dubbed, hip-hop dub, 140 source — Warp ON as 8 bars, Beats mode, so it follows the clock down to Ferro's 100) — each struck once at its window's first open and held, faded entirely by ch1 CC74. THE PARKING LAW (Aug 2026, learned live): BOTH drum tracks (R&B DRUMS and TRANCE DRUM, the second kit) listen on ch1, so a seat strike fires the pad in EVERY ch-1 rack -- pads 53-57 are LIVE SHOW SEATS in all of them, and a 'parked' loop candidate on any of those pads WILL play in the wrong scene (a dub loop parked on 54 played inside Chladni). Park candidates at C3/60 and up; only a chosen loop goes on its seat, in whichever rack. Seats: 53 Rain (LEX) / 54 Chladni (EMPTY by choice -- Lance keeps the programmed one-shot beat) / 55 Ridge / 56 EH / 57 Ferro (TL_LD_140 dub) (map each pad's chain volume Min -inf, the LEX move); empty pads are silent, programmed kits still play until a loop is seated. Original LEX note: 53/F2 = Rain Atrium's LEX loop pad (Simpler: Loop+Warp ON, Transpose 0, Vel→Vol 0, chain vol mapped to ch1 CC74 Min -inf) — deliberately OUTSIDE the kit zone so other scenes' kicks (note 36) never restart it. A SECOND kit (Fred Again / trance — hard kick tuned A, break slices, taiko top-velocity zone) gets built separately; how scenes pick kits = the chain/remap decision, deferred until it exists",
-      "character": "trance weight under Fred Again break character; group chain = EQ → Glue 2:1 slow attack → Drum Buss ~50% wet (Boom on A) → parallel comp ~25%; wash send 1.4s/predelay 14ms/low-cut 250Hz on 38/46 only. Per-pad vel→vol ~60% — the browser streams real velocity",
-      "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness. The rail-secret break plays this kit. Swing comes from the SCENE, never Live (grooves don't apply to live MIDI). Full recipe: docs/ABLETON-RIG.md"
-    },
-    "sfx": {
-      "ch": 4,
-      "instrument": "SFX rack — LOADED (Lance, Aug 2026): C#1/37 = brooding lightning · D1/38 = quick loud strike · D#1/39 = forest rainfall loop (held all scene) · E1/40 = thunderstorm loop (held, crossfades in) — CC74 rides both loop chains' volumes (forest Min ~-22dB, storm Min ~-60dB). Still to add: Blade Runner chops / cave drips one-shots, Granulator sand for Chladni",
-      "character": "granular weather",
-      "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Chladni streams sand motion as CC74 → density/volume. Event Horizon streams its swallow charge/rise as CC74 — map to a riser/impact send"
-    },
-    "bed": {
-      "ch": 13,
-      "instrument": "Nebula (ch13) — Lance's ear: 'sounds like you're on a spaceship cruising — has some bass and hum to it that's nice.' Exactly the bed. — LOOP ON REQUIRED (Aug 2026): the scene holds ONE note-on for the whole scene; an unlooped sample plays out and the bed dies mid-scene (Lance: \"Nebula keeps turning off\").",
-      "character": "deep room tone with bass",
-      "use": "one held note per scene = THE SCENE'S ROOT minus an octave, clamped to the hum band 24-43 (Aug 2026 — the old 20+SRC formula climbed to shrill keys on the pitched sampler; Lumen's bed was B-flat 3). Scene-atmosphere chain selection, if ever built, will use its own mechanism, not the bed pitch."
-    },
-    "strings": {
-      "ch": 6,
-      "instrument": "Arturia Augmented Strings (STRINGS track ch6) — now a first-class ROLE: Event Horizon casts its string wall here (V18), gate depth streams on ch6 CC74 — map it to the Augmented gate dial (the marquee mapping's real home)",
-      "character": "dark low string ensemble with a rhythmic gate the CC74 stream drives",
-      "use": "EH's chairs + chord rolls; any scene wanting bowed weight"
-    },
-    "shrine": {
-      "ch": 8,
-      "instrument": "SHRINE (Sacred Shrine, ch8) — Lance's ear: 'a little more tone' than Nebula. Role reserved; the tonal-atmosphere wildcard (audition low before casting — his earlier verdict: 'really busy' as a lead pad).",
-      "character": "tonal sacred atmosphere — more pitch than Nebula's hum",
-      "use": "THE TEASE SEAT (Lance, Aug 2026): 'hit it for a second, just one note, and that's a 10-second tease.' Rest-state single notes ride the long tail - Lumen V24 breathes on it. Still audition low anywhere it plays under other material."
-    },
-    "mellotron": {
-      "ch": 10,
-      "instrument": "Mellotron (ch10) — Lance: 'makes a fun lead, pretty high'. Ferro casts its call-and-response answers here (V21)",
-      "character": "tape-flute lead, high register",
-      "use": "high answering lines; audition against White Study's summon roll"
-    },
-    "choir": {
-      "ch": 11,
-      "instrument": "Choir (ch11) — Vespers holds a soft root+color double under the hum (V13), velocity breathing with the light",
-      "character": "human undertone",
-      "use": "hum doubles, walls at totality; keep the fader low — seasoning, not lead"
-    },
-    "sax": {
-      "ch": 12,
-      "instrument": "SpaceSax (ch12) — Lance's ear: 'a RECORDING of a sax playing a soulful note... never really play a run with it. A really high-quality SWELL on the mid-to-top end with nice texture.' It is a swell COLOR, not a melodic voice — pitch-tracking a recording across register chipmunks. For Vespers' beam, load a mono analog (Mini V, legato+glide) as a second chain on this track and use the sax swell where a held color is wanted.",
-      "character": "soulful sax swell recording — mid/top texture, one-note color",
-      "use": "SWELLS: a single held color that blooms (Lumen aperture peaks, Ferro sustained-lead hole). NOT runs, NOT the retuning beam - that needs the mono-analog chain beside it"
-    },
-    "drums2": {
-      "ch": 2,
-      "instrument": "TRANCE DRUM (second kit rack, moved from ch1 to ch2 Aug 2026 -- ends the shared-ch1 seat collisions). Its loop shelf: 56/G#2 = EVENT HORIZON's jam loop (DS_VS_100_drum_full_grace, pop/synthwave, 100 native -- warped, struck at the drop and held; map ch2 CC74 -> pad 56 chain volume Min -inf, the LEX move) . 59/B2 = EH's riser (VSH1_one_shot_fx_3_you_got_me, 8s, warped as 2 Bars -- the scene strikes it exactly 2 bars before the drop). Parking for candidates: C3/60 and up."
-    },
-    "synth": {
-      "ch": 16,
-      "instrument": "SYNTH CZV (Arturia CZ V) -- self-patterning on held notes: the scene strikes ONE low held root on the beat and re-pins it every bar (grid lock) and the patch does the rhythm. EXPRESSION: map ch16 CC74 -> its filter cutoff (Lance: 'it has some filters and things we can map')."
-    }
+  "pad": {
+   "ch": 5,
+   "instrument": "Ethereal Journey - an Augmented Strings patch (PADS ch5, Lance, Aug 2026 - swapped in over Jup-8 Deep Blue Voices: 'those were too gritty'). 1:1 rule: the pad ROLE plays the track NAMED PADS. RULE (Lance): the pad is INTENTIONAL - single placed notes, never a constant wash. MAPPING DIRECTION (Lance, Aug 2026): ch5 CC74 must point at a control where 127 = FULL body -- the engine parks every CC74 at 127 on scene open/close, and mapped to Morph that read 100% = thinnest; fix is Min/Max swapped in the Live MIDI map (Min 127, Max 0), never a scene-side workaround.",
+   "character": "the most scene-divergent channel — glass / cathedral air / analog light-pad / dark gated strings; chain per scene (manual first, bed-note chain-select later)",
+   "use": "sustained voice-led chords; glides on chord changes. Event Horizon (SRC-13) streams its rhythmic GATE DEPTH here as CC74 — map it to Augmented Strings' gate dial and the plugin throbs with the picture"
   },
-  "_benchCasting": [
-    "THE BENCH CASTING SHEET (per-scene, two clicks each, reversible — set the bench track's MIDI From to the role channel and its Monitor to In; undo after the scene). The 1:1 map stays the default; these are the doubles worth auditioning:",
-    "VESPERS (SRC-09): the BEAM off the felt piano — put a mono/legato analog voice (Omnisphere or Mini V: glide ON ~40ms, CC74 -> cutoff) on the SPACESAX track, MIDI From = Ch 7, and turn FELT PIANO's monitor off for this scene. The MOUTH stream (lead CC74) then articulates it as designed. CHOIR: MIDI From = Ch 5 at low volume — the hum grows a human undertone.",
-    "EVENT HORIZON (SRC-13): STRINGS (Augmented) MIDI From = Ch 5 — the chairs land on the instrument the gate mapping was designed for; keep PADS muted or layered under. CHOIR From = Ch 5 doubles the wall for totality.",
-    "LUMEN (SRC-38): audition glass on PADS first; SPACESAX From = Ch 5 is the fallback aperture color. SHRINE From = Ch 5 is the wildcard (busy — Lance's verdict — but organ-shaped; try at low volume).",
-    "FERRO (SRC-15): MELLOTRON From = Ch 7 — Lance: 'makes a fun lead, pretty high' — the call-and-response answers and birth rolls sit right in its range. Felt piano off or layered.",
-    "WHITE STUDY (SRC-34): MELLOTRON From = Ch 7 as the summon-roll color if the stab A/B lands elsewhere.",
-    "WEATHER (SRC-10): nothing benched — the seat that matters is real chimes on ch15.",
-    "Say what you cast in a session and it gets recorded here as the scene's standing cast."
-  ]
+  "bass": {
+   "ch": 3,
+   "instrument": "SYNTH BASS track, loaded — patch name TBD (say it in a session and it lands here). Design brief: Serum-style sine sub always on + CHARACTER macro: round (Ridge bans saw) → bite (White Study) → detuned-saw maw (Vespers' own spec)",
+   "character": "clean and fat at rest, teeth up the CHARACTER macro; sidechain-ducked by the perc kick (comp keyed to the R&B DRUMS ch1 group, LP 150Hz sidechain EQ) so the pump exists only when a groove is earned",
+   "use": "root movement; keep the sub for the wall (bass-mono below ~120Hz). Chladni's lock bass and beat-mode doubling land here; Ridge's funk figure and White Study's pump live mid-macro. Full recipe: docs/ABLETON-RIG.md"
+  },
+  "arp": {
+   "ch": 14,
+   "instrument": "ARP SYNTH (Lance's track 14, loaded — his Omnisphere rhythmic patch). RULE (Lance, Aug 2026): the ARP is RHYTHMIC — it enters WITH the drums, on the grid; never nature-timed, never under held notes",
+   "character": "arpeggiating synth; cutoff + resonance ARE the performance controls",
+   "use": "sequenced grid patterns only, gated by a scene's beat mode (Night Circuit, Chladni's unlock). CC74 → cutoff is this patch's native play. Vespers' churn arrives here as CC74 only"
+  },
+  "bells": {
+   "ch": 15,
+   "instrument": "Omnisphere — KPRO Dreamies (BELLS ch15) — Lance's verdict after playing: 'not really bells, more Canadian-boards pads' — a patch he loves but not a bell. SEAT OPEN: still wanted here = real bells + the deep TOLL (tam-tam, long tail). Until then Chladni rings its bells BROWSER-side (midi:false) — scene OUT=BOTH to hear them",
+   "character": "glass strikes for Lumen, chimes for Weather's heading bells, one enormous struck-metal toll for Chladni's lure — velocity sensitivity ON, NO internal rhythm (a groove patch here fights nature-timed strikes)",
+   "use": "chimes, sparkles, lock blooms, White Study's summon roll; Chladni's 1-in-7 lure toll goes to the TOLL chain — a real tam-tam, not a piano (docs/ABLETON-RIG.md Part 3)"
+  },
+  "texture": {
+   "ch": 9,
+   "instrument": "Omnisphere Hand Pan (HandPan track, loaded)",
+   "character": "huge reverb, crackly REAL strikes",
+   "use": "the continuous-voice mirror: held notes that re-strike on retune, CC74 = pooled voice energy. Chladni's mode tones: every detent catch is a mallet strike on a literal resonant plate"
+  },
+  "perc": {
+   "ch": 1,
+   "instrument": "THE R&B KIT (Lance's call, Aug 2026) — the loaded drum rack IS the R&B/lo-fi kit, built out per the pad map: 36 kick (round boom-bap thump + ghost layer) · 38 snare/side-stick · 39 clap/snap · 42 closed hat (dusty) · 43/45 toms lo/mid · 46 OPEN hat (dusty, medium decay) · 49 soft crash wash · 51 shaker · 53/F2 = Rain Atrium's LEX loop pad — and THE LOOP SEATS (Aug 2026, loop-first drums): 54/F#2 = Chladni's break loop · 55/G2 = Ridge's funk loop (~96 BPM) · 56/G#2 = Event Horizon's dark techno loop (128-feel) · 57/A2 = Ferro Bloom's dub loop (TL_LD_140_Drums_Dubbed, hip-hop dub, 140 source — Warp ON as 8 bars, Beats mode, so it follows the clock down to Ferro's 100) — each struck once at its window's first open and held, faded entirely by ch1 CC74. THE PARKING LAW (Aug 2026, learned live): BOTH drum tracks (R&B DRUMS and TRANCE DRUM, the second kit) listen on ch1, so a seat strike fires the pad in EVERY ch-1 rack -- pads 53-57 are LIVE SHOW SEATS in all of them, and a 'parked' loop candidate on any of those pads WILL play in the wrong scene (a dub loop parked on 54 played inside Chladni). Park candidates at C3/60 and up; only a chosen loop goes on its seat, in whichever rack. Seats: 53 Rain (LEX) / 54 Chladni (EMPTY by choice -- Lance keeps the programmed one-shot beat) / 55 Ridge / 56 EH / 57 Ferro (TL_LD_140 dub) (map each pad's chain volume Min -inf, the LEX move); empty pads are silent, programmed kits still play until a loop is seated. Original LEX note: 53/F2 = Rain Atrium's LEX loop pad (Simpler: Loop+Warp ON, Transpose 0, Vel→Vol 0, chain vol mapped to ch1 CC74 Min -inf) — deliberately OUTSIDE the kit zone so other scenes' kicks (note 36) never restart it. A SECOND kit (Fred Again / trance — hard kick tuned A, break slices, taiko top-velocity zone) gets built separately; how scenes pick kits = the chain/remap decision, deferred until it exists",
+   "character": "trance weight under Fred Again break character; group chain = EQ → Glue 2:1 slow attack → Drum Buss ~50% wet (Boom on A) → parallel comp ~25%; wash send 1.4s/predelay 14ms/low-cut 250Hz on 38/46 only. Per-pad vel→vol ~60% — the browser streams real velocity",
+   "use": "drum rack — 36 kick/low thud · 38 mid crack · 42 click · 46 air/tick; scene noise-hits arrive bucketed by brightness. The rail-secret break plays this kit. Swing comes from the SCENE, never Live (grooves don't apply to live MIDI). Full recipe: docs/ABLETON-RIG.md"
+  },
+  "sfx": {
+   "ch": 4,
+   "instrument": "SFX rack — LOADED (Lance, Aug 2026): C#1/37 = brooding lightning · D1/38 = quick loud strike · D#1/39 = forest rainfall loop (held all scene) · E1/40 = thunderstorm loop (held, crossfades in) — CC74 rides both loop chains' volumes (forest Min ~-22dB, storm Min ~-60dB). F1/41 = VESPERS' WAKE SEAT (the scene fires sfxNote(41) on the first touch after stillness -- wants a growly one-shot that BENDS UP into the hit: Simpler pitch env Amount -2st, Decay ~150ms, drive/saturation on; empty since the Aug 2026 rack rebuild, which is why the wake went silent in OUT=midi). Still to add: Blade Runner chops / cave drips one-shots, Granulator sand for Chladni",
+   "character": "granular weather",
+   "use": "semantic one-shots — 36 ignition · 37 lightning · 38 thunder · 39 rain. Chladni streams sand motion as CC74 → density/volume. Event Horizon streams its swallow charge/rise as CC74 — map to a riser/impact send"
+  },
+  "bed": {
+   "ch": 13,
+   "instrument": "Nebula (ch13) — Lance's ear: 'sounds like you're on a spaceship cruising — has some bass and hum to it that's nice.' Exactly the bed. — LOOP ON REQUIRED (Aug 2026): the scene holds ONE note-on for the whole scene; an unlooped sample plays out and the bed dies mid-scene (Lance: \"Nebula keeps turning off\").",
+   "character": "deep room tone with bass",
+   "use": "one held note per scene = THE SCENE'S ROOT minus an octave, clamped to the hum band 24-43 (Aug 2026 — the old 20+SRC formula climbed to shrill keys on the pitched sampler; Lumen's bed was B-flat 3). Scene-atmosphere chain selection, if ever built, will use its own mechanism, not the bed pitch."
+  },
+  "strings": {
+   "ch": 6,
+   "instrument": "Arturia Augmented Strings (STRINGS track ch6) — now a first-class ROLE: Event Horizon casts its string wall here (V18), gate depth streams on ch6 CC74 — map it to the Augmented gate dial (the marquee mapping's real home)",
+   "character": "dark low string ensemble with a rhythmic gate the CC74 stream drives",
+   "use": "EH's chairs + chord rolls; any scene wanting bowed weight"
+  },
+  "shrine": {
+   "ch": 8,
+   "instrument": "SHRINE (Sacred Shrine, ch8) — Lance's ear: 'a little more tone' than Nebula. Role reserved; the tonal-atmosphere wildcard (audition low before casting — his earlier verdict: 'really busy' as a lead pad).",
+   "character": "tonal sacred atmosphere — more pitch than Nebula's hum",
+   "use": "THE TEASE SEAT (Lance, Aug 2026): 'hit it for a second, just one note, and that's a 10-second tease.' Rest-state single notes ride the long tail - Lumen V24 breathes on it. Still audition low anywhere it plays under other material."
+  },
+  "mellotron": {
+   "ch": 10,
+   "instrument": "Mellotron (ch10) — Lance: 'makes a fun lead, pretty high'. Ferro casts its call-and-response answers here (V21)",
+   "character": "tape-flute lead, high register",
+   "use": "high answering lines; audition against White Study's summon roll"
+  },
+  "choir": {
+   "ch": 11,
+   "instrument": "Choir (ch11) — Vespers holds a soft root+color double under the hum (V13), velocity breathing with the light",
+   "character": "human undertone",
+   "use": "hum doubles, walls at totality; keep the fader low — seasoning, not lead"
+  },
+  "sax": {
+   "ch": 12,
+   "instrument": "SpaceSax (ch12) — Lance's ear: 'a RECORDING of a sax playing a soulful note... never really play a run with it. A really high-quality SWELL on the mid-to-top end with nice texture.' It is a swell COLOR, not a melodic voice — pitch-tracking a recording across register chipmunks. For Vespers' beam, load a mono analog (Mini V, legato+glide) as a second chain on this track and use the sax swell where a held color is wanted.",
+   "character": "soulful sax swell recording — mid/top texture, one-note color",
+   "use": "SWELLS: a single held color that blooms (Lumen aperture peaks, Ferro sustained-lead hole). NOT runs, NOT the retuning beam - that needs the mono-analog chain beside it"
+  },
+  "drums2": {
+   "ch": 2,
+   "instrument": "TRANCE DRUM (second kit rack, moved from ch1 to ch2 Aug 2026 -- ends the shared-ch1 seat collisions). Its loop shelf: 56/G#2 = EVENT HORIZON's jam loop (DS_VS_100_drum_full_grace, pop/synthwave, 100 native -- warped, struck at the drop and held; map ch2 CC74 -> pad 56 chain volume Min -inf, the LEX move) . 59/B2 = EH's riser (VSH1_one_shot_fx_3_you_got_me, 8s, warped as 2 Bars -- the scene strikes it exactly 2 bars before the drop). Parking for candidates: C3/60 and up."
+  },
+  "synth": {
+   "ch": 16,
+   "instrument": "SYNTH CZV (Arturia CZ V) -- self-patterning on held notes: the scene strikes ONE low held root on the beat and re-pins it every bar (grid lock) and the patch does the rhythm. EXPRESSION: map ch16 CC74 -> its filter cutoff (Lance: 'it has some filters and things we can map')."
+  }
+ },
+ "_benchCasting": [
+  "THE BENCH CASTING SHEET (per-scene, two clicks each, reversible — set the bench track's MIDI From to the role channel and its Monitor to In; undo after the scene). The 1:1 map stays the default; these are the doubles worth auditioning:",
+  "VESPERS (SRC-09): the BEAM off the felt piano — put a mono/legato analog voice (Omnisphere or Mini V: glide ON ~40ms, CC74 -> cutoff) on the SPACESAX track, MIDI From = Ch 7, and turn FELT PIANO's monitor off for this scene. The MOUTH stream (lead CC74) then articulates it as designed. CHOIR: MIDI From = Ch 5 at low volume — the hum grows a human undertone.",
+  "EVENT HORIZON (SRC-13): STRINGS (Augmented) MIDI From = Ch 5 — the chairs land on the instrument the gate mapping was designed for; keep PADS muted or layered under. CHOIR From = Ch 5 doubles the wall for totality.",
+  "LUMEN (SRC-38): audition glass on PADS first; SPACESAX From = Ch 5 is the fallback aperture color. SHRINE From = Ch 5 is the wildcard (busy — Lance's verdict — but organ-shaped; try at low volume).",
+  "FERRO (SRC-15): MELLOTRON From = Ch 7 — Lance: 'makes a fun lead, pretty high' — the call-and-response answers and birth rolls sit right in its range. Felt piano off or layered.",
+  "WHITE STUDY (SRC-34): MELLOTRON From = Ch 7 as the summon-roll color if the stab A/B lands elsewhere.",
+  "WEATHER (SRC-10): nothing benched — the seat that matters is real chimes on ch15.",
+  "Say what you cast in a session and it gets recorded here as the scene's standing cast."
+ ]
 }
