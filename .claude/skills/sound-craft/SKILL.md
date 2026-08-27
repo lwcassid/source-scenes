@@ -164,6 +164,16 @@ music: {
   ambient however high its visual energy ceiling.
 - **Bright major-9 cadences read "Mario power-up"** on a colorful scene.
   Minor pedal color-shift reads tasteful and badass. When in doubt, darker.
+  Even an all-minor progression can READ major if the voicings are lush
+  add9/maj9 colors with a major-chord arrival — Vespers' E♭maj9 bar felt
+  "very major sounding" (Lance) inside G aeolian; ♭2/♭6 as color, no
+  major arrivals, keeps a dark scene dark.
+- **Vespers is THE ANNIHILATION ALIEN (Lance, Aug 2026).** Its core voice
+  is a creature, not a chorister: it scoops UP into every landing (start
+  low, land exactly on the rung — never park off-ladder), growls from the
+  FIGURE's own sharpness, and its expression is the rig controls Lance
+  mapped on ch16 — pitch bend = the scoop, CC74 = the panner riding the
+  figure's centroid, CC71 = the growl. Alien intensity, never horror.
 - **One voice per visual element** (a bloom = a pad voice, panned to its
   side). Willing things in literally thickens the chord.
 - Bed voice gains ~0.007–0.011 each; bells 0.03–0.05; perc 0.01–0.02 × gate.

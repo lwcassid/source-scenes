@@ -172,7 +172,7 @@
   },
   "synth": {
    "ch": 16,
-   "instrument": "SYNTH CZV (Arturia CZ V) -- self-patterning on held notes: the scene strikes ONE low held root on the beat and re-pins it every bar (grid lock) and the patch does the rhythm. EXPRESSION: map ch16 CC74 -> its filter cutoff (Lance: 'it has some filters and things we can map')."
+   "instrument": "CZ V (SYNTH CZV, ch16) — Vespers V15 runs it as THE ANNIHILATION ALIEN's voice (preset in use: Neurosis). Lance's two mapped controls ARE the expression lanes: PITCH BEND = the scoop (set CZ V bend range to 2 semitones; the scene parks bend at center on scene edges) and ch16 CC74 = the PANNER macro (the voice follows the figure's centroid across the field). ch16 CC71 streams the GROWL — map it to a Timbre/FX macro to bring the fold into the rack. Event Horizon (break versions, V29 and earlier) uses the same track with its self-patterning preset + CC74 filter / CC71 ACID — preset per set list until a two-chain rack exists."
   }
  },
  "_benchCasting": [
