@@ -96,7 +96,7 @@
   },
   "bass": {
    "ch": 3,
-   "instrument": "SYNTH BASS track, loaded — patch name TBD (say it in a session and it lands here). Design brief: Serum-style sine sub always on + CHARACTER macro: round (Ridge bans saw) → bite (White Study) → detuned-saw maw (Vespers' own spec)",
+   "instrument": "SYSTEM OF A BASS (Omnisphere) — Lance found it, Aug 2026: 'It sort of does what we want automatically... you have to strike it hard to get it to growl and hold it for a bit. Hit it in this zone' (A#2 / MIDI 58). VELOCITY IS THE CHARACTER: soft = tame sub/round, hard held = the growl, no macro needed. Vespers V16 strikes the chord tone nearest the zone at vel ~106-120 on hard-drive edges. NOTE: the track sits at 17 in The Cave Instruments V1 — set its MIDI-from to the bass channel (3), or say which channel it listens on. Prior design brief (Serum-style sine sub + CHARACTER macro) superseded by this patch's own velocity behavior.",
    "character": "clean and fat at rest, teeth up the CHARACTER macro; sidechain-ducked by the perc kick (comp keyed to the R&B DRUMS ch1 group, LP 150Hz sidechain EQ) so the pump exists only when a groove is earned",
    "use": "root movement; keep the sub for the wall (bass-mono below ~120Hz). Chladni's lock bass and beat-mode doubling land here; Ridge's funk figure and White Study's pump live mid-macro. Full recipe: docs/ABLETON-RIG.md"
   },
