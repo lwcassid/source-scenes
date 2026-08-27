@@ -1399,6 +1399,7 @@ document.getElementById('midiOutSel').addEventListener('change', e => {
   const outs = [...midi.access.outputs.values()];
   MOut.port = outs[+e.target.value] || null;
   try { if (MOut.port) localStorage.setItem('srcOutPort', MOut.port.name); } catch (err) {}
+  if (MOut.port && MOut.wants()) MOut._reassert();   // hand-picked port: bed + park + holds follow
 });
 document.getElementById('btnClock').addEventListener('click', () => MOut.clockSet(!MOut.clock.on));
 setInterval(() => MOut.refreshUI(), 1500);

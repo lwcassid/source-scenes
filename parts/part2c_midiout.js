@@ -352,6 +352,7 @@ const MOut = {
     if (!p) return false;
     this.port = p;
     try { localStorage.setItem('srcOutPort', name); } catch (e) {}
+    if (this.wants()) this._reassert();   // same contract as the poll's acquire
     this.refreshUI();
     return true;
   },
@@ -426,11 +427,22 @@ const MOut = {
   // held rain never re-fired). Re-assert what the engine knows (the bed
   // note, CC74 park) and tell the scene to re-strike its own holds.
   onModeMidi: null,   // a scene may register a re-assert callback (cleared on close)
-  _modeCrossed(was) {
-    if (was || !this.wants()) return;
+  // Everything the engine must re-send when MIDI becomes REAL mid-scene —
+  // shared by the web→MIDI mode flip and (the Nebula fix, Aug 2026) the
+  // PORT arriving after a scene opened: first permission grant resolving
+  // late, and ticket #37's stale-port reconnect. bedOn() fires once at
+  // openFocus and sent nothing while the port was null; the 1.5s poll then
+  // acquired the port without re-asserting, so the bed stayed silent for
+  // the whole scene. Now every null→port transition replays the bed note,
+  // re-parks CC74, and tells the scene to re-strike its own holds.
+  _reassert() {
     this.parkExpr();
     if (this._bed && this.port) { try { this.port.send([0x90 | (this.chFor('bed') - 1), this._bed, 90]); } catch (e) {} }
     if (this.onModeMidi) { try { this.onModeMidi(); } catch (e) {} }
+  },
+  _modeCrossed(was) {
+    if (was || !this.wants()) return;
+    this._reassert();
   },
   refreshUI() {
     const b = document.getElementById('btnOut');
@@ -477,6 +489,7 @@ const MOut = {
           const i = saved ? outs.findIndex(o => o.name === saved) : -1;
           this.port = outs[i >= 0 ? i : 0];
           if (i >= 0) sel.value = String(i);
+          this._reassert();   // the port just became real: bed, CC74 park, scene holds
         }
       } else sel.style.display = 'none';
     }
