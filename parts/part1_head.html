@@ -383,7 +383,9 @@
   #btnPauseAll{margin-left:auto;flex:none;font-size:9.5px;letter-spacing:.14em;padding:2px 12px;background:none;border:1px solid var(--line);border-radius:3px;color:var(--txt);cursor:pointer}
   #btnPauseAll.paused{color:#ffb14a;border-color:#ffb14a;box-shadow:0 0 8px rgba(255,177,74,.35)}
   .rinfo{flex:none;cursor:help;color:var(--txt-dim);border:1px solid var(--line);border-radius:50%;width:15px;height:15px;line-height:14px;text-align:center;font-size:10px}
-  #rackBox.paused #roleRack,#rackBox.paused #audioRack{opacity:.35}
+  /* paused = frozen, not unreadable (Lance: "don't darken the text, I
+     can't fucking read it") — only the liveness dots dim, text stays */
+  #rackBox.paused #roleRack .dot,#rackBox.paused #audioRack .dot{opacity:.35}
   /* AUDIO IN monitor — same rack+lanes shape as THE RIG, swapped in for
      scenes that declare reg({audioIn:true}) instead of Ableton/MIDI-out,
      which those scenes mostly don't touch. */

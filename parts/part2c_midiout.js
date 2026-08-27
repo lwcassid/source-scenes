@@ -200,6 +200,21 @@ const MOut = {
     if (lg.length > 300) lg.splice(0, 100);
     this.cc(this.chFor(role), 74, v);
   },
+  // SECOND EXPRESSION LANE → CC71 (Lance, EH round: "I assumed there would
+  // be two but we've been using one. Or maybe there's infinite?" — there
+  // are 127; CC71 is the house second lane). Same contract as expr, its
+  // own state; parked at 0 (intensity OFF is neutral, unlike a filter).
+  _expr2State: {},
+  expr2(role, v01) {
+    const now = performance.now();
+    const st = this._expr2State[role] || (this._expr2State[role] = { t: 0, v: -1, s: 0 });
+    st.t = now;
+    if (now - st.s < 50) return;
+    const v = Math.round(clamp(v01) * 127);
+    if (v === st.v) return;
+    st.s = now; st.v = v;
+    this.cc(this.chFor(role), 71, v);
+  },
   _exprLog: {},
   _lastCC: { L: -1, R: -1 }, _lastCCt: 0,
   tickCC(inp) {
@@ -358,8 +373,12 @@ const MOut = {
   parkExpr() {
     if (this.port && this.wants()) {
       try { for (const r in this.roles) this.port.send([0xB0 | (this.roles[r] - 1), 74, 127]); } catch (e) {}
+      // the second lane (CC71) parks at ZERO: it carries intensity-type
+      // targets (ACID amount, FX depth) where stuck-high is the hazard
+      try { for (const r in this._expr2State) this.port.send([0xB0 | (this.chFor(r) - 1), 71, 0]); } catch (e) {}
     }
     this._exprState = {};
+    this._expr2State = {};
   },
   // the operator's persistent choice — per-scene queue overrides applyMode()
   // around it and fall back to it, so a show never strands the global toggle

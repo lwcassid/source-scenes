@@ -58,8 +58,8 @@
     "When loops land on 54/55/56/57 (Chladni/Ridge/EH/Ferro loop seats): map ch1 CC74 to each pad's chain volume, Min -inf — same move as the LEX pad; one CC fades whichever loop its scene holds.",
     "New lanes worth mapping: ch6 strings → Augmented Strings GATE dial (the marquee — EH streams gate depth here now) · ch12 sax → the beam patch's cutoff (Vespers streams THE MOUTH here now).",
     "THE EXPRESSION ROUND (Lance wants it): map CC74 on every seat so scenes can swell/ramp instead of hitting - ch3 bass (Lumen's breath swell is already streaming it), ch5 pad, ch8 shrine, ch11 choir, ch12 sax, ch6 strings gate, ch10 mellotron. Each mapping ~2 min (Configure/CC-Learn + the row's MAP button); say each one as it lands and it gets recorded here.",
-    "WANTED ch2 TRANCE DRUM: CC74 -> pad 56 chain volume Min -inf (EH's drums breathe with the jam)",
-    "WANTED ch16 SYNTH CZV: CC74 -> filter cutoff (EH's high-hand synth expression)"
+    "DONE ch2 TRANCE DRUM: CC74 -> pad 56 chain volume Min -inf (Lance, Aug 2026)",
+    "DONE ch16 SYNTH CZV: CC74 -> filter cutoff. WANTED ch16 CC71 -> the ACID/FX macro (the SECOND LANE: MOut.expr2 streams CC71, parked at 0; EH drives it with motion + window energy)"
   ],
   "tracks": {
     "1": "R&B DRUMS",
