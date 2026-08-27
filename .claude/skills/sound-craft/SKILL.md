@@ -183,6 +183,11 @@ music: {
   16ths) reads dramatic where more note-spam reads busy; stream the depth on
   CC74 so a gate/filter plugin in Live can take over the same motion.
 
+- **Ableton's octave names run one below MIDI's (C3 = MIDI 60).** A note
+  read off Lance's Live screen is MIDI number + 12: his "F1-G1" jam is
+  MIDI 41-43. EH V22 shipped the CZ V an octave under his rehearsal from
+  this exact misread ("I'm playing G1 and you're at G0?").
+
 ## One-shot samples (no Ableton rigging required)
 
 Drop the file in `assets/` AS-IS — ship the original bit depth/rate (Lance:
