@@ -132,7 +132,7 @@
     },
     "bed": {
       "ch": 13,
-      "instrument": "Nebula (ch13) — Lance's ear: 'sounds like you're on a spaceship cruising — has some bass and hum to it that's nice.' Exactly the bed.",
+      "instrument": "Nebula (ch13) — Lance's ear: 'sounds like you're on a spaceship cruising — has some bass and hum to it that's nice.' Exactly the bed. — LOOP ON REQUIRED (Aug 2026): the scene holds ONE note-on for the whole scene; an unlooped sample plays out and the bed dies mid-scene (Lance: \"Nebula keeps turning off\").",
       "character": "deep room tone with bass",
       "use": "one held note per scene = THE SCENE'S ROOT minus an octave, clamped to the hum band 24-43 (Aug 2026 — the old 20+SRC formula climbed to shrill keys on the pitched sampler; Lumen's bed was B-flat 3). Scene-atmosphere chain selection, if ever built, will use its own mechanism, not the bed pitch."
     },
