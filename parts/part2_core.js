@@ -430,7 +430,14 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onOpenScene) {
     // is supposed to pass fromRelay through untouched, but if a future
     // wrapper ever drops the second arg again, this guard still stops the
     // ping-pong — never re-open the scene the show window is already on.
-    if (idx >= 0 && idx !== focus.idx) openFocus(idx, true);
+    if (idx >= 0 && idx !== focus.idx) {
+      // control no longer sends a closeScene before a switch (that stows the
+      // window), so do the close half here — otherwise a switch stacks a new
+      // scene on the old one and the previous scene's notes never get an
+      // all-off into Live.
+      if (focus.idx >= 0) closeFocus();
+      openFocus(idx, true);
+    }
   });
 }
 // Control window: the reverse direction — the show window advanced on its
@@ -1260,21 +1267,30 @@ function startVoice() {
   }
 }
 function closeFocus() {
-  // Review pass: CLOSE in the control window used to leave the show
-  // window playing — closeFocus() here only ever touched the control
-  // mirror. Relay the close FIRST so a tile-click / step() path (which
-  // calls closeFocus() then openFocus()) sends the show window a matching
-  // close-then-open instead of just stacking a second open on top of
-  // whatever scene it's already on.
-  if (window.ELECTRON_ROLE === 'control' && showLive && window.electronAPI && focus.idx >= 0) {
-    window.electronAPI.closeScene();   // stows the show window
-    setShowLive(false);                // CLOSE ends the show; back to web behaviour
-  }
+  // NOTE: closeFocus is a PRIMITIVE, not "end the show". Every scene change
+  // is closeFocus() then openFocus() — goToFamily, step(), play() all do it —
+  // so nothing here may tear a show down. Ending a show is endShow(), below.
   if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
   if (typeof MOut !== 'undefined') { MOut.bedOff(); MOut.allOff(); }
   if (typeof T !== 'undefined') { T.stop(); H.listeners = []; }
   focus.P = null; focus.idx = -1;
   overlay.classList.remove('open');
+}
+/* Nima: "when I click another item in the queue during a show it switches to
+   it but I lose the list and the whole top becomes the visual."
+   Because CLOSE-the-show was bolted onto closeFocus(), and closeFocus() is
+   the first half of every scene CHANGE. Clicking a row in the running order
+   therefore ended the show: showLive dropped, the console vanished and the
+   stage went full-bleed — and worse, the show window was stowed and then
+   revealed a moment later, which on macOS is a fullscreen Space transition on
+   the projector for every single scene switch.
+   Ending a show is a deliberate act with exactly two triggers — the CLOSE
+   button and Escape — so it lives here, not in the primitive. */
+function endShow() {
+  const wasLive = window.ELECTRON_ROLE === 'control' && showLive;
+  if (wasLive && window.electronAPI && focus.idx >= 0) window.electronAPI.closeScene();  // stow the wall
+  closeFocus();                       // the wrapped one: URL sync + OUT restore
+  if (wasLive) setShowLive(false);    // after the close, so it can't rebuild a local instance
 }
 window.addEventListener('resize', () => { if (focus.P) syncStage(); });
 // P toggles the projector frame live — see the same scene in a window and in the show
@@ -1337,7 +1353,7 @@ window.addEventListener('keydown', e => {
   // because setFullScreen() raised it. CLOSE lives in the control window.
   if (e.key === 'Escape') {
     if (document.getElementById('helpModal').classList.contains('open')) document.getElementById('helpModal').classList.remove('open');
-    else if (window.ELECTRON_ROLE !== 'show') closeFocus();
+    else if (window.ELECTRON_ROLE !== 'show') endShow();
   }
   if (!focus.P) return;
   const k = e.key.toLowerCase();
@@ -1358,7 +1374,7 @@ function applyKeys(dt) {
    ============================================================ */
 // late-bound: part5_tail wraps closeFocus for deep-link cleanup — a direct
 // reference here would skip the wrapper and leave #scene= stuck in the URL
-document.getElementById('btnClose').addEventListener('click', () => closeFocus());
+document.getElementById('btnClose').addEventListener('click', () => endShow());
 // the experience summary un-clamps in place at the top of the sidebar
 document.getElementById('sNotesTog').addEventListener('click', e => {
   const on = document.getElementById('sceneNotes').classList.toggle('open');
