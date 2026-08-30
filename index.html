@@ -78,6 +78,12 @@
   #mapPop #calRead{font:9.5px/1.5 ui-monospace,monospace;color:var(--txt-dim);white-space:pre;
     background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin:8px 0;overflow-x:auto}
   .slbl{font:9px var(--mono);color:var(--txt-faint);letter-spacing:.14em;flex:none}
+  .srow button{white-space:nowrap}
+  .srow button.warn{border-color:#fbbf24;color:#b45309}
+  #midiOutSel{flex:1;min-width:0}
+  .advtog{display:block;font:9px var(--mono);color:var(--txt-faint);letter-spacing:.08em;cursor:pointer;margin:6px 0 2px;user-select:none}
+  .advtog:hover{color:var(--txt-dim)}
+  #audioPop #clockBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
 
   /* ---------- library: LEFT RAIL + grid ----------
      The rail is the same column, the same width and the same .sgroup
@@ -703,30 +709,39 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
      coaching prose moved into tooltips; audio-in moved to its own popover. -->
 <div id="mapPop">
   <h4>The hands</h4>
-  <p>Bind any MIDI control — fader, knob, theremin — to each hand. LEARN, then <b>sweep that control through its whole range</b> for ~2s. Bindings persist.</p>
+  <p>Press LEARN, then <b>sweep that hand's control through its whole range</b> for ~2s. Works with any fader, knob, or theremin. It remembers.</p>
   <div class="row">
     <button id="btnMidi" class="off">MIDI: CONNECT</button>
-    <select id="midiInSel" style="display:none" title="Which MIDI device the HANDS listen to — pin it if a second controller shares the room"></select>
   </div>
   <div class="row">
-    <button id="btnLearnL" style="display:none" title="Then sweep your LEFT control through its full range for ~2 seconds — CC, pitch bend, and pressure all work">LEARN L</button>
-    <button id="btnLearnR" style="display:none" title="Then sweep your RIGHT control through its full range for ~2 seconds">LEARN R</button>
+    <button id="btnLearnL" style="display:none" title="Then sweep your LEFT control through its full range for ~2 seconds — CC, pitch bend, and pressure all work">LEARN LEFT</button>
+    <button id="btnLearnR" style="display:none" title="Then sweep your RIGHT control through its full range for ~2 seconds">LEARN RIGHT</button>
+  </div>
+  <span class="advtog" data-adv="advHands">▸ advanced</span>
+  <div id="advHands" style="display:none">
+    <div class="row">
+      <select id="midiInSel" style="display:none" title="Which MIDI device the HANDS listen to — pin it if a second controller shares the room"></select>
+    </div>
+    <p class="pfaint">Pin the hands to one device when a second controller shares the room.</p>
   </div>
   <p class="pfaint">No hardware? The on-screen theremin, the scene surface, and W/S · ↑/↓ all drive the hands.</p>
   <div id="navBox">
     <h4>Show control</h4>
     <p>A <b>second</b> controller steps the show: prev / next / jump-to-slot. Press LEARN, then hit the pad or switch you want it on.</p>
     <div class="row">
-      <select id="navInSel" title="Which device is the show controller — separate from the hands">
-        <option value="all">DEVICE: ANY</option>
-      </select>
-    </div>
-    <div class="row">
       <button id="btnNavPrev">LEARN PREV</button>
       <button id="btnNavNext">LEARN NEXT</button>
       <button id="btnNavSlots" title="Hit PAD 1 — the next 15 consecutive notes become queue slots 2-16">LEARN PADS</button>
     </div>
     <div class="row"><span id="navRange" class="navrange"></span></div>
+    <span class="advtog" data-adv="advNav">▸ advanced</span>
+    <div id="advNav" style="display:none">
+      <div class="row">
+        <select id="navInSel" title="Which device is the show controller — separate from the hands">
+          <option value="all">DEVICE: ANY</option>
+        </select>
+      </div>
+    </div>
   </div>
   <div id="calBox" style="display:none">
     <h4>Calibrate the sensors</h4>
@@ -756,6 +771,11 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
   <div class="row">
     <button id="btnAudioRest" title="Keep the room quiet, then press — whatever the source reads with nothing playing becomes the floor">SET REST</button>
     <span id="audioLevel" class="navrange"></span>
+  </div>
+  <div id="clockBox">
+    <h4>Tempo clock</h4>
+    <p class="pfaint">Sends MIDI clock so Ableton follows each scene's BPM. Set once: Live needs this port's Sync on and EXT pressed. Leave it ON.</p>
+    <div class="row"><button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT. Nothing ever syncs the other way.">CLOCK OUT: ON</button></div>
   </div>
 </div>
 
@@ -800,6 +820,18 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <p class="sinfo">tick a scene to queue it — the queue's <b>order</b> is the running order · PLAY always walks the pre-flight first</p>
     </section>
     <section class="sgroup railfold">
+      <h5>View</h5>
+      <div class="srow"><button id="dispRowLib" class="off" title="Which physical display the show fullscreens onto when you press PLAY — click to check or change it">DISPLAY: …</button></div>
+      <div class="srow">
+        <select id="viewSelLib" title="What the stage shows when a scene opens — the flat projector frame, the two-projector ghost, or The Cave in 3D">
+          <option value="flat">FLAT · 1 PROJECTOR</option>
+          <option value="double">GHOST · 2 PROJECTORS</option>
+          <option value="scrim">SCRIM · THE CAVE 3D</option>
+        </select>
+      </div>
+      <p class="sinfo">1920×1200 · 16:10 · one render, cloned to both projectors</p>
+    </section>
+    <section class="sgroup railfold">
       <h5>Source input</h5>
       <canvas id="widgetTop" width="220" height="76" title="The source — the two-hand instrument driving every scene"></canvas>
       <div class="srow" style="margin-top:8px">
@@ -810,14 +842,14 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </section>
     <section class="sgroup railfold">
       <h5>Music</h5>
+      <div class="srow"><button id="btnSound" title="This laptop's own speakers/synths only — sound sent to Ableton is separate (SEND TO below)">BROWSER SOUND: ON</button></div>
       <div class="srow">
-        <button id="btnSound" title="The BROWSER's own synths only — MIDI to Ableton is the OUT toggle below, unaffected by this">WEB SOUND: ON</button>
-        <input type="range" id="volSlider" min="0" max="100" value="85" title="Browser master volume">
+        <input type="range" id="volSlider" min="0" max="100" value="85" title="Browser sound volume">
         <span id="volLabel" style="font:9px var(--mono);color:var(--txt-dim);width:28px;text-align:right;flex:none">85%</span>
       </div>
-      <div class="srow"><button id="btnOut" class="off" title="Where the music goes: the browser's own synths (WEB), MIDI out to Ableton (MIDI), or BOTH">OUT: WEB AUDIO</button></div>
-      <div class="srow"><span class="slbl" title="The virtual MIDI cable this app plays Ableton through — Live must have this port's Track switch ON and each track's Monitor set to In">ABLETON BUS</span><select id="midiOutSel" style="display:none" title="Pick the bus your Live set listens to"></select><button id="btnTest" title="Send a short test phrase to every role — if Ableton is wired right, you hear it">TEST ♪</button></div>
-      <div class="srow"><button id="btnAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture">AUDIO IN</button><button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button></div>
+      <div class="srow"><button id="btnOut" class="off" title="Where the music plays: this browser's own synths, Ableton over MIDI, or both at once">SEND TO: BROWSER</button></div>
+      <div class="srow"><span class="slbl" title="The virtual MIDI cable this app plays Ableton through — Live must have this port's Track switch ON and each track's Monitor set to In">ABLETON BUS</span><select id="midiOutSel" style="display:none" title="Pick the bus your Live set listens to"></select></div>
+      <div class="srow"><button id="btnTest" title="Send a short test phrase to every instrument — if Ableton is wired right, you hear it answer">TEST ABLETON ♪</button><button id="btnAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN</button></div>
       <p class="sinfo">role → channel map comes from rig.json, read-only — THE RIG console under an open scene shows it live</p>
     </section>
   </aside>
@@ -859,6 +891,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
          notes fold under MUSIC. One summary, then read up where you're working. -->
     <section class="sgroup">
       <h5>View</h5>
+      <div class="srow"><button id="dispRowF" class="off" title="Which physical display the show fullscreens onto when you press PLAY — click to check or change it">DISPLAY: …</button></div>
       <div class="srow">
         <select id="viewSel" title="What the stage shows — the flat projector frame, the two-projector ghost, or the throw in The Cave in 3D (V cycles)">
           <option value="flat">FLAT · 1 PROJECTOR</option>
@@ -888,9 +921,10 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </section>
     <section class="sgroup">
       <h5>Music</h5>
-      <div class="srow"><button id="fSound" title="The BROWSER's own synths only — MIDI to Ableton is the OUT toggle below, unaffected by this">WEB SOUND: ON</button><input type="range" id="fVol" min="0" max="100" value="85" title="Browser master volume"></div>
-      <div class="srow"><button id="fOut" class="off" title="Where the music goes: the browser's own synths (WEB), MIDI out to Ableton (MIDI), or BOTH">OUT: WEB AUDIO</button></div>
-      <div class="srow"><button id="fAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture">AUDIO IN</button><button id="fClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM (Live: port Sync on, EXT lit)">CLOCK OUT: ON</button></div>
+      <div class="srow"><button id="fSound" title="This laptop's own speakers/synths only — sound sent to Ableton is separate (SEND TO below)">BROWSER SOUND: ON</button></div>
+      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Browser sound volume"></div>
+      <div class="srow"><button id="fOut" class="off" title="Where the music plays: this browser's own synths, Ableton over MIDI, or both at once">SEND TO: BROWSER</button></div>
+      <div class="srow"><button id="fAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN</button></div>
       <span class="stoggle sntog" data-for="ipSound">▸ ableton build notes</span>
       <p class="snote snfold" id="ipSound"></p>
       <p class="sinfo">the rig rack below the stage shows role → channel → instrument, live</p>
@@ -2435,6 +2469,9 @@ function setView(mode) {
   try { localStorage.setItem('srcView', mode); } catch (e) {}
   const sel = document.getElementById('viewSel');
   if (sel && sel.value !== mode) sel.value = mode;
+  // the library rail carries the same select (Lance: one column, both views)
+  const sell = document.getElementById('viewSelLib');
+  if (sell && sell.value !== mode) sell.value = mode;
   const ov = document.getElementById('overlay');
   if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
   // the scrim view is full bleed, the frame views are letterboxed — refit
@@ -2738,7 +2775,7 @@ window.addEventListener('keydown', e => {
 });
 document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
-  e.target.textContent = AE.on ? 'WEB SOUND: ON' : 'WEB SOUND: OFF';
+  e.target.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
   if (AE.on) { AE.ensure(); startVoice(); }
   else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
@@ -3483,10 +3520,10 @@ const MOut = {
     // window's own button text update is invisible — no chrome there).
     if (window.ELECTRON_ROLE === 'control') {
       if (window.electronAPI) window.electronAPI.requestMidiTest();
-      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); }
       return;
     }
-    if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
+    if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); } return; }
     const t0 = performance.now();
     [0, 4, 7, 11, 14, 19, 12].forEach((s, i) => {
       const note = 60 + s, p = t0 + i * 130;
@@ -3496,7 +3533,7 @@ const MOut = {
         this.port.send([0x80 | (this.chFor('lead') - 1), note, 0], p + 280);
       } catch (e) {}
     });
-    if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+    if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); }
   },
   // Show-window side of the control window's MIDI OUT picker (ticket #7).
   // MIDIAccess ids are scoped per-window/per-connection, so the control
@@ -3607,7 +3644,7 @@ const MOut = {
   refreshUI() {
     const b = document.getElementById('btnOut');
     if (b) {
-      b.textContent = 'OUT: ' + (this.mode === 'web' ? 'WEB AUDIO' : this.mode === 'both' ? 'WEB+MIDI' : 'MIDI ONLY');
+      b.textContent = 'SEND TO: ' + (this.mode === 'web' ? 'BROWSER' : this.mode === 'both' ? 'BOTH' : 'ABLETON');
       b.classList.toggle('off', this.mode === 'web');
     }
     const cb = document.getElementById('btnClock');
@@ -129580,9 +129617,9 @@ document.getElementById('volSlider').addEventListener('input', e => {
     const stPort = inControl ? rigRelay.portName : (MOut.port ? MOut.port.name : null);
     if (st) st.textContent = (stMode !== 'web' && stPort) ? '→ ' + (stPort || 'MIDI OUT') : '';
   };
-  document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
-  document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
-  document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
+  { const fb = document.getElementById('fSound'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); }); }
+  { const fb = document.getElementById('fOut'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); }); }
+  { const fb = document.getElementById('fClock'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); }); }
   // Nima: this WAS "not relayed" on the theory that the wall's ambient
   // drift is local to whichever window you're staring at and the show
   // window never renders it — wrong, because hand:mirror (below) pushes
@@ -129787,6 +129824,39 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
       if (pop.classList.contains('open') && !pop.contains(e.target) && !allBtns.includes(e.target.id)) pop.classList.remove('open');
     }
   });
+})();
+// ▸ advanced folds inside the popovers (Lance: only the necessary stuff up
+// front — device pickers are for the day two controllers share the room)
+document.querySelectorAll('.advtog').forEach(tog => {
+  tog.addEventListener('click', () => {
+    const box = document.getElementById(tog.dataset.adv);
+    if (!box) return;
+    const open = box.style.display !== 'none';
+    box.style.display = open ? 'none' : '';
+    tog.textContent = (open ? '▸' : '▾') + tog.textContent.slice(1);
+  });
+});
+// THE DISPLAY ROW, both views (Lance: set expectations BEFORE pressing PLAY).
+// Reads the same SCREENS module SHOW CHECK uses; clicking opens SHOW CHECK,
+// whose Display row is the picker. Amber = aimed at the laptop's own screen.
+(() => {
+  const rows = ['dispRowLib', 'dispRowF'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!rows.length) return;
+  for (const b of rows) b.addEventListener('click', () => PRE.open());
+  const paint = () => {
+    const t = SCREENS.target(), n = SCREENS.list().length;
+    let txt, warn = false;
+    if (t) { txt = 'DISPLAY: ' + ((t.label || '').trim() || (t.isInternal ? 'THIS LAPTOP' : 'EXTERNAL')); warn = SCREENS.aimedInternal(); }
+    else if (SCREENS.denied) { txt = 'DISPLAY: CLICK TO PICK'; }
+    else if (n) { txt = 'DISPLAY: CLICK TO PICK'; warn = true; }
+    else { txt = 'DISPLAY: THIS SCREEN'; }
+    for (const b of rows) { b.textContent = txt; b.classList.toggle('warn', warn); b.classList.toggle('off', !warn); }
+  };
+  // Electron can enumerate displays permission-free; the plain browser needs
+  // a user gesture, so there SHOW CHECK stays the prober and we just repaint.
+  if (SCREENS.inElectron()) SCREENS.probe().then(paint).catch(() => {});
+  setInterval(paint, 2000);
+  paint();
 })();
 // ESC closes the scene (when not exiting fullscreen)
 window.addEventListener('keydown', e => {
@@ -130650,6 +130720,9 @@ QUEUE.boot();
   setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
                       // scrimmode class that reveals the vantage chips
   vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
+  // the library rail's twin select — same state, either one drives it
+  const vsl = document.getElementById('viewSelLib');
+  if (vsl) { vsl.value = VIEW.mode; vsl.addEventListener('change', () => { setView(vsl.value); vsl.blur(); }); }
 })();
 // PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the
 // PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
@@ -130868,7 +130941,7 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     if (kind === 'sound') {
       AE.on = !!value;
       const b = document.getElementById('btnSound');
-      if (b) { b.textContent = AE.on ? 'WEB SOUND: ON' : 'WEB SOUND: OFF'; b.classList.toggle('off', !AE.on); }
+      if (b) { b.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF'; b.classList.toggle('off', !AE.on); }
       if (AE.on) { AE.ensure(); startVoice(); }
       else if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
     } else if (kind === 'outMode') MOut.setMode(value);

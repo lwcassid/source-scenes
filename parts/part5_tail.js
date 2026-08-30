@@ -1465,9 +1465,9 @@ document.getElementById('volSlider').addEventListener('input', e => {
     const stPort = inControl ? rigRelay.portName : (MOut.port ? MOut.port.name : null);
     if (st) st.textContent = (stMode !== 'web' && stPort) ? '→ ' + (stPort || 'MIDI OUT') : '';
   };
-  document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
-  document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
-  document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
+  { const fb = document.getElementById('fSound'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); }); }
+  { const fb = document.getElementById('fOut'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); }); }
+  { const fb = document.getElementById('fClock'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); }); }
   // Nima: this WAS "not relayed" on the theory that the wall's ambient
   // drift is local to whichever window you're staring at and the show
   // window never renders it — wrong, because hand:mirror (below) pushes
@@ -1672,6 +1672,39 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
       if (pop.classList.contains('open') && !pop.contains(e.target) && !allBtns.includes(e.target.id)) pop.classList.remove('open');
     }
   });
+})();
+// ▸ advanced folds inside the popovers (Lance: only the necessary stuff up
+// front — device pickers are for the day two controllers share the room)
+document.querySelectorAll('.advtog').forEach(tog => {
+  tog.addEventListener('click', () => {
+    const box = document.getElementById(tog.dataset.adv);
+    if (!box) return;
+    const open = box.style.display !== 'none';
+    box.style.display = open ? 'none' : '';
+    tog.textContent = (open ? '▸' : '▾') + tog.textContent.slice(1);
+  });
+});
+// THE DISPLAY ROW, both views (Lance: set expectations BEFORE pressing PLAY).
+// Reads the same SCREENS module SHOW CHECK uses; clicking opens SHOW CHECK,
+// whose Display row is the picker. Amber = aimed at the laptop's own screen.
+(() => {
+  const rows = ['dispRowLib', 'dispRowF'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!rows.length) return;
+  for (const b of rows) b.addEventListener('click', () => PRE.open());
+  const paint = () => {
+    const t = SCREENS.target(), n = SCREENS.list().length;
+    let txt, warn = false;
+    if (t) { txt = 'DISPLAY: ' + ((t.label || '').trim() || (t.isInternal ? 'THIS LAPTOP' : 'EXTERNAL')); warn = SCREENS.aimedInternal(); }
+    else if (SCREENS.denied) { txt = 'DISPLAY: CLICK TO PICK'; }
+    else if (n) { txt = 'DISPLAY: CLICK TO PICK'; warn = true; }
+    else { txt = 'DISPLAY: THIS SCREEN'; }
+    for (const b of rows) { b.textContent = txt; b.classList.toggle('warn', warn); b.classList.toggle('off', !warn); }
+  };
+  // Electron can enumerate displays permission-free; the plain browser needs
+  // a user gesture, so there SHOW CHECK stays the prober and we just repaint.
+  if (SCREENS.inElectron()) SCREENS.probe().then(paint).catch(() => {});
+  setInterval(paint, 2000);
+  paint();
 })();
 // ESC closes the scene (when not exiting fullscreen)
 window.addEventListener('keydown', e => {
@@ -2535,6 +2568,9 @@ QUEUE.boot();
   setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
                       // scrimmode class that reveals the vantage chips
   vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
+  // the library rail's twin select — same state, either one drives it
+  const vsl = document.getElementById('viewSelLib');
+  if (vsl) { vsl.value = VIEW.mode; vsl.addEventListener('change', () => { setView(vsl.value); vsl.blur(); }); }
 })();
 // PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the
 // PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
@@ -2753,7 +2789,7 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     if (kind === 'sound') {
       AE.on = !!value;
       const b = document.getElementById('btnSound');
-      if (b) { b.textContent = AE.on ? 'WEB SOUND: ON' : 'WEB SOUND: OFF'; b.classList.toggle('off', !AE.on); }
+      if (b) { b.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF'; b.classList.toggle('off', !AE.on); }
       if (AE.on) { AE.ensure(); startVoice(); }
       else if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
     } else if (kind === 'outMode') MOut.setMode(value);

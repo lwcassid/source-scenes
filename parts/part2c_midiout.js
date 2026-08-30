@@ -323,10 +323,10 @@ const MOut = {
     // window's own button text update is invisible — no chrome there).
     if (window.ELECTRON_ROLE === 'control') {
       if (window.electronAPI) window.electronAPI.requestMidiTest();
-      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); }
       return;
     }
-    if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
+    if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); } return; }
     const t0 = performance.now();
     [0, 4, 7, 11, 14, 19, 12].forEach((s, i) => {
       const note = 60 + s, p = t0 + i * 130;
@@ -336,7 +336,7 @@ const MOut = {
         this.port.send([0x80 | (this.chFor('lead') - 1), note, 0], p + 280);
       } catch (e) {}
     });
-    if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+    if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); }
   },
   // Show-window side of the control window's MIDI OUT picker (ticket #7).
   // MIDIAccess ids are scoped per-window/per-connection, so the control
@@ -447,7 +447,7 @@ const MOut = {
   refreshUI() {
     const b = document.getElementById('btnOut');
     if (b) {
-      b.textContent = 'OUT: ' + (this.mode === 'web' ? 'WEB AUDIO' : this.mode === 'both' ? 'WEB+MIDI' : 'MIDI ONLY');
+      b.textContent = 'SEND TO: ' + (this.mode === 'web' ? 'BROWSER' : this.mode === 'both' ? 'BOTH' : 'ABLETON');
       b.classList.toggle('off', this.mode === 'web');
     }
     const cb = document.getElementById('btnClock');

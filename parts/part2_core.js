@@ -1133,6 +1133,9 @@ function setView(mode) {
   try { localStorage.setItem('srcView', mode); } catch (e) {}
   const sel = document.getElementById('viewSel');
   if (sel && sel.value !== mode) sel.value = mode;
+  // the library rail carries the same select (Lance: one column, both views)
+  const sell = document.getElementById('viewSelLib');
+  if (sell && sell.value !== mode) sell.value = mode;
   const ov = document.getElementById('overlay');
   if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
   // the scrim view is full bleed, the frame views are letterboxed — refit
@@ -1436,7 +1439,7 @@ window.addEventListener('keydown', e => {
 });
 document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
-  e.target.textContent = AE.on ? 'WEB SOUND: ON' : 'WEB SOUND: OFF';
+  e.target.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
   if (AE.on) { AE.ensure(); startVoice(); }
   else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
