@@ -182,6 +182,15 @@ function _sends(g, rev, del) {
   if (rev > 0 && AE.revIn) { const s = AE.ctx.createGain(); s.gain.value = rev; g.connect(s); s.connect(AE.revIn); }
   if (del > 0 && AE.delIn) { const s = AE.ctx.createGain(); s.gain.value = del; g.connect(s); s.connect(AE.delIn); }
 }
+// ONE AUTHORITY for what the speakers get (Lance's silent-scenes round):
+// muted when SPEAKERS is off (AE.on) OR the route is Ableton-only. The
+// engine itself keeps running either way — whether to RUN is
+// engineWanted()'s question (part2_core); this only decides what is HEARD.
+AE.applyMaster = function () {
+  if (!this.master) return;
+  const mute = !this.on || (typeof MOut !== 'undefined' && MOut.mode === 'midi');
+  this.set(this.master.gain, mute ? 0.0001 : (this.vol !== undefined ? this.vol : 0.85), 0.1);
+};
 AE.tone = function (freq, { at = 0, vol = 0.15, dur = 0.8, attack = 0.006, type = 'sine', pan = 0, rev = 0.25, del = 0, detune = 0 } = {}) {
   if (!this.ctx || !isFinite(freq) || freq <= 20) return;
   const t0 = Math.max(this.t(), at || 0);

@@ -397,7 +397,7 @@ const MOut = {
     const was = this.wants();
     this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
-    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (AE.master) AE.applyMaster();
     if (m !== 'web' && !midi.access) connectMidi();
     this._modeCrossed(was);
     this.refreshUI();
@@ -416,7 +416,7 @@ const MOut = {
     if (m === this.mode) return;
     const was = this.wants();
     this.mode = m;
-    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (AE.master) AE.applyMaster();
     if (m !== 'web' && !midi.access) connectMidi();
     this._modeCrossed(was);
     this.refreshUI();
