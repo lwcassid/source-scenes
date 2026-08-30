@@ -1419,9 +1419,14 @@ document.getElementById('btnOut').addEventListener('click', () => {
   if (!els('b').length) return;
   const abMode = () => (window.ELECTRON_ROLE === 'control' && typeof rigRelay !== 'undefined' && rigRelay.mode) ? rigRelay.mode : MOut.mode;
   const paint = () => {
-    for (const el of els('b')) el.checked = AE.on;
-    const ab = abMode() !== 'web';
-    for (const el of els('a')) el.checked = ab;
+    // EFFECTIVE state, not stored flags (Lance: boxes looked inert during a
+    // show): a queued scene's OUT override of 'midi' mutes the built-in
+    // synth whatever AE.on says — the box must show that truth, and
+    // checking it must genuinely bring the synth in (apply() below moves
+    // the MODE, which overrides the scene's setting until the next scene).
+    const m = abMode();
+    for (const el of els('b')) el.checked = AE.on && m !== 'midi';
+    for (const el of els('a')) el.checked = m !== 'web';
   };
   const apply = (spk, abl) => {
     if (AE.on !== spk) document.getElementById('btnSound').click(); // full legacy path: ensure/voice/relay/master
