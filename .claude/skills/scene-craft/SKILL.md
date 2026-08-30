@@ -48,6 +48,13 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    player EARNS a way to summon a beloved autonomous event, keep the event
    visiting uninvited now and then anyway — ownership is priority, not
    exclusivity ("what happened to the pink accents?" — Lance, WS V7→V8).
+   In a three.js scene the TONEMAPPER is a colour decision: ACESFilmic's input
+   matrix pulls saturated colours toward white, so an amber body renders
+   SALMON and a gold one cream — the whole palette gone (Nima, Tardigrade
+   Recursion). Authored light on black wants `LinearToneMapping` and a light
+   budget small enough not to clip (~1.2 total at a facing surface); reserve
+   ACES for scenes pretending to be photographed. Instance/vertex colours are
+   consumed as LINEAR — put sRGB triples through `^2.2` first.
 4. **The side law.** Left hand = warm orange country, right = violet, in
    every scene. Intensity DIRECTION, though, is a judgement call, not a law
    (Lance): `inp` arrives reach-outward = more (sphere = 0), but map
@@ -226,7 +233,11 @@ the reference implementation; read it before building a second one.
   Halo): at full strength one fast gesture repaints the entire picture and
   erases whatever the spectrum was saying — the same mistake as a
   full-canvas tint. Paint is an accent over the form's colour, not a
-  replacement for it.
+  replacement for it. And PAINT WHAT HAS NO HUE TO LOSE (Nima, Tardigrade
+  Recursion): the 60% lerp works on Halo because its plate is white. Where the
+  form's own colour IS the read, lerping violet into it just makes mud — amber
+  went pink — so put the paint on a separate luminous layer (the rim, the
+  glow, the ground) and leave the body alone.
 - No sound of its own is not a requirement — a scene can listen AND still
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
@@ -238,8 +249,11 @@ the reference implementation; read it before building a second one.
   mid/treble balance re-deals which tile class takes which stop, quantised
   and held so it steps on a chord change instead of shimmering)"; Spectrum
   Halo owns "band = HARMONIC ORDER of one closed curve, and the curve is
-  stamped into a long exposure so the last 3s of the track stands still".
-  Same engine, same palette, three instruments — not one scene three times.
+  stamped into a long exposure so the last 3s of the track stands still";
+  Tardigrade Recursion owns "band = GENERATION — loudness is the DEPTH of a
+  self-similar tree, bass its scale ratio, mid its twist, treble its branch
+  count, and the kick a wave that travels outward one generation at a time".
+  Same engine, same palette, four instruments — not one scene four times.
 - **A trail only reads if the thing MOVES inside the trail's window (Nima,
   Spectrum Halo).** Accumulating N past states is the cheapest way to make an
   audio-reactive picture smooth — the frame is an integral, so no band can
