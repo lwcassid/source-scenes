@@ -1382,6 +1382,33 @@ document.getElementById('btnOut').addEventListener('click', () => {
   AE.ensure();
   MOut.setMode(next);
 });
+// TWO CHECKBOXES, NO MODES (Lance: "just check boxes, stupid easy"):
+// SPEAKERS = hear it on this machine, ABLETON = send the MIDI. Every
+// combination is legal and neither can strand the other — the old
+// SOUND/OUT pair let speakers-off silently kill Ableton's notes. The
+// hidden legacy buttons stay as the state carriers everything already
+// writes; the boxes are their honest face.
+(() => {
+  const els = k => [document.getElementById(k === 'b' ? 'ckBrowser' : 'ckAbleton'),
+                    document.getElementById(k === 'b' ? 'fCkBrowser' : 'fCkAbleton')].filter(Boolean);
+  if (!els('b').length) return;
+  const abMode = () => (window.ELECTRON_ROLE === 'control' && typeof rigRelay !== 'undefined' && rigRelay.mode) ? rigRelay.mode : MOut.mode;
+  const paint = () => {
+    for (const el of els('b')) el.checked = AE.on;
+    const ab = abMode() !== 'web';
+    for (const el of els('a')) el.checked = ab;
+  };
+  const apply = (spk, abl) => {
+    if (AE.on !== spk) document.getElementById('btnSound').click(); // full legacy path: ensure/voice/relay/master
+    const want = abl ? (spk ? 'both' : 'midi') : 'web';
+    if (MOut.mode !== want) { AE.ensure(); MOut.setMode(want); }
+    paint();
+  };
+  for (const el of els('b')) el.addEventListener('change', e => apply(e.target.checked, els('a')[0].checked));
+  for (const el of els('a')) el.addEventListener('change', e => apply(els('b')[0].checked, e.target.checked));
+  setInterval(paint, 1000); // relays, per-scene OUT overrides, SHOW CHECK fixes
+  paint();
+})();
 document.getElementById('midiOutSel').addEventListener('change', e => {
   // control window (ticket #36): no local midi.access to pick a real port
   // from. Writing srcOutPort to localStorage (the old fix) never actually
@@ -1436,7 +1463,7 @@ document.getElementById('btnTest').addEventListener('click', () => { AE.ensure()
 document.getElementById('volSlider').addEventListener('input', e => {
   AE.vol = (+e.target.value / 100) * 0.85;
   document.getElementById('volLabel').textContent = e.target.value + '%';
-  if (AE.master && MOut.mode !== 'midi') AE.set(AE.master.gain, AE.vol, 0.05);
+  AE.applyMaster();
   // control window: its AE.master is real but feeds a muted sink, so moving
   // it changes nothing anyone hears — relay the raw value to the show window,
   // which owns the audible one.
@@ -2716,7 +2743,7 @@ function frame(ts) {
         }
       }
     } catch (e) { console.error(P.def.id, e); }
-    if (focus.voice && AE.on) { try { focus.voice.tick(inp, dt); } catch (e) {} }
+    if (focus.voice && engineWanted()) { try { focus.voice.tick(inp, dt); } catch (e) {} }
   } else if (focus.idx < 0) {
     // Only the LIBRARY WALL renders here. Before ADR-0007, "no focus.P" and
     // "no scene open" were the same condition; in the control window they no
@@ -2790,8 +2817,9 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
       AE.on = !!value;
       const b = document.getElementById('btnSound');
       if (b) { b.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF'; b.classList.toggle('off', !AE.on); }
-      if (AE.on) { AE.ensure(); startVoice(); }
-      else if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
+      if (AE.on) { AE.ensure(); if (!focus.voice) startVoice(); }
+      else if (!MOut.wants() && focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
+      AE.applyMaster();
     } else if (kind === 'outMode') MOut.setMode(value);
     else if (kind === 'clock') MOut.clockSet(!!value);
     else if (kind === 'outPort') MOut.selectPortByName(value);

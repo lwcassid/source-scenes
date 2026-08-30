@@ -79,6 +79,8 @@
     background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin:8px 0;overflow-x:auto}
   .slbl{font:9px var(--mono);color:var(--txt-faint);letter-spacing:.14em;flex:none}
   .srow button{white-space:nowrap}
+  .ck{display:flex;gap:7px;align-items:center;font:10px var(--mono);letter-spacing:.08em;color:var(--txt);cursor:pointer;user-select:none}
+  .ck input{accent-color:var(--acc);width:14px;height:14px;flex:none;cursor:pointer}
   .srow button.warn{border-color:#fbbf24;color:#b45309}
   #midiOutSel{flex:1;min-width:0}
   .advtog{display:block;font:9px var(--mono);color:var(--txt-faint);letter-spacing:.08em;cursor:pointer;margin:6px 0 2px;user-select:none}
@@ -841,16 +843,23 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <p class="sinfo">ghost hands drift while nobody plays · <b>lean in toward the source = more</b></p>
     </section>
     <section class="sgroup railfold">
-      <h5>Music</h5>
-      <div class="srow"><button id="btnSound" title="This laptop's own speakers/synths only — sound sent to Ableton is separate (SEND TO below)">BROWSER SOUND: ON</button></div>
+      <h5>Sound out</h5>
+      <div class="srow"><label class="ck" title="Hear the music on this machine's own speakers"><input type="checkbox" id="ckBrowser" checked> SPEAKERS · this laptop</label></div>
       <div class="srow">
-        <input type="range" id="volSlider" min="0" max="100" value="85" title="Browser sound volume">
+        <input type="range" id="volSlider" min="0" max="100" value="85" title="Speaker volume (this machine only)">
         <span id="volLabel" style="font:9px var(--mono);color:var(--txt-dim);width:28px;text-align:right;flex:none">85%</span>
       </div>
-      <div class="srow"><button id="btnOut" class="off" title="Where the music plays: this browser's own synths, Ableton over MIDI, or both at once">SEND TO: BROWSER</button></div>
+      <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI, over the bus below — works with the speakers on or off"><input type="checkbox" id="ckAbleton"> ABLETON · midi out</label></div>
       <div class="srow"><span class="slbl" title="The virtual MIDI cable this app plays Ableton through — Live must have this port's Track switch ON and each track's Monitor set to In">ABLETON BUS</span><select id="midiOutSel" style="display:none" title="Pick the bus your Live set listens to"></select></div>
-      <div class="srow"><button id="btnTest" title="Send a short test phrase to every instrument — if Ableton is wired right, you hear it answer">TEST ABLETON ♪</button><button id="btnAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN</button></div>
-      <p class="sinfo">role → channel map comes from rig.json, read-only — THE RIG console under an open scene shows it live</p>
+      <div class="srow"><button id="btnTest" title="Send a short test phrase to every instrument — if Ableton is wired right, you hear it answer">TEST ABLETON ♪</button></div>
+      <button id="btnSound" style="display:none"></button>
+      <button id="btnOut" style="display:none" class="off"></button>
+      <p class="sinfo">check what should play — either, both, or neither · role → channel map comes from rig.json</p>
+    </section>
+    <section class="sgroup railfold">
+      <h5>Sound in</h5>
+      <div class="srow"><button id="btnAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN / MIC</button></div>
+      <p class="sinfo">only for scenes that listen to live audio</p>
     </section>
   </aside>
   <div class="gridwrap"><div class="grid" id="grid"></div></div>
@@ -920,11 +929,13 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · lean in toward the source = more · <b>R</b> reseeds the scene</p>
     </section>
     <section class="sgroup">
-      <h5>Music</h5>
-      <div class="srow"><button id="fSound" title="This laptop's own speakers/synths only — sound sent to Ableton is separate (SEND TO below)">BROWSER SOUND: ON</button></div>
-      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Browser sound volume"></div>
-      <div class="srow"><button id="fOut" class="off" title="Where the music plays: this browser's own synths, Ableton over MIDI, or both at once">SEND TO: BROWSER</button></div>
-      <div class="srow"><button id="fAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN</button></div>
+      <h5>Sound out</h5>
+      <div class="srow"><label class="ck" title="Hear the music on this machine's own speakers"><input type="checkbox" id="fCkBrowser" checked> SPEAKERS · this laptop</label></div>
+      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Speaker volume (this machine only)"></div>
+      <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI — works with the speakers on or off"><input type="checkbox" id="fCkAbleton"> ABLETON · midi out</label></div>
+      <div class="srow"><button id="fAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN / MIC</button></div>
+      <button id="fSound" style="display:none"></button>
+      <button id="fOut" style="display:none" class="off"></button>
       <span class="stoggle sntog" data-for="ipSound">▸ ableton build notes</span>
       <p class="snote snfold" id="ipSound"></p>
       <p class="sinfo">the rig rack below the stage shows role → channel → instrument, live</p>
@@ -2390,7 +2401,7 @@ function makeInstance(def, canvas, w, h) {
     w, h, state: {}, seed: (Math.random() * 1e9) | 0,
     focused: false, visible: true,
     rand: null,
-    ping(cb) { if (P.focused && AE.on && AE.ctx) { try { cb(AE); } catch (e) {} } }
+    ping(cb) { if (P.focused && engineWanted() && AE.ctx) { try { cb(AE); } catch (e) {} } }
   };
   P.reinit = (newSeed) => {
     if (newSeed !== undefined) P.seed = newSeed;
@@ -2540,6 +2551,13 @@ function setProj(on) { PROJ.on = !!on; syncStage(true); }
 if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); })
   .observe(focusCanvas.parentElement);
 
+// THE ENGINE RUNS FOR EITHER LISTENER (Lance's silent-scenes round): a
+// scene's audio tick is ALSO its MIDI note scheduler, so it must run when
+// Ableton is listening even with the speakers off. The old gate (AE.on
+// alone) meant SPEAKERS OFF silently killed every scene's MIDI while
+// TEST — which bypasses the tick — kept working. Audibility is
+// AE.applyMaster()'s question; this one only decides whether to RUN.
+function engineWanted() { return AE.on || (typeof MOut !== 'undefined' && MOut.wants()); }
 function openFocus(i, fromRelay) {
   AE.ensure();
   // deep-link entry: the autoplay policy holds the context suspended until a
@@ -2633,7 +2651,7 @@ function startVoice() {
   // the wall's, and that arrives over telemetry:tick.
   if (window.ELECTRON_ROLE === 'control' && showLive) return;
   const def = PIECES[focus.idx];
-  if (AE.on && AE.ctx && def.audio && focus.P) {
+  if (engineWanted() && AE.ctx && def.audio && focus.P) {
     try { focus.voice = def.audio(AE, focus.P) || null; } catch (e) { focus.voice = null; }
   }
 }
@@ -2777,8 +2795,9 @@ document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
   e.target.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
-  if (AE.on) { AE.ensure(); startVoice(); }
-  else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
+  if (AE.on) { AE.ensure(); if (!focus.voice) startVoice(); }
+  else if (!MOut.wants() && focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
+  AE.applyMaster();
   // Review pass: the control window's own AE is silent by design
   // (the muted sink in AE.ensure) — flipping AE.on here never actually mutes
   // or unmutes the wall. The show window is the only thing that can; relay
@@ -2836,7 +2855,7 @@ document.getElementById('helpModal').addEventListener('click', e => { if (e.targ
 // context could run.
 const wakeAudio = () => {
   AE.ensure();
-  if (AE.on && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
+  if (engineWanted() && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
   if (AE.ctx && AE.ctx.state === 'running') {
     const hint = document.getElementById('useHint');
     if (hint && hint.dataset.sound) { hint.classList.add('gone'); delete hint.dataset.sound; }
@@ -3046,6 +3065,15 @@ function _sends(g, rev, del) {
   if (rev > 0 && AE.revIn) { const s = AE.ctx.createGain(); s.gain.value = rev; g.connect(s); s.connect(AE.revIn); }
   if (del > 0 && AE.delIn) { const s = AE.ctx.createGain(); s.gain.value = del; g.connect(s); s.connect(AE.delIn); }
 }
+// ONE AUTHORITY for what the speakers get (Lance's silent-scenes round):
+// muted when SPEAKERS is off (AE.on) OR the route is Ableton-only. The
+// engine itself keeps running either way — whether to RUN is
+// engineWanted()'s question (part2_core); this only decides what is HEARD.
+AE.applyMaster = function () {
+  if (!this.master) return;
+  const mute = !this.on || (typeof MOut !== 'undefined' && MOut.mode === 'midi');
+  this.set(this.master.gain, mute ? 0.0001 : (this.vol !== undefined ? this.vol : 0.85), 0.1);
+};
 AE.tone = function (freq, { at = 0, vol = 0.15, dur = 0.8, attack = 0.006, type = 'sine', pan = 0, rev = 0.25, del = 0, detune = 0 } = {}) {
   if (!this.ctx || !isFinite(freq) || freq <= 20) return;
   const t0 = Math.max(this.t(), at || 0);
@@ -3594,7 +3622,7 @@ const MOut = {
     const was = this.wants();
     this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
-    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (AE.master) AE.applyMaster();
     if (m !== 'web' && !midi.access) connectMidi();
     this._modeCrossed(was);
     this.refreshUI();
@@ -3613,7 +3641,7 @@ const MOut = {
     if (m === this.mode) return;
     const was = this.wants();
     this.mode = m;
-    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (AE.master) AE.applyMaster();
     if (m !== 'web' && !midi.access) connectMidi();
     this._modeCrossed(was);
     this.refreshUI();
@@ -129534,6 +129562,33 @@ document.getElementById('btnOut').addEventListener('click', () => {
   AE.ensure();
   MOut.setMode(next);
 });
+// TWO CHECKBOXES, NO MODES (Lance: "just check boxes, stupid easy"):
+// SPEAKERS = hear it on this machine, ABLETON = send the MIDI. Every
+// combination is legal and neither can strand the other — the old
+// SOUND/OUT pair let speakers-off silently kill Ableton's notes. The
+// hidden legacy buttons stay as the state carriers everything already
+// writes; the boxes are their honest face.
+(() => {
+  const els = k => [document.getElementById(k === 'b' ? 'ckBrowser' : 'ckAbleton'),
+                    document.getElementById(k === 'b' ? 'fCkBrowser' : 'fCkAbleton')].filter(Boolean);
+  if (!els('b').length) return;
+  const abMode = () => (window.ELECTRON_ROLE === 'control' && typeof rigRelay !== 'undefined' && rigRelay.mode) ? rigRelay.mode : MOut.mode;
+  const paint = () => {
+    for (const el of els('b')) el.checked = AE.on;
+    const ab = abMode() !== 'web';
+    for (const el of els('a')) el.checked = ab;
+  };
+  const apply = (spk, abl) => {
+    if (AE.on !== spk) document.getElementById('btnSound').click(); // full legacy path: ensure/voice/relay/master
+    const want = abl ? (spk ? 'both' : 'midi') : 'web';
+    if (MOut.mode !== want) { AE.ensure(); MOut.setMode(want); }
+    paint();
+  };
+  for (const el of els('b')) el.addEventListener('change', e => apply(e.target.checked, els('a')[0].checked));
+  for (const el of els('a')) el.addEventListener('change', e => apply(els('b')[0].checked, e.target.checked));
+  setInterval(paint, 1000); // relays, per-scene OUT overrides, SHOW CHECK fixes
+  paint();
+})();
 document.getElementById('midiOutSel').addEventListener('change', e => {
   // control window (ticket #36): no local midi.access to pick a real port
   // from. Writing srcOutPort to localStorage (the old fix) never actually
@@ -129588,7 +129643,7 @@ document.getElementById('btnTest').addEventListener('click', () => { AE.ensure()
 document.getElementById('volSlider').addEventListener('input', e => {
   AE.vol = (+e.target.value / 100) * 0.85;
   document.getElementById('volLabel').textContent = e.target.value + '%';
-  if (AE.master && MOut.mode !== 'midi') AE.set(AE.master.gain, AE.vol, 0.05);
+  AE.applyMaster();
   // control window: its AE.master is real but feeds a muted sink, so moving
   // it changes nothing anyone hears — relay the raw value to the show window,
   // which owns the audible one.
@@ -130868,7 +130923,7 @@ function frame(ts) {
         }
       }
     } catch (e) { console.error(P.def.id, e); }
-    if (focus.voice && AE.on) { try { focus.voice.tick(inp, dt); } catch (e) {} }
+    if (focus.voice && engineWanted()) { try { focus.voice.tick(inp, dt); } catch (e) {} }
   } else if (focus.idx < 0) {
     // Only the LIBRARY WALL renders here. Before ADR-0007, "no focus.P" and
     // "no scene open" were the same condition; in the control window they no
@@ -130942,8 +130997,9 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
       AE.on = !!value;
       const b = document.getElementById('btnSound');
       if (b) { b.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF'; b.classList.toggle('off', !AE.on); }
-      if (AE.on) { AE.ensure(); startVoice(); }
-      else if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
+      if (AE.on) { AE.ensure(); if (!focus.voice) startVoice(); }
+      else if (!MOut.wants() && focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
+      AE.applyMaster();
     } else if (kind === 'outMode') MOut.setMode(value);
     else if (kind === 'clock') MOut.clockSet(!!value);
     else if (kind === 'outPort') MOut.selectPortByName(value);
