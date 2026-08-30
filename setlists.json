@@ -109,6 +109,24 @@
           "out": "both"
         }
       ]
+    },
+    {
+      "name": "DJ SET",
+      "note": "Nima, Aug 2026 — the audio-in scenes, and nothing else: every scene here makes NO sound of its own and draws what it hears. This is the set for when a DJ is the instrument. Connect the source in MAP → Audio in (line-in, mic, or CAPTURE APP AUDIO) and SET REST with the room quiet before the first track, or silence won't read as silence. All three want a full spectrum with a real kick. The arc: Spectrum Halo reads the track literally as one exposed plate, Penrose Bloom grows a crystal out of it, and Cloud Steam flies the sky forward one surge per beat as the closer. Cell Front (SRC-43) is the fourth audio-in family and is deliberately OUT of this set. MIN 15 because a DJ set is long-form — no OUT casting, there is nothing to route.",
+      "scenes": [
+        {
+          "id": "SRC-49",
+          "min": 15
+        },
+        {
+          "id": "SRC-46",
+          "min": 15
+        },
+        {
+          "id": "SRC-47",
+          "min": 15
+        }
+      ]
     }
   ]
 }
