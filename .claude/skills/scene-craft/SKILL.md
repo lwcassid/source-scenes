@@ -79,7 +79,18 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    reach. Intensify the native marks (halo the dust); never swap in a
    different sprite (AV3's lantern orbs lost the dust's elegance — Lance).
 
-8. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
+8. **Volumetric fluff: billow the density, never the light (Nima, Cloud
+   Steam V1).** Plain fbm is smoke; folding each octave (`1-|2n-1|`) into
+   rounded ridges is what makes cauliflower. But those folds are creases —
+   shade from a SMOOTH twin field, or the directional derivative that gives
+   you the volume turns every fold into a hard seam and the noise lattice
+   into blocky artifacts (use a real hash; `fract(p.x*p.y)` shows its grid).
+   Two more that decide whether a soft mass reads: taper the erosion with
+   DEPTH so a loud moment carves the boundary instead of punching holes
+   through the core, and put the shadow stop near BLACK — a dim tinted
+   fringe on black is mud, and on scrim it is mud nobody can see.
+
+9. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
    off a shape = a single continuous gradient fill anchored to the shape's
    edge; N discrete gradient strokes read as a bar chart (Cable Strum V1's
    curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
@@ -202,10 +213,12 @@ the reference implementation; read it before building a second one.
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
 - **A second listener must not be the first one again (Nima, Penrose Bloom
-  V2).** Before writing an audio-in scene, read the one already in the set
+  V2).** Before writing an audio-in scene, read the ones already in the set
   and take a DIFFERENT job for each band. Cell Front owns "three pockets,
-  one per band, hands paint the palette"; Penrose Bloom owns "loudness is
-  SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
+  one per band, hands paint the palette"; CLOUD STEAM owns "the spectrum
+  CARVES the mass — treble weights the fine octaves, loudness only sizes it,
+  and a big rise OR fall condenses the whole thing into a heart"; Penrose
+  Bloom owns "loudness is SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
   mid/treble balance re-deals which tile class takes which stop, quantised
   and held so it steps on a chord change instead of shimmering)". Same
   engine, same palette, two instruments — not one scene twice.
