@@ -945,13 +945,15 @@ const PRE = {
   open() {
     document.getElementById('preModal').classList.add('open');
     SCREENS.probe().then(() => this.render());
+    AUDIOIN.refreshDevices();   // same reason as SCREENS.probe(): the Audio in row is a picker now
     this.render();
     clearInterval(this.timer);
     // render() rebuilds the whole modal via innerHTML, including the display
     // <select> — don't do that while it has focus, or a picker click gets
     // torn down and reset mid-selection before it can ever register.
     this.timer = setInterval(() => {
-      if (document.activeElement?.id === 'preScreenSel') return;
+      const a = document.activeElement?.id;
+      if (a === 'preScreenSel' || a === 'preAudioSel') return;
       this.render();
     }, 600);
   },
@@ -1120,16 +1122,25 @@ const PRE = {
       // pre-flight row should say WHETHER it's working, not jitter with a
       // live reading; the actual VU meter lives in the Audio in panel under
       // the stage now.
-      r.push({ k: 'audioin', sec: 'rig', label: 'Audio in',
-        lvl: !aConnected ? 'warn' : !aRestSet ? 'warn' : 'ok',
+      // Nima: SET REST is not a pre-flight chore — this row is here to say
+      // WHICH SOURCE the show is listening to, and to let you change it on
+      // the spot. So it carries a device dropdown, exactly like Display
+      // above: the pick IS the fix. Calibration still lives in the AUDIO IN
+      // popover, where you can do it deliberately with the room quiet;
+      // an unset REST is worth naming but never a chore to clear here.
+      r.push({ k: 'audioin', sec: 'rig', label: 'Audio in', audioPicker: true,
+        lvl: aConnected ? 'ok' : 'warn',
         txt: !aConnected
           ? (aDenied ? 'no audio input — permission was denied, or nothing is plugged in. Scenes that listen still play from hands.'
             : 'not connected — only scenes that listen (Cell Front V4) need this. Scenes that listen still play from hands.')
-          : !aRestSet ? 'connected to ' + (aDeviceLabel || 'the default device') + ' — SET REST with the room quiet so silence reads as silence'
-          : 'connected to ' + (aDeviceLabel || 'the default device') + ' — signal live (see the Audio in panel under the stage)',
-        fix: !aConnected ? ['CONNECT', () => AUDIOIN.connect()]
-          : !aRestSet ? ['SET REST', () => AUDIOIN.startRest()]
-          : ['AUDIO IN', () => { this.close(); document.getElementById('audioPop').classList.add('open'); }] });
+          : 'listening to ' + (aDeviceLabel || 'the default device')
+            + (aRestSet ? ' — signal live (see the Audio in panel under the stage)' : ' — signal live · REST not set'),
+        // connected = the picker IS the whole row, exactly like Display.
+        // CONNECT survives only for the case the dropdown cannot serve: no
+        // grant yet, so there are no devices to choose between. SET REST and
+        // CAPTURE APP AUDIO keep their one home in the AUDIO IN popover —
+        // a control that exists twice is a bug.
+        fix: aConnected ? null : ['CONNECT', () => AUDIOIN.connect()] });
     }
 
     const out = outMode !== 'web';
@@ -1167,6 +1178,7 @@ const PRE = {
       <span class="dot"></span><span class="plabel">${row.label}</span>
       <span class="pstat">${row.txt}</span>
       ${row.screenPicker ? '<select id="preScreenSel"></select>' : ''}
+      ${row.audioPicker ? '<select id="preAudioSel" title="Which input the show listens to"></select>' : ''}
       ${row.fix ? `<button data-fix="${row.k}">${row.fix[0]}</button>` : ''}
     </div>`;
     box.innerHTML =
@@ -1187,6 +1199,19 @@ const PRE = {
         return `<option value="${l}"${l === SCREENS.chosen ? ' selected' : ''}>${l}</option>`;
       }).join('');
       sel.addEventListener('change', e => { SCREENS.pick(e.target.value); this.render(); });
+    }
+    // the same list the AUDIO IN popover shows, in the row that reports on it
+    const asel = document.getElementById('preAudioSel');
+    if (asel) {
+      const inControl = window.ELECTRON_ROLE === 'control';
+      const devices = inControl ? audioInRelay.devices : AUDIOIN.devices;
+      const cur = (inControl ? audioInRelay.device : AUDIOIN.device)?.id || '';
+      // nothing to choose between until a grant reveals the real inputs —
+      // CONNECT is the fix that gets you there, so don't show a dead picker
+      asel.style.display = devices.length ? '' : 'none';
+      asel.innerHTML = '<option value=""' + (cur === '' ? ' selected' : '') + '>DEVICE: DEFAULT</option>' +
+        devices.map(d => `<option value="${d.id}"${d.id === cur ? ' selected' : ''}>${esc(d.label)}</option>`).join('');
+      asel.addEventListener('change', e => { AUDIOIN.setDevice(e.target.value || null); this.render(); });
     }
     const note = document.getElementById('preScreenNote');
     if (note) {
