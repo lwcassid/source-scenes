@@ -248,6 +248,15 @@ the reference implementation; read it before building a second one.
   contrast between figure and ground, so quiet reads as one lattice and loud
   resolves into the plate. Classify once per geometry and cache it; it is
   fixed data, never per-frame work.
+- **A hit moves the FORM; colour is not motion (Nima, Silk Nova V2).** V1
+  answered the kick with a hot colour band riding up the ribbons — rejected:
+  "a wave should flow through them instead and make them dance." Launch a
+  DISPLACEMENT ripple that travels the form, and apply any travelling wave
+  as a TRANSVERSE offset in PIXELS along the curve's normal, never as an
+  angle — an angle at radius is a kink, not a wave (Δpx = Δang·r). And when
+  the reference is interlacing fibres, the crossings carry the picture:
+  put the weave amplitude MID-form and release the ends (knot → tangle →
+  clean flying tips), or the whole thing fuzzes into scribble.
 - **SHOOT the audio states — `node tools/shotaudio.mjs <id> <prefix>`.**
   `shot.mjs` can only drive hands, so an audio-in scene's whole instrument
   is invisible to it. shotaudio drives `setAudioIn`/`setAudioKick` through a
