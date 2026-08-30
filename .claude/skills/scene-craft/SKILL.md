@@ -48,13 +48,24 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    player EARNS a way to summon a beloved autonomous event, keep the event
    visiting uninvited now and then anyway — ownership is priority, not
    exclusivity ("what happened to the pink accents?" — Lance, WS V7→V8).
+   A STRUCTURAL FIELD CAN STILL COME OUT SPATIAL (Nima, Tardigrade Recursion
+   V2): fanning hue by a child's index around its parent's ring made hue track
+   the placement ANGLE, and the frame read red-on-the-left, cyan-on-the-right —
+   a screen gradient wearing a structural costume. Step the field by a GOLDEN
+   increment (`(k * 0.618) % 1`) so neighbours in space are far apart on the
+   wheel. Test the mapping by asking whether it correlates with position, not
+   whether it was derived from geometry.
    In a three.js scene the TONEMAPPER is a colour decision: ACESFilmic's input
    matrix pulls saturated colours toward white, so an amber body renders
    SALMON and a gold one cream — the whole palette gone (Nima, Tardigrade
    Recursion). Authored light on black wants `LinearToneMapping` and a light
    budget small enough not to clip (~1.2 total at a facing surface); reserve
    ACES for scenes pretending to be photographed. Instance/vertex colours are
-   consumed as LINEAR — put sRGB triples through `^2.2` first.
+   consumed as LINEAR — put sRGB triples through `^2.2` first. And CAP CHROMA
+   SHORT OF THE CLIP: a fully saturated hue pins two of its three channels, so
+   every shading variation lands in the third and the object renders as a flat
+   cutout. ~0.85 saturation against a light budget that peaks under 1.0 keeps
+   the body on the animal.
 4. **The side law.** Left hand = warm orange country, right = violet, in
    every scene. Intensity DIRECTION, though, is a judgement call, not a law
    (Lance): `inp` arrives reach-outward = more (sphere = 0), but map
@@ -253,6 +264,16 @@ the reference implementation; read it before building a second one.
   Tardigrade Recursion owns "band = GENERATION — loudness is the DEPTH of a
   self-similar tree, bass its scale ratio, mid its twist, treble its branch
   count, and the kick a wave that travels outward one generation at a time".
+  Its V2 adds the rule for drawing a NETWORK over a dense scene: one spacing
+  for every level packs the whole thing into a ball with no black left in it
+  and the links have nowhere to be seen. Use TWO radii — the first generation
+  thrown wide (limbs, with real gaps the strands cross) and everything deeper
+  hugging its own parent (dense clumps) — then size the links like THREAD, not
+  like the things they tie: width off the frame, capped well under the bodies,
+  colour taken from ONE end at the top of its brightness (averaging both ends
+  at body value gives dark mud under bright forms), and close the sibling ring
+  as well as the parent link, because a star reads as a diagram and only loops
+  read as weaving.
   Same engine, same palette, four instruments — not one scene four times.
 - **A trail only reads if the thing MOVES inside the trail's window (Nima,
   Spectrum Halo).** Accumulating N past states is the cheapest way to make an
