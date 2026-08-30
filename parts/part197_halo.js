@@ -10,9 +10,13 @@
    quiet passage is a small ring and a drop fills the frame. The swell still
    cannot jitter, because the picture is 96 stamps at once.
 
-   The plate is WHITE (Nima's pick out of ten palettes): the band has no hue
-   of its own, the spectrum moves it in VALUE only, and every colour in the
-   frame comes from a hand.
+   The plate is WHITE AT THE CORE with DIVERGING ENDS (Nima, over two palette
+   rounds): most stamps are born mid-spectrum and stay white, but a stamp laid
+   down while the bass was carrying goes SLATE and one laid down while the top
+   end was carrying goes CORAL — so the layers of the stack are different
+   colours from each other, and a section change is a band of colour growing
+   through the exposure. Colour is still the form's own data: each slice wears
+   the spectral balance it was born with, never a gradient across the screen.
 
    ONE curve, r(theta), and the spectrum owns its harmonics by ORDER:
    · BASS  → orders 2 and 3, the big slow lobes that swing the whole ring
@@ -55,12 +59,24 @@ for (let j = 0; j < HL_PTS; j++) {
   HL_COS[j] = Math.cos(a); HL_SIN[j] = Math.sin(a);
 }
 
-// WHITE PLATE (Nima's pick out of ten). The band carries no hue of its own —
-// the spectrum moves it in VALUE, cool grey where the bass was carrying to
-// white where the top end was — so the plate reads like the reference sheet
-// and the only colour that ever enters the frame is a hand's.
-const HL_COLD = [136, 146, 168];   // bass-heavy moment — cool grey
-const HL_WARM = [255, 255, 255];   // treble-heavy moment — white
+// WHITE PLATE CORE, DIVERGING LAYERS (Nima). The plate keeps its white
+// centre — most stamps are born mid-spectrum and stay white — but the two
+// ENDS now diverge instead of running one way: a stamp born while the bass
+// was carrying goes COOL, one born while the top end was carrying goes WARM,
+// and the layers of the stack come out different colours from each other.
+// Colour is still the form's own data, never a gradient across the screen.
+// SLATE / CORAL (Nima's pick out of ten). Slate keeps the cool end quiet so
+// the warm strata sit forward; coral is the warmest reading that never turns
+// red. The core is a hair off pure white, warm enough to belong to the coral.
+const HL_COLD = [70, 99, 158];     // bass-heavy stamp — slate
+const HL_CORE = [253, 250, 250];   // mid-spectrum stamp — the white plate
+const HL_WARM = [255, 127, 107];   // treble-heavy stamp — coral
+// [window lo, window hi, plateau]. The window is WHERE MUSIC ACTUALLY LIVES
+// (Penrose V3's law: narrow the input, don't crank the weight — a wide window
+// clamps every stamp to one end and the palette is lost, not louder). The
+// plateau is how much of the ramp's middle is held at the core white, so the
+// plate stays white and colour is reserved for a real spectral extreme.
+const HL_RAMP = [0.34, 0.68, 0.30];
 const HL_ORANGE = [255, 162, 74];  // LEFT hand's speed
 const HL_VIOLET = [185, 140, 255]; // RIGHT hand's speed
 
@@ -113,8 +129,8 @@ reg({
   audioIn: true,
   fx: { bloom: 0.35 },
   tags: ['AUDIO IN', 'CC1 = EXPOSURE', 'CC2 = SENSITIVITY', 'BAND = HARMONIC ORDER', 'LOUD IS BIG', 'COLOUR IS THE HANDS'],
-  desc: 'One closed curve around one centre, stamped into the frame thirty-two times a second and left there \u2014 so the picture is the last three seconds of the music standing still. LOUDNESS IS DIAMETER: the halo is a small quiet ring in an intro and swells to fill the frame on a drop, and because what you see is ninety-six stamps at once, that swell arrives as strata laid down over three seconds rather than a jumping outline. The spectrum owns the SHAPE by harmonic order: bass swings the two and three-lobed forms that throw the whole ring off-round, mid fills the five and seven-lobed body of the band, treble writes the fine scallop on the outer edge and the hole in the middle. Where the stamps agree they pile into a dense luminous band; where one wandered it leaves a soft translucent lobe hanging off the side, which is what a loud moment looks like a second after it happens. The plate has no hue of its own \u2014 each stamp keeps the spectral balance it was born with and carries it as VALUE, cool grey where the bass was doing the work through to white where the top end was, so a section change reads as a band of light growing through the stack. The only colour that ever enters the frame is a hand\'s. The kick is the only fast thing here: it punches the newest ring outward and lights it, and then that ring simply ages backwards through the exposure. Makes no sound of its own.',
-  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY: a gain on what the mic hears \u2014 it decides how far the halo swells between a quiet passage and a drop, from a placid almost-circle to a ring that runs to the edges of the frame — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. The plate itself is white, so the hands own ALL the colour in the scene: moving one FAST paints, the left breathing orange into the old end of the stack and the right violet into the live edge, both fading back over a couple of seconds and both capped so they tint the plate rather than replace it. In silence the ring keeps a slow breath so an unattended scene is still alive.',
+  desc: 'One closed curve around one centre, stamped into the frame thirty-two times a second and left there \u2014 so the picture is the last three seconds of the music standing still. LOUDNESS IS DIAMETER: the halo is a small quiet ring in an intro and swells to fill the frame on a drop, and because what you see is ninety-six stamps at once, that swell arrives as strata laid down over three seconds rather than a jumping outline. The spectrum owns the SHAPE by harmonic order: bass swings the two and three-lobed forms that throw the whole ring off-round, mid fills the five and seven-lobed body of the band, treble writes the fine scallop on the outer edge and the hole in the middle. Where the stamps agree they pile into a dense luminous band; where one wandered it leaves a soft translucent lobe hanging off the side, which is what a loud moment looks like a second after it happens. The plate is white at its core and DIVERGES at the ends: most stamps are born mid-spectrum and stay white, but one laid down while the bass was doing the work goes slate blue and one laid down while the top end was carrying goes coral, so the layers of the stack are different colours from each other and a section change is a band of colour growing through the exposure. Each slice wears the spectral balance it was born with \u2014 nothing is a gradient laid across the screen, and a quiet, even passage stays a plain white plate. The kick is the only fast thing here: it punches the newest ring outward and lights it, and then that ring simply ages backwards through the exposure. Makes no sound of its own.',
+  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY: a gain on what the mic hears \u2014 it decides how far the halo swells between a quiet passage and a drop, from a placid almost-circle to a ring that runs to the edges of the frame — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. The music colours the layers slate and coral; the hands own a colour of their own on top of that. Moving one FAST paints, the left breathing orange into the old end of the stack and the right violet into the live edge, both fading back over a couple of seconds and both capped so they tint the plate rather than replace it. In silence the ring keeps a slow breath so an unattended scene is still alive.',
   sound: 'Makes no sound of its own — an audio-in scene, same as Cell Front V4-V13 and Penrose Bloom. Connect a source in MAP → Audio in, then SET REST with the room quiet so silence reads as silence. It wants a full spectrum with a real kick, and it wants DYNAMICS above all \u2014 the diameter tracks loudness, so a track that never drops never shows the scene\'s range. The kick is the only unsmoothed move in the picture and it is read off the engine\'s time-domain detector, so four-on-the-floor draws one bright ring per beat marching backwards through the exposure. No MIDI out either — there are no events to mirror.',
 
   init(P) {
@@ -187,7 +203,11 @@ reg({
     s.field += (fieldT - s.field) * Math.min(1, dt * 2.2);
     // spectral balance of THIS moment — stamped into every slice as its colour
     const tiltT = clamp((s.treble * 1.25 + s.mid * 0.45) / (s.treble * 1.25 + s.mid * 0.45 + s.bass + 0.02));
-    s.tilt += (tiltT - s.tilt) * Math.min(1, dt * 1.1);
+    // Eased at 2.0/s rather than 1.1: the tilt is what each stamp WEARS, so a
+    // slower ease means a 3s exposure only ever holds ~3 distinct hues and the
+    // stack looks monochrome. This tracks bar-to-bar spectral movement, so
+    // neighbouring layers genuinely differ, without chasing single notes.
+    s.tilt += (tiltT - s.tilt) * Math.min(1, dt * 2.0);
 
     /* ---- THE KICK (fast clock) — the only unsmoothed move --------------- */
     const k = inp.audio.kick;
@@ -271,9 +291,17 @@ reg({
       // orange into the old end, violet into the live edge. Age is the
       // form's field, so nothing is a gradient laid across the screen.
       const wOld = 0.18 + 0.82 * a * a, wNew = 0.18 + 0.82 * (1 - a) * (1 - a);
-      let cr = HL_COLD[0] + (HL_WARM[0] - HL_COLD[0]) * sl.tilt;
-      let cg = HL_COLD[1] + (HL_WARM[1] - HL_COLD[1]) * sl.tilt;
-      let cb = HL_COLD[2] + (HL_WARM[2] - HL_COLD[2]) * sl.tilt;
+      // DIVERGING: white in the middle, cool one way, warm the other. The
+      // plateau is smoothstepped out of the centre so the plate never shows
+      // a seam where colour starts.
+      const u = clamp((sl.tilt - HL_RAMP[0]) / Math.max(1e-4, HL_RAMP[1] - HL_RAMP[0]));
+      const d = (u - 0.5) * 2;
+      const k = clamp((Math.abs(d) - HL_RAMP[2]) / Math.max(1e-4, 1 - HL_RAMP[2]));
+      const tw = k * k * (3 - 2 * k);
+      const end = d < 0 ? HL_COLD : HL_WARM;
+      let cr = HL_CORE[0] + (end[0] - HL_CORE[0]) * tw;
+      let cg = HL_CORE[1] + (end[1] - HL_CORE[1]) * tw;
+      let cb = HL_CORE[2] + (end[2] - HL_CORE[2]) * tw;
       // an ACCENT, not a takeover: a fast hand can pull the colour ~60% of
       // the way to its own, never all of it, so the spectrum stays legible
       // underneath the paint (a full repaint is the same mistake as a
