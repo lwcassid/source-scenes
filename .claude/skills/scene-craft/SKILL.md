@@ -218,6 +218,16 @@ the reference implementation; read it before building a second one.
   Silence still gets the same idle-breathing drift every other still scene
   gets (`Math.max(idle*(1-pres), clamp(audioBand*sens))`), never true
   stillness.
+- **Give the beat ONE job, and make it motion (Nima, Cloud Steam V4).** A
+  kick wired to brightness reads as FLASHING, not as rhythm — and a kick that
+  also moves a global coverage/density term flashes the whole frame a second
+  way. Let the beat drive PACING (a forward impulse, a lurch, an advance) and
+  nothing else; leave every band on a slow envelope so shape, growth and
+  colour can never move on a beat. Check it structurally — grep that the kick
+  envelope is read in exactly one place — because comparing an on-beat frame
+  against an off-beat one CANNOT separate a flash from ordinary motion, and
+  will show a large delta either way. `AUDIOIN.kickBpm` is free tempo: let it
+  set the cruising rate so a faster track is a faster scene.
 - **Two clocks: the kick swells, the bands size the field (Nima, Cell
   Front V9).** On techno/house every band is busy at once, so a shape whose
   size chases its own band (attack ≥ ~8/s) twitches on every note — that
