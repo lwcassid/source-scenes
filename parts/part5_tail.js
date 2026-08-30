@@ -2664,6 +2664,7 @@ function frame(ts) {
   const t = ts / 1000;
   const dt = Math.min(0.05, last ? t - last : 0.016);
   last = t;
+  window.__lastFrameMs = performance.now(); // the MIDI watchdog's liveness stamp
   // PAUSE EVERYTHING (Lance): the whole performance freezes — no input, no
   // stepping, no audio ticks — while the console's PLAY brings it all back.
   if (window.SHOWPAUSE) { requestAnimationFrame(frame); return; }
@@ -2846,3 +2847,31 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
   });
 }
 requestAnimationFrame(frame);
+// THE SHOW MUST NOT STOP WHEN NOBODY IS LOOKING AT IT (Lance's brittle-MIDI
+// round): requestAnimationFrame PAUSES for a hidden or occluded window, and
+// the frame loop is what ticks the scene voice — which is the MIDI note
+// scheduler. On a one-display rehearsal the show window sits behind the
+// console; macOS marks it occluded and every scene goes MIDI-silent while
+// TEST (raw port sends, no tick) keeps working — exactly the brittleness
+// reported. This watchdog keeps the MUSIC alive when rendering stalls:
+// same input construction, same voice tick, no drawing. Timer stays
+// full-rate in Electron because main.js sets backgroundThrottling:false.
+setInterval(() => {
+  if (window.SHOWPAUSE) return;
+  if (performance.now() - (window.__lastFrameMs || 0) < 350) return; // rendering is alive
+  const t = performance.now() / 1000;
+  const dt = 0.1;
+  updateChannels(t, dt);
+  if (typeof AUDIOIN !== 'undefined') AUDIOIN.tick(dt);
+  const inp = {
+    L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge,
+    audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
+             kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
+  };
+  if (focus.P) {
+    if (typeof H !== 'undefined' && T.running) H.update();
+    try { focus.P.def.step(focus.P, dt, t, inp); } catch (e) {}
+    if (typeof MOut !== 'undefined') MOut.tickCC(inp);
+  }
+  if (focus.voice && engineWanted()) { try { focus.voice.tick(inp, dt); } catch (e) {} }
+}, 100);

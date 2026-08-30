@@ -844,9 +844,9 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </section>
     <section class="sgroup railfold">
       <h5>Sound out</h5>
-      <div class="srow"><label class="ck" title="Hear the music on this machine's own speakers"><input type="checkbox" id="ckBrowser" checked> SPEAKERS · this laptop</label></div>
+      <div class="srow"><label class="ck" title="The app's own synthesizer — the sound this app makes by itself, no Ableton needed"><input type="checkbox" id="ckBrowser" checked> BUILT-IN SYNTH</label></div>
       <div class="srow">
-        <input type="range" id="volSlider" min="0" max="100" value="85" title="Speaker volume (this machine only)">
+        <input type="range" id="volSlider" min="0" max="100" value="85" title="Built-in synth volume">
         <span id="volLabel" style="font:9px var(--mono);color:var(--txt-dim);width:28px;text-align:right;flex:none">85%</span>
       </div>
       <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI, over the bus below — works with the speakers on or off"><input type="checkbox" id="ckAbleton"> ABLETON · midi out</label></div>
@@ -930,8 +930,8 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </section>
     <section class="sgroup">
       <h5>Sound out</h5>
-      <div class="srow"><label class="ck" title="Hear the music on this machine's own speakers"><input type="checkbox" id="fCkBrowser" checked> SPEAKERS · this laptop</label></div>
-      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Speaker volume (this machine only)"></div>
+      <div class="srow"><label class="ck" title="The app's own synthesizer — the sound this app makes by itself, no Ableton needed"><input type="checkbox" id="fCkBrowser" checked> BUILT-IN SYNTH</label></div>
+      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Built-in synth volume"></div>
       <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI — works with the speakers on or off"><input type="checkbox" id="fCkAbleton"> ABLETON · midi out</label></div>
       <div class="srow"><button id="fAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN / MIC</button></div>
       <button id="fSound" style="display:none"></button>
@@ -1393,6 +1393,11 @@ function setShowLive(on) {
   showLive = !!on;
   if (window.ELECTRON_ROLE !== 'control') return;
   document.documentElement.classList.toggle('showlive', showLive);
+  // MIDI handoff (Lance's brittle-MIDI round): in web-app mode the control
+  // window sends MIDI through its own local port (see MOut.refreshUI); the
+  // moment the console rises the SHOW window owns the cable — close our
+  // notes and let go so the two windows never speak over each other.
+  if (showLive && typeof MOut !== 'undefined' && MOut.port) { try { MOut.allOff(); } catch (e) {} MOut.port = null; }
   // the control window's own output is muted only while the wall is live
   if (AE._mute) AE._mute.gain.value = showLive ? 0 : 1;
   if (!showLive && focus.idx >= 0 && !focus.P) {
@@ -3688,13 +3693,47 @@ const MOut = {
       // show:control 'outPort' (the port NAME, since MIDIAccess ids are
       // per-window) and bound on the show side by selectPortByName(),
       // which also persists srcOutPort so both windows agree next launch.
-      if (window.ELECTRON_ROLE === 'control') {
+      if (window.ELECTRON_ROLE === 'control' && showLive) {
+        // console mode: the SHOW window owns the port; this is just a picker
         if (this.mode !== 'web' && midiRelay.connected) {
           sel.style.display = '';
           const outs = midiRelay.outputs;
           if (sel.options.length !== outs.length) {
             sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
           }
+        } else sel.style.display = 'none';
+      } else if (window.ELECTRON_ROLE === 'control' && !showLive) {
+        // WEB-APP MODE SENDS ITS OWN MIDI (Lance's brittle-MIDI round, caught
+        // by tools/showtest.mjs): outside a show, a tile-clicked scene runs
+        // HERE — and ADR-0003's "only the show window opens MIDI" left this
+        // mode with no port at all, so scenes were silent in Ableton while
+        // TEST (relayed to the show window) always worked. The control
+        // window follows the same philosophy as its real-but-muted
+        // AudioContext: a real, local OUTPUT port of its own, used only
+        // while no show is live — setShowLive() hands the port back to the
+        // show window the moment PLAY raises the console.
+        if (this.mode !== 'web') {
+          if (!midi.outAccess && !midi._outReq && navigator.requestMIDIAccess) {
+            midi._outReq = true;
+            navigator.requestMIDIAccess().then(a => { midi.outAccess = a; }).catch(() => {});
+          }
+          if (midi.outAccess) {
+            sel.style.display = '';
+            const outs = [...midi.outAccess.outputs.values()];
+            if (sel.options.length !== outs.length) {
+              sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
+            }
+            if (this.port && !outs.includes(this.port)) this.port = null;
+            if (!this.port && outs.length) {
+              let saved = null; try { saved = localStorage.getItem('srcOutPort'); } catch (e) {}
+              let i = saved ? outs.findIndex(o => o.name === saved) : -1;
+              if (i < 0 && typeof RIGDOC !== 'undefined' && RIGDOC.port) i = outs.findIndex(o => o.name === RIGDOC.port);
+              if (i < 0) i = outs.findIndex(o => /iac|virtual|loopmidi|bus/i.test(o.name));
+              this.port = outs[i >= 0 ? i : 0];
+              sel.value = String(i >= 0 ? i : 0);
+              this._reassert();
+            }
+          } else sel.style.display = 'none';
         } else sel.style.display = 'none';
       } else if (this.mode !== 'web' && midi.access) {
         sel.style.display = '';
@@ -131974,6 +132013,7 @@ function frame(ts) {
   const t = ts / 1000;
   const dt = Math.min(0.05, last ? t - last : 0.016);
   last = t;
+  window.__lastFrameMs = performance.now(); // the MIDI watchdog's liveness stamp
   // PAUSE EVERYTHING (Lance): the whole performance freezes — no input, no
   // stepping, no audio ticks — while the console's PLAY brings it all back.
   if (window.SHOWPAUSE) { requestAnimationFrame(frame); return; }
@@ -132156,6 +132196,34 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
   });
 }
 requestAnimationFrame(frame);
+// THE SHOW MUST NOT STOP WHEN NOBODY IS LOOKING AT IT (Lance's brittle-MIDI
+// round): requestAnimationFrame PAUSES for a hidden or occluded window, and
+// the frame loop is what ticks the scene voice — which is the MIDI note
+// scheduler. On a one-display rehearsal the show window sits behind the
+// console; macOS marks it occluded and every scene goes MIDI-silent while
+// TEST (raw port sends, no tick) keeps working — exactly the brittleness
+// reported. This watchdog keeps the MUSIC alive when rendering stalls:
+// same input construction, same voice tick, no drawing. Timer stays
+// full-rate in Electron because main.js sets backgroundThrottling:false.
+setInterval(() => {
+  if (window.SHOWPAUSE) return;
+  if (performance.now() - (window.__lastFrameMs || 0) < 350) return; // rendering is alive
+  const t = performance.now() / 1000;
+  const dt = 0.1;
+  updateChannels(t, dt);
+  if (typeof AUDIOIN !== 'undefined') AUDIOIN.tick(dt);
+  const inp = {
+    L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge,
+    audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
+             kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
+  };
+  if (focus.P) {
+    if (typeof H !== 'undefined' && T.running) H.update();
+    try { focus.P.def.step(focus.P, dt, t, inp); } catch (e) {}
+    if (typeof MOut !== 'undefined') MOut.tickCC(inp);
+  }
+  if (focus.voice && engineWanted()) { try { focus.voice.tick(inp, dt); } catch (e) {} }
+}, 100);
 </script>
 </body>
 </html>

@@ -844,9 +844,9 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </section>
     <section class="sgroup railfold">
       <h5>Sound out</h5>
-      <div class="srow"><label class="ck" title="Hear the music on this machine's own speakers"><input type="checkbox" id="ckBrowser" checked> SPEAKERS · this laptop</label></div>
+      <div class="srow"><label class="ck" title="The app's own synthesizer — the sound this app makes by itself, no Ableton needed"><input type="checkbox" id="ckBrowser" checked> BUILT-IN SYNTH</label></div>
       <div class="srow">
-        <input type="range" id="volSlider" min="0" max="100" value="85" title="Speaker volume (this machine only)">
+        <input type="range" id="volSlider" min="0" max="100" value="85" title="Built-in synth volume">
         <span id="volLabel" style="font:9px var(--mono);color:var(--txt-dim);width:28px;text-align:right;flex:none">85%</span>
       </div>
       <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI, over the bus below — works with the speakers on or off"><input type="checkbox" id="ckAbleton"> ABLETON · midi out</label></div>
@@ -930,8 +930,8 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
     </section>
     <section class="sgroup">
       <h5>Sound out</h5>
-      <div class="srow"><label class="ck" title="Hear the music on this machine's own speakers"><input type="checkbox" id="fCkBrowser" checked> SPEAKERS · this laptop</label></div>
-      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Speaker volume (this machine only)"></div>
+      <div class="srow"><label class="ck" title="The app's own synthesizer — the sound this app makes by itself, no Ableton needed"><input type="checkbox" id="fCkBrowser" checked> BUILT-IN SYNTH</label></div>
+      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Built-in synth volume"></div>
       <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI — works with the speakers on or off"><input type="checkbox" id="fCkAbleton"> ABLETON · midi out</label></div>
       <div class="srow"><button id="fAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN / MIC</button></div>
       <button id="fSound" style="display:none"></button>

@@ -46,6 +46,11 @@ function setShowLive(on) {
   showLive = !!on;
   if (window.ELECTRON_ROLE !== 'control') return;
   document.documentElement.classList.toggle('showlive', showLive);
+  // MIDI handoff (Lance's brittle-MIDI round): in web-app mode the control
+  // window sends MIDI through its own local port (see MOut.refreshUI); the
+  // moment the console rises the SHOW window owns the cable — close our
+  // notes and let go so the two windows never speak over each other.
+  if (showLive && typeof MOut !== 'undefined' && MOut.port) { try { MOut.allOff(); } catch (e) {} MOut.port = null; }
   // the control window's own output is muted only while the wall is live
   if (AE._mute) AE._mute.gain.value = showLive ? 0 : 1;
   if (!showLive && focus.idx >= 0 && !focus.P) {

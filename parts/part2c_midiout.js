@@ -463,13 +463,47 @@ const MOut = {
       // show:control 'outPort' (the port NAME, since MIDIAccess ids are
       // per-window) and bound on the show side by selectPortByName(),
       // which also persists srcOutPort so both windows agree next launch.
-      if (window.ELECTRON_ROLE === 'control') {
+      if (window.ELECTRON_ROLE === 'control' && showLive) {
+        // console mode: the SHOW window owns the port; this is just a picker
         if (this.mode !== 'web' && midiRelay.connected) {
           sel.style.display = '';
           const outs = midiRelay.outputs;
           if (sel.options.length !== outs.length) {
             sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
           }
+        } else sel.style.display = 'none';
+      } else if (window.ELECTRON_ROLE === 'control' && !showLive) {
+        // WEB-APP MODE SENDS ITS OWN MIDI (Lance's brittle-MIDI round, caught
+        // by tools/showtest.mjs): outside a show, a tile-clicked scene runs
+        // HERE — and ADR-0003's "only the show window opens MIDI" left this
+        // mode with no port at all, so scenes were silent in Ableton while
+        // TEST (relayed to the show window) always worked. The control
+        // window follows the same philosophy as its real-but-muted
+        // AudioContext: a real, local OUTPUT port of its own, used only
+        // while no show is live — setShowLive() hands the port back to the
+        // show window the moment PLAY raises the console.
+        if (this.mode !== 'web') {
+          if (!midi.outAccess && !midi._outReq && navigator.requestMIDIAccess) {
+            midi._outReq = true;
+            navigator.requestMIDIAccess().then(a => { midi.outAccess = a; }).catch(() => {});
+          }
+          if (midi.outAccess) {
+            sel.style.display = '';
+            const outs = [...midi.outAccess.outputs.values()];
+            if (sel.options.length !== outs.length) {
+              sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
+            }
+            if (this.port && !outs.includes(this.port)) this.port = null;
+            if (!this.port && outs.length) {
+              let saved = null; try { saved = localStorage.getItem('srcOutPort'); } catch (e) {}
+              let i = saved ? outs.findIndex(o => o.name === saved) : -1;
+              if (i < 0 && typeof RIGDOC !== 'undefined' && RIGDOC.port) i = outs.findIndex(o => o.name === RIGDOC.port);
+              if (i < 0) i = outs.findIndex(o => /iac|virtual|loopmidi|bus/i.test(o.name));
+              this.port = outs[i >= 0 ? i : 0];
+              sel.value = String(i >= 0 ? i : 0);
+              this._reassert();
+            }
+          } else sel.style.display = 'none';
         } else sel.style.display = 'none';
       } else if (this.mode !== 'web' && midi.access) {
         sel.style.display = '';

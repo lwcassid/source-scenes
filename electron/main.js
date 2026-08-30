@@ -108,9 +108,30 @@ function sendTo(win, channel, payload) {
 // treated as "nothing to do".
 function placeShowWindow(target) {
   if (!showWindow || showWindow.isDestroyed()) return;
-  // target === null means "no display was picked" (single-display laptop,
-  // or nothing selected yet) — PLAY must still do something visible, so we
-  // fullscreen the show window wherever it already sits instead of no-op.
+  // REHEARSAL MODE (Lance: "hard to test this on one computer" — PLAY used
+  // to fullscreen the show over the console, burying the performance
+  // manager he was trying to look at). One display = no projector = a
+  // rehearsal, so the show opens WINDOWED on the right half of the screen
+  // with the console still visible beside it. The projector rig on playa
+  // always has ≥2 displays and keeps the real fullscreen behaviour.
+  const displays = screen.getAllDisplays();
+  if (displays.length < 2) {
+    const wa = displays[0].workArea;
+    const w = Math.round(wa.width * 0.55), h = Math.round(w * 1200 / 1920);
+    if (showWindow.isFullScreen()) {
+      showWindow.once('leave-full-screen', () => setTimeout(() => {
+        if (showWindow && !showWindow.isDestroyed()) showWindow.setBounds({ x: wa.x + wa.width - w, y: wa.y, width: w, height: Math.min(h, wa.height) });
+      }, 0));
+      showWindow.setFullScreen(false);
+    } else {
+      showWindow.setBounds({ x: wa.x + wa.width - w, y: wa.y, width: w, height: Math.min(h, wa.height) });
+    }
+    showWindow.show();
+    return;
+  }
+  // target === null means "no display was picked" (nothing selected yet) —
+  // PLAY must still do something visible, so we fullscreen the show window
+  // wherever it already sits instead of no-op.
   const bounds = target ? target.bounds : null;
   const finish = () => {
     if (!showWindow || showWindow.isDestroyed()) return;
@@ -195,6 +216,11 @@ function createWindow(role) {
       nodeIntegration: false,
       sandbox: true,
       preload: path.join(__dirname, 'preload.js'),
+      // The show window is stowed (hidden) between scenes and can sit
+      // occluded behind the console on a one-display rehearsal — macOS
+      // then throttles its timers to ~1Hz, which starves the MIDI
+      // scheduler's watchdog (part5_tail). Full-rate timers, always.
+      backgroundThrottling: false,
     },
   });
   win.loadFile(OFFLINE_BUILD, { query: { role } });
@@ -306,7 +332,13 @@ function bootWindows() {
 // both windows from disk (picking up whatever build_preview.py just wrote)
 // and front itself, then the newcomer process exits. So "npm start" is also
 // the refresh gesture: what you're looking at is always the newest build.
-const primary = app.requestSingleInstanceLock();
+// SHOWTEST: the end-to-end harness (tools/showtest.mjs) launches its own
+// instance beside a possibly-running app — skip the lock and use a scratch
+// profile so the test neither kills the real app nor pollutes its state.
+if (process.env.SHOWTEST) {
+  app.setPath('userData', require('node:path').join(require('node:os').tmpdir(), 'source-showtest-' + process.pid));
+}
+const primary = process.env.SHOWTEST ? true : app.requestSingleInstanceLock();
 if (!primary) {
   app.quit();
 } else {
