@@ -1436,7 +1436,7 @@ window.addEventListener('keydown', e => {
 });
 document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
-  e.target.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF';
+  e.target.textContent = AE.on ? 'WEB SOUND: ON' : 'WEB SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
   if (AE.on) { AE.ensure(); startVoice(); }
   else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }

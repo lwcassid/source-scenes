@@ -300,7 +300,29 @@ function bootWindows() {
   linkWindowLifetimes(showWindow, controlWindow);
 }
 
+// ONE APP, ALWAYS THE FRESHEST BUILD (Lance: "kill the old and in with the
+// new"). Only one show-runner may exist: a second `npm start` doesn't open a
+// confusing duplicate pair of windows — it tells the RUNNING app to reload
+// both windows from disk (picking up whatever build_preview.py just wrote)
+// and front itself, then the newcomer process exits. So "npm start" is also
+// the refresh gesture: what you're looking at is always the newest build.
+const primary = app.requestSingleInstanceLock();
+if (!primary) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    for (const win of [showWindow, controlWindow]) {
+      if (win && !win.isDestroyed()) win.webContents.reloadIgnoringCache();
+    }
+    if (controlWindow && !controlWindow.isDestroyed()) {
+      if (controlWindow.isMinimized()) controlWindow.restore();
+      controlWindow.focus();
+    }
+  });
+}
+
 app.whenReady().then(() => {
+  if (!primary) return; // the newcomer is already quitting — hand off to the running app
   try {
     bootWindows();
     // ADR-0007: hand the control window a live stream OF THE SHOW WINDOW.

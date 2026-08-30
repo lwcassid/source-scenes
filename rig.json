@@ -47,7 +47,7 @@
     "whenever a scene asks. He is unattached; the scene decides.",
     "BENCH ROLES (Aug 2026): strings 6 · shrine 8 · mellotron 10 · choir 11 · sax 12 — every racked track is now a role under the 1:1 law; scenes cast onto them directly (EH wall→strings, Vespers beam→sax + choir double, Ferro answers→mellotron). The MIDI-From casting-bench move is retired for these; it remains the trick for kit swaps (80'S DRUMS listening on ch1)."
   ],
-  "port": "IAC Driver Bus 1",
+  "port": "Virtual Cable Bus 1",
   "_cc74_mappings": [
     "THE MAPPING REGISTRY (facts only — update when a mapping is made or removed; sessions must NOT assume beyond this list):",
     "ch1 perc: CC74 → LEX loop pad chain volume (Min -inf, Max 0dB)",

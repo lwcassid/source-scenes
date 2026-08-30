@@ -484,11 +484,19 @@ const MOut = {
         // the block below already re-acquires whenever !this.port.
         if (this.port && !outs.includes(this.port)) this.port = null;
         if (!this.port && outs.length) {
-          // prefer the port the user picked last time (survives reloads/redeploys)
+          // AUTO-PICK THE RIGHT BUS (Lance: "why isn't it auto-selecting?").
+          // The old rule was "first output", which on a studio machine is a
+          // hardware controller (a Push, an MPK) — notes went to a control
+          // surface and Live heard nothing. Preference order now: the port
+          // the user picked last time > rig.json's named port > anything
+          // that looks like a virtual cable (IAC / loopMIDI / "bus") >
+          // first output as the last resort.
           let saved = null; try { saved = localStorage.getItem('srcOutPort'); } catch (e) {}
-          const i = saved ? outs.findIndex(o => o.name === saved) : -1;
+          let i = saved ? outs.findIndex(o => o.name === saved) : -1;
+          if (i < 0 && typeof RIGDOC !== 'undefined' && RIGDOC.port) i = outs.findIndex(o => o.name === RIGDOC.port);
+          if (i < 0) i = outs.findIndex(o => /iac|virtual|loopmidi|bus/i.test(o.name));
           this.port = outs[i >= 0 ? i : 0];
-          if (i >= 0) sel.value = String(i);
+          sel.value = String(i >= 0 ? i : 0);
           this._reassert();   // the port just became real: bed, CC74 park, scene holds
         }
       } else sel.style.display = 'none';

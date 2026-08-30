@@ -1129,7 +1129,7 @@ const PRE = {
           : 'connected to ' + (aDeviceLabel || 'the default device') + ' — signal live (see the Audio in panel under the stage)',
         fix: !aConnected ? ['CONNECT', () => AUDIOIN.connect()]
           : !aRestSet ? ['SET REST', () => AUDIOIN.startRest()]
-          : ['AUDIO IN', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+          : ['AUDIO IN', () => { this.close(); document.getElementById('audioPop').classList.add('open'); }] });
     }
 
     const out = outMode !== 'web';
@@ -1648,15 +1648,29 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   }, 800);
   AUDIOIN.ui();
 })();
-// MAP popover — the source's hardware bindings live here (library AND scene view)
+// MAP + AUDIO IN popovers — controllers in one, listening in the other
+// (Lance's decluttering round; opening either closes the other so the rail
+// never stacks two popups)
 (() => {
-  const pop = document.getElementById('mapPop');
-  for (const id of ['btnMap', 'fMap']) {
-    const b = document.getElementById(id);
-    if (b) b.addEventListener('click', e => { e.stopPropagation(); pop.classList.toggle('open'); });
+  const pops = [
+    { pop: document.getElementById('mapPop'), btns: ['btnMap', 'fMap'] },
+    { pop: document.getElementById('audioPop'), btns: ['btnAudio', 'fAudio'] },
+  ];
+  for (const { pop, btns } of pops) {
+    for (const id of btns) {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener('click', e => {
+        e.stopPropagation();
+        for (const o of pops) if (o.pop !== pop) o.pop.classList.remove('open');
+        pop.classList.toggle('open');
+      });
+    }
   }
+  const allBtns = pops.flatMap(o => o.btns);
   document.addEventListener('pointerdown', e => {
-    if (pop.classList.contains('open') && !pop.contains(e.target) && e.target.id !== 'btnMap' && e.target.id !== 'fMap') pop.classList.remove('open');
+    for (const { pop } of pops) {
+      if (pop.classList.contains('open') && !pop.contains(e.target) && !allBtns.includes(e.target.id)) pop.classList.remove('open');
+    }
   });
 })();
 // ESC closes the scene (when not exiting fullscreen)
@@ -2739,7 +2753,7 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     if (kind === 'sound') {
       AE.on = !!value;
       const b = document.getElementById('btnSound');
-      if (b) { b.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF'; b.classList.toggle('off', !AE.on); }
+      if (b) { b.textContent = AE.on ? 'WEB SOUND: ON' : 'WEB SOUND: OFF'; b.classList.toggle('off', !AE.on); }
       if (AE.on) { AE.ensure(); startVoice(); }
       else if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
     } else if (kind === 'outMode') MOut.setMode(value);
