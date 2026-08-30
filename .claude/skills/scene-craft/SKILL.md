@@ -198,6 +198,17 @@ density it gets live. Two consequences:
   fold the mesh at any amplitude. It is the free half of the budget and the
   half that reads as rubber. Let the hand set the wave's SPEED as well as its
   height, or the control is invisible whenever the picture is already moving.
+- **A RATE is a weak control; a STRUCTURE is a strong one (Nima, Penrose
+  Bloom V10).** Spin speed held a hand for nine versions and read as nothing:
+  changing how fast an already-moving thing moves has to be compared against
+  memory, while changing WHAT THE PICTURE IS MADE OF is read on arrival. When
+  the geometry is self-similar, its RECURSION DEPTH is the free high-contrast
+  axis — one throw took Penrose Bloom from 130 tiles to 2330. Dissolve
+  adjacent depths EQUAL-POWER (sqrt), never linearly: two half-alpha strokes
+  over each other come to 0.75, so a linear crossfade dips exactly in the
+  middle of the throw, where the hand spends its time. It reads as
+  subdivision rather than as a dissolve only because the coarse lattice is a
+  SUB-lattice of the fine one — check that before crossfading two scales.
 
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
