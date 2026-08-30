@@ -79,7 +79,54 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    reach. Intensify the native marks (halo the dust); never swap in a
    different sprite (AV3's lantern orbs lost the dust's elegance — Lance).
 
-8. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
+8. **Volumetric fluff: billow the density, never the light (Nima, Cloud
+   Steam V1).** Plain fbm is smoke; folding each octave (`1-|2n-1|`) into
+   rounded ridges is what makes cauliflower. But those folds are creases —
+   shade from a SMOOTH twin field, or the directional derivative that gives
+   you the volume turns every fold into a hard seam and the noise lattice
+   into blocky artifacts (use a real hash; `fract(p.x*p.y)` shows its grid).
+   Two more that decide whether a soft mass reads: taper the erosion with
+   DEPTH so a loud moment carves the boundary instead of punching holes
+   through the core, and put the shadow stop near BLACK — a dim tinted
+   fringe on black is mud, and on scrim it is mud nobody can see. Watch the
+   billow's MEAN: folding a smoothed noise puts it near 0.73, not 0.5, so a
+   threshold written against 0.5 covers the whole frame. Rescale linearly
+   around the real mean — a smoothstep remap crushes a narrow field into
+   camouflage.
+   **A DRAWN SHAPE CANNOT BE A CLOUD (Nima, Cloud Steam V3).** Anything whose
+   edge is `smoothstep(threshold, density)` HAS a silhouette by construction —
+   soften it and you get a billiard ball, sharpen it and you get torn paper,
+   and no value in between is a cloud. Nothing in this repo raymarches, so
+   when a scene needs real volume, take IQ's dynamic-clouds model: step a ray
+   through a 3D fbm field compositing front-to-back (`sum += col*(1-sum.a)`),
+   light it with ONE cheap sample a short step sunward, shear the octaves with
+   his mat3 so the fbm doesn't line up on the axes, and mix each SAMPLE toward
+   the far tint so aerial perspective lives in the colour. Softness stops
+   being a parameter and becomes what accumulation does. Flying through is
+   then one uniform.
+   Its budget is a real design constraint, and three plausible savings are
+   traps. What works: ONE density function with a SHARED PREFIX — compute the
+   first two octaves once, and if even the most the rest could add still
+   leaves the sample under coverage, it is provably air; that was 6x. What
+   fails: a separate coarse probe (pays for those octaves twice, loses in a
+   dense sky); empty-space STRIDING (proving THIS sample is air says nothing
+   about the next, so the stride lands inside a cloud and facets every
+   silhouette); and ray jitter (white noise speckles with nothing to
+   accumulate it across frames, an ordered pattern becomes a halftone once the
+   internal buffer scales up to the show frame). Measure against a scene that
+   already ships — a frame-time probe on the same rasterizer is the only
+   number that means anything.
+   Flying THROUGH the stuff (Nima, Cloud Steam V2) is a different build:
+   DISCRETE masses with positions and depths, sorted near-first and
+   composited front-to-back — the occlusion is what makes it flight instead
+   of a zoom. A stack of full-screen noise sheets at stepped scales cannot
+   do it at any density: sparse enough to leave sky, they tile into lace;
+   dense enough to read as cloud, they composite into a whiteout. Erode each
+   mass in its OWN normalised space so a near one shows the same detail as a
+   far one, only bigger, and weight its fine octaves by SCREEN size or the
+   distant ones alias into gravel.
+
+9. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
    off a shape = a single continuous gradient fill anchored to the shape's
    edge; N discrete gradient strokes read as a bar chart (Cable Strum V1's
    curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
@@ -186,6 +233,26 @@ the reference implementation; read it before building a second one.
   Silence still gets the same idle-breathing drift every other still scene
   gets (`Math.max(idle*(1-pres), clamp(audioBand*sens))`), never true
   stillness.
+- **A sensitivity hand is a CURVE, not a multiplier (Nima, Spectrum Halo V2).**
+  `clamp(band * gain)` is barely a control: on loud material the top of the
+  throw saturates at 1 and does nothing, and the bottom only ever scales
+  down. Use a gamma on the already-normalised band — `pow(band, 1/sens)` —
+  so the whole throw acts, the biggest change lands in the quiet-to-mid range
+  where music lives, and nothing clips early. Apply it AFTER the idle floor
+  so the hand still sizes the resting breath with nothing connected. And
+  never derive COLOUR from the shaped values: a gamma does not preserve band
+  ratios, so a spectral tilt computed downstream turns the sensitivity hand
+  into a hue control. Take colour off the raw balance.
+- **Give the beat ONE job, and make it motion (Nima, Cloud Steam V4).** A
+  kick wired to brightness reads as FLASHING, not as rhythm — and a kick that
+  also moves a global coverage/density term flashes the whole frame a second
+  way. Let the beat drive PACING (a forward impulse, a lurch, an advance) and
+  nothing else; leave every band on a slow envelope so shape, growth and
+  colour can never move on a beat. Check it structurally — grep that the kick
+  envelope is read in exactly one place — because comparing an on-beat frame
+  against an off-beat one CANNOT separate a flash from ordinary motion, and
+  will show a large delta either way. `AUDIOIN.kickBpm` is free tempo: let it
+  set the cruising rate so a faster track is a faster scene.
 - **Two clocks: the kick swells, the bands size the field (Nima, Cell
   Front V9).** On techno/house every band is busy at once, so a shape whose
   size chases its own band (attack ≥ ~8/s) twitches on every note — that
@@ -221,10 +288,12 @@ the reference implementation; read it before building a second one.
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
 - **A second listener must not be the first one again (Nima, Penrose Bloom
-  V2).** Before writing an audio-in scene, read the one already in the set
+  V2).** Before writing an audio-in scene, read the ones already in the set
   and take a DIFFERENT job for each band. Cell Front owns "three pockets,
-  one per band, hands paint the palette"; Penrose Bloom owns "loudness is
-  SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
+  one per band, hands paint the palette"; CLOUD STEAM owns "the spectrum
+  CARVES the mass — treble weights the fine octaves, loudness only sizes it,
+  and a big rise OR fall condenses the whole thing into a heart"; Penrose
+  Bloom owns "loudness is SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
   mid/treble balance re-deals which tile class takes which stop, quantised
   and held so it steps on a chord change instead of shimmering)"; Spectrum
   Halo owns "band = HARMONIC ORDER of one closed curve, and the curve is

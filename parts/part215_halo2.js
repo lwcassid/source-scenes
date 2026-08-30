@@ -1,4 +1,31 @@
-/* ---------- SRC-49 · SPECTRUM HALO (a long exposure of the spectrum) ----------
+/* ---------- SRC-49.2 · SPECTRUM HALO V2 (CC2 is a real sensitivity control) ----------
+   Nima: "make CC2 change sensitivity to audio instead of what it's doing now."
+   It WAS nominally sensitivity in V1 — but as a multiply-then-clamp, which is
+   barely a control at all: the band was scaled 0.55..1.70 and then clamped to
+   1, so on a loud track everything above the middle of the throw saturated
+   and did nothing, and the bottom of the throw only ever halved. The visible
+   effect of moving that hand was the violet speed-paint, so CC2 read as "the
+   violet hand", not as sensitivity.
+
+   V2 makes it a RESPONSE CURVE instead — a gamma on the already-normalised
+   band (`v^(1/sens)`), which is what a sensitivity control actually is:
+   · low  (0.42) — only real peaks move the picture; a busy room stays a
+     small still ring
+   · 1.0        — untouched, exactly V1's response
+   · high (2.32) — quiet detail fills the frame; the room's own noise floor
+     is enough to keep a plate breathing
+   Nothing saturates early, and the biggest change lands in the quiet-to-mid
+   range where music actually lives: at level 0.35 the two ends of the throw
+   are 7x apart, where V1's were 1.6x and both clipped by 0.6.
+
+   The curve is applied AFTER the idle floor, so CC2 also visibly sizes the
+   resting breath in a silent room — the hand is never dead, even with
+   nothing connected. And the speed-paint now has a gate (0.55 controller
+   units/sec): a deliberate sensitivity sweep paints nothing, only a whip
+   does, so the control reads as sensitivity while you are using it as
+   sensitivity. Everything else is V1.
+   ------ V1 notes follow ------
+   ---------- SRC-49 · SPECTRUM HALO (a long exposure of the spectrum) ----------
    Nima's reference plate: a ring built out of dozens of translucent
    contours laid over each other — a dense dark band where they agree, big
    soft lobes where one of them wandered, a scalloped hole in the middle.
@@ -47,16 +74,16 @@
    colour is never a gradient laid over the screen.
    Makes no sound of its own. ------ */
 
-const HL_SLICES = 96;          // ring buffer depth — 3.0s at 32 stamps/sec
-const HL_PTS = 112;            // samples around the curve (order 17 needs ~68)
-const HL_CAP = 1 / 32;         // seconds between stamps — fixed, not per-frame
+const H2_SLICES = 96;          // ring buffer depth — 3.0s at 32 stamps/sec
+const H2_PTS = 112;            // samples around the curve (order 17 needs ~68)
+const H2_CAP = 1 / 32;         // seconds between stamps — fixed, not per-frame
 
 // fixed sample angles: the cos/sin table is built once and never changes,
 // so a whole frame of 96 contours costs multiplies, not 27k trig calls.
-const HL_COS = new Float32Array(HL_PTS), HL_SIN = new Float32Array(HL_PTS);
-for (let j = 0; j < HL_PTS; j++) {
-  const a = j / HL_PTS * TAU;
-  HL_COS[j] = Math.cos(a); HL_SIN[j] = Math.sin(a);
+const H2_COS = new Float32Array(H2_PTS), H2_SIN = new Float32Array(H2_PTS);
+for (let j = 0; j < H2_PTS; j++) {
+  const a = j / H2_PTS * TAU;
+  H2_COS[j] = Math.cos(a); H2_SIN[j] = Math.sin(a);
 }
 
 // WHITE PLATE CORE, DIVERGING LAYERS (Nima). The plate keeps its white
@@ -68,21 +95,21 @@ for (let j = 0; j < HL_PTS; j++) {
 // SLATE / CORAL (Nima's pick out of ten). Slate keeps the cool end quiet so
 // the warm strata sit forward; coral is the warmest reading that never turns
 // red. The core is a hair off pure white, warm enough to belong to the coral.
-const HL_COLD = [70, 99, 158];     // bass-heavy stamp — slate
-const HL_CORE = [253, 250, 250];   // mid-spectrum stamp — the white plate
-const HL_WARM = [255, 127, 107];   // treble-heavy stamp — coral
+const H2_COLD = [70, 99, 158];     // bass-heavy stamp — slate
+const H2_CORE = [253, 250, 250];   // mid-spectrum stamp — the white plate
+const H2_WARM = [255, 127, 107];   // treble-heavy stamp — coral
 // [window lo, window hi, plateau]. The window is WHERE MUSIC ACTUALLY LIVES
 // (Penrose V3's law: narrow the input, don't crank the weight — a wide window
 // clamps every stamp to one end and the palette is lost, not louder). The
 // plateau is how much of the ramp's middle is held at the core white, so the
 // plate stays white and colour is reserved for a real spectral extreme.
-const HL_RAMP = [0.34, 0.68, 0.30];
-const HL_ORANGE = [255, 162, 74];  // LEFT hand's speed
-const HL_VIOLET = [185, 140, 255]; // RIGHT hand's speed
+const H2_RAMP = [0.34, 0.68, 0.30];
+const H2_ORANGE = [255, 162, 74];  // LEFT hand's speed
+const H2_VIOLET = [185, 140, 255]; // RIGHT hand's speed
 
 // one stamp = the curve as RADII (fractions of min(w,h)), frozen forever.
 // Rotation is baked in: a long exposure is fixed in world space.
-function hlStamp(P) {
+function h2Stamp(P) {
   const s = P.state;
   s.head = (s.head + 1) % s.depth;
   if (s.n < s.depth) s.n++;
@@ -107,8 +134,8 @@ function hlStamp(P) {
   const KNEE = 0.32, RMAX = 0.50, SPAN = RMAX - KNEE;
   const p = s.ph, rot = s.rot;
 
-  for (let j = 0; j < HL_PTS; j++) {
-    const a = j / HL_PTS * TAU + rot;
+  for (let j = 0; j < H2_PTS; j++) {
+    const a = j / H2_PTS * TAU + rot;
     const m = ab * Math.sin(2 * a + p[0]) + 0.62 * ab * Math.sin(3 * a + p[1])
             + am * Math.sin(5 * a + p[2]) + 0.75 * am * Math.sin(7 * a + p[3])
             + at * Math.sin(11 * a + p[4]) + 0.60 * at * Math.sin(17 * a + p[5]);
@@ -124,21 +151,21 @@ function hlStamp(P) {
 }
 
 reg({
-  id: 'SRC-49', family: 'SRC-49', ver: 1,
-  title: 'Spectrum Halo', tech: 'POLAR CONTOUR / LONG EXPOSURE / AUDIO-DRAWN',
+  id: 'SRC-49.2', family: 'SRC-49', ver: 2,
+  title: 'Spectrum Halo V2', tech: 'POLAR CONTOUR / LONG EXPOSURE / AUDIO-DRAWN',
   audioIn: true,
   fx: { bloom: 0.35 },
-  tags: ['AUDIO IN', 'CC1 = EXPOSURE', 'CC2 = SENSITIVITY', 'BAND = HARMONIC ORDER', 'LOUD IS BIG', 'COLOUR IS THE HANDS'],
+  tags: ['AUDIO IN', 'CC1 = EXPOSURE', 'CC2 = SENSITIVITY CURVE', 'BAND = HARMONIC ORDER', 'LOUD IS BIG', 'SLATE + CORAL LAYERS'],
   desc: 'One closed curve around one centre, stamped into the frame thirty-two times a second and left there \u2014 so the picture is the last three seconds of the music standing still. LOUDNESS IS DIAMETER: the halo is a small quiet ring in an intro and swells to fill the frame on a drop, and because what you see is ninety-six stamps at once, that swell arrives as strata laid down over three seconds rather than a jumping outline. The spectrum owns the SHAPE by harmonic order: bass swings the two and three-lobed forms that throw the whole ring off-round, mid fills the five and seven-lobed body of the band, treble writes the fine scallop on the outer edge and the hole in the middle. Where the stamps agree they pile into a dense luminous band; where one wandered it leaves a soft translucent lobe hanging off the side, which is what a loud moment looks like a second after it happens. The plate is white at its core and DIVERGES at the ends: most stamps are born mid-spectrum and stay white, but one laid down while the bass was doing the work goes slate blue and one laid down while the top end was carrying goes coral, so the layers of the stack are different colours from each other and a section change is a band of colour growing through the exposure. Each slice wears the spectral balance it was born with \u2014 nothing is a gradient laid across the screen, and a quiet, even passage stays a plain white plate. The kick is the only fast thing here: it punches the newest ring outward and lights it, and then that ring simply ages backwards through the exposure. Makes no sound of its own.',
-  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY: a gain on what the mic hears \u2014 it decides how far the halo swells between a quiet passage and a drop, from a placid almost-circle to a ring that runs to the edges of the frame — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. The music colours the layers slate and coral; the hands own a colour of their own on top of that. Moving one FAST paints, the left breathing orange into the old end of the stack and the right violet into the live edge, both fading back over a couple of seconds and both capped so they tint the plate rather than replace it. In silence the ring keeps a slow breath so an unattended scene is still alive.',
+  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY, and in V2 it is a real one: it reshapes the whole response curve rather than just scaling it, so the entire throw does something on any material. Closed, only genuine peaks move the picture and a busy room stays a small still ring; open, quiet detail fills the frame and the room\'s own noise floor is enough to keep a plate breathing; the middle of the throw leaves the music exactly as the engine heard it. On typical material the two ends are about seven times apart, and it works with nothing connected too \u2014 it sizes the resting breath — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. The music colours the layers slate and coral; the hands own a colour of their own on top of that. Moving one FAST paints \u2014 fast being a real whip, since a deliberate sensitivity sweep is below the gate and paints nothing \u2014 the left breathing orange into the old end of the stack and the right violet into the live edge, both fading back over a couple of seconds and both capped so they tint the plate rather than replace it. In silence the ring keeps a slow breath so an unattended scene is still alive.',
   sound: 'Makes no sound of its own — an audio-in scene, same as Cell Front V4-V13 and Penrose Bloom. Connect a source in MAP → Audio in, then SET REST with the room quiet so silence reads as silence. It wants a full spectrum with a real kick, and it wants DYNAMICS above all \u2014 the diameter tracks loudness, so a track that never drops never shows the scene\'s range. The kick is the only unsmoothed move in the picture and it is read off the engine\'s time-domain detector, so four-on-the-floor draws one bright ring per beat marching backwards through the exposure. No MIDI out either — there are no events to mirror.',
 
   init(P) {
     const as = areaScale(P);
-    const depth = as > 3.2 ? HL_SLICES : as > 1.7 ? 64 : 40;
+    const depth = as > 3.2 ? H2_SLICES : as > 1.7 ? 64 : 40;
     const sl = [];
     for (let i = 0; i < depth; i++) {
-      sl.push({ out: new Float32Array(HL_PTS), inn: new Float32Array(HL_PTS), tilt: 0.5, kick: 0 });
+      sl.push({ out: new Float32Array(H2_PTS), inn: new Float32Array(H2_PTS), tilt: 0.5, kick: 0 });
     }
     P.state = {
       sl, depth, head: -1, n: 0, capT: 0, life: 0,
@@ -162,14 +189,20 @@ reg({
     // no hands live → settle to a middling exposure and base sensitivity,
     // rather than sit wherever the wall's ambient ghost drift left CC1/CC2.
     const expoT = handLive ? cc1 : 0.78;
-    const sensT = handLive ? 0.55 + cc2 * 1.15 : 1.0;
+    // 0.42 .. 2.32, used as a GAMMA below — not as a multiplier
+    const sensT = handLive ? 0.42 + cc2 * 1.90 : 1.0;
     s.expo += (expoT - s.expo) * Math.min(1, dt * 5);
     s.sens += (sensT - s.sens) * Math.min(1, dt * 4);
 
     // SPEED is its own input: a held hand has zero velocity, so no stale
-    // controller value can fake it. Snap up, fade over ~2.4s.
-    const vL = clamp(Math.abs(cc1 - s.pL) / Math.max(dt, 1e-3) * 0.85);
-    const vR = clamp(Math.abs(cc2 - s.pR) / Math.max(dt, 1e-3) * 0.85);
+    // controller value can fake it. Snap up, fade over ~2.4s. V2 GATES it at
+    // 0.55 controller units/sec: setting sensitivity is a deliberate, slow
+    // move and must paint nothing, or the paint is all you see and the hand
+    // reads as a colour control instead of the control it is. A whip still
+    // paints in full.
+    const GATE = 0.55;
+    const vL = clamp((Math.abs(cc1 - s.pL) / Math.max(dt, 1e-3) - GATE) * 1.1);
+    const vR = clamp((Math.abs(cc2 - s.pR) / Math.max(dt, 1e-3) - GATE) * 1.1);
     s.pL = cc1; s.pR = cc2;
     s.velL -= s.velL * Math.min(1, dt * 0.42); if (vL > s.velL) s.velL = vL;
     s.velR -= s.velR * Math.min(1, dt * 0.42); if (vR > s.velR) s.velR = vR;
@@ -186,10 +219,18 @@ reg({
     // engine-smoothed already; eased again at ~1.8/s so a bassline note
     // moves the ring over a bar, never over a frame. Silence still breathes.
     const idle = (0.045 + 0.030 * Math.sin(s.life * 0.21)) * (1 - 0.72 * s.pres);
-    const lT = Math.max(idle, clamp(inp.audio.level * s.sens));
-    const bT = Math.max(idle, clamp(inp.audio.bass * s.sens));
-    const mT = Math.max(idle * 0.7, clamp(inp.audio.mid * s.sens));
-    const tT = Math.max(idle * 0.6, clamp(inp.audio.treble * s.sens));
+    // SENSITIVITY IS A CURVE. V1 multiplied then clamped, so the top of the
+    // throw saturated on anything loud and the control had no range where it
+    // mattered. A gamma reshapes the whole response instead and only reaches
+    // 1 when the band itself does. Applied AFTER the idle floor, so the hand
+    // still sizes the resting breath when nothing is connected.
+    const gam = 1 / s.sens;
+    const sens = (v) => Math.pow(clamp(v), gam);
+    const rL = Math.max(idle, inp.audio.level);
+    const rB = Math.max(idle, inp.audio.bass);
+    const rM = Math.max(idle * 0.7, inp.audio.mid);
+    const rT = Math.max(idle * 0.6, inp.audio.treble);
+    const lT = sens(rL), bT = sens(rB), mT = sens(rM), tT = sens(rT);
     s.level += (lT - s.level) * Math.min(1, dt * (lT > s.level ? 2.2 : 1.4));
     s.bass += (bT - s.bass) * Math.min(1, dt * (bT > s.bass ? 2.2 : 1.4));
     s.mid += (mT - s.mid) * Math.min(1, dt * (mT > s.mid ? 2.2 : 1.4));
@@ -202,7 +243,13 @@ reg({
     const fieldT = Math.pow(clamp(0.36 * s.level + 0.28 * s.bass + 0.22 * s.mid + 0.16 * s.treble), 1.05);
     s.field += (fieldT - s.field) * Math.min(1, dt * 2.2);
     // spectral balance of THIS moment — stamped into every slice as its colour
-    const tiltT = clamp((s.treble * 1.25 + s.mid * 0.45) / (s.treble * 1.25 + s.mid * 0.45 + s.bass + 0.02));
+    // TILT COMES OFF THE RAW BALANCE, not the sensitivity-shaped bands. A
+    // gamma does not preserve ratios, so deriving colour from the shaped
+    // values turned CC2 into a hue control — low sensitivity drove the plate
+    // blue, high drove it white — and colour has to stay the music's own
+    // spectral balance. Sensitivity changes how MUCH the picture responds,
+    // never what colour it is.
+    const tiltT = clamp((rT * 1.25 + rM * 0.45) / (rT * 1.25 + rM * 0.45 + rB + 0.02));
     // Eased at 2.0/s rather than 1.1: the tilt is what each stamp WEARS, so a
     // slower ease means a 3s exposure only ever holds ~3 distinct hues and the
     // stack looks monochrome. This tracks bar-to-bar spectral movement, so
@@ -245,8 +292,8 @@ reg({
     /* ---- STAMP the curve into the ring buffer at a FIXED rate ----------- */
     s.capT += dt;
     let stamps = 0;
-    while (s.capT >= HL_CAP && stamps < 2) { s.capT -= HL_CAP; stamps++; hlStamp(P); }
-    if (s.capT > HL_CAP * 4) s.capT = 0;   // never spiral after a hitch
+    while (s.capT >= H2_CAP && stamps < 2) { s.capT -= H2_CAP; stamps++; h2Stamp(P); }
+    if (s.capT > H2_CAP * 4) s.capT = 0;   // never spiral after a hitch
   },
 
   draw(P, g, w, h, t, inp) {
@@ -294,21 +341,21 @@ reg({
       // DIVERGING: white in the middle, cool one way, warm the other. The
       // plateau is smoothstepped out of the centre so the plate never shows
       // a seam where colour starts.
-      const u = clamp((sl.tilt - HL_RAMP[0]) / Math.max(1e-4, HL_RAMP[1] - HL_RAMP[0]));
+      const u = clamp((sl.tilt - H2_RAMP[0]) / Math.max(1e-4, H2_RAMP[1] - H2_RAMP[0]));
       const d = (u - 0.5) * 2;
-      const k = clamp((Math.abs(d) - HL_RAMP[2]) / Math.max(1e-4, 1 - HL_RAMP[2]));
+      const k = clamp((Math.abs(d) - H2_RAMP[2]) / Math.max(1e-4, 1 - H2_RAMP[2]));
       const tw = k * k * (3 - 2 * k);
-      const end = d < 0 ? HL_COLD : HL_WARM;
-      let cr = HL_CORE[0] + (end[0] - HL_CORE[0]) * tw;
-      let cg = HL_CORE[1] + (end[1] - HL_CORE[1]) * tw;
-      let cb = HL_CORE[2] + (end[2] - HL_CORE[2]) * tw;
+      const end = d < 0 ? H2_COLD : H2_WARM;
+      let cr = H2_CORE[0] + (end[0] - H2_CORE[0]) * tw;
+      let cg = H2_CORE[1] + (end[1] - H2_CORE[1]) * tw;
+      let cb = H2_CORE[2] + (end[2] - H2_CORE[2]) * tw;
       // an ACCENT, not a takeover: a fast hand can pull the colour ~60% of
       // the way to its own, never all of it, so the spectrum stays legible
       // underneath the paint (a full repaint is the same mistake as a
       // full-canvas tint).
       const mo = clamp(wOld * s.velL * 1.15) * 0.60, mv = clamp(wNew * s.velR * 1.15) * 0.60;
-      cr += (HL_ORANGE[0] - cr) * mo; cg += (HL_ORANGE[1] - cg) * mo; cb += (HL_ORANGE[2] - cb) * mo;
-      cr += (HL_VIOLET[0] - cr) * mv; cg += (HL_VIOLET[1] - cg) * mv; cb += (HL_VIOLET[2] - cb) * mv;
+      cr += (H2_ORANGE[0] - cr) * mo; cg += (H2_ORANGE[1] - cg) * mo; cb += (H2_ORANGE[2] - cb) * mo;
+      cr += (H2_VIOLET[0] - cr) * mv; cg += (H2_VIOLET[1] - cg) * mv; cb += (H2_VIOLET[2] - cb) * mv;
       const col = (al) => `rgba(${cr | 0},${cg | 0},${cb | 0},${al})`;
 
       // every sixth stamp also lays the BAND down as one translucent fill —
@@ -316,15 +363,15 @@ reg({
       // soft lobes of the plate come from.
       if (i % 12 === 0 && i > 3) {
         g.beginPath();
-        for (let j = 0; j < HL_PTS; j++) {
+        for (let j = 0; j < H2_PTS; j++) {
           const r = sl.out[j] * S;
-          const x = cx + r * HL_COS[j], y = cy + r * HL_SIN[j];
+          const x = cx + r * H2_COS[j], y = cy + r * H2_SIN[j];
           j ? g.lineTo(x, y) : g.moveTo(x, y);
         }
         g.closePath();
-        for (let j = 0; j < HL_PTS; j++) {
+        for (let j = 0; j < H2_PTS; j++) {
           const r = sl.inn[j] * S;
-          const x = cx + r * HL_COS[j], y = cy + r * HL_SIN[j];
+          const x = cx + r * H2_COS[j], y = cy + r * H2_SIN[j];
           j ? g.lineTo(x, y) : g.moveTo(x, y);
         }
         g.closePath();
@@ -338,9 +385,9 @@ reg({
       g.strokeStyle = col(live ? (liveA + 0.30 * s.kEnv) * bright
                                : (0.055 + 0.045 * sl.kick) * fade * bright * dens);
       g.beginPath();
-      for (let j = 0; j < HL_PTS; j++) {
+      for (let j = 0; j < H2_PTS; j++) {
         const r = sl.out[j] * S;
-        const x = cx + r * HL_COS[j], y = cy + r * HL_SIN[j];
+        const x = cx + r * H2_COS[j], y = cy + r * H2_SIN[j];
         j ? g.lineTo(x, y) : g.moveTo(x, y);
       }
       g.closePath();
@@ -351,9 +398,9 @@ reg({
         g.strokeStyle = col(live ? (liveA * 0.78 + 0.22 * s.kEnv) * bright
                                  : (0.062 + 0.048 * sl.kick) * fade * bright * dens);
         g.beginPath();
-        for (let j = 0; j < HL_PTS; j++) {
+        for (let j = 0; j < H2_PTS; j++) {
           const r = sl.inn[j] * S;
-          const x = cx + r * HL_COS[j], y = cy + r * HL_SIN[j];
+          const x = cx + r * H2_COS[j], y = cy + r * H2_SIN[j];
           j ? g.lineTo(x, y) : g.moveTo(x, y);
         }
         g.closePath();
@@ -373,7 +420,7 @@ reg({
       ' age ' + Math.round(s._kAge * 1000) + 'ms' +
       (typeof AUDIOIN !== 'undefined' && AUDIOIN.kickBpm ? ' ' + AUDIOIN.kickBpm + 'bpm' : '') + ')' +
       '  EXPO ' + vis + '/' + s.depth + ' (' + (vis / 32).toFixed(2) + 's)' +
-      '  SENS ' + s.sens.toFixed(2) +
+      '  SENS ' + s.sens.toFixed(2) + ' (g' + (1 / s.sens).toFixed(2) + ')' +
       '  PAINT ' + Math.round(s.velL * 100) + '/' + Math.round(s.velR * 100) +
       '  REST ' + Math.round(s.rest * 100) +
       (s.pres < 0.3 ? '   · HALO BREATHING' : ''), 10, h - 10);

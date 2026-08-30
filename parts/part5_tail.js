@@ -713,7 +713,16 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendTelemetry) {
       // control window never runs AUDIOIN's real analysis (ADR-0006/0007 —
       // no scene instance there at all), so it has to ride the one channel
       // that already ticks 4x/second rather than adding a second one.
-      audioIn: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan, onsetCount: AUDIOIN.onsetCount },
+      // Explicit whitelist — a field missing here reads as a hard zero in the
+      // control window, not as "unknown". sub/lowmid/db ride along so the
+      // console's Audio in panel can print the same six bars and the same
+      // dBFS numbers the show window has; db in particular is what makes that
+      // panel a real input-gain diagnostic rather than six bars that always
+      // look busy. dev/flux are deliberately NOT sent: nothing in the console
+      // draws them, and they are the two most frame-rate-sensitive fields
+      // here (a 4Hz sample of a positive-rise pulse is aliasing, not data).
+      audioIn: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan, onsetCount: AUDIOIN.onsetCount,
+                 sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db },
       at: Date.now(),
     });
   }, 250);
@@ -1112,8 +1121,16 @@ const PRE = {
     {
       const aConnected = inControl ? audioInRelay.connected : AUDIOIN.connected;
       const aDenied = inControl ? audioInRelay.denied : AUDIOIN.denied;
-      const aRestSet = inControl ? audioInRelay.restSet : !!AUDIOIN.cal.rest;
       const aDeviceLabel = (inControl ? audioInRelay.device : AUDIOIN.device)?.label;
+      // REPORT ON THE SIGNAL, NOT ON THE SETTINGS. This row used to go green
+      // ("signal live") the instant cal.rest existed, which is how a SET REST
+      // taken with the PA up could shut the gate, kill every band, and still
+      // read ok. `live` is the engine's own gate+confidence judgement and
+      // aLevelDb is the raw dBFS, so a dead or absurdly quiet input says so.
+      const aLive = inControl ? audioInRelay.live : AUDIOIN.live;
+      const aLevelDb = inControl ? audioInRelay.levelDb : AUDIOIN.db.level;
+      const aQuiet = typeof aLevelDb === 'number' && isFinite(aLevelDb) && aLevelDb > -140 && aLevelDb < -40;
+      const aDb = (typeof aLevelDb === 'number' && isFinite(aLevelDb) && aLevelDb > -99) ? aLevelDb.toFixed(0) + ' dBFS' : 'silence';
       // Nima: the CONNECT button read as "glitchy/flickery" — PRE.render()
       // rebuilds this whole modal's innerHTML every 600ms regardless of
       // whether anything changed, and this row used to print a live level
@@ -1126,15 +1143,20 @@ const PRE = {
       // WHICH SOURCE the show is listening to, and to let you change it on
       // the spot. So it carries a device dropdown, exactly like Display
       // above: the pick IS the fix. Calibration still lives in the AUDIO IN
-      // popover, where you can do it deliberately with the room quiet;
-      // an unset REST is worth naming but never a chore to clear here.
+      // popover, where you can do it deliberately with the room quiet.
+      // But the row still reports on the SIGNAL, not on the settings: `live`
+      // is the engine's own gate+confidence judgement, so a shut gate or a
+      // dead input can never read green just because a device is selected.
       r.push({ k: 'audioin', sec: 'rig', label: 'Audio in', audioPicker: true,
-        lvl: aConnected ? 'ok' : 'warn',
+        lvl: (!aConnected || !aLive) ? 'warn' : 'ok',
         txt: !aConnected
           ? (aDenied ? 'no audio input — permission was denied, or nothing is plugged in. Scenes that listen still play from hands.'
             : 'not connected — only scenes that listen (Cell Front V4) need this. Scenes that listen still play from hands.')
-          : 'listening to ' + (aDeviceLabel || 'the default device')
-            + (aRestSet ? ' — signal live (see the Audio in panel under the stage)' : ' — signal live · REST not set'),
+          : !aLive ? 'listening to ' + (aDeviceLabel || 'the default device') + ' at ' + aDb
+              + ' — nothing musical on the input. Turn the source up, or open the Audio in panel under the stage.'
+          : 'listening to ' + (aDeviceLabel || 'the default device') + ' at ' + aDb
+              + (aQuiet ? ' — live, but very quiet; check the input gain' : ' — signal live')
+              + (aRestSet ? ' (see the Audio in panel under the stage)' : ' · REST not set'),
         // connected = the picker IS the whole row, exactly like Display.
         // CONNECT survives only for the case the dropdown cannot serve: no
         // grant yet, so there are no devices to choose between. SET REST and
@@ -1680,16 +1702,42 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
       ab.classList.toggle('learning', !!this._appAudioPending);
       ab.classList.toggle('off', isAppAudio);
     }
+    // SET REST refuses a sample taken over a live source (it can only ever
+    // make the engine deafer, and it persists), so the button has to say that
+    // out loud — silently doing nothing is how the old bug hid.
+    const rejected = inControl ? audioInRelay.restRejected : (this.restRejectFresh() ? this.restRejected : null);
     const rb = document.getElementById('btnAudioRest');
-    if (rb) { rb.textContent = this.restSampling ? 'SAMPLING…' : 'SET REST'; rb.classList.toggle('learning', this.restSampling); }
+    if (rb) {
+      rb.textContent = this.restSampling ? 'SAMPLING…'
+        : rejected !== null ? 'TOO LOUD (' + Math.round(rejected) + ' dBFS)' : 'SET REST';
+      rb.classList.toggle('learning', this.restSampling);
+      rb.title = rejected !== null
+        ? 'REST NOT TAKEN — the input was at ' + Math.round(rejected) + ' dBFS, which is a source playing, not a room at rest. Silence the room (or the PA) and press again.'
+        : 'Sample the input with NOBODY at the instrument and the room quiet — teaches the engine where silence is.';
+    }
+    // RESET AUTO-RANGE — a reset is instantaneous and almost invisible (the
+    // meters just start moving differently), so the button confirms itself
+    // for a beat. In the CONTROL window that flash is driven by calVersion
+    // changing on the relay, not by the click, so it means "the show window
+    // did it", not "the click was registered".
+    const rr = document.getElementById('btnAudioResetRange');
+    if (rr) { rr.textContent = this._resetFlash ? 'RANGE CLEARED' : 'RESET AUTO-RANGE'; rr.classList.toggle('learning', !!this._resetFlash); }
     // static status, not a live number — the Audio in panel under the stage
     // is the actual meter; a jittering percentage here just reads as noise
+    // ...and this line reports the SIGNAL, not merely the connection: "signal
+    // live" printed over a shut gate was one of the three places the UI lied
+    // when a rest sample had been taken with the music playing.
+    const live = inControl ? audioInRelay.live : this.live;
+    const levelDb = inControl ? audioInRelay.levelDb : this.db.level;
+    const dbTxt = (typeof levelDb === 'number' && isFinite(levelDb) && levelDb > -99) ? ' · ' + levelDb.toFixed(0) + ' dBFS' : '';
     const stat = document.getElementById('audioLevel');
-    if (stat) stat.textContent = !connected ? '' : (isAppAudio ? 'capturing ' + (device.label || 'an app') : 'signal live') + (restSet ? '' : ' — REST not set');
+    if (stat) stat.textContent = !connected ? ''
+      : (isAppAudio ? 'capturing ' + (device.label || 'an app') : live ? 'signal live' : 'no signal') + dbTxt + (restSet ? '' : ' — REST not set');
   };
   document.getElementById('btnAudioConnect')?.addEventListener('click', () => AUDIOIN.connect());
   document.getElementById('btnAudioAppCapture')?.addEventListener('click', () => AUDIOIN.captureAppAudio());
   document.getElementById('btnAudioRest')?.addEventListener('click', () => AUDIOIN.startRest());
+  document.getElementById('btnAudioResetRange')?.addEventListener('click', () => AUDIOIN.resetRange());
   const sel = document.getElementById('audioInSel');
   if (sel) sel.addEventListener('change', e => AUDIOIN.setDevice(e.target.value || null));
   setInterval(() => {
@@ -2477,21 +2525,64 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   if (!rack || !split || !rigSplit) return;
   const RIG_TITLE = 'The rig', RIG_INFO = info ? info.title : '';
   const AUDIO_TITLE = 'Audio in';
-  const AUDIO_INFO = "AUDIO IN — the live signal driving this scene, not Ableton/MIDI-out (which it mostly doesn't touch).\nLEVEL/BASS/MID/TREBLE are the smoothed 0-100 values the scene reads; ONSET flashes on a detected hit; PAN is stereo balance, left/right.\nConnect and calibrate from MAP → Audio in.";
+  // TWO COLUMNS, TWO UNITS — and the whole point is that they disagree.
+  // The BAR is what the scene reads: 0-100 after the AGC, which auto-ranges
+  // to whatever is playing, so a healthy bar looks the same at any input
+  // gain. That is exactly why it cannot tell you the gain is wrong. The
+  // NUMBER is the raw, uncalibrated dBFS the analyser actually measured, and
+  // it is the diagnostic that was missing when the clipping bug shipped:
+  // bars pinned at 100 with no number beside them looked like a loud room.
+  // Read them together — busy bars + a LEVEL around -30..-6 dBFS is a
+  // healthy feed; busy bars + LEVEL -70 dBFS is the AGC working heroically on
+  // nothing and you should turn the source up.
+  // LEVEL IS THE GAIN CHECK, NOT THE BAND ROWS. Each band number is the total
+  // power in that band, so it is genuinely, correctly lower than LEVEL — on a
+  // well-staged techno feed (LEVEL -16) the bands measure about BASS -22,
+  // LOWMID -31, MID -32, TREBLE -46, and a lossy source with nothing above
+  // 12k puts TREBLE lower still. Judging a band row against the -30..-6
+  // guidance is how you talk yourself into clipping an input that is already
+  // at unity, so the copy below says so explicitly.
+  const AUDIO_INFO = "AUDIO IN — the live signal driving this scene, not Ableton/MIDI-out (which it mostly doesn't touch).\n"
+    + "BAR (0-100) = what the scene actually reads. The bands AUTO-RANGE to the material: the engine tracks each band's own recent quiet/loud percentiles and stretches between them, so a healthy picture looks the same whether the feed is hot or quiet, and it re-learns within seconds when the music changes.\n"
+    + "NUMBER = the RAW level in dBFS, uncalibrated and never auto-ranged. LEVEL is the input-gain check: around -30..-6 dBFS is a healthy feed, below about -60 is nearly nothing (the bars will still look busy — that is the auto-range doing its best with noise), and '—' is silence.\n"
+    + "The BAND numbers are the total power in each band, so they read correctly LOWER than LEVEL — roughly BASS -22, MID -32, TREBLE -46 on a well-staged mix, and lower again on a lossy source. Judge the input gain by LEVEL; read the band numbers against each other and against how they looked a minute ago.\n"
+    + "SUB is the kick fundamental alone; BASS is kick + the bottom of the bassline; LOWMID is bass notes and low stabs; MID is stabs/chords/vocals; TREBLE is hats and air.\n"
+    + "ONSET flashes on a detected hit; PAN is stereo balance, left/right.\n"
+    + "Connect, SET REST and RESET AUTO-RANGE (forget the learned range and relearn from what's playing now) all live in MAP → Audio in.";
 
-  const BARROWS = [['level', 'LEVEL'], ['bass', 'BASS'], ['mid', 'MID'], ['treble', 'TREBLE']];
-  const bars = {};
+  // SUB and LOWMID are new bands from the sensitivity round. They earn a row
+  // each because they are precisely the two an operator cannot infer from the
+  // others — SUB is the kick with the bassline removed, LOWMID is the
+  // bassline with the kick removed, and "is the kick actually arriving" is
+  // the first question anyone asks this panel. They deliberately do NOT get a
+  // trace: six overlapping lines in a ~200px canvas is mush, and the four
+  // existing traces are the ones with 15s of shape worth reading.
+  const BARROWS = [['level', 'LEVEL'], ['sub', 'SUB'], ['bass', 'BASS'], ['lowmid', 'LOWMID'], ['mid', 'MID'], ['treble', 'TREBLE']];
+  // Column header, so the two units are named once instead of guessed at.
+  const head = document.createElement('div');
+  head.className = 'arkrow arkhead';
+  head.innerHTML = '<b></b><span class="arkcap">0–100 · auto-ranged</span><i class="arkdb">dBFS</i>';
+  rack.appendChild(head);
+  const bars = {}, dbs = {};
   for (const [k, label] of BARROWS) {
     const div = document.createElement('div');
     div.className = 'arkrow';
-    div.innerHTML = `<b>${label}</b><span class="arkbar"><u></u></span>`;
+    div.innerHTML = `<b>${label}</b><span class="arkbar"><u></u></span><i class="arkdb">—</i>`;
     rack.appendChild(div);
     bars[k] = div.querySelector('.arkbar u');
+    dbs[k] = div.querySelector('.arkdb');
   }
-  // PAN — bidirectional, fills from the center toward whichever side
+  // dBFS, one decimal. The cutoff is just below the engine's own -140 floor
+  // (which it writes for a genuinely empty band and decays to on disconnect),
+  // NOT a judgement about what counts as quiet: at -99 this printed '—' on
+  // ~5% of frames of real treble content, i.e. it reported silence on a band
+  // that was working.
+  const fmtDb = v => (typeof v !== 'number' || !isFinite(v) || v <= -130) ? '—' : v.toFixed(1);
+  // PAN — bidirectional, fills from the center toward whichever side. The
+  // empty <i> keeps its bar's right edge aligned with the band rows above.
   const panRow = document.createElement('div');
   panRow.className = 'arkrow';
-  panRow.innerHTML = '<b>PAN</b><span class="arkbar"><u></u></span>';
+  panRow.innerHTML = '<b>PAN</b><span class="arkbar"><u></u></span><i class="arkdb"></i>';
   rack.appendChild(panRow);
   const panBar = panRow.querySelector('.arkbar u');
   // ONSET — a dot that flashes on a hit, not a continuous bar
@@ -2528,7 +2619,15 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     // telemetry:tick's payload in the control window (above) — so reading
     // AUDIOIN directly here works either way; only connection/device status
     // still needs the separate audioInRelay (ADR-0006's split).
-    for (const [k] of BARROWS) bars[k].style.width = Math.round(clamp(AUDIOIN[k]) * 100) + '%';
+    // Both columns come off AUDIOIN directly and therefore work in BOTH
+    // windows: real analysis in the show window, telemetry:tick's payload in
+    // the control window (which is why db had to join that whitelist).
+    const db = AUDIOIN.db || {};
+    for (const [k] of BARROWS) {
+      bars[k].style.width = Math.round(clamp(AUDIOIN[k]) * 100) + '%';
+      const dv = fmtDb(db[k]);
+      if (dbs[k].textContent !== dv) dbs[k].textContent = dv;
+    }
     const pv = clamp(AUDIOIN.pan, -1, 1);
     panBar.style.left = (pv < 0 ? 50 + pv * 50 : 50) + '%';
     panBar.style.width = Math.abs(pv) * 50 + '%';
@@ -2709,7 +2808,23 @@ function frame(ts) {
   // the DBG bars stay truthful to the hands.
   const inp = {
     L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge,
+    // AUDIO IN, the scene-facing contract. The six names on the first line
+    // have not changed meaning — 15 scene files read them and none needed
+    // touching for the sensitivity rework; they are simply AGC-normalized now
+    // instead of pinned at 1.0. Everything after is ADDITIVE (sensitivity
+    // round): sub/lowmid are two more 0..1 bands on the same AGC; db is the
+    // RAW dBFS per band, uncalibrated, for diagnostics and anything that
+    // genuinely wants absolute loudness; dev is each band against its own
+    // ~1.5s mean, 0..1 centred on 0.5 ("louder than it has been"); flux is
+    // positive rise only ("it just came in"). db/dev/flux are handed over BY
+    // REFERENCE, same as kick — they are read-only from a scene's side.
+    // live is the engine's own "is a real source playing" answer (silence gate
+    // AND dynamic-range confidence) and is what a NEW scene should arbitrate
+    // audio-vs-hands on. The 16 shipped audioIn scenes test `level > 0.05`
+    // instead; that keeps working because the same confidence multiplies the
+    // published bands, so room noise takes `level` down with it.
     audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
+             sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db, dev: AUDIOIN.dev, flux: AUDIOIN.flux, live: AUDIOIN.live,
              kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
   };
   drawWidget(document.getElementById('widgetTop'), t);
@@ -2866,6 +2981,10 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     else if (kind === 'invert') setInvert(value);
     else if (kind === 'calClear') clearCal();
     else if (kind === 'audioinRest') AUDIOIN.startRest();
+    // RESET AUTO-RANGE, same relay shape as SET REST above — the show window
+    // owns the analysis, so it owns the range being forgotten. The result
+    // rides home on the existing audioin:devices relay (calVersion).
+    else if (kind === 'audioinResetRange') AUDIOIN.resetRange();
     // reseed carries the SEED control just used, so the mirror and the wall
     // land on the same picture instead of two different random ones
     else if (kind === 'reseed') { if (focus.P) focus.P.reinit(typeof value === 'number' ? value : (Math.random() * 1e9) | 0); }
