@@ -60,14 +60,16 @@ function hlStamp(P) {
   const sl = s.sl[s.head];
   sl.tilt = s.tilt; sl.kick = s.kEnv;
 
-  const ab = 0.055 + 0.150 * s.bass;    // orders 2, 3
-  const am = 0.022 + 0.085 * s.mid;     // orders 5, 7
-  const at = 0.007 + 0.032 * s.treble;  // orders 11, 17 (13 inside)
+  const rest = s.rest;
+  const ab = 0.055 + 0.150 * s.bass + 0.075 * rest;    // orders 2, 3
+  const am = 0.022 + 0.085 * s.mid + 0.030 * rest;     // orders 5, 7
+  const at = 0.007 + 0.032 * s.treble + 0.012 * rest;  // orders 11, 17 (13 inside)
   // the kick pushes the newest ring outward, unsmoothed — it then simply
   // ages backwards through the stack as a bright bump.
-  const breath = 1 + 0.130 * Math.sin(s.life * 0.55) + 0.090 * Math.sin(s.life * 0.33 + 2.1)
-                   + 0.055 * Math.sin(s.life * 0.21 + 4.0);
-  const base = (0.230 + 0.130 * s.field) * breath * (1 + 0.085 * s.kEnv);
+  const bw = 1 + 0.35 * rest;
+  const breath = 1 + bw * (0.130 * Math.sin(s.life * 0.55) + 0.090 * Math.sin(s.life * 0.33 + 2.1)
+                         + 0.055 * Math.sin(s.life * 0.21 + 4.0));
+  const base = (0.230 + 0.130 * s.field + 0.020 * rest) * breath * (1 + 0.085 * s.kEnv);
   const hole = 0.44 - 0.12 * s.field;
   const RMAX = 0.480;
   const p = s.ph, rot = s.rot;
@@ -107,7 +109,7 @@ reg({
     }
     P.state = {
       sl, depth, head: -1, n: 0, capT: 0, life: 0,
-      pres: 0, expo: 0.55, sens: 1.0, velL: 0, velR: 0, pL: 0.5, pR: 0.5,
+      pres: 0, rest: 1, expo: 0.78, sens: 1.0, velL: 0, velR: 0, pL: 0.5, pR: 0.5,
       bass: 0, mid: 0, treble: 0, energy: 0, field: 0, tilt: 0.5,
       rot: 0,
       ph: [P.rand() * TAU, P.rand() * TAU, P.rand() * TAU,
@@ -126,7 +128,7 @@ reg({
     const handLive = chan.L.mode === 'live' || chan.R.mode === 'live';
     // no hands live → settle to a middling exposure and base sensitivity,
     // rather than sit wherever the wall's ambient ghost drift left CC1/CC2.
-    const expoT = handLive ? cc1 : 0.55;
+    const expoT = handLive ? cc1 : 0.78;
     const sensT = handLive ? 0.55 + cc2 * 1.15 : 1.0;
     s.expo += (expoT - s.expo) * Math.min(1, dt * 5);
     s.sens += (sensT - s.sens) * Math.min(1, dt * 4);
@@ -141,6 +143,11 @@ reg({
 
     const audioLive = inp.audio.level > 0.05 || inp.audio.onset > 0.3;
     s.pres += (((handLive || audioLive) ? 1 : 0) - s.pres) * Math.min(1, dt * 2.2);
+    // REST: nobody at the instrument AND nothing to listen to. The scene has
+    // to be a PLATE at rest, not a wire ring — with no music moving the curve
+    // the 96 stamps land almost on top of each other, so rest deliberately
+    // opens the lobes and widens the breath until the strata separate again.
+    s.rest += (((handLive || audioLive) ? 0 : 1) - s.rest) * Math.min(1, dt * 0.8);
 
     /* ---- THE BANDS (slow clock) — the shape of the curve ---------------- */
     // engine-smoothed already; eased again at ~1.8/s so a bassline note
@@ -183,7 +190,7 @@ reg({
     s.kEnv -= s.kEnv * Math.min(1, dt * 3.0);
 
     /* ---- PHASES + the slow turn that makes the stack smear -------------- */
-    const spd = 0.55 + 0.90 * s.energy;
+    const spd = 0.55 + 0.90 * s.energy + 0.85 * s.rest;
     const RATE = [0.55, -0.67, 0.62, -0.78, 0.86, -1.02, 0.44, -0.58, 0.79];
     for (let i = 0; i < 9; i++) {
       s.ph[i] += RATE[i] * spd * dt;
@@ -208,7 +215,7 @@ reg({
 
     const cx = w / 2, cy = h / 2;
     const S = Math.min(w, h);          // radial work scales off the SHORT side
-    const bright = 0.45 + s.pres * 0.55;
+    const bright = 0.58 + s.pres * 0.42;
     const vis = Math.max(1, Math.min(s.n, Math.round(8 + s.expo * (s.depth - 8))));
 
     g.globalCompositeOperation = 'lighter';
@@ -240,11 +247,15 @@ reg({
       // COLOUR: the slice's own spectral balance, then the hands' speed —
       // orange into the old end, violet into the live edge. Age is the
       // form's field, so nothing is a gradient laid across the screen.
-      const wOld = 0.30 + 0.70 * a * a, wNew = 0.30 + 0.70 * (1 - a) * (1 - a);
+      const wOld = 0.18 + 0.82 * a * a, wNew = 0.18 + 0.82 * (1 - a) * (1 - a);
       let cr = HL_COLD[0] + (HL_WARM[0] - HL_COLD[0]) * sl.tilt;
       let cg = HL_COLD[1] + (HL_WARM[1] - HL_COLD[1]) * sl.tilt;
       let cb = HL_COLD[2] + (HL_WARM[2] - HL_COLD[2]) * sl.tilt;
-      const mo = clamp(wOld * s.velL * 1.15), mv = clamp(wNew * s.velR * 1.15);
+      // an ACCENT, not a takeover: a fast hand can pull the colour ~60% of
+      // the way to its own, never all of it, so the spectrum stays legible
+      // underneath the paint (a full repaint is the same mistake as a
+      // full-canvas tint).
+      const mo = clamp(wOld * s.velL * 1.15) * 0.60, mv = clamp(wNew * s.velR * 1.15) * 0.60;
       cr += (HL_ORANGE[0] - cr) * mo; cg += (HL_ORANGE[1] - cg) * mo; cb += (HL_ORANGE[2] - cb) * mo;
       cr += (HL_VIOLET[0] - cr) * mv; cg += (HL_VIOLET[1] - cg) * mv; cb += (HL_VIOLET[2] - cb) * mv;
       const col = (al) => `rgba(${cr | 0},${cg | 0},${cb | 0},${al})`;
@@ -312,6 +323,7 @@ reg({
       '  EXPO ' + vis + '/' + s.depth + ' (' + (vis / 32).toFixed(2) + 's)' +
       '  SENS ' + s.sens.toFixed(2) +
       '  PAINT ' + Math.round(s.velL * 100) + '/' + Math.round(s.velR * 100) +
+      '  REST ' + Math.round(s.rest * 100) +
       (s.pres < 0.3 ? '   · HALO BREATHING' : ''), 10, h - 10);
   }
 });
