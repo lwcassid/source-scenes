@@ -722,7 +722,7 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendTelemetry) {
       // draws them, and they are the two most frame-rate-sensitive fields
       // here (a 4Hz sample of a positive-rise pulse is aliasing, not data).
       audioIn: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan, onsetCount: AUDIOIN.onsetCount,
-                 sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db },
+                 sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db, build: AUDIOIN.build, drop: AUDIOIN.drop },
       at: Date.now(),
     });
   }, 250);
@@ -2825,6 +2825,7 @@ function frame(ts) {
     // published bands, so room noise takes `level` down with it.
     audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
              sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db, dev: AUDIOIN.dev, flux: AUDIOIN.flux, live: AUDIOIN.live,
+             build: AUDIOIN.build, drop: AUDIOIN.drop,
              kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
   };
   drawWidget(document.getElementById('widgetTop'), t);
@@ -3018,6 +3019,7 @@ setInterval(() => {
   const inp = {
     L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge,
     audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
+             build: AUDIOIN.build, drop: AUDIOIN.drop,
              kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
   };
   if (focus.P) {

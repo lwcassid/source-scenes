@@ -213,6 +213,13 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
 onset, pan}` from a real mic/line-in instead of (or alongside) the hands —
 `AUDIOIN` (`parts/part2e_audioin.js`, ADR-0009). Cell Front V5 (SRC-43.5) is
 the reference implementation; read it before building a second one.
+- **Engine law vs scene verdict (Lance, Aug 2026).** Below, only the rules
+  about the ENGINE and the MEDIUM are global — kick unsmoothed + back-dated,
+  hysteresis before anything that gates a note or rebuilds geometry, no
+  full-frame strobe. The rest (which band owns which job, paint caps,
+  hands-as-gamma) are verdicts scoped to the scene they were learned on:
+  consult them as precedent, then make the call that serves THIS scene's
+  mark language — don't inherit a sibling's taste call as law.
 - `level`/`bass`/`mid`/`treble` are already engine-smoothed 0..1 — don't
   re-smooth them, but DO still ease them into your own state the way `inp.L`
   gets eased (`s.bass += (audioBand - s.bass) * dt*6`), same as hands.
@@ -342,6 +349,23 @@ the reference implementation; read it before building a second one.
   contrast between figure and ground, so quiet reads as one lattice and loud
   resolves into the plate. Classify once per geometry and cache it; it is
   fixed data, never per-frame work.
+- **The set has SHAPE: `inp.audio.build` and `inp.audio.drop` (Lance,
+  DJ-set round).** Layer 6 in part2e is the STRUCTURAL listener: `build`
+  (0..1, slow — bass withheld against its own ~22s norm while energy/top
+  end climb) and `drop` ({t, strength, n} — new drop = `n` CHANGING, 8s
+  refractory, requires a kick + a tracked build or >5s real suppression).
+  Stake a scene's dormant jam mode on the drop (EH31's stargate, Chladni
+  31's unlock, WS10's pink) and let `build` drive a visible telegraph —
+  withhold during the build, spend on the drop. SEED the counters on first
+  sight (`s._dropN = au.drop.n`) or a scene opened mid-set fires a
+  45s window off a drop three scenes old. When a scene has both a hand
+  ritual and an audio path for the same mode, the ritual stays hand-only.
+  Suppress the scene's own drums/arp while `audio.live` — the DJ owns the
+  rhythm. Chladni gotcha: n === m makes chi() identically zero (a blank
+  plate); integer audio mode targets must never be equal. Harnesses:
+  `tools/droptest.mjs` (detector math, 10 adversarial checks) and
+  `tools/shotdrop.mjs <id> <prefix>` (groove→build→drop→jam screenshots;
+  HANDS=0 for the audio-only picture when hands own a control).
 - **SHOOT the audio states — `node tools/shotaudio.mjs <id> <prefix>`.**
   `shot.mjs` can only drive hands, so an audio-in scene's whole instrument
   is invisible to it. shotaudio drives `setAudioIn`/`setAudioKick` through a
