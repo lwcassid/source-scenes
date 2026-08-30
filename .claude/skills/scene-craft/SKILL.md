@@ -63,7 +63,10 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    abandoned scenes drift back to rest states. But NEVER yank the
    instrument back: a hand held still reads as absence to the tracker, so
    hold the player's last pose and drift to rest only after real absence —
-   above all inside an unlocked payoff window (Lance, EH V13).
+   above all inside an unlocked payoff window (Lance, EH V13). The input
+   core enforces this globally now (Lance, Aug 2026): confirmed absence
+   holds the remembered pose ~8s, then melts to rest (hand-space 1) — a
+   scene never needs its own exit handling on inp.
 6. **Bar-quantized structure.** Count changes, buds, entrances land on the
    downbeat (Schmitt thresholds + the audio tick commits at `st === 0`).
    Anticipation beats surprise: telegraph the downbeat (pre-glow the next gate).

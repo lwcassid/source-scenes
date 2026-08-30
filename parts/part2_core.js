@@ -180,8 +180,8 @@ const AE = {
    CHANNELS — the two hands
    ============================================================ */
 const chan = {
-  L: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 },
-  R: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 }
+  L: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0, restAt: 0 },
+  R: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0, restAt: 0 }
 };
 
 /* ============================================================
@@ -207,7 +207,12 @@ const CAL = {
   REST_EPS: 0.06,    // raw distance from the rest reading that counts as a hand
   MOVE_EPS: 0.02,    // ...or this much movement inside the window, hand parked at rest
   WINDOW: 2.5,       // seconds of raw history the movement test looks at
-  ABSENT_HOLD: 1.2   // seconds of confirmed absence before the channel lets go
+  ABSENT_HOLD: 1.2,  // seconds of confirmed absence before the channel lets go
+  REST_HOLD: 8,      // ...then the LAST POSE holds this long before resting
+  REST_RATE: 0.25,   // ease rate of the final melt to rest (~4s time constant)
+  POSE_RATE: 0.8     // slow-follow rate of the remembered pose (~1.2s time
+                     // constant): a deliberate reposition is caught in a
+                     // couple of seconds, a 0.3s exit sweep barely moves it
 };
 function ghostL(t) { return clamp(0.5 + 0.42 * Math.sin(t * 0.13 + 1.7) + 0.09 * Math.sin(t * 0.53 + 0.4)); }
 function ghostR(t) { return clamp(0.5 + 0.40 * Math.sin(t * 0.094 + 4.2) + 0.10 * Math.sin(t * 0.61 + 2.1)); }
@@ -236,14 +241,24 @@ function setChan(side, v, raw) {
   if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.driveHand(side, v);
   const c = chan[side];
   if (raw === undefined) {
-    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0; c.restAt = 0;
     return;
   }
   c.raw = raw;
   c.hist.push({ t: nowT, raw });
   while (c.hist.length && nowT - c.hist[0].t > CAL.WINDOW) c.hist.shift();
   if (handPresent(side)) {
-    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0; c.restAt = 0;
+    // THE REMEMBERED POSE: a slow follower of where the hand has been
+    // SITTING, updated only while the reading is genuinely away from rest —
+    // the exit sweep is too fast to drag it, the movement-at-rest grace
+    // never touches it. This is what the channel holds after the hand goes.
+    const cal = midi.cal[side];
+    if (!cal || cal.rest === null || cal.rest === undefined || Math.abs(raw - cal.rest) > CAL.REST_EPS) {
+      const pdt = Math.min(0.2, nowT - (c.poseT || nowT));
+      c.pose = (c.pose === undefined) ? clamp(v) : c.pose + (clamp(v) - c.pose) * Math.min(1, pdt * CAL.POSE_RATE);
+      c.poseT = nowT;
+    }
   } else {
     if (!c.absentSince) c.absentSince = nowT;
     // still tracking through the grace period — a hand that pauses dead still
@@ -257,14 +272,18 @@ function handPresent(side) {
   // no rest reading → fall back to the old rule: a message IS a hand
   if (!cal || cal.rest === null || cal.rest === undefined) return true;
   if (Math.abs(c.raw - cal.rest) > CAL.REST_EPS) return true;
-  // sitting at rest but still moving: someone is working right at the sphere
+  // sitting at rest but still moving: someone is working right at the sphere.
+  // Only AT-REST samples count here — the exit sweep's own readings used to
+  // keep this test "moving" for the whole history window, which stretched a
+  // 1.2s absence confirmation into ~4s of the scene parked at the field edge.
   let lo = 1, hi = 0;
   for (let i = 0; i < c.hist.length; i++) {
     const r = c.hist[i].raw;
+    if (Math.abs(r - cal.rest) > CAL.REST_EPS) continue;
     if (r < lo) lo = r;
     if (r > hi) hi = r;
   }
-  return (hi - lo) > CAL.MOVE_EPS;
+  return hi >= lo && (hi - lo) > CAL.MOVE_EPS;
 }
 let ghostsOn = true;      // the library wall breathes by default
 let sceneGhosts = false;  // a focused scene STARTS still — GHOSTS in its sidebar opts in
@@ -275,18 +294,27 @@ function updateChannels(t, dt) {
     const c = chan[side];
     if (c.mode === 'live') {
       if (c.absentSince) {
-        // a rest-calibrated sensor can tell "held still" from "nobody there",
-        // so it lets go in about a second and settles the instrument to rest
-        // instead of freezing on whatever an empty sensor happens to read.
-        // REST IS HAND-SPACE 1 (arm's reach): since the NEAR=MORE flip, 0
-        // means AT THE SOURCE — settling there read as both hands slamming
-        // to full intensity on every exit (Chladni answered with its lock
-        // chord). An empty sensor is a far reading; settle it far.
-        if (t - c.absentSince > CAL.ABSENT_HOLD) { c.mode = 'drift'; if (!ambient) c.target = 1; }
+        // a rest-calibrated sensor can tell "held still" from "nobody there".
+        // HOLD THE LAST POSE, THEN REST (Lance): when absence is confirmed,
+        // do NOT settle to anything yet — the player's pose holds for
+        // REST_HOLD seconds, then melts gently to rest (hand-space 1, arm's
+        // reach: since the NEAR=MORE flip, 0 = AT THE SOURCE = full blast,
+        // the old exit-slam bug). And the pose we hold is REWOUND past the
+        // exit sweep: a leaving hand is tracked live all the way out, so by
+        // confirmation the channel is already sitting at the field edge —
+        // the pose the player actually left lives in c.pose, the slow
+        // follower setChan keeps of where the hand was SITTING.
+        if (t - c.absentSince > CAL.ABSENT_HOLD) {
+          c.mode = 'drift';
+          c.restAt = t + CAL.REST_HOLD;
+          if (!ambient) c.target = (c.pose !== undefined) ? c.pose : c.v;
+        }
       } else if (t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
     }
+    const resting = c.mode === 'drift' && !ambient && c.restAt && t >= c.restAt;
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);
-    c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : 2.2));
+    else if (resting) c.target = 1; // the melt to rest, after the held pose
+    c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : resting ? CAL.REST_RATE : 2.2));
   }
   SUMMON.step(t, dt);
 }
