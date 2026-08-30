@@ -186,6 +186,18 @@ density it gets live. Two consequences:
   then move it identically and the sheet stays welded. Cap the amplitude so
   the displacement's gradient stays under 1 (`amp * waveNumber < 1`) or
   shells cross through each other and the mesh turns inside out.
+  **Then spend that budget on FEW, TALL waves, and shear as well as swell
+  (Nima, Penrose Bloom V9).** V6-V8 spent it backwards — many short waves at
+  a third of the legal height — and the control was invisible for three
+  rounds: a corrugation finer than the tiling it deforms is grain, not
+  motion, and on scrim it is nothing. Halving the wavenumber doubles the
+  amplitude the law allows, so fewer waves are also BIGGER ones. And a purely
+  radial map only scales cells, which the eye reads as a zoom; displacing the
+  ANGLE by a function of radius shears them instead — still a pure function
+  of position, and shear leaves the Jacobian determinant alone, so it cannot
+  fold the mesh at any amplitude. It is the free half of the budget and the
+  half that reads as rubber. Let the hand set the wave's SPEED as well as its
+  height, or the control is invisible whenever the picture is already moving.
 
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
