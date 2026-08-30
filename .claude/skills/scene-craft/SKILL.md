@@ -93,6 +93,29 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    threshold written against 0.5 covers the whole frame. Rescale linearly
    around the real mean — a smoothstep remap crushes a narrow field into
    camouflage.
+   **A DRAWN SHAPE CANNOT BE A CLOUD (Nima, Cloud Steam V3).** Anything whose
+   edge is `smoothstep(threshold, density)` HAS a silhouette by construction —
+   soften it and you get a billiard ball, sharpen it and you get torn paper,
+   and no value in between is a cloud. Nothing in this repo raymarches, so
+   when a scene needs real volume, take IQ's dynamic-clouds model: step a ray
+   through a 3D fbm field compositing front-to-back (`sum += col*(1-sum.a)`),
+   light it with ONE cheap sample a short step sunward, shear the octaves with
+   his mat3 so the fbm doesn't line up on the axes, and mix each SAMPLE toward
+   the far tint so aerial perspective lives in the colour. Softness stops
+   being a parameter and becomes what accumulation does. Flying through is
+   then one uniform.
+   Its budget is a real design constraint, and three plausible savings are
+   traps. What works: ONE density function with a SHARED PREFIX — compute the
+   first two octaves once, and if even the most the rest could add still
+   leaves the sample under coverage, it is provably air; that was 6x. What
+   fails: a separate coarse probe (pays for those octaves twice, loses in a
+   dense sky); empty-space STRIDING (proving THIS sample is air says nothing
+   about the next, so the stride lands inside a cloud and facets every
+   silhouette); and ray jitter (white noise speckles with nothing to
+   accumulate it across frames, an ordered pattern becomes a halftone once the
+   internal buffer scales up to the show frame). Measure against a scene that
+   already ships — a frame-time probe on the same rasterizer is the only
+   number that means anything.
    Flying THROUGH the stuff (Nima, Cloud Steam V2) is a different build:
    DISCRETE masses with positions and depths, sorted near-first and
    composited front-to-back — the occlusion is what makes it flight instead
