@@ -264,6 +264,7 @@ cd "$(dirname "$0")/.."
   cat parts/part180_penrose5.js
   cat parts/part181_penrose6.js
   cat parts/part194_penrose7.js
+  cat parts/part195_penrose8.js
   cat parts/part193_fb23.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
