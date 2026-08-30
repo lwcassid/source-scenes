@@ -1601,8 +1601,9 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   }, 800);
   NAV.ui();
 })();
-// AUDIO IN bindings — device picker, CONNECT and SET REST, inside the MAP
-// popover (same home as the hands' and SHOW CONTROL's own device pickers).
+// AUDIO IN bindings — device picker, CONNECT and SET REST. Lance's
+// decluttering round moved these out of MAP into their own #audioPop; the
+// refresh loop below must watch THAT popover, or the picker never fills.
 (() => {
   AUDIOIN.ui = function () {
     const inControl = window.ELECTRON_ROLE === 'control';
@@ -1635,7 +1636,7 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   const sel = document.getElementById('audioInSel');
   if (sel) sel.addEventListener('change', e => AUDIOIN.setDevice(e.target.value || null));
   setInterval(() => {
-    if (!sel || !document.getElementById('mapPop').classList.contains('open')) return;
+    if (!sel || !document.getElementById('audioPop').classList.contains('open')) return;
     const inControl = window.ELECTRON_ROLE === 'control';
     const devices = inControl ? audioInRelay.devices : AUDIOIN.devices;
     const cur = (inControl ? audioInRelay.device : AUDIOIN.device)?.id || '';
@@ -1663,6 +1664,8 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
         e.stopPropagation();
         for (const o of pops) if (o.pop !== pop) o.pop.classList.remove('open');
         pop.classList.toggle('open');
+        // fill the input list the moment it's on screen, not 800ms later
+        if (pop.id === 'audioPop' && pop.classList.contains('open')) AUDIOIN.refreshDevices();
       });
     }
   }
