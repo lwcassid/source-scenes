@@ -257,7 +257,12 @@ the reference implementation; read it before building a second one.
   0.36-0.66), not from cranking the weight — at 1.25 every tile clamped to
   one end of the ramp and the mosaic went flat, which is a LOST palette, not
   a louder one. Move the ramp's CENTRE most of its length (~0.58) and leave
-  the structural terms room to spread tiles around it.
+  the structural terms room to spread tiles around it. And when a size needs
+  a CEILING, don't wrap the whole curve in a tanh (Nima, Spectrum Halo): it
+  compresses the quiet end as hard as the loud one, so the loud end never
+  arrives and you tune the wrong number chasing it. Keep the body linear and
+  bend only past a knee — `r <= K ? r : K + S*tanh((r-K)/S)` — whose gradient
+  is 1 at the knee, so nothing creases and the ceiling still holds.
 - **Colour a FIGURE, not every cell (Nima, Penrose Bloom V4).** An even tint
   across a structured field is wallpaper; the reference plates people bring
   in are always colouring a SUB-PATTERN out of a mostly bare ground. Find the

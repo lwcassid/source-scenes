@@ -128092,6 +128092,15 @@ reg({
    That is a LONG EXPOSURE of one breathing closed curve, so that is what
    this scene is.
 
+   LOUDNESS IS DIAMETER (Nima's second round): `level` carries most of the
+   radius, on a near-linear curve over twice the range it used to have, so a
+   quiet passage is a small ring and a drop fills the frame. The swell still
+   cannot jitter, because the picture is 96 stamps at once.
+
+   The plate is WHITE (Nima's pick out of ten palettes): the band has no hue
+   of its own, the spectrum moves it in VALUE only, and every colour in the
+   frame comes from a hand.
+
    ONE curve, r(theta), and the spectrum owns its harmonics by ORDER:
    · BASS  → orders 2 and 3, the big slow lobes that swing the whole ring
    · MID   → orders 5 and 7, the body of the band
@@ -128133,10 +128142,14 @@ for (let j = 0; j < HL_PTS; j++) {
   HL_COS[j] = Math.cos(a); HL_SIN[j] = Math.sin(a);
 }
 
-const HL_COLD = [64, 118, 255];    // bass-heavy moment
-const HL_WARM = [255, 238, 202];   // treble-heavy moment
-const HL_ORANGE = [247, 140, 58];  // LEFT hand's speed
-const HL_VIOLET = [162, 82, 255];  // RIGHT hand's speed
+// WHITE PLATE (Nima's pick out of ten). The band carries no hue of its own —
+// the spectrum moves it in VALUE, cool grey where the bass was carrying to
+// white where the top end was — so the plate reads like the reference sheet
+// and the only colour that ever enters the frame is a hand's.
+const HL_COLD = [136, 146, 168];   // bass-heavy moment — cool grey
+const HL_WARM = [255, 255, 255];   // treble-heavy moment — white
+const HL_ORANGE = [255, 162, 74];  // LEFT hand's speed
+const HL_VIOLET = [185, 140, 255]; // RIGHT hand's speed
 
 // one stamp = the curve as RADII (fractions of min(w,h)), frozen forever.
 // Rotation is baked in: a long exposure is fixed in world space.
@@ -128156,9 +128169,13 @@ function hlStamp(P) {
   const bw = 1 + 0.35 * rest;
   const breath = 1 + bw * (0.130 * Math.sin(s.life * 0.55) + 0.090 * Math.sin(s.life * 0.33 + 2.1)
                          + 0.055 * Math.sin(s.life * 0.21 + 4.0));
-  const base = (0.230 + 0.130 * s.field + 0.020 * rest) * breath * (1 + 0.085 * s.kEnv);
-  const hole = 0.44 - 0.12 * s.field;
-  const RMAX = 0.480;
+  const base = (0.155 + 0.295 * s.field + 0.075 * rest) * breath * (1 + 0.085 * s.kEnv);
+  const hole = 0.45 - 0.16 * s.field;
+  // The old flat tanh compressed the WHOLE curve, so the loud end never
+  // arrived: everything under the knee is now linear and only the excursions
+  // bend, against a hard ceiling of exactly half the short side. The knee's
+  // gradient is 1, so there is no visible crease where it takes over.
+  const KNEE = 0.32, RMAX = 0.50, SPAN = RMAX - KNEE;
   const p = s.ph, rot = s.rot;
 
   for (let j = 0; j < HL_PTS; j++) {
@@ -128169,7 +128186,7 @@ function hlStamp(P) {
     const r = base * (1 + m);
     // soft compression instead of a clamp — excursions stay in the frame
     // without ever flattening into a straight edge.
-    const ro = RMAX * Math.tanh(r / RMAX);
+    const ro = r <= KNEE ? r : KNEE + SPAN * Math.tanh((r - KNEE) / SPAN);
     sl.out[j] = ro;
     const mi = 0.40 * m + 0.70 * am * Math.sin(8 * a + p[7]) + 2.40 * at * Math.sin(13 * a + p[8])
              + 0.40 * ab * Math.sin(3 * a + p[6]);
@@ -128182,10 +128199,10 @@ reg({
   title: 'Spectrum Halo', tech: 'POLAR CONTOUR / LONG EXPOSURE / AUDIO-DRAWN',
   audioIn: true,
   fx: { bloom: 0.35 },
-  tags: ['AUDIO IN', 'CC1 = EXPOSURE', 'CC2 = SENSITIVITY', 'BAND = HARMONIC ORDER', 'THE KICK IS A RING'],
-  desc: 'One closed curve around one centre, stamped into the frame thirty-two times a second and left there — so the picture is the last three seconds of the music standing still. The spectrum owns the curve by HARMONIC ORDER: bass swings the two and three-lobed shapes that throw the whole ring off-round, mid fills the five and seven-lobed body of the band, treble writes the fine scallop on the outer edge and the hole in the middle. Where the stamps agree they pile into a dense luminous band; where one wandered it leaves a soft translucent lobe hanging off the side, which is what the loud moments look like a second after they happen. Each stamp keeps the spectral balance it was born with, so it is coloured by its own moment — blue where the bass was carrying, cream where the top end was — and a section change reads as a coloured band growing through the stack. The kick is the only fast thing in the frame: it punches the newest ring outward and lights it, and then that ring simply ages backwards through the exposure. Makes no sound of its own.',
-  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY: a gain on what the mic hears, from a placid almost-circle to a ring thrashing on every bar — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. Moving a hand FAST paints: the left hand breathes orange into the old end of the stack, the right hand violet into the live edge, and both fade back over a couple of seconds. In silence the ring keeps a slow breath so an unattended scene is still alive.',
-  sound: 'Makes no sound of its own — an audio-in scene, same as Cell Front V4-V13 and Penrose Bloom. Connect a source in MAP → Audio in, then SET REST with the room quiet so silence reads as silence. It wants a full spectrum with a real kick: the kick is the only unsmoothed move in the picture and it is read off the engine\'s time-domain detector, so four-on-the-floor draws one bright ring per beat marching backwards through the exposure. No MIDI out either — there are no events to mirror.',
+  tags: ['AUDIO IN', 'CC1 = EXPOSURE', 'CC2 = SENSITIVITY', 'BAND = HARMONIC ORDER', 'LOUD IS BIG', 'COLOUR IS THE HANDS'],
+  desc: 'One closed curve around one centre, stamped into the frame thirty-two times a second and left there \u2014 so the picture is the last three seconds of the music standing still. LOUDNESS IS DIAMETER: the halo is a small quiet ring in an intro and swells to fill the frame on a drop, and because what you see is ninety-six stamps at once, that swell arrives as strata laid down over three seconds rather than a jumping outline. The spectrum owns the SHAPE by harmonic order: bass swings the two and three-lobed forms that throw the whole ring off-round, mid fills the five and seven-lobed body of the band, treble writes the fine scallop on the outer edge and the hole in the middle. Where the stamps agree they pile into a dense luminous band; where one wandered it leaves a soft translucent lobe hanging off the side, which is what a loud moment looks like a second after it happens. The plate has no hue of its own \u2014 each stamp keeps the spectral balance it was born with and carries it as VALUE, cool grey where the bass was doing the work through to white where the top end was, so a section change reads as a band of light growing through the stack. The only colour that ever enters the frame is a hand\'s. The kick is the only fast thing here: it punches the newest ring outward and lights it, and then that ring simply ages backwards through the exposure. Makes no sound of its own.',
+  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY: a gain on what the mic hears \u2014 it decides how far the halo swells between a quiet passage and a drop, from a placid almost-circle to a ring that runs to the edges of the frame — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. The plate itself is white, so the hands own ALL the colour in the scene: moving one FAST paints, the left breathing orange into the old end of the stack and the right violet into the live edge, both fading back over a couple of seconds and both capped so they tint the plate rather than replace it. In silence the ring keeps a slow breath so an unattended scene is still alive.',
+  sound: 'Makes no sound of its own — an audio-in scene, same as Cell Front V4-V13 and Penrose Bloom. Connect a source in MAP → Audio in, then SET REST with the room quiet so silence reads as silence. It wants a full spectrum with a real kick, and it wants DYNAMICS above all \u2014 the diameter tracks loudness, so a track that never drops never shows the scene\'s range. The kick is the only unsmoothed move in the picture and it is read off the engine\'s time-domain detector, so four-on-the-floor draws one bright ring per beat marching backwards through the exposure. No MIDI out either — there are no events to mirror.',
 
   init(P) {
     const as = areaScale(P);
@@ -128197,7 +128214,7 @@ reg({
     P.state = {
       sl, depth, head: -1, n: 0, capT: 0, life: 0,
       pres: 0, rest: 1, expo: 0.78, sens: 1.0, velL: 0, velR: 0, pL: 0.5, pR: 0.5,
-      bass: 0, mid: 0, treble: 0, energy: 0, field: 0, tilt: 0.5,
+      level: 0, bass: 0, mid: 0, treble: 0, energy: 0, field: 0, tilt: 0.5,
       rot: 0,
       ph: [P.rand() * TAU, P.rand() * TAU, P.rand() * TAU,
            P.rand() * TAU, P.rand() * TAU, P.rand() * TAU,
@@ -128240,15 +128257,21 @@ reg({
     // engine-smoothed already; eased again at ~1.8/s so a bassline note
     // moves the ring over a bar, never over a frame. Silence still breathes.
     const idle = (0.045 + 0.030 * Math.sin(s.life * 0.21)) * (1 - 0.72 * s.pres);
+    const lT = Math.max(idle, clamp(inp.audio.level * s.sens));
     const bT = Math.max(idle, clamp(inp.audio.bass * s.sens));
     const mT = Math.max(idle * 0.7, clamp(inp.audio.mid * s.sens));
     const tT = Math.max(idle * 0.6, clamp(inp.audio.treble * s.sens));
-    s.bass += (bT - s.bass) * Math.min(1, dt * (bT > s.bass ? 1.8 : 1.1));
-    s.mid += (mT - s.mid) * Math.min(1, dt * (mT > s.mid ? 1.8 : 1.1));
-    s.treble += (tT - s.treble) * Math.min(1, dt * (tT > s.treble ? 1.8 : 1.1));
+    s.level += (lT - s.level) * Math.min(1, dt * (lT > s.level ? 2.2 : 1.4));
+    s.bass += (bT - s.bass) * Math.min(1, dt * (bT > s.bass ? 2.2 : 1.4));
+    s.mid += (mT - s.mid) * Math.min(1, dt * (mT > s.mid ? 2.2 : 1.4));
+    s.treble += (tT - s.treble) * Math.min(1, dt * (tT > s.treble ? 2.2 : 1.4));
     s.energy += (((s.bass + s.mid + s.treble) / 3) - s.energy) * Math.min(1, dt * 2);
-    const fieldT = Math.pow(clamp(0.44 * s.bass + 0.34 * s.mid + 0.26 * s.treble), 1.25);
-    s.field += (fieldT - s.field) * Math.min(1, dt * 1.3);
+    // LOUDNESS IS DIAMETER. `level` carries most of it (it is the honest
+    // broadband loudness), the bands only tilt it; the curve is near-linear
+    // rather than compressed, and the whole thing eases at 2.2/s instead of
+    // 1.3 — still smooth, because the picture is an integral of 96 stamps.
+    const fieldT = Math.pow(clamp(0.36 * s.level + 0.28 * s.bass + 0.22 * s.mid + 0.16 * s.treble), 1.05);
+    s.field += (fieldT - s.field) * Math.min(1, dt * 2.2);
     // spectral balance of THIS moment — stamped into every slice as its colour
     const tiltT = clamp((s.treble * 1.25 + s.mid * 0.45) / (s.treble * 1.25 + s.mid * 0.45 + s.bass + 0.02));
     s.tilt += (tiltT - s.tilt) * Math.min(1, dt * 1.1);
@@ -128404,6 +128427,7 @@ reg({
     g.fillText('BASS ' + Math.round(s.bass * 100) + '  MID ' + Math.round(s.mid * 100) +
       '  TREBLE ' + Math.round(s.treble * 100) + '  FIELD ' + Math.round(s.field * 100) +
       '  TILT ' + Math.round(s.tilt * 100) +
+      '  LEVEL ' + Math.round(s.level * 100) +
       '  KICK ' + Math.round(s.kEnv * 100) + ' (' + (inp.audio.kick ? '#' + inp.audio.kick.n : 'onset') +
       ' age ' + Math.round(s._kAge * 1000) + 'ms' +
       (typeof AUDIOIN !== 'undefined' && AUDIOIN.kickBpm ? ' ' + AUDIOIN.kickBpm + 'bpm' : '') + ')' +
