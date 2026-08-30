@@ -212,7 +212,11 @@ the reference implementation; read it before building a second one.
   stillness leave the scene alone — no stale ghost-drift value can lie
   about it, because a held value has zero velocity. Palette borrowed from
   a sibling scene (Ridge Loom's violet / orange / cyan) is allowed; drop
-  the accent stop when the ask says so.
+  the accent stop when the ask says so. CAP the mix at ~60% (Nima, Spectrum
+  Halo): at full strength one fast gesture repaints the entire picture and
+  erases whatever the spectrum was saying — the same mistake as a
+  full-canvas tint. Paint is an accent over the form's colour, not a
+  replacement for it.
 - No sound of its own is not a requirement — a scene can listen AND still
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
@@ -235,7 +239,10 @@ the reference implementation; read it before building a second one.
   window) and give the radius an intrinsic multi-rate breath, so a held tone
   still lays down strata. Then keep the newest state from burning white: fade
   its alpha as the stack deepens, or the accumulation you paid for is
-  invisible behind one bright leading edge. Cost is real — halve the tail
+  invisible behind one bright leading edge. And AT REST the thing stops
+  moving at all, so a trail scene needs an explicit rest term that opens the
+  shape and turns it FASTER — never bigger: rest must sit smaller than a loud
+  track, or the music shrinks the picture. Cost is real — halve the tail
   (draw every 2nd old stamp at double alpha) before shipping.
 - **Spend the dynamic range on the RIGHT axis (Nima, Penrose Bloom V2→V3).**
   V2 gave the radius almost all of it and the palette almost none: "the size
