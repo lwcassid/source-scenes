@@ -132,6 +132,21 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
    resting state stays one clean object and the treatment never muddies it.
 
+9. **Texture is LAYER ORDER, not more light (Nima, Penrose Bloom V7).**
+   To make a drawn thing look painted rather than plotted, put the paint down
+   FIRST on its own canvas and draw the line over it with `source-over`.
+   Compositing paint and line additively piles every overlap to white and the
+   colour goes with it — a scene can be entirely `lighter` and still need one
+   `source-over` seam. Three cheap moves buy most of "hand-made": a granulation
+   pattern laid over the paint layer with `source-atop` (it darkens only where
+   paint already is and can never fog the black — a `multiply` over the frame
+   would), a per-cell OFF-REGISTER nudge of a few percent so the fill misses
+   its own outline, and a stable per-cell line-weight hash. Keep procedural
+   paper FINE and low-contrast — per-pixel tooth under a gentle mottle; clumped
+   into 100px blobs it reads as camouflage. And `ctx.filter='blur()'` costs its
+   DESTINATION's pixels: blur the small offscreen, then upscale, never blur on
+   the way onto a 1920x1200 stage.
+
 ## Scrim rules (the projection surface is mosquito-net mesh)
 Black is invisible — only light exists, floating in the room. Thin lines and
 fine detail VANISH (fatten strokes 3×; band/ring width ≥ ~8px at 1080p).
@@ -218,6 +233,16 @@ the reference implementation; read it before building a second one.
   Silence still gets the same idle-breathing drift every other still scene
   gets (`Math.max(idle*(1-pres), clamp(audioBand*sens))`), never true
   stillness.
+- **A sensitivity hand is a CURVE, not a multiplier (Nima, Spectrum Halo V2).**
+  `clamp(band * gain)` is barely a control: on loud material the top of the
+  throw saturates at 1 and does nothing, and the bottom only ever scales
+  down. Use a gamma on the already-normalised band — `pow(band, 1/sens)` —
+  so the whole throw acts, the biggest change lands in the quiet-to-mid range
+  where music lives, and nothing clips early. Apply it AFTER the idle floor
+  so the hand still sizes the resting breath with nothing connected. And
+  never derive COLOUR from the shaped values: a gamma does not preserve band
+  ratios, so a spectral tilt computed downstream turns the sensitivity hand
+  into a hue control. Take colour off the raw balance.
 - **Give the beat ONE job, and make it motion (Nima, Cloud Steam V4).** A
   kick wired to brightness reads as FLASHING, not as rhythm — and a kick that
   also moves a global coverage/density term flashes the whole frame a second
@@ -254,7 +279,11 @@ the reference implementation; read it before building a second one.
   stillness leave the scene alone — no stale ghost-drift value can lie
   about it, because a held value has zero velocity. Palette borrowed from
   a sibling scene (Ridge Loom's violet / orange / cyan) is allowed; drop
-  the accent stop when the ask says so.
+  the accent stop when the ask says so. CAP the mix at ~60% (Nima, Spectrum
+  Halo): at full strength one fast gesture repaints the entire picture and
+  erases whatever the spectrum was saying — the same mistake as a
+  full-canvas tint. Paint is an accent over the form's colour, not a
+  replacement for it.
 - No sound of its own is not a requirement — a scene can listen AND still
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
@@ -266,8 +295,24 @@ the reference implementation; read it before building a second one.
   and a big rise OR fall condenses the whole thing into a heart"; Penrose
   Bloom owns "loudness is SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
   mid/treble balance re-deals which tile class takes which stop, quantised
-  and held so it steps on a chord change instead of shimmering)". Same
-  engine, same palette, two instruments — not one scene twice.
+  and held so it steps on a chord change instead of shimmering)"; Spectrum
+  Halo owns "band = HARMONIC ORDER of one closed curve, and the curve is
+  stamped into a long exposure so the last 3s of the track stands still".
+  Same engine, same palette, three instruments — not one scene three times.
+- **A trail only reads if the thing MOVES inside the trail's window (Nima,
+  Spectrum Halo).** Accumulating N past states is the cheapest way to make an
+  audio-reactive picture smooth — the frame is an integral, so no band can
+  jitter it — but a shape whose phases drift at 0.03 rad/s stamps 96
+  IDENTICAL copies and the stack collapses to one line. Size every drift rate
+  off the exposure LENGTH (each harmonic should precess ~1-2 rad across the
+  window) and give the radius an intrinsic multi-rate breath, so a held tone
+  still lays down strata. Then keep the newest state from burning white: fade
+  its alpha as the stack deepens, or the accumulation you paid for is
+  invisible behind one bright leading edge. And AT REST the thing stops
+  moving at all, so a trail scene needs an explicit rest term that opens the
+  shape and turns it FASTER — never bigger: rest must sit smaller than a loud
+  track, or the music shrinks the picture. Cost is real — halve the tail
+  (draw every 2nd old stamp at double alpha) before shipping.
 - **Spend the dynamic range on the RIGHT axis (Nima, Penrose Bloom V2→V3).**
   V2 gave the radius almost all of it and the palette almost none: "the size
   change is too sensitive and the color change is not sensitive enough."
@@ -281,7 +326,12 @@ the reference implementation; read it before building a second one.
   0.36-0.66), not from cranking the weight — at 1.25 every tile clamped to
   one end of the ramp and the mosaic went flat, which is a LOST palette, not
   a louder one. Move the ramp's CENTRE most of its length (~0.58) and leave
-  the structural terms room to spread tiles around it.
+  the structural terms room to spread tiles around it. And when a size needs
+  a CEILING, don't wrap the whole curve in a tanh (Nima, Spectrum Halo): it
+  compresses the quiet end as hard as the loud one, so the loud end never
+  arrives and you tune the wrong number chasing it. Keep the body linear and
+  bend only past a knee — `r <= K ? r : K + S*tanh((r-K)/S)` — whose gradient
+  is 1 at the knee, so nothing creases and the ceiling still holds.
 - **Colour a FIGURE, not every cell (Nima, Penrose Bloom V4).** An even tint
   across a structured field is wallpaper; the reference plates people bring
   in are always colouring a SUB-PATTERN out of a mostly bare ground. Find the

@@ -323,10 +323,10 @@ const MOut = {
     // window's own button text update is invisible — no chrome there).
     if (window.ELECTRON_ROLE === 'control') {
       if (window.electronAPI) window.electronAPI.requestMidiTest();
-      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+      if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); }
       return;
     }
-    if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); } return; }
+    if (!this.port) { if (b) { b.textContent = 'TEST: NO PORT'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); } return; }
     const t0 = performance.now();
     [0, 4, 7, 11, 14, 19, 12].forEach((s, i) => {
       const note = 60 + s, p = t0 + i * 130;
@@ -336,7 +336,7 @@ const MOut = {
         this.port.send([0x80 | (this.chFor('lead') - 1), note, 0], p + 280);
       } catch (e) {}
     });
-    if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST MIDI ♪', 1500); }
+    if (b) { b.textContent = 'SENT ♪♪♪'; setTimeout(() => b.textContent = 'TEST ABLETON ♪', 1500); }
   },
   // Show-window side of the control window's MIDI OUT picker (ticket #7).
   // MIDIAccess ids are scoped per-window/per-connection, so the control
@@ -397,7 +397,7 @@ const MOut = {
     const was = this.wants();
     this.mode = m; this.baseMode = m;
     try { localStorage.setItem('srcOutMode', m); } catch (e) {}
-    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (AE.master) AE.applyMaster();
     if (m !== 'web' && !midi.access) connectMidi();
     this._modeCrossed(was);
     this.refreshUI();
@@ -416,7 +416,7 @@ const MOut = {
     if (m === this.mode) return;
     const was = this.wants();
     this.mode = m;
-    if (AE.master) AE.set(AE.master.gain, m === 'midi' ? 0.0001 : (AE.vol !== undefined ? AE.vol : 0.85), 0.1);
+    if (AE.master) AE.applyMaster();
     if (m !== 'web' && !midi.access) connectMidi();
     this._modeCrossed(was);
     this.refreshUI();
@@ -447,7 +447,7 @@ const MOut = {
   refreshUI() {
     const b = document.getElementById('btnOut');
     if (b) {
-      b.textContent = 'OUT: ' + (this.mode === 'web' ? 'WEB AUDIO' : this.mode === 'both' ? 'WEB+MIDI' : 'MIDI ONLY');
+      b.textContent = 'SEND TO: ' + (this.mode === 'web' ? 'BROWSER' : this.mode === 'both' ? 'BOTH' : 'ABLETON');
       b.classList.toggle('off', this.mode === 'web');
     }
     const cb = document.getElementById('btnClock');
@@ -463,13 +463,47 @@ const MOut = {
       // show:control 'outPort' (the port NAME, since MIDIAccess ids are
       // per-window) and bound on the show side by selectPortByName(),
       // which also persists srcOutPort so both windows agree next launch.
-      if (window.ELECTRON_ROLE === 'control') {
+      if (window.ELECTRON_ROLE === 'control' && showLive) {
+        // console mode: the SHOW window owns the port; this is just a picker
         if (this.mode !== 'web' && midiRelay.connected) {
           sel.style.display = '';
           const outs = midiRelay.outputs;
           if (sel.options.length !== outs.length) {
             sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
           }
+        } else sel.style.display = 'none';
+      } else if (window.ELECTRON_ROLE === 'control' && !showLive) {
+        // WEB-APP MODE SENDS ITS OWN MIDI (Lance's brittle-MIDI round, caught
+        // by tools/showtest.mjs): outside a show, a tile-clicked scene runs
+        // HERE — and ADR-0003's "only the show window opens MIDI" left this
+        // mode with no port at all, so scenes were silent in Ableton while
+        // TEST (relayed to the show window) always worked. The control
+        // window follows the same philosophy as its real-but-muted
+        // AudioContext: a real, local OUTPUT port of its own, used only
+        // while no show is live — setShowLive() hands the port back to the
+        // show window the moment PLAY raises the console.
+        if (this.mode !== 'web') {
+          if (!midi.outAccess && !midi._outReq && navigator.requestMIDIAccess) {
+            midi._outReq = true;
+            navigator.requestMIDIAccess().then(a => { midi.outAccess = a; }).catch(() => {});
+          }
+          if (midi.outAccess) {
+            sel.style.display = '';
+            const outs = [...midi.outAccess.outputs.values()];
+            if (sel.options.length !== outs.length) {
+              sel.innerHTML = outs.map((o, i) => `<option value="${i}">${o.name}</option>`).join('') || '<option>no MIDI outputs</option>';
+            }
+            if (this.port && !outs.includes(this.port)) this.port = null;
+            if (!this.port && outs.length) {
+              let saved = null; try { saved = localStorage.getItem('srcOutPort'); } catch (e) {}
+              let i = saved ? outs.findIndex(o => o.name === saved) : -1;
+              if (i < 0 && typeof RIGDOC !== 'undefined' && RIGDOC.port) i = outs.findIndex(o => o.name === RIGDOC.port);
+              if (i < 0) i = outs.findIndex(o => /iac|virtual|loopmidi|bus/i.test(o.name));
+              this.port = outs[i >= 0 ? i : 0];
+              sel.value = String(i >= 0 ? i : 0);
+              this._reassert();
+            }
+          } else sel.style.display = 'none';
         } else sel.style.display = 'none';
       } else if (this.mode !== 'web' && midi.access) {
         sel.style.display = '';
@@ -484,11 +518,19 @@ const MOut = {
         // the block below already re-acquires whenever !this.port.
         if (this.port && !outs.includes(this.port)) this.port = null;
         if (!this.port && outs.length) {
-          // prefer the port the user picked last time (survives reloads/redeploys)
+          // AUTO-PICK THE RIGHT BUS (Lance: "why isn't it auto-selecting?").
+          // The old rule was "first output", which on a studio machine is a
+          // hardware controller (a Push, an MPK) — notes went to a control
+          // surface and Live heard nothing. Preference order now: the port
+          // the user picked last time > rig.json's named port > anything
+          // that looks like a virtual cable (IAC / loopMIDI / "bus") >
+          // first output as the last resort.
           let saved = null; try { saved = localStorage.getItem('srcOutPort'); } catch (e) {}
-          const i = saved ? outs.findIndex(o => o.name === saved) : -1;
+          let i = saved ? outs.findIndex(o => o.name === saved) : -1;
+          if (i < 0 && typeof RIGDOC !== 'undefined' && RIGDOC.port) i = outs.findIndex(o => o.name === RIGDOC.port);
+          if (i < 0) i = outs.findIndex(o => /iac|virtual|loopmidi|bus/i.test(o.name));
           this.port = outs[i >= 0 ? i : 0];
-          if (i >= 0) sel.value = String(i);
+          sel.value = String(i >= 0 ? i : 0);
           this._reassert();   // the port just became real: bed, CC74 park, scene holds
         }
       } else sel.style.display = 'none';

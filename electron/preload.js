@@ -161,6 +161,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onAudioInConnectRequested(callback) {
     ipcRenderer.on('audioin:connect', () => callback());
   },
+  // ask the show window to re-enumerate inputs (popover opened / device
+  // hot-plugged) — the answer comes back on the same audioin:devices push
+  requestAudioInDevices() { ipcRenderer.send('audioin:listDevices'); },
+  onAudioInDevicesRequested(callback) {
+    ipcRenderer.on('audioin:listDevices', () => callback());
+  },
   setAudioInDevice(id) { ipcRenderer.send('audioin:setDevice', id); },
   onAudioInSetDeviceRequested(callback) {
     ipcRenderer.on('audioin:setDevice', (_event, id) => callback(id));

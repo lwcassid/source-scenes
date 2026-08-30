@@ -46,6 +46,11 @@ function setShowLive(on) {
   showLive = !!on;
   if (window.ELECTRON_ROLE !== 'control') return;
   document.documentElement.classList.toggle('showlive', showLive);
+  // MIDI handoff (Lance's brittle-MIDI round): in web-app mode the control
+  // window sends MIDI through its own local port (see MOut.refreshUI); the
+  // moment the console rises the SHOW window owns the cable — close our
+  // notes and let go so the two windows never speak over each other.
+  if (showLive && typeof MOut !== 'undefined' && MOut.port) { try { MOut.allOff(); } catch (e) {} MOut.port = null; }
   // the control window's own output is muted only while the wall is live
   if (AE._mute) AE._mute.gain.value = showLive ? 0 : 1;
   if (!showLive && focus.idx >= 0 && !focus.P) {
@@ -1054,7 +1059,7 @@ function makeInstance(def, canvas, w, h) {
     w, h, state: {}, seed: (Math.random() * 1e9) | 0,
     focused: false, visible: true,
     rand: null,
-    ping(cb) { if (P.focused && AE.on && AE.ctx) { try { cb(AE); } catch (e) {} } }
+    ping(cb) { if (P.focused && engineWanted() && AE.ctx) { try { cb(AE); } catch (e) {} } }
   };
   P.reinit = (newSeed) => {
     if (newSeed !== undefined) P.seed = newSeed;
@@ -1133,6 +1138,9 @@ function setView(mode) {
   try { localStorage.setItem('srcView', mode); } catch (e) {}
   const sel = document.getElementById('viewSel');
   if (sel && sel.value !== mode) sel.value = mode;
+  // the library rail carries the same select (Lance: one column, both views)
+  const sell = document.getElementById('viewSelLib');
+  if (sell && sell.value !== mode) sell.value = mode;
   const ov = document.getElementById('overlay');
   if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
   // the scrim view is full bleed, the frame views are letterboxed — refit
@@ -1201,6 +1209,13 @@ function setProj(on) { PROJ.on = !!on; syncStage(true); }
 if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); })
   .observe(focusCanvas.parentElement);
 
+// THE ENGINE RUNS FOR EITHER LISTENER (Lance's silent-scenes round): a
+// scene's audio tick is ALSO its MIDI note scheduler, so it must run when
+// Ableton is listening even with the speakers off. The old gate (AE.on
+// alone) meant SPEAKERS OFF silently killed every scene's MIDI while
+// TEST — which bypasses the tick — kept working. Audibility is
+// AE.applyMaster()'s question; this one only decides whether to RUN.
+function engineWanted() { return AE.on || (typeof MOut !== 'undefined' && MOut.wants()); }
 function openFocus(i, fromRelay) {
   AE.ensure();
   // deep-link entry: the autoplay policy holds the context suspended until a
@@ -1294,7 +1309,7 @@ function startVoice() {
   // the wall's, and that arrives over telemetry:tick.
   if (window.ELECTRON_ROLE === 'control' && showLive) return;
   const def = PIECES[focus.idx];
-  if (AE.on && AE.ctx && def.audio && focus.P) {
+  if (engineWanted() && AE.ctx && def.audio && focus.P) {
     try { focus.voice = def.audio(AE, focus.P) || null; } catch (e) { focus.voice = null; }
   }
 }
@@ -1436,10 +1451,11 @@ window.addEventListener('keydown', e => {
 });
 document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
-  e.target.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF';
+  e.target.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
-  if (AE.on) { AE.ensure(); startVoice(); }
-  else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
+  if (AE.on) { AE.ensure(); if (!focus.voice) startVoice(); }
+  else if (!MOut.wants() && focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
+  AE.applyMaster();
   // Review pass: the control window's own AE is silent by design
   // (the muted sink in AE.ensure) — flipping AE.on here never actually mutes
   // or unmutes the wall. The show window is the only thing that can; relay
@@ -1497,7 +1513,7 @@ document.getElementById('helpModal').addEventListener('click', e => { if (e.targ
 // context could run.
 const wakeAudio = () => {
   AE.ensure();
-  if (AE.on && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
+  if (engineWanted() && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
   if (AE.ctx && AE.ctx.state === 'running') {
     const hint = document.getElementById('useHint');
     if (hint && hint.dataset.sound) { hint.classList.add('gone'); delete hint.dataset.sound; }
