@@ -186,6 +186,16 @@ the reference implementation; read it before building a second one.
   Silence still gets the same idle-breathing drift every other still scene
   gets (`Math.max(idle*(1-pres), clamp(audioBand*sens))`), never true
   stillness.
+- **A sensitivity hand is a CURVE, not a multiplier (Nima, Spectrum Halo V2).**
+  `clamp(band * gain)` is barely a control: on loud material the top of the
+  throw saturates at 1 and does nothing, and the bottom only ever scales
+  down. Use a gamma on the already-normalised band — `pow(band, 1/sens)` —
+  so the whole throw acts, the biggest change lands in the quiet-to-mid range
+  where music lives, and nothing clips early. Apply it AFTER the idle floor
+  so the hand still sizes the resting breath with nothing connected. And
+  never derive COLOUR from the shaped values: a gamma does not preserve band
+  ratios, so a spectral tilt computed downstream turns the sensitivity hand
+  into a hue control. Take colour off the raw balance.
 - **Two clocks: the kick swells, the bands size the field (Nima, Cell
   Front V9).** On techno/house every band is busy at once, so a shape whose
   size chases its own band (attack ≥ ~8/s) twitches on every note — that
