@@ -576,6 +576,9 @@ app.whenReady().then(() => {
   ipcMain.on('audioin:connect', () => {
     sendTo(showWindow, 'audioin:connect');
   });
+  ipcMain.on('audioin:listDevices', () => {
+    sendTo(showWindow, 'audioin:listDevices');
+  });
   ipcMain.on('audioin:setDevice', (_event, id) => {
     sendTo(showWindow, 'audioin:setDevice', id);
   });
