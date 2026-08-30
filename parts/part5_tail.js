@@ -2617,6 +2617,19 @@ function frame(ts) {
     }
     try {
       {
+        // PERFORMANCE MODE HIDES THE HUD (Lance): every scene draws a debug
+        // status line into its own canvas, which rides onto the projection.
+        // Rather than touch 45 scenes, no-op the ctx text calls exactly when
+        // the picture is the show — fullscreen with panels off (.fs + .perf,
+        // which the show window forces) — so H/PANELS brings the HUD back
+        // with the rest of the debug chrome. Scenes whose text IS the
+        // picture (SRC-44 Alignment Field) opt out via reg textIsContent.
+        const hudOff = overlay.classList.contains('fs') && overlay.classList.contains('perf') && !P.def.textIsContent;
+        if (hudOff !== !!P.g._hudOff) {
+          P.g._hudOff = hudOff;
+          if (hudOff) { P.g.fillText = () => {}; P.g.strokeText = () => {}; }
+          else { delete P.g.fillText; delete P.g.strokeText; }
+        }
         P.def.step(P, dt, t, inp);
         P.def.draw(P, P.g, P.w, P.h, t, inp);
         // Nima, review fix: this composite block (drawImage/ghost-pass/

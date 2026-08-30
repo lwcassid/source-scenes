@@ -277,8 +277,12 @@ function updateChannels(t, dt) {
       if (c.absentSince) {
         // a rest-calibrated sensor can tell "held still" from "nobody there",
         // so it lets go in about a second and settles the instrument to rest
-        // instead of freezing on whatever an empty sensor happens to read
-        if (t - c.absentSince > CAL.ABSENT_HOLD) { c.mode = 'drift'; if (!ambient) c.target = 0; }
+        // instead of freezing on whatever an empty sensor happens to read.
+        // REST IS HAND-SPACE 1 (arm's reach): since the NEAR=MORE flip, 0
+        // means AT THE SOURCE — settling there read as both hands slamming
+        // to full intensity on every exit (Chladni answered with its lock
+        // chord). An empty sensor is a far reading; settle it far.
+        if (t - c.absentSince > CAL.ABSENT_HOLD) { c.mode = 'drift'; if (!ambient) c.target = 1; }
       } else if (t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
     }
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);

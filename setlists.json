@@ -30,8 +30,46 @@
   ],
   "sets": [
     {
-      "name": "THE MAGNIFICENT NINE",
+      "name": "RUN OF SHOW",
       "default": true,
+      "note": "Lance, Aug 2026 — the Nine minus Weather Station (SRC-10): eight scenes, same arc. Chladni's sand finds the silent lines, Lumen Film opens the aperture, Ferro Bloom puts the colour on, Ridge Loom takes the room wide, then it narrows — Attractor Vespers to smoke, White Study to black and white, Rain Atrium to a dark pool, and Cable Strum leaves one string in the air. OUT casting carried over from the Nine unchanged.",
+      "scenes": [
+        {
+          "id": "SRC-28",
+          "out": "both"
+        },
+        {
+          "id": "SRC-38",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-15",
+          "out": "both"
+        },
+        {
+          "id": "SRC-42",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-09",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-34",
+          "out": "both"
+        },
+        {
+          "id": "SRC-16",
+          "out": "midi"
+        },
+        {
+          "id": "SRC-13",
+          "out": "both"
+        }
+      ]
+    },
+    {
+      "name": "THE MAGNIFICENT NINE",
       "note": "Lance, Aug 2026 — the favourite set so far. Nine scenes that hold up on the wall, in this order: Chladni's sand finds the silent lines, Lumen Film opens the aperture, Ferro Bloom puts the colour on, Ridge Loom and Weather Station take the room wide, then it narrows — Attractor Vespers to smoke, White Study to black and white, Rain Atrium to a dark pool, and Cable Strum leaves one string in the air. OUT casting baked from docs/ABLETON-RIG.md (Rain: midi per the V20 loop-is-the-kit round; Chladni: both carries the browser bells; Weather/others per the table).",
       "scenes": [
         {

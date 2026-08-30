@@ -252,6 +252,9 @@ the reference implementation; read it before building a second one.
    gives every focused scene its TILE budget. Size off `areaScale(P)` instead.
 4. Interaction: map hands per the laws above. HUD line in draw() showing the
    scene's state (count/spread/etc.) — it's the debug strip's best friend.
+   Never gate the HUD yourself: performance mode strips ctx text globally
+   (Lance — no debug text on the projection; .fs+.perf no-ops fillText, H
+   brings it back). A scene whose text IS the picture sets `textIsContent`.
 5. Sound: voices follow the visual state 1:1 (a bloom = a voice; its side =
    its pan). If a thing lights up, it should sound; if it sounds, light it up.
 6. `bash tools/verify.sh --scene SRC-XX.N` — one command: build, preview,
