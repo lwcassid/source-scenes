@@ -88,7 +88,20 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    Two more that decide whether a soft mass reads: taper the erosion with
    DEPTH so a loud moment carves the boundary instead of punching holes
    through the core, and put the shadow stop near BLACK — a dim tinted
-   fringe on black is mud, and on scrim it is mud nobody can see.
+   fringe on black is mud, and on scrim it is mud nobody can see. Watch the
+   billow's MEAN: folding a smoothed noise puts it near 0.73, not 0.5, so a
+   threshold written against 0.5 covers the whole frame. Rescale linearly
+   around the real mean — a smoothstep remap crushes a narrow field into
+   camouflage.
+   Flying THROUGH the stuff (Nima, Cloud Steam V2) is a different build:
+   DISCRETE masses with positions and depths, sorted near-first and
+   composited front-to-back — the occlusion is what makes it flight instead
+   of a zoom. A stack of full-screen noise sheets at stepped scales cannot
+   do it at any density: sparse enough to leave sky, they tile into lace;
+   dense enough to read as cloud, they composite into a whiteout. Erode each
+   mass in its OWN normalised space so a near one shows the same detail as a
+   far one, only bigger, and weight its fine octaves by SCREEN size or the
+   distant ones alias into gravel.
 
 9. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
    off a shape = a single continuous gradient fill anchored to the shape's
