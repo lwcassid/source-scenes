@@ -85,6 +85,21 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
    resting state stays one clean object and the treatment never muddies it.
 
+9. **Texture is LAYER ORDER, not more light (Nima, Penrose Bloom V7).**
+   To make a drawn thing look painted rather than plotted, put the paint down
+   FIRST on its own canvas and draw the line over it with `source-over`.
+   Compositing paint and line additively piles every overlap to white and the
+   colour goes with it — a scene can be entirely `lighter` and still need one
+   `source-over` seam. Three cheap moves buy most of "hand-made": a granulation
+   pattern laid over the paint layer with `source-atop` (it darkens only where
+   paint already is and can never fog the black — a `multiply` over the frame
+   would), a per-cell OFF-REGISTER nudge of a few percent so the fill misses
+   its own outline, and a stable per-cell line-weight hash. Keep procedural
+   paper FINE and low-contrast — per-pixel tooth under a gentle mottle; clumped
+   into 100px blobs it reads as camouflage. And `ctx.filter='blur()'` costs its
+   DESTINATION's pixels: blur the small offscreen, then upscale, never blur on
+   the way onto a 1920x1200 stage.
+
 ## Scrim rules (the projection surface is mosquito-net mesh)
 Black is invisible — only light exists, floating in the room. Thin lines and
 fine detail VANISH (fatten strokes 3×; band/ring width ≥ ~8px at 1080p).
