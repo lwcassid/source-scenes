@@ -207,8 +207,15 @@ the reference implementation; read it before building a second one.
   one per band, hands paint the palette"; Penrose Bloom owns "loudness is
   SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
   mid/treble balance re-deals which tile class takes which stop, quantised
-  and held so it steps on a chord change instead of shimmering)". Same
-  engine, same palette, two instruments — not one scene twice.
+  and held so it steps on a chord change instead of shimmering)"; Gravity
+  Squares owns "the audio is the LAYOUT — each band owns an area and a
+  territory, and a packed sheet of squares physically re-sorts". Same
+  engine, same palette, three instruments — not one scene three times.
+  When a scene's answer IS an arrangement, size the territories by the
+  AREA each band actually owns (partition the frame by the three shares)
+  and slide them back together when the music is quiet: fixed territories
+  starve one side of the frame, and a sort that never relaxes has no rest
+  state to return to (Nima, Gravity Squares V1).
 - **Spend the dynamic range on the RIGHT axis (Nima, Penrose Bloom V2→V3).**
   V2 gave the radius almost all of it and the palette almost none: "the size
   change is too sensitive and the color change is not sensitive enough."
