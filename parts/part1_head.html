@@ -394,8 +394,20 @@
   #audioLanes{flex:1;min-width:0;align-self:flex-start;border-left:1px solid var(--line)}
   .arkrow{display:flex;align-items:center;gap:6px;padding:2px 6px;height:22px;font-size:9px;color:var(--txt-faint);line-height:1.5}
   .arkrow b{width:46px;flex:none;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
-  .arkbar{flex:1;height:6px;background:#1c1c20;border-radius:3px;overflow:hidden;position:relative}
+  .arkbar{flex:1;min-width:0;height:6px;background:#1c1c20;border-radius:3px;overflow:hidden;position:relative}
   .arkbar u{display:block;position:absolute;top:0;bottom:0;width:0;background:var(--acc);opacity:.8}
+  /* RAW dBFS beside each bar. flex:none with a fixed width so it never
+     competes with the bar's flex:1 — the rack is a hard 230px (above), and
+     the number must not shrink the meter or wrap. Right-aligned + mono +
+     tabular figures so the column reads as a column and doesn't jitter
+     horizontally as digits change. */
+  .arkrow .arkdb{flex:none;width:44px;text-align:right;font:9px/1 var(--mono);font-style:normal;
+    font-variant-numeric:tabular-nums;color:var(--txt-dim);letter-spacing:.02em}
+  /* the column header naming the two units — shorter than a data row, and
+     never lights up */
+  .arkrow.arkhead{height:14px;color:var(--txt-faint)}
+  .arkrow.arkhead .arkcap{flex:1;min-width:0;font-size:8px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+  .arkrow.arkhead .arkdb{font-size:8px;letter-spacing:.09em;color:var(--txt-faint)}
   .arkrow .arkdot{width:7px;height:7px;flex:none;border-radius:50%;background:var(--acc);opacity:.25;transition:opacity .08s,box-shadow .08s}
   .arkrow .arkdot.hit{opacity:1;box-shadow:0 0 8px 2px var(--acc)}
   #audioStat{font-size:9.5px;color:var(--txt-dim);padding:6px 6px 8px;line-height:1.6}
@@ -729,7 +741,8 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
   </div>
   <div id="audioBox">
     <h4>Audio in</h4>
-    <p>Some scenes react to a live audio signal instead of (or alongside) the hands. Pick a mic/line-in device and connect, OR capture a running app's own sound directly — Spotify, a browser tab, any app making noise on this machine — no mic needed. Either way, press SET REST with the room quiet so the scene can tell silence from music.</p>
+    <p>Some scenes react to a live audio signal instead of (or alongside) the hands. Pick a mic/line-in device and connect, OR capture a running app's own sound directly — Spotify, a browser tab, any app making noise on this machine — no mic needed. Either way, press SET REST with the room QUIET — it teaches the engine where silence is, and a sample taken while anything is playing is refused (the button says TOO LOUD), because a rest measured over music can only ever make the wall deafer.</p>
+    <p>The bands AUTO-RANGE to whatever is playing, so the picture reads the same at any input level. RESET AUTO-RANGE makes them forget what they've learned (and the saved calibration) and relearn from the current material — press it after changing source or moving the mic, or if the wall stops responding to the music. Watch the dBFS numbers in the Audio in panel under the stage to check the gain itself.</p>
     <div class="row">
       <select id="audioInSel" title="Which device to listen to"><option value="">DEVICE: DEFAULT</option></select>
       <button id="btnAudioConnect" class="off">AUDIO: CONNECT</button>
@@ -738,7 +751,8 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <button id="btnAudioAppCapture" title="Pick a running app or window and capture its own audio — the OS will ask you to allow sharing, and to switch Share Audio on">CAPTURE APP AUDIO</button>
     </div>
     <div class="row">
-      <button id="btnAudioRest" title="Stand clear, keep it quiet, then press — whatever the source reads with nothing playing becomes the floor">SET REST</button>
+      <button id="btnAudioRest" title="Stand clear, silence the room and the PA, then press — whatever the source reads with nothing playing becomes the floor. A sample taken over a live source is refused.">SET REST</button>
+      <button id="btnAudioResetRange" title="Forget the learned per-band range and the saved calibration, and relearn from what is playing right now. Press after changing source or level, or if the wall has stopped answering the music.">RESET AUTO-RANGE</button>
       <span id="audioLevel" class="navrange"></span>
     </div>
   </div>
