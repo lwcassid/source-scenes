@@ -1099,6 +1099,30 @@ const AUDIOIN = {
     this._resetFlashT = setTimeout(() => { this._resetFlash = false; if (typeof this.ui === 'function') this.ui(); }, 1400);
   },
 
+  // Re-read the input list without touching the stream. Labels need a grant
+  // ONCE per origin, not once per session, so a machine that has connected
+  // before shows every real device the moment the popover opens — the picker
+  // used to stay stuck on DEFAULT until a connect happened. Keeps whatever
+  // list a live app-audio capture set (that source is not enumerable).
+  refreshDevices() {
+    if (window.ELECTRON_ROLE === 'control') {
+      if (window.electronAPI?.requestAudioInDevices) window.electronAPI.requestAudioInDevices();
+      return;
+    }
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    if (this.connected && this.device?.id === 'app-audio') return;
+    navigator.mediaDevices.enumerateDevices().then(list => {
+      const devs = list.filter(d => d.kind === 'audioinput')
+        .map(d => ({ id: d.deviceId, label: d.label || 'input' }));
+      const sig = devs.map(d => d.id + d.label).join('|');
+      if (sig === this._devSig) return;
+      this._devSig = sig;
+      this.devices = devs;
+      this.relayIfElectron();
+      if (typeof this.ui === 'function') this.ui();
+    }).catch(() => {});
+  },
+
   // Show window only: mirror device list + connection + a light status
   // picture to the control window, same combined shape as midi:devices.
   relayIfElectron() {
@@ -1118,6 +1142,10 @@ const AUDIOIN = {
   },
 };
 AUDIOIN.load();
+// hot-plugging an interface mid-show must not mean re-opening the app
+if (navigator.mediaDevices?.addEventListener) {
+  navigator.mediaDevices.addEventListener('devicechange', () => AUDIOIN.refreshDevices());
+}
 window.AUDIOIN = AUDIOIN;
 
 // Control window: relayed picture of the show window's real state — never
@@ -1137,6 +1165,9 @@ if (window.ELECTRON_ROLE === 'control' && window.electronAPI?.onAudioInDevices) 
 // Show window: run the real connect/device-pick when the console asks.
 if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onAudioInConnectRequested) {
   window.electronAPI.onAudioInConnectRequested(() => AUDIOIN.connect());
+}
+if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onAudioInDevicesRequested) {
+  window.electronAPI.onAudioInDevicesRequested(() => AUDIOIN.refreshDevices());
 }
 if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onAudioInSetDeviceRequested) {
   window.electronAPI.onAudioInSetDeviceRequested(id => AUDIOIN.setDevice(id));

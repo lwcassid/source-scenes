@@ -954,13 +954,15 @@ const PRE = {
   open() {
     document.getElementById('preModal').classList.add('open');
     SCREENS.probe().then(() => this.render());
+    AUDIOIN.refreshDevices();   // same reason as SCREENS.probe(): the Audio in row is a picker now
     this.render();
     clearInterval(this.timer);
     // render() rebuilds the whole modal via innerHTML, including the display
     // <select> — don't do that while it has focus, or a picker click gets
     // torn down and reset mid-selection before it can ever register.
     this.timer = setInterval(() => {
-      if (document.activeElement?.id === 'preScreenSel') return;
+      const a = document.activeElement?.id;
+      if (a === 'preScreenSel' || a === 'preAudioSel') return;
       this.render();
     }, 600);
   },
@@ -1137,22 +1139,30 @@ const PRE = {
       // pre-flight row should say WHETHER it's working, not jitter with a
       // live reading; the actual VU meter lives in the Audio in panel under
       // the stage now.
-      r.push({ k: 'audioin', sec: 'rig', label: 'Audio in',
+      // Nima: SET REST is not a pre-flight chore — this row is here to say
+      // WHICH SOURCE the show is listening to, and to let you change it on
+      // the spot. So it carries a device dropdown, exactly like Display
+      // above: the pick IS the fix. Calibration still lives in the AUDIO IN
+      // popover, where you can do it deliberately with the room quiet.
+      // But the row still reports on the SIGNAL, not on the settings: `live`
+      // is the engine's own gate+confidence judgement, so a shut gate or a
+      // dead input can never read green just because a device is selected.
+      r.push({ k: 'audioin', sec: 'rig', label: 'Audio in', audioPicker: true,
         lvl: (!aConnected || !aLive) ? 'warn' : 'ok',
         txt: !aConnected
           ? (aDenied ? 'no audio input — permission was denied, or nothing is plugged in. Scenes that listen still play from hands.'
             : 'not connected — only scenes that listen (Cell Front V4) need this. Scenes that listen still play from hands.')
-          : !aLive ? 'connected to ' + (aDeviceLabel || 'the default device') + ' at ' + aDb
+          : !aLive ? 'listening to ' + (aDeviceLabel || 'the default device') + ' at ' + aDb
               + ' — nothing musical on the input. Turn the source up, or open the Audio in panel under the stage.'
-          : 'connected to ' + (aDeviceLabel || 'the default device') + ' at ' + aDb
+          : 'listening to ' + (aDeviceLabel || 'the default device') + ' at ' + aDb
               + (aQuiet ? ' — live, but very quiet; check the input gain' : ' — signal live')
-              + ' (see the Audio in panel under the stage)',
-        // SET REST is NOT offered here any more. It is only ever valid with
-        // the room silent, and a pre-flight modal is exactly where someone
-        // clears warns with the PA already up; the engine refuses such a
-        // sample now, but the button should not have invited it either.
-        fix: !aConnected ? ['CONNECT', () => AUDIOIN.connect()]
-          : ['AUDIO IN', () => { this.close(); document.getElementById('mapPop').classList.add('open'); }] });
+              + (aRestSet ? ' (see the Audio in panel under the stage)' : ' · REST not set'),
+        // connected = the picker IS the whole row, exactly like Display.
+        // CONNECT survives only for the case the dropdown cannot serve: no
+        // grant yet, so there are no devices to choose between. SET REST and
+        // CAPTURE APP AUDIO keep their one home in the AUDIO IN popover —
+        // a control that exists twice is a bug.
+        fix: aConnected ? null : ['CONNECT', () => AUDIOIN.connect()] });
     }
 
     const out = outMode !== 'web';
@@ -1190,6 +1200,7 @@ const PRE = {
       <span class="dot"></span><span class="plabel">${row.label}</span>
       <span class="pstat">${row.txt}</span>
       ${row.screenPicker ? '<select id="preScreenSel"></select>' : ''}
+      ${row.audioPicker ? '<select id="preAudioSel" title="Which input the show listens to"></select>' : ''}
       ${row.fix ? `<button data-fix="${row.k}">${row.fix[0]}</button>` : ''}
     </div>`;
     box.innerHTML =
@@ -1210,6 +1221,19 @@ const PRE = {
         return `<option value="${l}"${l === SCREENS.chosen ? ' selected' : ''}>${l}</option>`;
       }).join('');
       sel.addEventListener('change', e => { SCREENS.pick(e.target.value); this.render(); });
+    }
+    // the same list the AUDIO IN popover shows, in the row that reports on it
+    const asel = document.getElementById('preAudioSel');
+    if (asel) {
+      const inControl = window.ELECTRON_ROLE === 'control';
+      const devices = inControl ? audioInRelay.devices : AUDIOIN.devices;
+      const cur = (inControl ? audioInRelay.device : AUDIOIN.device)?.id || '';
+      // nothing to choose between until a grant reveals the real inputs —
+      // CONNECT is the fix that gets you there, so don't show a dead picker
+      asel.style.display = devices.length ? '' : 'none';
+      asel.innerHTML = '<option value=""' + (cur === '' ? ' selected' : '') + '>DEVICE: DEFAULT</option>' +
+        devices.map(d => `<option value="${d.id}"${d.id === cur ? ' selected' : ''}>${esc(d.label)}</option>`).join('');
+      asel.addEventListener('change', e => { AUDIOIN.setDevice(e.target.value || null); this.render(); });
     }
     const note = document.getElementById('preScreenNote');
     if (note) {
@@ -1405,6 +1429,33 @@ document.getElementById('btnOut').addEventListener('click', () => {
   AE.ensure();
   MOut.setMode(next);
 });
+// TWO CHECKBOXES, NO MODES (Lance: "just check boxes, stupid easy"):
+// SPEAKERS = hear it on this machine, ABLETON = send the MIDI. Every
+// combination is legal and neither can strand the other — the old
+// SOUND/OUT pair let speakers-off silently kill Ableton's notes. The
+// hidden legacy buttons stay as the state carriers everything already
+// writes; the boxes are their honest face.
+(() => {
+  const els = k => [document.getElementById(k === 'b' ? 'ckBrowser' : 'ckAbleton'),
+                    document.getElementById(k === 'b' ? 'fCkBrowser' : 'fCkAbleton')].filter(Boolean);
+  if (!els('b').length) return;
+  const abMode = () => (window.ELECTRON_ROLE === 'control' && typeof rigRelay !== 'undefined' && rigRelay.mode) ? rigRelay.mode : MOut.mode;
+  const paint = () => {
+    for (const el of els('b')) el.checked = AE.on;
+    const ab = abMode() !== 'web';
+    for (const el of els('a')) el.checked = ab;
+  };
+  const apply = (spk, abl) => {
+    if (AE.on !== spk) document.getElementById('btnSound').click(); // full legacy path: ensure/voice/relay/master
+    const want = abl ? (spk ? 'both' : 'midi') : 'web';
+    if (MOut.mode !== want) { AE.ensure(); MOut.setMode(want); }
+    paint();
+  };
+  for (const el of els('b')) el.addEventListener('change', e => apply(e.target.checked, els('a')[0].checked));
+  for (const el of els('a')) el.addEventListener('change', e => apply(els('b')[0].checked, e.target.checked));
+  setInterval(paint, 1000); // relays, per-scene OUT overrides, SHOW CHECK fixes
+  paint();
+})();
 document.getElementById('midiOutSel').addEventListener('change', e => {
   // control window (ticket #36): no local midi.access to pick a real port
   // from. Writing srcOutPort to localStorage (the old fix) never actually
@@ -1459,7 +1510,7 @@ document.getElementById('btnTest').addEventListener('click', () => { AE.ensure()
 document.getElementById('volSlider').addEventListener('input', e => {
   AE.vol = (+e.target.value / 100) * 0.85;
   document.getElementById('volLabel').textContent = e.target.value + '%';
-  if (AE.master && MOut.mode !== 'midi') AE.set(AE.master.gain, AE.vol, 0.05);
+  AE.applyMaster();
   // control window: its AE.master is real but feeds a muted sink, so moving
   // it changes nothing anyone hears — relay the raw value to the show window,
   // which owns the audible one.
@@ -1488,9 +1539,9 @@ document.getElementById('volSlider').addEventListener('input', e => {
     const stPort = inControl ? rigRelay.portName : (MOut.port ? MOut.port.name : null);
     if (st) st.textContent = (stMode !== 'web' && stPort) ? '→ ' + (stPort || 'MIDI OUT') : '';
   };
-  document.getElementById('fSound').addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); });
-  document.getElementById('fOut').addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); });
-  document.getElementById('fClock').addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); });
+  { const fb = document.getElementById('fSound'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnSound').click(); syncFocus(); }); }
+  { const fb = document.getElementById('fOut'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnOut').click(); syncFocus(); }); }
+  { const fb = document.getElementById('fClock'); if (fb) fb.addEventListener('click', () => { document.getElementById('btnClock').click(); syncFocus(); }); }
   // Nima: this WAS "not relayed" on the theory that the wall's ambient
   // drift is local to whichever window you're staring at and the show
   // window never renders it — wrong, because hand:mirror (below) pushes
@@ -1624,8 +1675,9 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   }, 800);
   NAV.ui();
 })();
-// AUDIO IN bindings — device picker, CONNECT and SET REST, inside the MAP
-// popover (same home as the hands' and SHOW CONTROL's own device pickers).
+// AUDIO IN bindings — device picker, CONNECT and SET REST. Lance's
+// decluttering round moved these out of MAP into their own #audioPop; the
+// refresh loop below must watch THAT popover, or the picker never fills.
 (() => {
   AUDIOIN.ui = function () {
     const inControl = window.ELECTRON_ROLE === 'control';
@@ -1684,7 +1736,7 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   const sel = document.getElementById('audioInSel');
   if (sel) sel.addEventListener('change', e => AUDIOIN.setDevice(e.target.value || null));
   setInterval(() => {
-    if (!sel || !document.getElementById('mapPop').classList.contains('open')) return;
+    if (!sel || !document.getElementById('audioPop').classList.contains('open')) return;
     const inControl = window.ELECTRON_ROLE === 'control';
     const devices = inControl ? audioInRelay.devices : AUDIOIN.devices;
     const cur = (inControl ? audioInRelay.device : AUDIOIN.device)?.id || '';
@@ -1697,16 +1749,65 @@ document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () 
   }, 800);
   AUDIOIN.ui();
 })();
-// MAP popover — the source's hardware bindings live here (library AND scene view)
+// MAP + AUDIO IN popovers — controllers in one, listening in the other
+// (Lance's decluttering round; opening either closes the other so the rail
+// never stacks two popups)
 (() => {
-  const pop = document.getElementById('mapPop');
-  for (const id of ['btnMap', 'fMap']) {
-    const b = document.getElementById(id);
-    if (b) b.addEventListener('click', e => { e.stopPropagation(); pop.classList.toggle('open'); });
+  const pops = [
+    { pop: document.getElementById('mapPop'), btns: ['btnMap', 'fMap'] },
+    { pop: document.getElementById('audioPop'), btns: ['btnAudio', 'fAudio'] },
+  ];
+  for (const { pop, btns } of pops) {
+    for (const id of btns) {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener('click', e => {
+        e.stopPropagation();
+        for (const o of pops) if (o.pop !== pop) o.pop.classList.remove('open');
+        pop.classList.toggle('open');
+        // fill the input list the moment it's on screen, not 800ms later
+        if (pop.id === 'audioPop' && pop.classList.contains('open')) AUDIOIN.refreshDevices();
+      });
+    }
   }
+  const allBtns = pops.flatMap(o => o.btns);
   document.addEventListener('pointerdown', e => {
-    if (pop.classList.contains('open') && !pop.contains(e.target) && e.target.id !== 'btnMap' && e.target.id !== 'fMap') pop.classList.remove('open');
+    for (const { pop } of pops) {
+      if (pop.classList.contains('open') && !pop.contains(e.target) && !allBtns.includes(e.target.id)) pop.classList.remove('open');
+    }
   });
+})();
+// ▸ advanced folds inside the popovers (Lance: only the necessary stuff up
+// front — device pickers are for the day two controllers share the room)
+document.querySelectorAll('.advtog').forEach(tog => {
+  tog.addEventListener('click', () => {
+    const box = document.getElementById(tog.dataset.adv);
+    if (!box) return;
+    const open = box.style.display !== 'none';
+    box.style.display = open ? 'none' : '';
+    tog.textContent = (open ? '▸' : '▾') + tog.textContent.slice(1);
+  });
+});
+// THE DISPLAY ROW, both views (Lance: set expectations BEFORE pressing PLAY).
+// Reads the same SCREENS module SHOW CHECK uses; clicking opens SHOW CHECK,
+// whose Display row is the picker. Amber = aimed at the laptop's own screen.
+(() => {
+  const rows = ['dispRowLib', 'dispRowF'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!rows.length) return;
+  for (const b of rows) b.addEventListener('click', () => PRE.open());
+  const paint = () => {
+    const t = SCREENS.target(), n = SCREENS.list().length;
+    let txt, warn = false;
+    if (t) { txt = 'DISPLAY: ' + ((t.label || '').trim() || (t.isInternal ? 'THIS LAPTOP' : 'EXTERNAL')); warn = SCREENS.aimedInternal(); }
+    else if (SCREENS.denied) { txt = 'DISPLAY: CLICK TO PICK'; }
+    else if (n) { txt = 'DISPLAY: CLICK TO PICK'; warn = true; }
+    else { txt = 'DISPLAY: THIS SCREEN'; }
+    for (const b of rows) { b.textContent = txt; b.classList.toggle('warn', warn); b.classList.toggle('off', !warn); }
+  };
+  // Electron can enumerate displays permission-free; the plain browser needs
+  // a user gesture, so there SHOW CHECK stays the prober and we just repaint.
+  if (SCREENS.inElectron()) SCREENS.probe().then(paint).catch(() => {});
+  setInterval(paint, 2000);
+  paint();
 })();
 // ESC closes the scene (when not exiting fullscreen)
 window.addEventListener('keydown', e => {
@@ -2621,6 +2722,9 @@ QUEUE.boot();
   setView(VIEW.mode); // through setView, not a raw assignment — it also sets the
                       // scrimmode class that reveals the vantage chips
   vs.addEventListener('change', () => { setView(vs.value); vs.blur(); });
+  // the library rail's twin select — same state, either one drives it
+  const vsl = document.getElementById('viewSelLib');
+  if (vsl) { vsl.value = VIEW.mode; vsl.addEventListener('change', () => { setView(vsl.value); vsl.blur(); }); }
 })();
 // PERFORMANCE MODE — fullscreen shows the picture ONLY by default; the
 // PANELS pill (next to DBG) or H brings the MIDI/hands/console panels in
@@ -2687,6 +2791,7 @@ function frame(ts) {
   const t = ts / 1000;
   const dt = Math.min(0.05, last ? t - last : 0.016);
   last = t;
+  window.__lastFrameMs = performance.now(); // the MIDI watchdog's liveness stamp
   // PAUSE EVERYTHING (Lance): the whole performance freezes — no input, no
   // stepping, no audio ticks — while the console's PLAY brings it all back.
   if (window.SHOWPAUSE) { requestAnimationFrame(frame); return; }
@@ -2733,6 +2838,19 @@ function frame(ts) {
     }
     try {
       {
+        // PERFORMANCE MODE HIDES THE HUD (Lance): every scene draws a debug
+        // status line into its own canvas, which rides onto the projection.
+        // Rather than touch 45 scenes, no-op the ctx text calls exactly when
+        // the picture is the show — fullscreen with panels off (.fs + .perf,
+        // which the show window forces) — so H/PANELS brings the HUD back
+        // with the rest of the debug chrome. Scenes whose text IS the
+        // picture (SRC-44 Alignment Field) opt out via reg textIsContent.
+        const hudOff = overlay.classList.contains('fs') && overlay.classList.contains('perf') && !P.def.textIsContent;
+        if (hudOff !== !!P.g._hudOff) {
+          P.g._hudOff = hudOff;
+          if (hudOff) { P.g.fillText = () => {}; P.g.strokeText = () => {}; }
+          else { delete P.g.fillText; delete P.g.strokeText; }
+        }
         P.def.step(P, dt, t, inp);
         P.def.draw(P, P.g, P.w, P.h, t, inp);
         // Nima, review fix: this composite block (drawImage/ghost-pass/
@@ -2769,7 +2887,7 @@ function frame(ts) {
         }
       }
     } catch (e) { console.error(P.def.id, e); }
-    if (focus.voice && AE.on) { try { focus.voice.tick(inp, dt); } catch (e) {} }
+    if (focus.voice && engineWanted()) { try { focus.voice.tick(inp, dt); } catch (e) {} }
   } else if (focus.idx < 0) {
     // Only the LIBRARY WALL renders here. Before ADR-0007, "no focus.P" and
     // "no scene open" were the same condition; in the control window they no
@@ -2842,9 +2960,10 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
     if (kind === 'sound') {
       AE.on = !!value;
       const b = document.getElementById('btnSound');
-      if (b) { b.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF'; b.classList.toggle('off', !AE.on); }
-      if (AE.on) { AE.ensure(); startVoice(); }
-      else if (focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
+      if (b) { b.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF'; b.classList.toggle('off', !AE.on); }
+      if (AE.on) { AE.ensure(); if (!focus.voice) startVoice(); }
+      else if (!MOut.wants() && focus.voice) { try { focus.voice.stop(); } catch (e) {} focus.voice = null; }
+      AE.applyMaster();
     } else if (kind === 'outMode') MOut.setMode(value);
     else if (kind === 'clock') MOut.clockSet(!!value);
     else if (kind === 'outPort') MOut.selectPortByName(value);
@@ -2875,3 +2994,31 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.onShowControl) {
   });
 }
 requestAnimationFrame(frame);
+// THE SHOW MUST NOT STOP WHEN NOBODY IS LOOKING AT IT (Lance's brittle-MIDI
+// round): requestAnimationFrame PAUSES for a hidden or occluded window, and
+// the frame loop is what ticks the scene voice — which is the MIDI note
+// scheduler. On a one-display rehearsal the show window sits behind the
+// console; macOS marks it occluded and every scene goes MIDI-silent while
+// TEST (raw port sends, no tick) keeps working — exactly the brittleness
+// reported. This watchdog keeps the MUSIC alive when rendering stalls:
+// same input construction, same voice tick, no drawing. Timer stays
+// full-rate in Electron because main.js sets backgroundThrottling:false.
+setInterval(() => {
+  if (window.SHOWPAUSE) return;
+  if (performance.now() - (window.__lastFrameMs || 0) < 350) return; // rendering is alive
+  const t = performance.now() / 1000;
+  const dt = 0.1;
+  updateChannels(t, dt);
+  if (typeof AUDIOIN !== 'undefined') AUDIOIN.tick(dt);
+  const inp = {
+    L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge,
+    audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
+             kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
+  };
+  if (focus.P) {
+    if (typeof H !== 'undefined' && T.running) H.update();
+    try { focus.P.def.step(focus.P, dt, t, inp); } catch (e) {}
+    if (typeof MOut !== 'undefined') MOut.tickCC(inp);
+  }
+  if (focus.voice && engineWanted()) { try { focus.voice.tick(inp, dt); } catch (e) {} }
+}, 100);

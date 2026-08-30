@@ -267,6 +267,13 @@ takes 30 seconds:
   has never run this build actually opens on. A typo in `setlists.json`
   fails here instead of on playa.
 - then READ the png. Run `SCENE=QA node tools/playtest.js` after core changes.
+- `node tools/showtest.mjs` is the ELECTRON end-to-end MIDI harness: it
+  launches the real show-runner (SHOWTEST=1 skips the single-instance lock,
+  scratch profile, stubbed ports) and verifies scene MIDI streams in BOTH
+  modes — web-app (tile click, control window's own port) and show mode
+  (relay → show window, including buried/occluded). Run it after touching
+  MIDI, the window relay, or electron/. It exists because browser harnesses
+  can't see this path, and it broke silently for weeks.
 
 For a scene, in a cloud sandbox:
 - build the preview, open it in headless Chromium with

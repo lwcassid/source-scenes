@@ -46,6 +46,11 @@ function setShowLive(on) {
   showLive = !!on;
   if (window.ELECTRON_ROLE !== 'control') return;
   document.documentElement.classList.toggle('showlive', showLive);
+  // MIDI handoff (Lance's brittle-MIDI round): in web-app mode the control
+  // window sends MIDI through its own local port (see MOut.refreshUI); the
+  // moment the console rises the SHOW window owns the cable — close our
+  // notes and let go so the two windows never speak over each other.
+  if (showLive && typeof MOut !== 'undefined' && MOut.port) { try { MOut.allOff(); } catch (e) {} MOut.port = null; }
   // the control window's own output is muted only while the wall is live
   if (AE._mute) AE._mute.gain.value = showLive ? 0 : 1;
   if (!showLive && focus.idx >= 0 && !focus.P) {
@@ -180,8 +185,8 @@ const AE = {
    CHANNELS — the two hands
    ============================================================ */
 const chan = {
-  L: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 },
-  R: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0 }
+  L: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0, restAt: 0 },
+  R: { v: 0, target: 0, mode: 'drift', last: -99, raw: 0, hist: [], absentSince: 0, restAt: 0 }
 };
 
 /* ============================================================
@@ -207,7 +212,12 @@ const CAL = {
   REST_EPS: 0.06,    // raw distance from the rest reading that counts as a hand
   MOVE_EPS: 0.02,    // ...or this much movement inside the window, hand parked at rest
   WINDOW: 2.5,       // seconds of raw history the movement test looks at
-  ABSENT_HOLD: 1.2   // seconds of confirmed absence before the channel lets go
+  ABSENT_HOLD: 1.2,  // seconds of confirmed absence before the channel lets go
+  REST_HOLD: 8,      // ...then the LAST POSE holds this long before resting
+  REST_RATE: 0.25,   // ease rate of the final melt to rest (~4s time constant)
+  POSE_RATE: 0.8     // slow-follow rate of the remembered pose (~1.2s time
+                     // constant): a deliberate reposition is caught in a
+                     // couple of seconds, a 0.3s exit sweep barely moves it
 };
 function ghostL(t) { return clamp(0.5 + 0.42 * Math.sin(t * 0.13 + 1.7) + 0.09 * Math.sin(t * 0.53 + 0.4)); }
 function ghostR(t) { return clamp(0.5 + 0.40 * Math.sin(t * 0.094 + 4.2) + 0.10 * Math.sin(t * 0.61 + 2.1)); }
@@ -236,14 +246,24 @@ function setChan(side, v, raw) {
   if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.driveHand(side, v);
   const c = chan[side];
   if (raw === undefined) {
-    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0; c.restAt = 0;
     return;
   }
   c.raw = raw;
   c.hist.push({ t: nowT, raw });
   while (c.hist.length && nowT - c.hist[0].t > CAL.WINDOW) c.hist.shift();
   if (handPresent(side)) {
-    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0;
+    c.target = clamp(v); c.mode = 'live'; c.last = nowT; c.absentSince = 0; c.restAt = 0;
+    // THE REMEMBERED POSE: a slow follower of where the hand has been
+    // SITTING, updated only while the reading is genuinely away from rest —
+    // the exit sweep is too fast to drag it, the movement-at-rest grace
+    // never touches it. This is what the channel holds after the hand goes.
+    const cal = midi.cal[side];
+    if (!cal || cal.rest === null || cal.rest === undefined || Math.abs(raw - cal.rest) > CAL.REST_EPS) {
+      const pdt = Math.min(0.2, nowT - (c.poseT || nowT));
+      c.pose = (c.pose === undefined) ? clamp(v) : c.pose + (clamp(v) - c.pose) * Math.min(1, pdt * CAL.POSE_RATE);
+      c.poseT = nowT;
+    }
   } else {
     if (!c.absentSince) c.absentSince = nowT;
     // still tracking through the grace period — a hand that pauses dead still
@@ -257,14 +277,18 @@ function handPresent(side) {
   // no rest reading → fall back to the old rule: a message IS a hand
   if (!cal || cal.rest === null || cal.rest === undefined) return true;
   if (Math.abs(c.raw - cal.rest) > CAL.REST_EPS) return true;
-  // sitting at rest but still moving: someone is working right at the sphere
+  // sitting at rest but still moving: someone is working right at the sphere.
+  // Only AT-REST samples count here — the exit sweep's own readings used to
+  // keep this test "moving" for the whole history window, which stretched a
+  // 1.2s absence confirmation into ~4s of the scene parked at the field edge.
   let lo = 1, hi = 0;
   for (let i = 0; i < c.hist.length; i++) {
     const r = c.hist[i].raw;
+    if (Math.abs(r - cal.rest) > CAL.REST_EPS) continue;
     if (r < lo) lo = r;
     if (r > hi) hi = r;
   }
-  return (hi - lo) > CAL.MOVE_EPS;
+  return hi >= lo && (hi - lo) > CAL.MOVE_EPS;
 }
 let ghostsOn = true;      // the library wall breathes by default
 let sceneGhosts = false;  // a focused scene STARTS still — GHOSTS in its sidebar opts in
@@ -275,14 +299,27 @@ function updateChannels(t, dt) {
     const c = chan[side];
     if (c.mode === 'live') {
       if (c.absentSince) {
-        // a rest-calibrated sensor can tell "held still" from "nobody there",
-        // so it lets go in about a second and settles the instrument to rest
-        // instead of freezing on whatever an empty sensor happens to read
-        if (t - c.absentSince > CAL.ABSENT_HOLD) { c.mode = 'drift'; if (!ambient) c.target = 0; }
+        // a rest-calibrated sensor can tell "held still" from "nobody there".
+        // HOLD THE LAST POSE, THEN REST (Lance): when absence is confirmed,
+        // do NOT settle to anything yet — the player's pose holds for
+        // REST_HOLD seconds, then melts gently to rest (hand-space 1, arm's
+        // reach: since the NEAR=MORE flip, 0 = AT THE SOURCE = full blast,
+        // the old exit-slam bug). And the pose we hold is REWOUND past the
+        // exit sweep: a leaving hand is tracked live all the way out, so by
+        // confirmation the channel is already sitting at the field edge —
+        // the pose the player actually left lives in c.pose, the slow
+        // follower setChan keeps of where the hand was SITTING.
+        if (t - c.absentSince > CAL.ABSENT_HOLD) {
+          c.mode = 'drift';
+          c.restAt = t + CAL.REST_HOLD;
+          if (!ambient) c.target = (c.pose !== undefined) ? c.pose : c.v;
+        }
       } else if (t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
     }
+    const resting = c.mode === 'drift' && !ambient && c.restAt && t >= c.restAt;
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);
-    c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : 2.2));
+    else if (resting) c.target = 1; // the melt to rest, after the held pose
+    c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : resting ? CAL.REST_RATE : 2.2));
   }
   SUMMON.step(t, dt);
 }
@@ -1022,7 +1059,7 @@ function makeInstance(def, canvas, w, h) {
     w, h, state: {}, seed: (Math.random() * 1e9) | 0,
     focused: false, visible: true,
     rand: null,
-    ping(cb) { if (P.focused && AE.on && AE.ctx) { try { cb(AE); } catch (e) {} } }
+    ping(cb) { if (P.focused && engineWanted() && AE.ctx) { try { cb(AE); } catch (e) {} } }
   };
   P.reinit = (newSeed) => {
     if (newSeed !== undefined) P.seed = newSeed;
@@ -1101,6 +1138,9 @@ function setView(mode) {
   try { localStorage.setItem('srcView', mode); } catch (e) {}
   const sel = document.getElementById('viewSel');
   if (sel && sel.value !== mode) sel.value = mode;
+  // the library rail carries the same select (Lance: one column, both views)
+  const sell = document.getElementById('viewSelLib');
+  if (sell && sell.value !== mode) sell.value = mode;
   const ov = document.getElementById('overlay');
   if (ov) ov.classList.toggle('scrimmode', mode === 'scrim'); // shows the vantage chips
   // the scrim view is full bleed, the frame views are letterboxed — refit
@@ -1169,6 +1209,13 @@ function setProj(on) { PROJ.on = !!on; syncStage(true); }
 if (window.ResizeObserver) new ResizeObserver(() => { if (focus.P) syncStage(); })
   .observe(focusCanvas.parentElement);
 
+// THE ENGINE RUNS FOR EITHER LISTENER (Lance's silent-scenes round): a
+// scene's audio tick is ALSO its MIDI note scheduler, so it must run when
+// Ableton is listening even with the speakers off. The old gate (AE.on
+// alone) meant SPEAKERS OFF silently killed every scene's MIDI while
+// TEST — which bypasses the tick — kept working. Audibility is
+// AE.applyMaster()'s question; this one only decides whether to RUN.
+function engineWanted() { return AE.on || (typeof MOut !== 'undefined' && MOut.wants()); }
 function openFocus(i, fromRelay) {
   AE.ensure();
   // deep-link entry: the autoplay policy holds the context suspended until a
@@ -1262,7 +1309,7 @@ function startVoice() {
   // the wall's, and that arrives over telemetry:tick.
   if (window.ELECTRON_ROLE === 'control' && showLive) return;
   const def = PIECES[focus.idx];
-  if (AE.on && AE.ctx && def.audio && focus.P) {
+  if (engineWanted() && AE.ctx && def.audio && focus.P) {
     try { focus.voice = def.audio(AE, focus.P) || null; } catch (e) { focus.voice = null; }
   }
 }
@@ -1404,10 +1451,11 @@ window.addEventListener('keydown', e => {
 });
 document.getElementById('btnSound').addEventListener('click', e => {
   AE.on = !AE.on;
-  e.target.textContent = AE.on ? 'SOUND: ON' : 'SOUND: OFF';
+  e.target.textContent = AE.on ? 'BROWSER SOUND: ON' : 'BROWSER SOUND: OFF';
   e.target.classList.toggle('off', !AE.on);
-  if (AE.on) { AE.ensure(); startVoice(); }
-  else if (focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
+  if (AE.on) { AE.ensure(); if (!focus.voice) startVoice(); }
+  else if (!MOut.wants() && focus.voice) { try { focus.voice.stop(); } catch (err) {} focus.voice = null; }
+  AE.applyMaster();
   // Review pass: the control window's own AE is silent by design
   // (the muted sink in AE.ensure) — flipping AE.on here never actually mutes
   // or unmutes the wall. The show window is the only thing that can; relay
@@ -1465,7 +1513,7 @@ document.getElementById('helpModal').addEventListener('click', e => { if (e.targ
 // context could run.
 const wakeAudio = () => {
   AE.ensure();
-  if (AE.on && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
+  if (engineWanted() && AE.ctx && focus.idx >= 0 && !focus.voice) startVoice();
   if (AE.ctx && AE.ctx.state === 'running') {
     const hint = document.getElementById('useHint');
     if (hint && hint.dataset.sound) { hint.classList.add('gone'); delete hint.dataset.sound; }

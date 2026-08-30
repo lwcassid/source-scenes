@@ -51,8 +51,10 @@ the URL — is what the projectors play.
 - 2× Panasonic PT-VMZ50 (WUXGA), fed IDENTICALLY off one HDMI splitter from
   the show laptop. One render, cloned — nothing to configure in software.
 - Laptop → Ableton: browser MIDI OUT → IAC/loopMIDI virtual port → Live.
-  Roles→channels: lead 1 · pad 2 · bass 3 · arp 4 · bells 5 · texture 6 ·
-  perc 10 · sfx 11 · bed 12; CC74 per channel = layer energy; CC1/CC2 raw
+  Roles→channels: `rig.json` is the ONE truth (baked into the build; tracks
+  map 1:1 to the Live set left-to-right) — as of Aug 2026: perc 1 · bass 3 ·
+  sfx 4 · pad 5 · lead 7 · texture 9 · bed 13 · arp 14 · bells 15, bench
+  roles on 6/8/10/11/12. CC74 per channel = layer energy; CC1/CC2 raw
   hands. Buffer 128.
 - Theremins: MAP in the header, range-based learn (move each hand ~2.5s).
 - The DBG strip (bottom of fullscreen) shows scene/act, hand values + mode,

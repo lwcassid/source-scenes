@@ -61,21 +61,31 @@
   #midiMon{background:#0a0a0c;border:1px solid var(--line);border-radius:var(--rs);width:100%;height:148px}
   @keyframes blink{50%{background:var(--acc);color:#000}}
 
-  /* MAP popover — the source's own settings, with coaching */
-  #mapPop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;width:340px;
+  /* MAP + AUDIO IN popovers — controllers in one, listening in the other */
+  #mapPop,#audioPop{display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:60;width:340px;
     max-height:82vh;overflow-y:auto;
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;
     box-shadow:0 18px 50px rgba(0,0,0,.3)}
-  #mapPop.open{display:block}
-  #mapPop h4{font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--txt);margin-bottom:8px}
-  #mapPop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
-  #mapPop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
-  #mapPop b{color:var(--txt)}
-  #mapPop #calBox,#mapPop #navBox,#mapPop #audioBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+  #mapPop.open,#audioPop.open{display:block}
+  #mapPop h4,#audioPop h4{font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--txt);margin-bottom:8px}
+  #mapPop p,#audioPop p{font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:8px 0}
+  #mapPop .pfaint,#audioPop .pfaint{color:var(--txt-faint);font-size:9.5px}
+  #mapPop .row,#audioPop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  #mapPop b,#audioPop b{color:var(--txt)}
+  #mapPop #calBox,#mapPop #navBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
   #mapPop #navInSel{font-size:9.5px;max-width:100%}
-  #mapPop .navrange{font:9px var(--mono);color:var(--txt-faint);letter-spacing:.06em}
+  #mapPop .navrange,#audioPop .navrange{font:9px var(--mono);color:var(--txt-faint);letter-spacing:.06em}
   #mapPop #calRead{font:9.5px/1.5 ui-monospace,monospace;color:var(--txt-dim);white-space:pre;
     background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:6px;padding:7px 8px;margin:8px 0;overflow-x:auto}
+  .slbl{font:9px var(--mono);color:var(--txt-faint);letter-spacing:.14em;flex:none}
+  .srow button{white-space:nowrap}
+  .ck{display:flex;gap:7px;align-items:center;font:10px var(--mono);letter-spacing:.08em;color:var(--txt);cursor:pointer;user-select:none}
+  .ck input{accent-color:var(--acc);width:14px;height:14px;flex:none;cursor:pointer}
+  .srow button.warn{border-color:#fbbf24;color:#b45309}
+  #midiOutSel{flex:1;min-width:0}
+  .advtog{display:block;font:9px var(--mono);color:var(--txt-faint);letter-spacing:.08em;cursor:pointer;margin:6px 0 2px;user-select:none}
+  .advtog:hover{color:var(--txt-dim)}
+  #audioPop #clockBox{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
 
   /* ---------- library: LEFT RAIL + grid ----------
      The rail is the same column, the same width and the same .sgroup
@@ -191,7 +201,7 @@
   /* ---------- focus overlay ---------- */
   #overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;
     grid-template-columns:var(--rail) 1fr;grid-template-rows:auto 1fr auto}
-  #mapPop{z-index:300} /* reachable from the scene view too */
+  #mapPop,#audioPop{z-index:300} /* reachable from the scene view too */
   #overlay.open{display:grid}
   .obar{grid-column:1/-1}
   /* ---------- SIDEBAR — controls grouped by function ---------- */
@@ -520,7 +530,7 @@
     button{font-size:8.5px;padding:7px 9px} /* smaller type, same tap height */
     input[type=range]{width:52px}
     select{max-width:120px;font-size:9.5px}
-    #mapPop,#queuePop{left:10px;right:10px;width:auto;top:50px}
+    #mapPop,#audioPop,#queuePop{left:10px;right:10px;width:auto;top:50px}
     /* the rail lies down across the top: a search strip, with CONTROLS
        folding the show/source/music groups away until you want them */
     main{display:block;min-height:0}
@@ -708,65 +718,80 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
   </div>
 </header>
 
-<!-- MAP popover — bind hardware to the two hands, with coaching -->
+<!-- MAP popover — THE CONTROLLERS, nothing else (Lance's decluttering round):
+     bind the hands, bind the show controller, calibrate the sensors. The
+     coaching prose moved into tooltips; audio-in moved to its own popover. -->
 <div id="mapPop">
-  <h4>Map your controller</h4>
-  <p>The source speaks two numbers: a <b>left hand</b> and a <b>right hand</b>. Bind any MIDI controller — a fader, a knob, a real theremin — to each.</p>
+  <h4>The hands</h4>
+  <p>Press LEARN, then <b>sweep that hand's control through its whole range</b> for ~2s. Works with any fader, knob, or theremin. It remembers.</p>
   <div class="row">
     <button id="btnMidi" class="off">MIDI: CONNECT</button>
-    <select id="midiInSel" style="display:none" title="Which MIDI device to listen to"></select>
   </div>
   <div class="row">
-    <button id="btnLearnL" style="display:none">LEARN L</button>
-    <button id="btnLearnR" style="display:none">LEARN R</button>
-    <button id="btnTest" title="Send a short test phrase to every role — check your DAW is hearing us">TEST ♪</button>
+    <button id="btnLearnL" style="display:none" title="Then sweep your LEFT control through its full range for ~2 seconds — CC, pitch bend, and pressure all work">LEARN LEFT</button>
+    <button id="btnLearnR" style="display:none" title="Then sweep your RIGHT control through its full range for ~2 seconds">LEARN RIGHT</button>
   </div>
-  <p><b>Coaching:</b> hit CONNECT and allow MIDI. Press LEARN L, then <b>sweep your left control through its whole range</b> for ~2 seconds — the page hears which control moved and binds it, whether it speaks CC, pitch bend, or pressure. Repeat for R. Bindings persist across reloads. No hardware? The on-screen theremin, scene surface, edge lasers, and W/S · ↑/↓ keys all drive the hands.</p>
+  <span class="advtog" data-adv="advHands">▸ advanced</span>
+  <div id="advHands" style="display:none">
+    <div class="row">
+      <select id="midiInSel" style="display:none" title="Which MIDI device the HANDS listen to — pin it if a second controller shares the room"></select>
+    </div>
+    <p class="pfaint">Pin the hands to one device when a second controller shares the room.</p>
+  </div>
+  <p class="pfaint">No hardware? The on-screen theremin, the scene surface, and W/S · ↑/↓ all drive the hands.</p>
   <div id="navBox">
     <h4>Show control</h4>
-    <p>A <b>second</b> controller drives the SHOW, not the sound: previous/next through the running order, and pads that jump straight to a queue slot. Learn each one, then hit the control you want it on.</p>
-    <div class="row">
-      <select id="navInSel" title="Which device is the show controller — separate from the hands">
-        <option value="all">DEVICE: ANY</option>
-      </select>
-    </div>
+    <p>A <b>second</b> controller steps the show: prev / next / jump-to-slot. Press LEARN, then hit the pad or switch you want it on.</p>
     <div class="row">
       <button id="btnNavPrev">LEARN PREV</button>
       <button id="btnNavNext">LEARN NEXT</button>
-    </div>
-    <div class="row">
       <button id="btnNavSlots" title="Hit PAD 1 — the next 15 consecutive notes become queue slots 2-16">LEARN PADS</button>
-      <span id="navRange" class="navrange"></span>
     </div>
-  </div>
-  <div id="audioBox">
-    <h4>Audio in</h4>
-    <p>Some scenes react to a live audio signal instead of (or alongside) the hands. Pick a mic/line-in device and connect, OR capture a running app's own sound directly — Spotify, a browser tab, any app making noise on this machine — no mic needed. Either way, press SET REST with the room QUIET — it teaches the engine where silence is, and a sample taken while anything is playing is refused (the button says TOO LOUD), because a rest measured over music can only ever make the wall deafer.</p>
-    <p>The bands AUTO-RANGE to whatever is playing, so the picture reads the same at any input level. RESET AUTO-RANGE makes them forget what they've learned (and the saved calibration) and relearn from the current material — press it after changing source or moving the mic, or if the wall stops responding to the music. Watch the dBFS numbers in the Audio in panel under the stage to check the gain itself.</p>
-    <div class="row">
-      <select id="audioInSel" title="Which device to listen to"><option value="">DEVICE: DEFAULT</option></select>
-      <button id="btnAudioConnect" class="off">AUDIO: CONNECT</button>
-    </div>
-    <div class="row">
-      <button id="btnAudioAppCapture" title="Pick a running app or window and capture its own audio — the OS will ask you to allow sharing, and to switch Share Audio on">CAPTURE APP AUDIO</button>
-    </div>
-    <div class="row">
-      <button id="btnAudioRest" title="Stand clear, silence the room and the PA, then press — whatever the source reads with nothing playing becomes the floor. A sample taken over a live source is refused.">SET REST</button>
-      <button id="btnAudioResetRange" title="Forget the learned per-band range and the saved calibration, and relearn from what is playing right now. Press after changing source or level, or if the wall has stopped answering the music.">RESET AUTO-RANGE</button>
-      <span id="audioLevel" class="navrange"></span>
+    <div class="row"><span id="navRange" class="navrange"></span></div>
+    <span class="advtog" data-adv="advNav">▸ advanced</span>
+    <div id="advNav" style="display:none">
+      <div class="row">
+        <select id="navInSel" title="Which device is the show controller — separate from the hands">
+          <option value="all">DEVICE: ANY</option>
+        </select>
+      </div>
     </div>
   </div>
   <div id="calBox" style="display:none">
     <h4>Calibrate the sensors</h4>
     <div class="row">
-      <button id="btnRest" title="Stand clear of the instrument, then press — whatever the sensors read with nobody there becomes the idle point">SET REST</button>
-      <button id="btnInvL" title="Flip the left hand if reaching outward reads as less">INVERT L</button>
-      <button id="btnInvR" title="Flip the right hand if reaching outward reads as less">INVERT R</button>
+      <button id="btnRest" title="Stand EVERYONE clear of the instrument first, then press — whatever the sensors read with nobody there becomes the idle point. Without it, scenes never rest. Re-do after moving the sensors.">SET REST</button>
+      <button id="btnInvL" title="Flip the left hand if the readout DROPS when you reach outward">INVERT L</button>
+      <button id="btnInvR" title="Flip the right hand if the readout DROPS when you reach outward">INVERT R</button>
       <button id="btnCalClear" title="Forget range, polarity and rest for both hands">CLEAR</button>
           </div>
     <pre id="calRead"></pre>
-    <p id="calRelayNote" style="display:none">The live raw readout only exists in the SHOW window — it needs a value stream that isn't relayed. The buttons above are real: they run there and report back.</p>
-    <p>The LEARN sweep already stored each control's working range, so full reach reaches <b>1.00</b>. Two things are worth doing on the show machine: press <b>SET REST</b> with nobody at the instrument — a rangefinder streams a value whether or not a hand is there, and this is what lets scenes go idle and tease again — and flip <b>INVERT</b> if the readout drops when you reach outward. By default every scene reads <b>at the source = 0, arm's reach = 1</b>; The grammar is fixed: <b>leaning in toward the source = intensity</b>, every scene, every input — nothing to configure. (A sensor that reads backwards is corrected with its own INVERT above.)</p>
+    <p id="calRelayNote" style="display:none">The live raw readout only exists in the SHOW window — the buttons are real: they run there and report back.</p>
+    <p class="pfaint">Every scene reads <b>at the source = 0, arm's reach = 1</b>; leaning in = intensity, everywhere. SET REST is the one that matters on the show machine.</p>
+  </div>
+</div>
+
+<!-- AUDIO IN popover — the listening path, its own popup (was buried in MAP) -->
+<div id="audioPop">
+  <h4>Audio in</h4>
+  <p>Some scenes LISTEN — to a mic / line-in, or to a running app's own sound (Spotify, a tab — no mic needed). Connect one, then SET REST with the room quiet. A rest taken while anything is playing is refused (the button says TOO LOUD), because a rest measured over music can only ever make the wall deafer.</p>
+  <p>The bands AUTO-RANGE to whatever is playing, so the picture reads the same at any input level. RESET AUTO-RANGE makes them forget what they've learned (and the saved calibration) and relearn from the current material — press it after changing source or moving the mic, or if the wall stops answering the music. The dBFS numbers in the Audio in panel under the stage are how you check the gain itself.</p>
+  <div class="row">
+    <select id="audioInSel" title="Which input device to listen to"><option value="">DEVICE: DEFAULT</option></select>
+    <button id="btnAudioConnect" class="off">AUDIO: CONNECT</button>
+  </div>
+  <div class="row">
+    <button id="btnAudioAppCapture" title="Pick a running app or window and capture its own audio — allow sharing and switch Share Audio ON when the OS asks">CAPTURE APP AUDIO</button>
+  </div>
+  <div class="row">
+    <button id="btnAudioRest" title="Keep the room quiet, then press — whatever the source reads with nothing playing becomes the floor. A sample taken over a live source is refused.">SET REST</button>
+    <button id="btnAudioResetRange" title="Forget the learned per-band range and the saved calibration, and relearn from what is playing right now. Press after changing source or level, or if the wall has stopped answering the music.">RESET AUTO-RANGE</button>
+    <span id="audioLevel" class="navrange"></span>
+  </div>
+  <div id="clockBox">
+    <h4>Tempo clock</h4>
+    <p class="pfaint">Sends MIDI clock so Ableton follows each scene's BPM. Set once: Live needs this port's Sync on and EXT pressed. Leave it ON.</p>
+    <div class="row"><button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT. Nothing ever syncs the other way.">CLOCK OUT: ON</button></div>
   </div>
 </div>
 
@@ -811,6 +836,18 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <p class="sinfo">tick a scene to queue it — the queue's <b>order</b> is the running order · PLAY always walks the pre-flight first</p>
     </section>
     <section class="sgroup railfold">
+      <h5>View</h5>
+      <div class="srow"><button id="dispRowLib" class="off" title="Which physical display the show fullscreens onto when you press PLAY — click to check or change it">DISPLAY: …</button></div>
+      <div class="srow">
+        <select id="viewSelLib" title="What the stage shows when a scene opens — the flat projector frame, the two-projector ghost, or The Cave in 3D">
+          <option value="flat">FLAT · 1 PROJECTOR</option>
+          <option value="double">GHOST · 2 PROJECTORS</option>
+          <option value="scrim">SCRIM · THE CAVE 3D</option>
+        </select>
+      </div>
+      <p class="sinfo">1920×1200 · 16:10 · one render, cloned to both projectors</p>
+    </section>
+    <section class="sgroup railfold">
       <h5>Source input</h5>
       <canvas id="widgetTop" width="220" height="76" title="The source — the two-hand instrument driving every scene"></canvas>
       <div class="srow" style="margin-top:8px">
@@ -820,16 +857,23 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <p class="sinfo">ghost hands drift while nobody plays · <b>lean in toward the source = more</b></p>
     </section>
     <section class="sgroup railfold">
-      <h5>Music</h5>
+      <h5>Sound out</h5>
+      <div class="srow"><label class="ck" title="The app's own synthesizer — the sound this app makes by itself, no Ableton needed"><input type="checkbox" id="ckBrowser" checked> BUILT-IN SYNTH</label></div>
       <div class="srow">
-        <button id="btnSound">SOUND: ON</button>
-        <input type="range" id="volSlider" min="0" max="100" value="85" title="Master volume">
+        <input type="range" id="volSlider" min="0" max="100" value="85" title="Built-in synth volume">
         <span id="volLabel" style="font:9px var(--mono);color:var(--txt-dim);width:28px;text-align:right;flex:none">85%</span>
       </div>
-      <div class="srow"><button id="btnOut" class="off" title="Route the generated music: internal WebAudio, MIDI out to your DAW, or both">OUT: WEB AUDIO</button></div>
-      <div class="srow"><select id="midiOutSel" style="display:none"></select></div>
-      <div class="srow"><button id="btnClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM. In Live: enable Sync on this port, press EXT (EXT = Live follows external clock, i.e. follows us). Nothing ever syncs the other way.">CLOCK OUT: ON</button></div>
-      <p class="sinfo">role → channel map comes from rig.json, read-only — THE RIG console under an open scene shows it live</p>
+      <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI, over the bus below — works with the speakers on or off"><input type="checkbox" id="ckAbleton"> ABLETON · midi out</label></div>
+      <div class="srow"><span class="slbl" title="The virtual MIDI cable this app plays Ableton through — Live must have this port's Track switch ON and each track's Monitor set to In">ABLETON BUS</span><select id="midiOutSel" style="display:none" title="Pick the bus your Live set listens to"></select></div>
+      <div class="srow"><button id="btnTest" title="Send a short test phrase to every instrument — if Ableton is wired right, you hear it answer">TEST ABLETON ♪</button></div>
+      <button id="btnSound" style="display:none"></button>
+      <button id="btnOut" style="display:none" class="off"></button>
+      <p class="sinfo">check what should play — either, both, or neither · role → channel map comes from rig.json</p>
+    </section>
+    <section class="sgroup railfold">
+      <h5>Sound in</h5>
+      <div class="srow"><button id="btnAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN / MIC</button></div>
+      <p class="sinfo">only for scenes that listen to live audio</p>
     </section>
   </aside>
   <div class="gridwrap"><div class="grid" id="grid"></div></div>
@@ -870,6 +914,7 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
          notes fold under MUSIC. One summary, then read up where you're working. -->
     <section class="sgroup">
       <h5>View</h5>
+      <div class="srow"><button id="dispRowF" class="off" title="Which physical display the show fullscreens onto when you press PLAY — click to check or change it">DISPLAY: …</button></div>
       <div class="srow">
         <select id="viewSel" title="What the stage shows — the flat projector frame, the two-projector ghost, or the throw in The Cave in 3D (V cycles)">
           <option value="flat">FLAT · 1 PROJECTOR</option>
@@ -898,10 +943,13 @@ if (/^#scene=/.test(location.hash)) document.documentElement.classList.add('deep
       <p class="sinfo">mouse: left half = L hand, right half = R · keys <b>W/S</b> and <b>↑/↓</b> · lean in toward the source = more · <b>R</b> reseeds the scene</p>
     </section>
     <section class="sgroup">
-      <h5>Music</h5>
-      <div class="srow"><button id="fSound">SOUND: ON</button><input type="range" id="fVol" min="0" max="100" value="85" title="Master volume"></div>
-      <div class="srow"><button id="fOut" class="off" title="Route the music: WebAudio, MIDI to your DAW, or both">OUT: WEB AUDIO</button></div>
-      <div class="srow"><button id="fClock" class="off" title="This app is the tempo master: it SENDS MIDI clock so Live follows each scene's BPM (Live: port Sync on, EXT lit)">CLOCK OUT: ON</button></div>
+      <h5>Sound out</h5>
+      <div class="srow"><label class="ck" title="The app's own synthesizer — the sound this app makes by itself, no Ableton needed"><input type="checkbox" id="fCkBrowser" checked> BUILT-IN SYNTH</label></div>
+      <div class="srow"><input type="range" id="fVol" min="0" max="100" value="85" title="Built-in synth volume"></div>
+      <div class="srow"><label class="ck" title="Send every scene's notes to Ableton as MIDI — works with the speakers on or off"><input type="checkbox" id="fCkAbleton"> ABLETON · midi out</label></div>
+      <div class="srow"><button id="fAudio" title="Scenes that LISTEN — mic / line-in / app-audio capture, and the tempo clock">AUDIO IN / MIC</button></div>
+      <button id="fSound" style="display:none"></button>
+      <button id="fOut" style="display:none" class="off"></button>
       <span class="stoggle sntog" data-for="ipSound">▸ ableton build notes</span>
       <p class="snote snfold" id="ipSound"></p>
       <p class="sinfo">the rig rack below the stage shows role → channel → instrument, live</p>

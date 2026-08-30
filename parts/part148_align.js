@@ -61,6 +61,7 @@ const ALIGNPAT = {
 
 reg({
   id: 'SRC-44', family: 'SRC-44', ver: 1,
+  textIsContent: true,  // the labels ARE the test card — performance mode must not strip them
   title: 'Alignment Field', tech: 'TEST CARD / TWO-PROJECTOR REGISTRATION',
   music: { bpm: 78, root: 45, mode: 'aeolian' },
   fx: {},
