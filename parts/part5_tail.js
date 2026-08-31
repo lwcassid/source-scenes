@@ -2548,7 +2548,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
     + "The BAND numbers are the total power in each band, so they read correctly LOWER than LEVEL — roughly BASS -22, MID -32, TREBLE -46 on a well-staged mix, and lower again on a lossy source. Judge the input gain by LEVEL; read the band numbers against each other and against how they looked a minute ago.\n"
     + "SUB is the kick fundamental alone; BASS is kick + the bottom of the bassline; LOWMID is bass notes and low stabs; MID is stabs/chords/vocals; TREBLE is hats and air.\n"
     + "ONSET flashes on a detected hit; PAN is stereo balance, left/right.\n"
-    + "Connect, SET REST and RESET AUTO-RANGE (forget the learned range and relearn from what's playing now) all live in MAP → Audio in.";
+    + "The range now re-learns ITSELF when the material changes (a quieter track, a booth gain move — the stale-range watchdog re-converges in ~5s, and it knows a breakdown is music, not a gain change). RESET AUTO-RANGE remains for an instant manual relearn.\n"
+    + "Connect, SET REST and RESET AUTO-RANGE all live in MAP → Audio in.";
 
   // SUB and LOWMID are new bands from the sensitivity round. They earn a row
   // each because they are precisely the two an operator cannot infer from the

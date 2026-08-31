@@ -64,9 +64,14 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    instrument back: a hand held still reads as absence to the tracker, so
    hold the player's last pose and drift to rest only after real absence —
    above all inside an unlocked payoff window (Lance, EH V13). The input
-   core enforces this globally now (Lance, Aug 2026): confirmed absence
-   holds the remembered pose ~8s, then melts to rest (hand-space 1) — a
-   scene never needs its own exit handling on inp.
+   core enforces this globally now, and THE LAST POSE IS THE REST POSE
+   (Lance, Aug 31, replacing the old hold-then-melt-to-1): confirmed
+   absence rewinds past the exit sweep and holds the player's pose
+   INDEFINITELY — no melt, because no melt target is neutral for both
+   polarities (hand-space 1 is quiet for NEAR=MORE and MAXIMUM for every
+   scene that inverts at its own gate, so the melt surged half the
+   favorites on every walk-away). The scene's presence gate owns the fade
+   to its designed idle; a scene never needs its own exit handling on inp.
 6. **Bar-quantized structure.** Count changes, buds, entrances land on the
    downbeat (Schmitt thresholds + the audio tick commits at `st === 0`).
    Anticipation beats surprise: telegraph the downbeat (pre-glow the next gate).

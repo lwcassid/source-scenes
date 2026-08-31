@@ -419,6 +419,34 @@ const AUDIOIN = {
   FFT_REF_DB: 10 * Math.log10(2 / (0.42 * 0.42 + 0.5 * 0.5 / 2 + 0.08 * 0.08 / 2)),
   _bindb: null,
 
+  /* ---- the STALE-RANGE watchdog (Lance, DJ-set round) -------------------
+     "Sometimes the levels die down and go flat and I have to reset
+     auto-range." Root cause: the ceiling opens outward near-instantly but
+     re-tightens at only 0.75 dB/s, so after a loud track a quieter one (or
+     a gain change at the booth) reads low and flat for 30-60s. The
+     watchdog is an automatic, scoped RESET: when the BROADBAND peak sits
+     more than STALE_DB under level's learned ceiling for STALE_T seconds,
+     every signal's trackers step STALE_BOOST x faster until the range fits
+     the material again (~5s instead of ~45).
+     THE BREAKDOWN GUARD is what makes this safe to automate: a DJ pulling
+     the bass also drops the broadband level, but that is MUSIC — so the
+     watchdog holds off whenever the bass band's own collapse gate says the
+     bass has left (a.gate < 0.5). A quieter NEW track has kicks, so its
+     bass band is present and the watchdog may fire; a breakdown keeps the
+     stale clock paused and the "bass left" picture (and the build/drop
+     detector's suppression measurement) intact. Trackers are already
+     frozen through true silence by the gate, so a stopped set never
+     triggers anything. tools/staletest.mjs drives both cases against the
+     real engine. */
+  // PK_FALL 6 dB/s, deliberately much faster than the ceiling's 0.75 dB/s
+  // inward walk: the peak-hold must land on the NEW material's peaks within
+  // ~2s so the gap against the stale ceiling actually opens (at 1 dB/s the
+  // two decayed in lockstep and the watchdog could never fire — measured).
+  // A 2-bar phrase gap only drops pk ~12 dB and any real peak snaps it back
+  // instantly, so STALE_T of sustained gap still filters ordinary phrasing.
+  STALE_DB: 8, STALE_T: 5, STALE_BOOST: 6, STALE_PK_FALL: 6,
+  _stale: { pk: -140, t: 0, on: false },
+
   /* ---- dB-domain envelope ----------------------------------------------
      Smoothing moved from the 0..1 domain into the dB domain and got much
      faster on the way down. The old pair (attack 18/s, release 4/s = tau
@@ -648,6 +676,7 @@ const AUDIOIN = {
     }
     this._gate = 0; this._calSaveAcc = 0; this._conf = 0; this.live = false;
     this._rawDb = {};
+    this._stale = { pk: -140, t: 0, on: false };
 
     // kick detector graph (see `kick` above): lowpass 150Hz → time-domain
     // analyser (8192 samples ≈ 170ms ring @48k — a frame stall analyses instead of dropping; smoothing 0 so the ring is
@@ -895,6 +924,7 @@ const AUDIOIN = {
       const bandGate = k === 'level' ? 1
         : clamp((a.pk - (a.ceil - this.COLLAPSE_DB)) / this.COLLAPSE_FADE);
       if (bandGate > 0.5) a.collapsed = 0; else a.collapsed += dt;
+      a.gate = bandGate;   // stashed for the stale-range watchdog's breakdown guard
 
       // stochastic quantile trackers, frozen while the gate is shut so a
       // silent room can never become the new normal — and frozen per band
@@ -909,7 +939,8 @@ const AUDIOIN = {
         // down onto an ambient bed, which is a dead bass band for a whole
         // intro. 3 dB/s makes that ~15s, and it can only apply while the band
         // is judged gone, so nothing playing normally ever sees it.
-        const step = this.AGC_RATE * boost * dt * (a.collapsed > this.COLLAPSE_HOLD ? 4 : 1);
+        const step = this.AGC_RATE * boost * dt * (a.collapsed > this.COLLAPSE_HOLD ? 4 : 1)
+          * (this._stale.on ? this.STALE_BOOST : 1);   // the watchdog's automatic re-range
         a.floor += step * (a.db > a.floor ? this.AGC_Q_LO : -(1 - this.AGC_Q_LO));
         a.ceil += step * (a.db > a.ceil ? this.AGC_Q_HI : -(1 - this.AGC_Q_HI));
         // SET REST, used correctly at last: the measured noise floor is a
@@ -937,6 +968,19 @@ const AUDIOIN = {
     const conf = this._conf;
     for (const k of this.SIGKEYS) this[k] *= conf;
     this.live = gate > 0.25 && conf > 0.25;
+
+    /* ---- the stale-range watchdog (see STALE_* above) --------------------
+       Evaluated AFTER the loop, applied on the NEXT frame's steps — one
+       frame of lag on a 5-second detector is nothing, and it keeps the
+       loop free of order dependence. */
+    {
+      const agL = this._ag.level, stw = this._stale;
+      stw.pk = Math.max(agL.db, stw.pk - this.STALE_PK_FALL * dt);
+      const bassHere = !this._ag.bass || (this._ag.bass.gate === undefined || this._ag.bass.gate > 0.5);
+      if (live && agL.seeded && bassHere && agL.ceil - stw.pk > this.STALE_DB) stw.t += dt;
+      else stw.t = Math.max(0, stw.t - dt * 2);
+      stw.on = stw.t > this.STALE_T;
+    }
 
     /* ---- Layer 5: deviation + flux, on the three public bands ----------- */
     for (const k of ['bass', 'mid', 'treble']) {
@@ -1161,6 +1205,7 @@ const AUDIOIN = {
     // the structural listener's baselines were learned on the range that just
     // went away; drop.n stays monotonic (same rule as kick.n across _wire())
     this.build = 0;
+    this._stale = { pk: -140, t: 0, on: false };
     this._st = { levF: 0, levS: 0, bassF: 0, bassS: 0, hiF: 0, trend: 0, supp: 0, suppT: 0, dropGap: 1e9, primed: false };
     // an in-flight SET REST would land its medians into the range we just
     // cleared, ~1.6s after the operator asked for the opposite
