@@ -722,7 +722,7 @@ if (window.ELECTRON_ROLE === 'show' && window.electronAPI?.sendTelemetry) {
       // draws them, and they are the two most frame-rate-sensitive fields
       // here (a 4Hz sample of a positive-rise pulse is aliasing, not data).
       audioIn: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan, onsetCount: AUDIOIN.onsetCount,
-                 sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db },
+                 sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db, build: AUDIOIN.build, drop: AUDIOIN.drop },
       at: Date.now(),
     });
   }, 250);
@@ -1441,9 +1441,14 @@ document.getElementById('btnOut').addEventListener('click', () => {
   if (!els('b').length) return;
   const abMode = () => (window.ELECTRON_ROLE === 'control' && typeof rigRelay !== 'undefined' && rigRelay.mode) ? rigRelay.mode : MOut.mode;
   const paint = () => {
-    for (const el of els('b')) el.checked = AE.on;
-    const ab = abMode() !== 'web';
-    for (const el of els('a')) el.checked = ab;
+    // EFFECTIVE state, not stored flags (Lance: boxes looked inert during a
+    // show): a queued scene's OUT override of 'midi' mutes the built-in
+    // synth whatever AE.on says — the box must show that truth, and
+    // checking it must genuinely bring the synth in (apply() below moves
+    // the MODE, which overrides the scene's setting until the next scene).
+    const m = abMode();
+    for (const el of els('b')) el.checked = AE.on && m !== 'midi';
+    for (const el of els('a')) el.checked = m !== 'web';
   };
   const apply = (spk, abl) => {
     if (AE.on !== spk) document.getElementById('btnSound').click(); // full legacy path: ensure/voice/relay/master
@@ -2593,11 +2598,39 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   rack.appendChild(stat);
 
   const isAudioScene = () => focus.idx >= 0 && PIECES[focus.idx] && PIECES[focus.idx].audioIn;
+  // THE MONITOR IS THE OPERATOR'S CHOICE, NOT THE SCENE'S (Lance, DJ-set
+  // round): scenes are interchangeable now — the same scene can be driven
+  // by hands+MIDI at the installation or listen to a booth feed at a DJ
+  // set — so the console title becomes two TABS: THE RIG / AUDIO IN. The
+  // default still follows the scene's declaration (audioIn:true → AUDIO
+  // IN), a click pins your choice per-browser (srcConsoleMon), and the pin
+  // self-clears whenever it matches what auto would pick anyway, so nobody
+  // is ever stuck in an override they don't remember making.
+  let monPin = '';
+  try { monPin = localStorage.getItem('srcConsoleMon') || ''; } catch (e) {}
+  const autoMon = () => (isAudioScene() ? 'audio' : 'rig');
+  const showAudio = () => (monPin || autoMon()) === 'audio';
+  let tabRig = null, tabAud = null;
+  if (title) {
+    title.textContent = '';
+    const mk = (which, label) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'monTab'; b.textContent = label;
+      b.addEventListener('click', () => {
+        monPin = which === autoMon() ? '' : which;
+        try { monPin ? localStorage.setItem('srcConsoleMon', monPin) : localStorage.removeItem('srcConsoleMon'); } catch (e) {}
+        syncPanel();
+      });
+      title.appendChild(b);
+      return b;
+    };
+    tabRig = mk('rig', RIG_TITLE); tabAud = mk('audio', AUDIO_TITLE);
+  }
   function syncPanel() {
-    const on = isAudioScene();
+    const on = showAudio();
     split.style.display = on ? 'flex' : 'none';
     rigSplit.style.display = on ? 'none' : 'flex';
-    if (title) title.textContent = on ? AUDIO_TITLE : RIG_TITLE;
+    if (tabRig) { tabRig.classList.toggle('on', !on); tabAud.classList.toggle('on', on); }
     if (info) info.title = on ? AUDIO_INFO : RIG_INFO;
   }
   // openFocus() has no "scene changed" hook to call out to — piggyback the
@@ -2607,7 +2640,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
   function frameTick() {
     requestAnimationFrame(frameTick);
-    if (!isAudioScene() || !overlay.classList.contains('open')) return;
+    if (!showAudio() || !overlay.classList.contains('open')) return;
     const inControl = window.ELECTRON_ROLE === 'control';
     // Live values are mirrored onto the shared AUDIOIN object regardless of
     // role — real analysis in the show window (part2e_audioin.js's tick()),
@@ -2653,7 +2686,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   const traceCol = { level: 'rgba(220,220,220,.75)', bass: '#ffb14a', mid: '#7fd8d8', treble: '#c09aff' };
   function drawAudioLanes() {
     requestAnimationFrame(drawAudioLanes);
-    if (!lanes || !isAudioScene() || !overlay.classList.contains('open')) return;
+    if (!lanes || !showAudio() || !overlay.classList.contains('open')) return;
     const W = lanes.clientWidth | 0, H = rack.offsetHeight | 0;
     if (!W || !H) return;
     if (lanes.width !== W || lanes.height !== H) { lanes.width = W; lanes.height = H; lanes.style.height = H + 'px'; }
@@ -2820,6 +2853,7 @@ function frame(ts) {
     // published bands, so room noise takes `level` down with it.
     audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
              sub: AUDIOIN.sub, lowmid: AUDIOIN.lowmid, db: AUDIOIN.db, dev: AUDIOIN.dev, flux: AUDIOIN.flux, live: AUDIOIN.live,
+             build: AUDIOIN.build, drop: AUDIOIN.drop,
              kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
   };
   drawWidget(document.getElementById('widgetTop'), t);
@@ -3013,6 +3047,7 @@ setInterval(() => {
   const inp = {
     L: 1 - chan.L.v, R: 1 - chan.R.v, summon: SUMMON.active ? 1 : 0, summonCharge: SUMMON.charge,
     audio: { level: AUDIOIN.level, bass: AUDIOIN.bass, mid: AUDIOIN.mid, treble: AUDIOIN.treble, onset: AUDIOIN.onset, pan: AUDIOIN.pan,
+             build: AUDIOIN.build, drop: AUDIOIN.drop,
              kick: AUDIOIN.kick, now: (AUDIOIN.ctx && !AUDIOIN._testOverride) ? AUDIOIN.ctx.currentTime : performance.now() / 1000 },
   };
   if (focus.P) {

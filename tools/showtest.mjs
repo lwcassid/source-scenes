@@ -62,11 +62,12 @@ for (let i = 0; i < 6; i++) { await drive(); await new Promise(r => setTimeout(r
 const p1 = await control.evaluate(() => ({ ...window.__sent, voice: !!focus.voice, mode: MOut.mode, showLive, port: MOut.port && MOut.port.name }));
 console.log('PHASE 1 · web-app mode (control sends):', JSON.stringify(p1, null, 1));
 
-// ---- PHASE 2: show mode — the SHOW window must stream, even buried
+// ---- PHASE 2: show mode via the REAL gesture — QUEUE.play(true) is what
+// START THE SHOW clicks; SHOWTIME, per-scene OUT overrides and all.
 await control.evaluate(() => { closeFocus(); });
 await stubInto(show);
-await control.evaluate(() => { setShowLive(true); if (window.electronAPI) window.electronAPI.sendShowControl('outMode', 'both'); openFocus(PIECES.findIndex(p => p.id === 'SRC-15.23')); });
-await new Promise(r => setTimeout(r, 2000));
+await control.evaluate(() => { QUEUE.play(true); });
+await new Promise(r => setTimeout(r, 2500));
 for (let i = 0; i < 6; i++) { await drive(); await new Promise(r => setTimeout(r, 1000)); }
 const p2 = await show.evaluate(() => ({ ...window.__sent, sceneId: focus.idx >= 0 ? PIECES[focus.idx].id : null, voice: !!focus.voice, mode: MOut.mode, aeState: AE.ctx ? AE.ctx.state : 'no-ctx' }));
 console.log('PHASE 2 · show mode (show window sends):', JSON.stringify(p2, null, 1));
@@ -78,7 +79,46 @@ for (let i = 0; i < 5; i++) { await drive(); await new Promise(r => setTimeout(r
 const p3 = await show.evaluate(() => ({ ...window.__sent, frameFresh: performance.now() - (window.__lastFrameMs || 0) < 500 }));
 console.log('PHASE 3 · show window buried:', JSON.stringify(p3, null, 1));
 
+// ---- PHASE 4: the SOUND OUT checkboxes must bite DURING a show (console
+// mode relays them to the show window — Lance found them inert there)
+const ck = (id, on) => control.evaluate(([id2, on2]) => {
+  const el = document.getElementById(id2);
+  if (el && el.checked !== on2) el.click();
+}, [id, on]);
+await ck('ckAbleton', false);
+await new Promise(r => setTimeout(r, 1500));
+await show.evaluate(() => { window.__sent.notes = 0; });
+for (let i = 0; i < 3; i++) { await drive(); await new Promise(r => setTimeout(r, 1000)); }
+const ablOff = await show.evaluate(() => ({ wants: MOut.wants(), mode: MOut.mode, notes: window.__sent.notes }));
+await ck('ckAbleton', true);
+await new Promise(r => setTimeout(r, 1500));
+await show.evaluate(() => { window.__sent.notes = 0; });
+for (let i = 0; i < 3; i++) { await drive(); await new Promise(r => setTimeout(r, 1000)); }
+const ablOn = await show.evaluate(() => ({ wants: MOut.wants(), mode: MOut.mode, notes: window.__sent.notes }));
+await ck('ckBrowser', false);
+await new Promise(r => setTimeout(r, 1500));
+const spkOff = await show.evaluate(() => ({ aeOn: AE.on, master: AE.master ? +AE.master.gain.value.toFixed(4) : null }));
+await ck('ckBrowser', true);
+await new Promise(r => setTimeout(r, 1500));
+const spkOn = await show.evaluate(() => ({ aeOn: AE.on, master: AE.master ? +AE.master.gain.value.toFixed(4) : null }));
+console.log('PHASE 4 · console checkboxes:', JSON.stringify({ ablOff, ablOn, spkOff, spkOn }, null, 1));
+
+// ---- PHASE 5: a scene whose queued OUT override is 'midi' mutes the synth
+// behind the operator's back — the SYNTH box must SHOW that (unchecked) and
+// checking it must genuinely bring the synth in (Lance: boxes looked inert)
+await control.evaluate(() => { QUEUE.goToFamily('SRC-38'); }); // Lumen Film, out: midi
+await new Promise(r => setTimeout(r, 3000));
+const mid1 = await control.evaluate(() => ({ boxShows: document.getElementById('ckBrowser').checked, relayedMode: rigRelay.mode }));
+await ck('ckBrowser', true);
+await new Promise(r => setTimeout(r, 1500));
+const mid2 = await show.evaluate(() => ({ mode: MOut.mode, master: AE.master ? +AE.master.gain.value.toFixed(4) : null }));
+console.log('PHASE 5 · midi-override scene:', JSON.stringify({ mid1, mid2 }, null, 1));
+
 await app.close();
 const ok1 = p1.notes > 0, ok2 = p2.notes > 0, ok3 = p3.notes > 0;
-console.log(`VERDICT: web-app ${ok1 ? 'PASS' : 'FAIL'} · show ${ok2 ? 'PASS' : 'FAIL'} · buried ${ok3 ? 'PASS' : 'FAIL'}`);
-process.exit(ok1 && ok2 && ok3 ? 0 : 1);
+const ok4 = ablOff.notes === 0 && !ablOff.wants && ablOn.notes > 0 && ablOn.wants &&
+            spkOff.aeOn === false && (spkOff.master !== null && spkOff.master < 0.01) &&
+            spkOn.aeOn === true && (spkOn.master !== null && spkOn.master > 0.1);
+const ok5 = mid1.boxShows === false && mid2.mode === 'both' && (mid2.master !== null && mid2.master > 0.1);
+console.log(`VERDICT: web-app ${ok1 ? 'PASS' : 'FAIL'} · show ${ok2 ? 'PASS' : 'FAIL'} · buried ${ok3 ? 'PASS' : 'FAIL'} · console-boxes ${ok4 ? 'PASS' : 'FAIL'} · midi-override ${ok5 ? 'PASS' : 'FAIL'}`);
+process.exit(ok1 && ok2 && ok3 && ok4 && ok5 ? 0 : 1);

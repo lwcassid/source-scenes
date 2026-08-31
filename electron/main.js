@@ -309,7 +309,15 @@ function armAppAudioPicker() {
 }
 function disarmAppAudioPicker() {
   clearTimeout(appAudioRevertTimer);
-  registerMirrorDisplayMediaHandler();
+  // Do NOT swap the handler back in the same tick the picker reports done:
+  // the SCContentSharingPicker's XPC callbacks are still in flight then, and
+  // re-registering (which toggles useSystemPicker off) mid-flight is the
+  // exact sequence electron#45306 documents as a hang/CRASH — an uncaught
+  // NSXPCConnection exception took the whole main process down on Aug 31
+  // (Electron-2026-08-31-012615.ips, AppKit _crashOnException). One second
+  // of settle costs nothing (the mirror reconnects lazily) and stays clear
+  // of the picker's teardown.
+  appAudioRevertTimer = setTimeout(registerMirrorDisplayMediaHandler, 1000);
 }
 
 function bootWindows() {

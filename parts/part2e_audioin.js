@@ -103,6 +103,22 @@ const AUDIOIN = {
   kick: { t: -1, strength: 0, n: 0 },
   kickBpm: 0,
   _kLastCt: 0, _kEnv: 0, _kRef: 0, _kPrev: 0, _kGap: 1e9, _kSeeded: false, _kConnectT: 0, _kIoi: [], _kFiredThisTick: false,
+  // BUILD/DROP — the STRUCTURAL listener, Layer 6 (Lance, DJ-set round).
+  // Everything above answers "what is the music doing this frame"; a DJ set
+  // also has 8-30s SHAPE, and scenes stake whole mode changes on it (Event
+  // Horizon's stargate, Chladni's unlock). See _structTick() below.
+  //   build — 0..1, integrates over seconds: bass sitting well below its own
+  //     ~22s baseline while broadband energy holds or the top end stays busy.
+  //     A two-bar fill cannot fake it; a real 8-bar build reads ~0.5+.
+  //   drop  — an EVENT, same contract as `kick`: {t, strength, n}, a new drop
+  //     is `n` CHANGING (never truthiness). Fires when the bass RE-ENTERS
+  //     hard over its section norm, confirmed by the time-domain kick, with
+  //     structure behind it (a tracked build, or >5s of real suppression).
+  //     Refractory 8s. Conservative on purpose — a false drop that opens a
+  //     scene's break in a quiet room is far worse than a missed one.
+  build: 0,
+  drop: { t: -1, strength: 0, n: 0 },
+  _st: { levF: 0, levS: 0, bassF: 0, bassS: 0, hiF: 0, trend: 0, supp: 0, suppT: 0, dropGap: 1e9, primed: false },
 
   /* ============================================================
      THE BAND ENGINE — five layers, all measured against the real material
@@ -705,6 +721,67 @@ const AUDIOIN = {
       }
     }
   },
+  /* ---- Layer 6: BUILD/DROP, the structural listener ---------------------
+     Rides the AGC'd public bands, so it is gain-invariant by construction
+     and costs six one-pole eases per frame. The heuristic is the one the
+     drop-detection literature (ISMIR '14) and VJ practice agree on:
+       build = bass suppressed against its own section norm x (energy
+               holding/climbing OR a busy top end), integrated slowly;
+       drop  = bass re-entry over the norm, on a kick, with either a tracked
+               build or >5s of genuine suppression behind it.
+     The slow baselines learn 4x slower while the bass is judged suppressed —
+     the same freeze idea as the AGC's collapse gate — so a long breakdown
+     erodes the section norm instead of erasing it, and the re-entry still
+     has something to jump over. Latency is deliberately ~a beat: a scene
+     paying off a drop one kick late reads as intentional; one paying off a
+     fill as a drop reads as broken. */
+  _structTick(dt) {
+    const st = this._st;
+    st.dropGap += dt;
+    if (!this.live) {
+      // no judged source: the shape decays, the baselines hold (silence must
+      // not become the section norm, same rule as the frozen AGC trackers)
+      this.build = Math.max(0, this.build - this.build * Math.min(1, dt * 0.6));
+      st.supp = 0; st.suppT = 0;
+      return;
+    }
+    const ez = (cur, target, tau) => cur + (target - cur) * Math.min(1, dt / tau);
+    const hi = (this.mid + this.treble) * 0.5;
+    if (!st.primed) {
+      st.levF = st.levS = this.level; st.bassF = st.bassS = this.bass; st.hiF = hi;
+      st.trend = 0; st.primed = true;
+    }
+    const levFPrev = st.levF;
+    st.levF = ez(st.levF, this.level, 2.5);
+    st.bassF = ez(st.bassF, this.bass, 2.0);
+    st.hiF = ez(st.hiF, hi, 2.5);
+    const hold = st.supp > 0.5 ? 4 : 1;          // breakdown: baselines 4x slower
+    st.levS = ez(st.levS, st.levF, 22 * hold);
+    st.bassS = ez(st.bassS, st.bassF, 22 * hold);
+    st.trend = ez(st.trend, (st.levF - levFPrev) / Math.max(dt, 1e-3), 1.5);
+
+    // suppression: how far the bass sits under its own section norm. The
+    // 0.06 dead-zone is ~the AGC'd band's normal wobble on steady material.
+    st.supp = ez(st.supp, clamp((st.bassS - st.bassF - 0.06) / 0.22), 0.8);
+    if (st.supp > 0.45) st.suppT += dt; else st.suppT = Math.max(0, st.suppT - dt * 2);
+
+    // BUILD — suppression x (energy holding/climbing OR busy top end).
+    const energy = clamp(Math.max((st.levF - st.levS + 0.02) / 0.12, (st.trend / 0.04) * 0.6));
+    const busyTop = clamp((st.hiF - st.levS * 0.7) / 0.25);
+    const target = st.supp * Math.max(energy, busyTop);
+    this.build += (target - this.build) * Math.min(1, dt * (target > this.build ? 0.35 : 0.5));
+
+    // DROP — bass re-enters hard, on this tick's kick, with structure armed.
+    const jump = this.bass - Math.max(st.bassF, st.bassS);
+    const armed = this.build > 0.35 || st.suppT > 5;
+    if (armed && st.dropGap > 8 && this._kFiredThisTick && jump > 0.18 && this.bass > 0.5) {
+      const strength = clamp(0.35 + this.build * 0.5 + jump * 0.8);
+      this.drop = { t: this.kick.t, strength, n: this.drop.n + 1 };
+      st.dropGap = 0; st.suppT = 0;
+      this.build = Math.min(this.build, 0.15);   // spent — must be re-earned
+    }
+  },
+
   tick(dt) {
     if (window.ELECTRON_ROLE === 'control') return;
     // Test hook active (setAudioIn, no real device wired) — leave whatever
@@ -728,6 +805,8 @@ const AUDIOIN = {
       }
       this.onset = 0;
       this.live = false; this._conf = 0;
+      this.build = Math.max(0, this.build - this.build * decay);   // shape dies with the signal
+      this._st.supp = 0; this._st.suppT = 0; this._st.dropGap += dt;
       this._pushHistory(dt);
       return;
     }
@@ -868,6 +947,8 @@ const AUDIOIN = {
       a.prevN = this[k];
       this.flux[k] = Math.max(clamp(rise / this.FLUX_FULL), this.flux[k] - dt * this.FLUX_DECAY);
     }
+
+    this._structTick(dt);
 
     // SET REST samples RAW dBFS now, matching what the gate and the AGC floor
     // are actually expressed in (the old version median-ed the post-norm,
@@ -1077,6 +1158,10 @@ const AUDIOIN = {
     for (const k of ['bass', 'mid', 'treble']) { this.dev[k] = 0.5; this.flux[k] = 0; }
     this._fluxPrimed = false; this._fluxSlow = 0; this._onsetGap = 0; this._onsetEnv = 0; this._prevBassRaw = 0;
     this.onset = 0;
+    // the structural listener's baselines were learned on the range that just
+    // went away; drop.n stays monotonic (same rule as kick.n across _wire())
+    this.build = 0;
+    this._st = { levF: 0, levS: 0, bassF: 0, bassS: 0, hiF: 0, trend: 0, supp: 0, suppT: 0, dropGap: 1e9, primed: false };
     // an in-flight SET REST would land its medians into the range we just
     // cleared, ~1.6s after the operator asked for the opposite
     this.restSampling = false; this.restData = []; clearTimeout(this.restTimer); this.restTimer = null;
@@ -1137,6 +1222,7 @@ const AUDIOIN = {
       // the SIGNAL, not just the settings: SHOW CHECK used to read "connected
       // && cal.rest" as ok and printed "signal live" over a shut gate.
       live: this.live, levelDb: this.db.level, gate: this._gate,
+      build: this.build,
       restRejected: this.restRejectFresh() ? this.restRejected : null,
     });
   },
@@ -1200,6 +1286,11 @@ function setAudioIn(vals) {
   // can compute — a caller driving values IS the source, so derive it from
   // the values it set (and let an explicit vals.live win).
   if (vals.live === undefined) a.live = clamp(a.level || 0) > 0.02 || clamp(a.onset || 0) > 0.3;
+  // `build` is slow state the structural listener owns on the real path; a
+  // test caller that doesn't set it must not leave a scene reading the build
+  // from three states ago (same rule as flux above). `drop` is left alone —
+  // its n must stay monotonic, and setAudioDrop() is the hook that fires it.
+  if (vals.build === undefined) a.build = 0;
   AUDIOIN.connected = true;
   AUDIOIN._testOverride = true;
 }
@@ -1210,3 +1301,16 @@ function setAudioKick(strength) {
   setAudioIn({ kick: { t: performance.now() / 1000, strength: clamp(strength === undefined ? 0.8 : strength), n: (AUDIOIN.kick ? AUDIOIN.kick.n : 0) + 1, perfClock: true } });
 }
 window.setAudioKick = setAudioKick;
+// Drop test hook: one structural drop, `strength` 0..1. Fires a hard kick in
+// the same call because every real drop arrives on one (the detector requires
+// it), so harness states stay shaped like the real thing. Preserve any band
+// values the caller staged first — this only touches drop/kick/build.
+function setAudioDrop(strength) {
+  const s = clamp(strength === undefined ? 0.8 : strength);
+  setAudioIn({
+    build: 0,   // spent, same as the real detector
+    drop: { t: performance.now() / 1000, strength: s, n: (AUDIOIN.drop ? AUDIOIN.drop.n : 0) + 1, perfClock: true },
+    kick: { t: performance.now() / 1000, strength: Math.max(0.7, s), n: (AUDIOIN.kick ? AUDIOIN.kick.n : 0) + 1, perfClock: true },
+  });
+}
+window.setAudioDrop = setAudioDrop;

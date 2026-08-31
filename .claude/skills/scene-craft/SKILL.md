@@ -79,7 +79,54 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    reach. Intensify the native marks (halo the dust); never swap in a
    different sprite (AV3's lantern orbs lost the dust's elegance — Lance).
 
-8. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
+8. **Volumetric fluff: billow the density, never the light (Nima, Cloud
+   Steam V1).** Plain fbm is smoke; folding each octave (`1-|2n-1|`) into
+   rounded ridges is what makes cauliflower. But those folds are creases —
+   shade from a SMOOTH twin field, or the directional derivative that gives
+   you the volume turns every fold into a hard seam and the noise lattice
+   into blocky artifacts (use a real hash; `fract(p.x*p.y)` shows its grid).
+   Two more that decide whether a soft mass reads: taper the erosion with
+   DEPTH so a loud moment carves the boundary instead of punching holes
+   through the core, and put the shadow stop near BLACK — a dim tinted
+   fringe on black is mud, and on scrim it is mud nobody can see. Watch the
+   billow's MEAN: folding a smoothed noise puts it near 0.73, not 0.5, so a
+   threshold written against 0.5 covers the whole frame. Rescale linearly
+   around the real mean — a smoothstep remap crushes a narrow field into
+   camouflage.
+   **A DRAWN SHAPE CANNOT BE A CLOUD (Nima, Cloud Steam V3).** Anything whose
+   edge is `smoothstep(threshold, density)` HAS a silhouette by construction —
+   soften it and you get a billiard ball, sharpen it and you get torn paper,
+   and no value in between is a cloud. Nothing in this repo raymarches, so
+   when a scene needs real volume, take IQ's dynamic-clouds model: step a ray
+   through a 3D fbm field compositing front-to-back (`sum += col*(1-sum.a)`),
+   light it with ONE cheap sample a short step sunward, shear the octaves with
+   his mat3 so the fbm doesn't line up on the axes, and mix each SAMPLE toward
+   the far tint so aerial perspective lives in the colour. Softness stops
+   being a parameter and becomes what accumulation does. Flying through is
+   then one uniform.
+   Its budget is a real design constraint, and three plausible savings are
+   traps. What works: ONE density function with a SHARED PREFIX — compute the
+   first two octaves once, and if even the most the rest could add still
+   leaves the sample under coverage, it is provably air; that was 6x. What
+   fails: a separate coarse probe (pays for those octaves twice, loses in a
+   dense sky); empty-space STRIDING (proving THIS sample is air says nothing
+   about the next, so the stride lands inside a cloud and facets every
+   silhouette); and ray jitter (white noise speckles with nothing to
+   accumulate it across frames, an ordered pattern becomes a halftone once the
+   internal buffer scales up to the show frame). Measure against a scene that
+   already ships — a frame-time probe on the same rasterizer is the only
+   number that means anything.
+   Flying THROUGH the stuff (Nima, Cloud Steam V2) is a different build:
+   DISCRETE masses with positions and depths, sorted near-first and
+   composited front-to-back — the occlusion is what makes it flight instead
+   of a zoom. A stack of full-screen noise sheets at stepped scales cannot
+   do it at any density: sparse enough to leave sky, they tile into lace;
+   dense enough to read as cloud, they composite into a whiteout. Erode each
+   mass in its OWN normalised space so a near one shows the same detail as a
+   far one, only bigger, and weight its fine octaves by SCREEN size or the
+   distant ones alias into gravel.
+
+9. **A gradient wash is ONE FILL, never a fan of strokes.** Light bleeding
    off a shape = a single continuous gradient fill anchored to the shape's
    edge; N discrete gradient strokes read as a bar chart (Cable Strum V1's
    curtain — Lance's verdict). Gate echo/trail treatments by motion, so the
@@ -139,6 +186,29 @@ density it gets live. Two consequences:
   then move it identically and the sheet stays welded. Cap the amplitude so
   the displacement's gradient stays under 1 (`amp * waveNumber < 1`) or
   shells cross through each other and the mesh turns inside out.
+  **Then spend that budget on FEW, TALL waves, and shear as well as swell
+  (Nima, Penrose Bloom V9).** V6-V8 spent it backwards — many short waves at
+  a third of the legal height — and the control was invisible for three
+  rounds: a corrugation finer than the tiling it deforms is grain, not
+  motion, and on scrim it is nothing. Halving the wavenumber doubles the
+  amplitude the law allows, so fewer waves are also BIGGER ones. And a purely
+  radial map only scales cells, which the eye reads as a zoom; displacing the
+  ANGLE by a function of radius shears them instead — still a pure function
+  of position, and shear leaves the Jacobian determinant alone, so it cannot
+  fold the mesh at any amplitude. It is the free half of the budget and the
+  half that reads as rubber. Let the hand set the wave's SPEED as well as its
+  height, or the control is invisible whenever the picture is already moving.
+- **A RATE is a weak control; a STRUCTURE is a strong one (Nima, Penrose
+  Bloom V10).** Spin speed held a hand for nine versions and read as nothing:
+  changing how fast an already-moving thing moves has to be compared against
+  memory, while changing WHAT THE PICTURE IS MADE OF is read on arrival. When
+  the geometry is self-similar, its RECURSION DEPTH is the free high-contrast
+  axis — one throw took Penrose Bloom from 130 tiles to 2330. Dissolve
+  adjacent depths EQUAL-POWER (sqrt), never linearly: two half-alpha strokes
+  over each other come to 0.75, so a linear crossfade dips exactly in the
+  middle of the throw, where the hand spends its time. It reads as
+  subdivision rather than as a dissolve only because the coarse lattice is a
+  SUB-lattice of the fine one — check that before crossfading two scales.
 
 ## Instrument criteria (score every scene 1–5 before and after work)
 IMM immediacy (gesture→sound NOW) · EXP expressive range (two hands mean
@@ -166,6 +236,13 @@ SCR scrim (rules above). `docs/INSTRUMENT-SURVEY.md` scores all 35.
 onset, pan}` from a real mic/line-in instead of (or alongside) the hands —
 `AUDIOIN` (`parts/part2e_audioin.js`, ADR-0009). Cell Front V5 (SRC-43.5) is
 the reference implementation; read it before building a second one.
+- **Engine law vs scene verdict (Lance, Aug 2026).** Below, only the rules
+  about the ENGINE and the MEDIUM are global — kick unsmoothed + back-dated,
+  hysteresis before anything that gates a note or rebuilds geometry, no
+  full-frame strobe. The rest (which band owns which job, paint caps,
+  hands-as-gamma) are verdicts scoped to the scene they were learned on:
+  consult them as precedent, then make the call that serves THIS scene's
+  mark language — don't inherit a sibling's taste call as law.
 - `level`/`bass`/`mid`/`treble` are already engine-smoothed 0..1 — don't
   re-smooth them, but DO still ease them into your own state the way `inp.L`
   gets eased (`s.bass += (audioBand - s.bass) * dt*6`), same as hands.
@@ -196,6 +273,16 @@ the reference implementation; read it before building a second one.
   never derive COLOUR from the shaped values: a gamma does not preserve band
   ratios, so a spectral tilt computed downstream turns the sensitivity hand
   into a hue control. Take colour off the raw balance.
+- **Give the beat ONE job, and make it motion (Nima, Cloud Steam V4).** A
+  kick wired to brightness reads as FLASHING, not as rhythm — and a kick that
+  also moves a global coverage/density term flashes the whole frame a second
+  way. Let the beat drive PACING (a forward impulse, a lurch, an advance) and
+  nothing else; leave every band on a slow envelope so shape, growth and
+  colour can never move on a beat. Check it structurally — grep that the kick
+  envelope is read in exactly one place — because comparing an on-beat frame
+  against an off-beat one CANNOT separate a flash from ordinary motion, and
+  will show a large delta either way. `AUDIOIN.kickBpm` is free tempo: let it
+  set the cruising rate so a faster track is a faster scene.
 - **Two clocks: the kick swells, the bands size the field (Nima, Cell
   Front V9).** On techno/house every band is busy at once, so a shape whose
   size chases its own band (attack ≥ ~8/s) twitches on every note — that
@@ -231,10 +318,12 @@ the reference implementation; read it before building a second one.
   have an `audio()` block. Cell Front V5 just doesn't, because there was
   nothing left to say once the picture was the instrument's answer.
 - **A second listener must not be the first one again (Nima, Penrose Bloom
-  V2).** Before writing an audio-in scene, read the one already in the set
+  V2).** Before writing an audio-in scene, read the ones already in the set
   and take a DIFFERENT job for each band. Cell Front owns "three pockets,
-  one per band, hands paint the palette"; Penrose Bloom owns "loudness is
-  SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
+  one per band, hands paint the palette"; CLOUD STEAM owns "the spectrum
+  CARVES the mass — treble weights the fine octaves, loudness only sizes it,
+  and a big rise OR fall condenses the whole thing into a heart"; Penrose
+  Bloom owns "loudness is SIZE (the growth front), spectrum is COLOUR (centroid tilts the ramp, the
   mid/treble balance re-deals which tile class takes which stop, quantised
   and held so it steps on a chord change instead of shimmering)"; Spectrum
   Halo owns "band = HARMONIC ORDER of one closed curve, and the curve is
@@ -283,6 +372,23 @@ the reference implementation; read it before building a second one.
   contrast between figure and ground, so quiet reads as one lattice and loud
   resolves into the plate. Classify once per geometry and cache it; it is
   fixed data, never per-frame work.
+- **The set has SHAPE: `inp.audio.build` and `inp.audio.drop` (Lance,
+  DJ-set round).** Layer 6 in part2e is the STRUCTURAL listener: `build`
+  (0..1, slow — bass withheld against its own ~22s norm while energy/top
+  end climb) and `drop` ({t, strength, n} — new drop = `n` CHANGING, 8s
+  refractory, requires a kick + a tracked build or >5s real suppression).
+  Stake a scene's dormant jam mode on the drop (EH31's stargate, Chladni
+  31's unlock, WS10's pink) and let `build` drive a visible telegraph —
+  withhold during the build, spend on the drop. SEED the counters on first
+  sight (`s._dropN = au.drop.n`) or a scene opened mid-set fires a
+  45s window off a drop three scenes old. When a scene has both a hand
+  ritual and an audio path for the same mode, the ritual stays hand-only.
+  Suppress the scene's own drums/arp while `audio.live` — the DJ owns the
+  rhythm. Chladni gotcha: n === m makes chi() identically zero (a blank
+  plate); integer audio mode targets must never be equal. Harnesses:
+  `tools/droptest.mjs` (detector math, 10 adversarial checks) and
+  `tools/shotdrop.mjs <id> <prefix>` (groove→build→drop→jam screenshots;
+  HANDS=0 for the audio-only picture when hands own a control).
 - **SHOOT the audio states — `node tools/shotaudio.mjs <id> <prefix>`.**
   `shot.mjs` can only drive hands, so an audio-in scene's whole instrument
   is invisible to it. shotaudio drives `setAudioIn`/`setAudioKick` through a

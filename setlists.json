@@ -109,6 +109,39 @@
           "out": "both"
         }
       ]
+    },
+    {
+      "name": "DJ SET",
+      "note": "Nima, Aug 2026 — the audio-in scenes: they draw what they hear. This is the set for when a DJ is the instrument. Connect the source in MAP → Audio in (line-in, mic, or CAPTURE APP AUDIO) and SET REST with the room quiet before the first track, or silence won't read as silence. All want a full spectrum with a real kick. The arc: Spectrum Halo reads the track literally as one exposed plate, Penrose Bloom grows a crystal out of it, Cloud Steam flies the sky forward one surge per beat — then Lance's adapted trio (Aug 31 round, the structural listeners: they read the new build/drop detector): Chladni Court lets the spectrum choose the plate's resonance and the drop opens its violet unlock, White Study fills its grid with the DJ's hats and pumps to the real kick, and Event Horizon closes — the kick strums the cable and the drop opens the 2001 stargate. The trio keeps its hand instruments (silent without a player, OUT pinned to web so nothing reaches Live) — a visitor at the pedestal can jam over the booth. Cell Front (SRC-43) is deliberately OUT of this set. MIN 15 because a DJ set is long-form.",
+      "scenes": [
+        {
+          "id": "SRC-49",
+          "min": 15
+        },
+        {
+          "id": "SRC-46",
+          "min": 15
+        },
+        {
+          "id": "SRC-47",
+          "min": 15
+        },
+        {
+          "id": "SRC-28",
+          "min": 15,
+          "out": "web"
+        },
+        {
+          "id": "SRC-34",
+          "min": 15,
+          "out": "web"
+        },
+        {
+          "id": "SRC-13",
+          "min": 15,
+          "out": "web"
+        }
+      ]
     }
   ]
 }
