@@ -1,160 +1,178 @@
 /* ---------- SRC-49.3 · SPECTRUM HALO V3 (the plate finds the new ground) ----
-   No new mechanic, no new hand, and not one draw-side constant touched. The
-   AUDIO IN engine was rewritten under this scene: it used to hand every band
-   a compressed signal that sat near 0.9 and barely moved, and it now
-   auto-ranges to the material. Every number in V2 was calibrated against the
-   pinned signal, so on the new engine the same constants land far lower and
-   the halo measured DIMMER than it ever shipped — >50-luminance coverage
-   22.1% -> 14.8% on the same music. V3 re-seats the constants. Measured
-   throughout on Leila.mp3 from 90s, 50s of real techno at ~440 sampled
-   frames, played through a MediaStreamAudioDestinationNode into the REAL
-   AUDIOIN path (not setAudioIn, which pins dev to 0.5 and flux to onset and
-   therefore cannot exercise half of this round), localStorage cleared so the
-   engine calibrates from virgin state; luminance off the 1920x1200 show frame
-   with the HUD row excluded. Every V2 figure below was re-measured on that
-   same rig rather than quoted, and it reproduces the shipped build's numbers
-   to within a point.
+   No new mechanic and no new hand. The AUDIO IN engine was rewritten under
+   this scene: it used to hand every band a compressed signal pinned near 0.9,
+   and it now auto-ranges to the material. Every number V2 shipped was
+   calibrated against the pinned signal, so on the new engine the same
+   constants land far lower and the halo went DIM. V3 re-seats them.
 
-   WHAT THE MEASUREMENT ACTUALLY SAID, because it is not what it looks like.
-   The scene's DYNAMICS did not get worse — they got better. The 2.2/1.4 ease
-   turns the engine's fast 0.78-spread band into its running mean, so s.bass
-   now sits at p50 0.668 where it used to sit at ~0.87, but its eased spread
-   (0.257) is WIDER than the old flat signal could ever produce. This is a
-   mean-restoration problem, not a smoothing problem, so the ease is
-   untouched: the header's "it can't jitter" law is intact and the ease is
-   what makes it true.
+   THIS VERSION'S FIRST CUT FAILED AN ADVERSARIAL SCRIM REVIEW — "should not
+   ship as it stands" — and was reworked rather than shipped. All three
+   findings reproduced on a fresh rig before anything was touched, and the
+   worst of them was one the first cut's own header argued for at length. They
+   are written down here because the mistake is instructive and generic: it
+   placed a white PLATEAU exactly where the data lives instead of SPANNING the
+   data, and then measured the result against the number it had optimised
+   rather than against the picture.
 
-   And the ugly one: `base` is geometrically capped at 0.450 (0.155+0.295),
-   and a pinned sweep shows the old engine ran it at 0.447. The halo was
-   PINNED AT ITS OWN CEILING on the old engine — "LOUDNESS IS DIAMETER" was
-   as broken then as now, in the opposite direction. Over 38s of real music
-   the diameter moved less than the idle breath LFO does (two frames 16s
-   apart differ by 1.8x in bright coverage while field moves 0.002). So the
-   brightness is restored SPLIT across diameter, lobe amplitude and smear
-   rate — all three of which now have real spread to spend.
+   HOW EVERY NUMBER BELOW IS MEASURED. Leila.mp3 from 90s, 48s of real techno,
+   ~520 sampled frames, decoded in-page and played through a
+   MediaStreamAudioDestinationNode into the REAL AUDIOIN path — NOT
+   setAudioIn, which pins dev to 0.5 and flux to onset and therefore cannot
+   exercise half of this round. localStorage cleared so the engine calibrates
+   from virgin state. Pixels read back off the composited 1920x1200 show frame
+   (post-bloom) with the bottom 34px HUD row excluded. V2 and V3 are opened
+   with IDENTICAL phase seeds, hands off (sens 1.0 — the engine-identity
+   case), and captured at IDENTICAL MUSIC TIMESTAMPS, so the pair differs only
+   by its constants. Harness caveat: swiftshader runs 11-15 fps and frame()
+   caps dt at 0.05, so scene time runs slower than real; both legs share it,
+   and no time constant was tuned against harness timing alone.
 
-   ONE SHARED BAND WINDOW does all the re-seating (Penrose V3's law: narrow
-   the input, don't crank the weight). The eased bands live in [0.29,0.78]
-   with a p50 of 0.62-0.67; every constant downstream was written for 0.87.
-   win(v) = clamp((v-0.26)*1.45) puts the p50 back where the constants expect
-   it AND hands the scene the 1.45x wider excursion the new engine earned.
-   It RELAXES TO IDENTITY at rest (wLo *= 1-rest, gain 1.45->1.00), because
-   with no music there is nothing to window and V2's "CC2 sizes the resting
-   breath in a silent room" lives entirely below that floor — a fixed 0.26
-   floor would collapse that whole throw to nearly nothing and kill "the hand
-   is never dead in a silent room". At rest=1 win(v) is exactly v. (The
-   WINDOW is identity there; the coefficients it feeds are not, so the resting
-   ring is ~6% wider than V2's. Measured rest during music: p50 0.000, p95
-   0.011 — the window is at full strength whenever there is anything to hear.)
+   THE MEASURED GROUND, which is what everything downstream is placed against:
+     eased bands  p50 0.60-0.68, living in [0.29, 0.78] — every V2 constant
+                  was written for a signal that sat at 0.87
+     tilt         p5 0.502 · p25 0.560 · p50 0.594 · p75 0.621 · p95 0.667,
+                  min 0.406 — measured, not assumed
+     field (V2)   p5 0.492 · p50 0.633 · p95 0.667 — base 0.30..0.35 against a
+                  geometric ceiling of 0.450 and a tanh knee at 0.32
 
-   Then each constant is set so its p50 lands on its old-engine value:
-   · ab  0.150 -> 0.220 on wB   (old 0.1855 = 0.055 + C*0.592)
-   · am  0.085 -> 0.168 on wM   (old 0.0960 = 0.022 + C*0.441)
-   · at  0.032 -> 0.050 on wT   (old 0.0348 = 0.007 + C*0.551)
-   · energy off the windowed bands (p50 0.528)
-   · spd  0.90 -> 1.48, rot 0.22 -> 0.36 on that energy (old 1.333 / 0.2914).
-     spd is the easy one to miss and it matters most: it is the phase drift
-     that SEPARATES the 96 stamps, and at 1.11 they were landing on top of
-     each other — a thin ring where the scene is supposed to be a wide plate.
-   · field weights x1.56 (0.36/0.28/0.22/0.16 -> 0.56/0.44/0.34/0.25) and the
-     ^1.05 exponent dropped, since the window now owns the shaping. field
-     p50 0.539 -> 0.841, spread 0.167 -> ~0.53. The top few percent clamp,
-     which is the drop filling the frame and is correct; the old constants
-     clamped nothing because they never got near 1.
+   FINDING 1 — THE PALETTE WAS BACKWARDS. The first cut set the diverging ramp
+   to [0.50, 0.70, 0.38]: centre on the measured tilt p50, plateau +-0.038 to
+   hold the middle 50% of frames white. Both halves of that are true and the
+   result was still wrong, because a SYMMETRIC window cannot serve this
+   distribution. Coral needed tilt >0.638 and full coral 0.70 — unreachable on
+   this material — so the only end it newly unlocked was SLATE, which is 2.5x
+   darker than the core white. Measured: mean R-B of the ink above 150 luma
+   went +12.3 (V2) to -13.1, six of six frames negative; the 40-150 body went
+   -1.7 to -15.6. V2's stills have an unmistakable coral leading edge with rose
+   strata. The first cut's are a white line on cold navy. That is not this
+   scene.
+   THE FIX IS FOUR MEASURED LANDMARKS, ASYMMETRIC: [slate full, slate onset,
+   coral onset, coral full] = [0.455, 0.530, 0.560, 0.680]. The WARM half is
+   placed to reproduce V2's response almost exactly — coral opens at ~p26, is
+   half strength at p75, full at p95, agreeing with V2's own ramp to within
+   0.02 at every percentile — because that half was never broken and it is the
+   plate Lance shipped. The COLD half is widened and pushed down instead:
+   slate opens at ~p10 and only reaches full depth around 0.455, below this
+   track's minimum. So a bass-carrying stratum tints pale cool blue and only
+   genuinely bass-dominated material drives deep slate. Both ends are live;
+   the dark one is RATIONED, because darkness on scrim is a spend. Measured
+   after: R-B above 150 luma +23.8, body +1.6.
+   The generalisable rule, and it belongs to whoever writes the next ramp: a
+   plateau centred on the p50 spans nothing. Place the ONSETS at percentiles
+   you want the colour to start at, and let the ends fall where the tail is.
 
-   WHAT THE RETUNE MEASURED, same rig, 50s of the same music, V2 vs V3, hands
-   off (sens 1.0 — the engine-identity case), and the one number that only
-   just makes it:
-     >lum 50   15.5% -> 27.8%        (old engine 22.1%)
-     >lum 15   28.7% -> 38.0%        (old engine ~40%; 37.1/37.5/38.0 over
-                                      three runs, so it STRADDLES its 38% bar)
-     mean lum  18.00 -> 24.94        (24)
-     vfill     0.835 -> 0.943        (0.93)
-     field spread (p95-p5) 0.153 -> 0.373, i.e. 2.4x, measured both sides on
-       this rig. The retune's own spec predicted ~0.53 by combining the bands'
-       separate percentiles, which treats them as independent and overstates
-       what a single eased frame can do; the honest comparison is against V2
-       measured the same way.
-   And the price, stated plainly: below the window's 0.26 floor the bands read
-   zero, so a genuinely quiet passage now draws a SMALL ring where V2 drew a
-   medium one (synthetic bands pinned at 0.15-0.20: mean luminance 6.8 -> 3.2).
-   That is the dynamic range this round exists to restore — "a quiet passage
-   is a small ring and a drop fills the frame" is the scene's first law — but
-   on a set with a long ambient intro it will read as darker than the shipped
-   build, and that is the trade. On real techno the engine's AGC never takes
-   the eased bands that low: measured mean luminance p5 is 19.7.
+   FINDING 2 — THE BRIGHTNESS WAS IN THE WRONG PIXELS. The first cut's gain
+   was real in the mean (19.7 -> 24.4) but it was mostly a bigger, dimmer
+   wash: the ink above 150 luma did not move at all (29.2k -> 31.2k, +7%,
+   inside run-to-run noise) while the dim 40-150 body ballooned. Low-contrast
+   fill is exactly what mosquito net eats. The cause is not the diameter,
+   which was the obvious suspect and the wrong one — it is that field, lobe
+   amplitude and smear rate were ALL raised at once, so the same light got
+   spread over a wider band with fewer stamps agreeing anywhere.
+   THE FIX, in the order it was measured: (a) am 0.168 -> 0.150, because wM
+   actually arrives at p50 0.495, not the 0.441 the first cut assumed, so am
+   was overshooting its own old-engine target; (b) field weights x1.56 ->
+   x1.41 of V2's (0.50/0.39/0.30/0.23 on the windowed bands) — see finding 3;
+   (c) spd 1.48 -> 1.07 and rot 0.36 -> 0.30, which puts the phase drift back
+   at the value the SHIPPED V2 actually delivers on this engine (1.19 vs 1.12)
+   rather than at the old engine's 1.33 — the extra fine strata were more of
+   what mesh shreds, not less; and (d) the one draw-side constant this round
+   does touch, the HISTORY stroke alpha, 0.055 -> 0.066 outer and 0.062 ->
+   0.074 inner (kick terms with them). Enlarging the figure without paying for
+   the extra area is what made it a wash; that alpha is the payment, and it
+   lands superlinearly in the overlap because the stack composites `lighter`,
+   so it buys the dense band and not the outskirts. Pulling the LOBES back
+   instead was tried and measured worse on every axis at once (>200 luma
+   0.36% -> 0.28%, cv 14.9 -> 13.7) — shallower lobes did not reconcentrate
+   the ink, they just made a smaller picture.
 
-   The escalation for that >15 miss was measured and REFUSED. Field weights
-   x1.70 (0.61/0.48/0.37/0.27) do clear it — >15 39.0%, >50 30.3% — but the
-   outer contour's lobe depth drops 0.754 -> 0.719 and the uncompressed radius
-   runs 0.640 p50 against an 0.50 ceiling, so the tanh flattens the loud end
-   into a near-perfect CIRCLE and half the frames sit on the ceiling — V2's
-   own disease, from the other side. The whole point of this ring is that bass
-   throws it off-round. That is buying brightness by making it a different
-   scene, which is not what a retune is for. At x1.56 the lobe depth is 0.754,
-   IDENTICAL to V2's, while everything is bigger. So: within noise of the
-   dim-outskirts bar, comfortably past every other one, lobes intact. If
-   anyone wants that last point it is a look call about the KNEE, not a gain,
-   and it is Lance's to make.
+   FINDING 3 — THE DIAMETER WAS PINNED AT ITS CEILING, the exact disease this
+   version exists to cure. On this rig the first cut ran field p50 0.848 / p95
+   0.919, so base sat at 0.405 against a tanh knee of 0.32 and every outward
+   lobe excursion was compressed while the inward ones were not. With CC2 wide
+   open it was worse than that: field measured p5 0.923 / p50 1.000 — LITERALLY
+   CLAMPED — so the top third of the sensitivity throw stopped changing the
+   diameter at all.
+   Two fixes. The weights come down to 0.50/0.39/0.30/0.23 (field p50 0.763,
+   p95 0.833, max 0.872 — off the ceiling with headroom for a drop, and still
+   1.6x V2's spread). And the hard clamp becomes a SOFT CAP by the scene's own
+   established law (Nima, Penrose V3): body linear, bend only past a knee whose
+   gradient is 1, `f <= 0.80 ? f : 0.80 + 0.20*tanh((f-0.80)/0.20)`. It is a
+   no-op at neutral and it means the sensitivity hand keeps growing the halo
+   all the way to the top of its throw instead of dying at CC2 ~0.64. Measured
+   with CC2 wide open: field p50 1.000 (flat from p5 up) before, p50 0.981 /
+   p95 0.990 / max 0.992 after — still steep, but never flat.
 
-   THE PALETTE WAS A REAL DEFECT, not a scaling one. H2_RAMP centred the
-   diverging ramp at tilt 0.51; the measured tilt distribution centres at
-   0.600 (p5 0.504, p95 0.691, min 0.427). So the slate end LITERALLY NEVER
-   APPEARED — 0% of frames — while over half carried visible coral, and every
-   screenshot of V2 is white-and-coral. That is not the scene the header
-   describes. [0.50, 0.70, 0.38] centres on the measured p50, reaches full
-   colour at p5/p95, and its plateau holds the middle 50% of frames white
-   (measured p25-p75 is +-0.037, the plateau is +-0.038). Both ends live, the
-   white core preserved, colour reserved for a real spectral extreme. Honest
-   caveat: the window is now calibrated to techno's spectral centroid, and a
-   very bass-heavy set will sit cold. V2's tiltT formula and its 2.0/s ease
-   are untouched — deriving tilt off the RAW bands was V2's fix and it works
-   exactly as written (tilt p50 0.607/0.600/0.607 across the whole CC2 throw).
+   WHAT THE FINISHED VERSION MEASURES, V2 / first cut / shipped, same rig,
+   same music timestamps, hands off:
+     mean luminance     19.7  /  24.4  /  23.4
+     >15 luma            29.5% / 36.6% / 35.7%     (the dim outskirts)
+     >50 luma            20.4% / 26.3% / 22.3%
+     >200 luma           0.53% / 0.48% / 0.52%
+     >245 luma           0.21% / 0.19% / 0.17%
+     px >150 luma       29.2k / 31.2k / 33.2k      (the ink that survives mesh)
+     max-channel >150    1.76% / n/a  /  2.29%     (light, unweighted by luma)
+     R-B of ink >150    +12.3 / -13.1 / +22.6      (the coral leading edge)
+     R-B of body 40-150  -1.7 / -15.6 /  +1.0
+     contour roundness cv 13.3% / 14.6% / 15.1%    (bass throwing it off-round)
+     mean radius        0.710 / 0.781 / 0.774      (of the half-frame)
+     field p50 / p95    .633/.667 / .848/.919 / .785/.845
+     field, CC2 wide open  n/a / p50 1.000 (CLAMPED, p5 0.923 — the hand is
+       dead over the top third of its throw) / p50 0.981, p95 0.990, max 0.992
+       — asymptotic, so the hand keeps working to the end of the reach
+   So: warmer than V2 and warmer than V2 was, 14% MORE ink above 150 rather
+   than the first cut's nothing, more off-round, 1.6x the diameter range, and
+   the dim-outskirts recovery the round was mandated to deliver. The one
+   number still under V2 is >245 luma (-14%), and it is a colour artifact, not
+   a light loss: coral maxes at 153 luma by construction, so a warm core
+   cannot reach 245 the way a white one can — on the unweighted max-channel
+   measure the same pixels are UP (0.38% vs 0.34%).
 
-   THREE NEW ENGINE SIGNALS, used where they are actually the right answer:
+   HONEST CAVEATS. (1) The ramp is calibrated to techno's spectral centroid; a
+   very bass-heavy set will sit cooler, which is now a graceful pale blue
+   rather than the first cut's dark slate, but it is still cooler. (2) Below
+   the window's 0.26 floor the bands read zero, so a genuinely quiet ambient
+   passage draws a smaller ring than the shipped V2 did. That IS the dynamic
+   range this round exists to restore — "a quiet passage is a small ring and a
+   drop fills the frame" is the scene's first law — but on a long ambient
+   intro it will read darker than the build people have seen. (3) The
+   >245-luma deficit above.
+
+   KEPT FROM THE FIRST CUT, all of it measured rather than assumed:
+   · ONE SHARED BAND WINDOW does the re-seating (Penrose V3's law: narrow the
+     input, don't crank the weight). win(v) = clamp((v-0.26)*1.45) puts the
+     p50 back where the constants expect it and hands the scene the 1.45x
+     wider excursion the new engine earned. It RELAXES TO IDENTITY at rest
+     (wLo *= 1-rest, gain 1.45->1.00), because with no music there is nothing
+     to window and V2's "CC2 sizes the resting breath in a silent room" lives
+     entirely below that floor. Measured rest during music: p50 0.000.
+   · ab 0.150 -> 0.220 on wB, at 0.032 -> 0.050 on wT, each set so its p50
+     lands on the value the old engine delivered.
    · `live` REPLACES `level > 0.05` as the audio arbiter. That test was
      written when level's p5 was 0.645; it is now 0.119 with a min of 0.000,
-     so it is one bad frame from dropping out mid-track. `live` was true on
-     100% of measured music frames.
-   · `dev.bass` supplements the big lobes. What reads as "the bass just came
-     in" is DEVIATION, not absolute level — the AGC makes absolute level
+     so it was one bad frame from dropping out mid-track.
+   · `dev.bass` supplements the big lobes — "the bass just came in" is
+     DEVIATION, not absolute level, because the AGC makes absolute level
      constant across a set by construction. Centred (dev-0.5), so it is a
-     strict no-op under setAudioIn (which pins dev to 0.5) and no harness
-     baseline moves; +-0.030 at the extremes, and ab can never invert.
-   · `flux.treble` supplements the fine scallop. flux is a sparse transient
-     pulse (p50 0, p95 0.746, ~125ms decay = 4 stamps), so a hat writes a
-     visibly scalloped stamp that then AGES BACKWARDS through the exposure —
-     which is the long-exposure grammar itself, and what makes strata
-     legible. Caveat: under setAudioIn this term reads `onset`, so shotaudio
-     cannot exercise it; it needs a real-audio driver.
-   NOT used, deliberately: `sub` (measured p50 0.709 vs bass 0.703 — a
-   near-duplicate at fft 1024), and `dev` for FIELD — dev is centred on 0.5
-   by construction, so a diameter driven by it has a constant mean and would
-   never be small in an intro and big on a drop. Field stays on absolute
-   level. That is Nima's law and it outranks the reactivity.
+     strict no-op under setAudioIn and ab can never invert.
+   · `flux.treble` supplements the fine scallop: a sparse transient pulse, so
+     a hat writes a visibly scalloped stamp that then AGES BACKWARDS through
+     the exposure — the long-exposure grammar itself.
+   · the stamp wears the CORE WHITE when there is no music to have a spectral
+     balance (`sl.tilt = TCORE + (tilt-TCORE)*s.aud`). The idle floor's fixed
+     band ratios put tiltT at 0.432, which any re-centred window reads as
+     cold; without this a silent room drove the whole plate slate.
+   · NOT used: `sub` (a near-duplicate of bass at fft 1024) and `dev` for
+     FIELD — dev is centred on 0.5 by construction, so a diameter driven by it
+     would have a constant mean and could never be small in an intro and big
+     on a drop. Field stays on absolute level. That is Nima's law and it
+     outranks the reactivity.
 
-   THE WINDOW SITS AFTER THE GAMMA, on purpose. V2's CC2 response curve is
-   preserved exactly: the gamma still reshapes response between 0 and 1 and
-   the window rescales what the ease produced. Moving it before the gamma
-   would rescale what CC2 MEANS and re-break what V2 fixed. One honest change
-   to the throw: field now saturates above CC2 ~0.57, so past that point the
-   hand stops making the halo bigger and keeps making it wilder (lobes) and
-   faster (smear). "Wide open = the frame is full" is V2's stated intent, but
-   the top half of the throw does something different now, and Lance should
-   know. What forced it: on the shipped build a performer has to pin the
-   sensitivity hand WIDE OPEN (21.7% coverage) to get back to what the scene
-   did at neutral on the old engine (22.1%). The whole operating window had
-   slid down one full control throw. That is the mandate this version serves.
-
-   Left alone on measurement, not on faith: the kick path (kEnv p5 0.107 /
-   p50 0.233 / p95 0.480, a healthy per-beat envelope — k.strength is
-   time-domain and gain-normalised, so the engine change never touched it),
-   the tanh knee (frame geometry, not an audio scale — expect the outer edge
-   to stop growing linearly on loud passages now that base crosses it, which
-   is the design working as documented), the eases, the idle floor, every
-   hand mechanic V2 shipped, and every draw-side alpha and line width. Buying
-   the brightness number by raising those would make it a different scene,
-   and that is a look call, not a retune.
+   Left alone on measurement, not on faith: the kick path (kEnv p5 0.19 / p50
+   0.30 / p95 0.48 — k.strength is time-domain and gain-normalised, so the
+   engine change never touched it), the radius knee, the 2.2/1.4 eases, the
+   idle floor, V2's tiltT formula and its 2.0/s ease, every hand mechanic V2
+   shipped, and the live stroke's own alpha and widths.
    ------ V2 notes follow ------
    ---------- SRC-49.2 · SPECTRUM HALO V2 (CC2 is a real sensitivity control) --
    Nima: "make CC2 change sensitivity to audio instead of what it's doing now."
@@ -253,15 +271,32 @@ for (let j = 0; j < H3_PTS; j++) {
 const H3_COLD = [70, 99, 158];     // bass-heavy stamp — slate
 const H3_CORE = [253, 250, 250];   // mid-spectrum stamp — the white plate
 const H3_WARM = [255, 127, 107];   // treble-heavy stamp — coral
-// [window lo, window hi, plateau]. RE-CENTRED ON THE MEASURED TILT (V3).
-// V2's [0.34,0.68,0.30] centred at 0.51 against a distribution centred at
-// 0.600, so the plate was permanently warm-tinted and the slate end never
-// once appeared. Centre 0.600 = measured p50; half-width 0.10 reaches full
-// colour at the measured p5/p95; plateau 0.38*0.10 = +-0.038 holds the middle
-// 50% of frames (p25-p75 = +-0.037) at the core white. Both ends live now.
-const H3_RAMP = [0.50, 0.70, 0.38];
-// the tilt that reads as pure core white — the centre of the window above.
-const H3_TCORE = (H3_RAMP[0] + H3_RAMP[1]) / 2;
+// FOUR MEASURED TILT LANDMARKS: [slate full, slate onset, coral onset,
+// coral full]. The ramp is ASYMMETRIC on purpose, because the thing it has to
+// span is: tilt over real techno runs p5 0.502 / p25 0.560 / p50 0.594 /
+// p75 0.621 / p95 0.667 / min 0.406 (measured, Leila.mp3, 48s, ~520 frames).
+// A SYMMETRIC window cannot serve that distribution, and both earlier tries
+// prove it from opposite sides. V2's [0.34,0.68,0.30] put the whole
+// distribution in its warm half: white-to-coral, correct-looking, but the
+// slate end was unreachable (0% of frames). V3's first cut [0.50,0.70,0.38]
+// re-centred on the p50 and made the plateau +-0.038 wide — so every frame
+// landed IN the plateau or below it, coral needed tilt >0.638 and full coral
+// 0.70 (unreachable on this material), and the only end it newly unlocked was
+// SLATE, which is 2.5x darker than the core white. Measured cost: mean R-B of
+// the ink above 150 luma went +12.3 (V2) to -13.1 (V3) — white line on cold
+// navy, with the coral leading edge gone. Six of six frames negative.
+// So: the WARM half is placed to reproduce V2's response almost exactly
+// (coral opens at ~p26, half coral at p75, full coral at p95 — measured
+// against V2's own ramp to within 0.02 at every percentile), because that
+// half was never broken and it is the plate Lance shipped. The COLD half is
+// widened and pushed down instead: slate opens at ~p10 and only reaches full
+// depth around tilt 0.455, below this track's minimum. So a bass-carrying
+// moment tints the stratum a pale cool blue, and only genuinely bass-dominated
+// material — or another track — drives the deep slate. Both ends live; the
+// dark one is rationed, because darkness on scrim is a spend.
+const H3_RAMP = [0.455, 0.530, 0.560, 0.680];
+// the tilt that reads as pure core white — the middle of the white plateau.
+const H3_TCORE = (H3_RAMP[1] + H3_RAMP[2]) / 2;
 const H3_ORANGE = [255, 162, 74];  // LEFT hand's speed
 const H3_VIOLET = [185, 140, 255]; // RIGHT hand's speed
 
@@ -292,7 +327,7 @@ function h3Stamp(P) {
   // transient pulse that scallops the stamp it is born into, which then ages
   // backwards through the exposure.
   const ab = 0.055 + 0.220 * s.wB + 0.060 * (s.devB - 0.5) + 0.075 * rest;  // orders 2, 3
-  const am = 0.022 + 0.168 * s.wM + 0.030 * rest;                           // orders 5, 7
+  const am = 0.022 + 0.150 * s.wM + 0.030 * rest;                           // orders 5, 7
   const at = 0.007 + 0.050 * s.wT + 0.014 * s.fluxT + 0.012 * rest;         // orders 11, 17 (13 inside)
   // the kick pushes the newest ring outward, unsmoothed — it then simply
   // ages backwards through the stack as a bright bump.
@@ -333,9 +368,9 @@ reg({
   audioIn: true,
   fx: { bloom: 0.35 },
   tags: ['AUDIO IN', 'CC1 = EXPOSURE', 'CC2 = SENSITIVITY CURVE', 'BAND = HARMONIC ORDER', 'LOUD IS BIG', 'SLATE + CORAL LAYERS'],
-  desc: 'One closed curve around one centre, stamped into the frame thirty-two times a second and left there — so the picture is the last three seconds of the music standing still. LOUDNESS IS DIAMETER: the halo is a small quiet ring in an intro and swells to fill the frame on a drop, and because what you see is ninety-six stamps at once, that swell arrives as strata laid down over three seconds rather than a jumping outline. V3 re-seats every one of those numbers against the rewritten listening engine, which auto-ranges to the material instead of pinning near full scale — the diameter, the size of the lobes and the rate the stack smears at all move over their real range again for the first time, rather than sitting near a ceiling and breathing. The spectrum owns the SHAPE by harmonic order: bass swings the two and three-lobed forms that throw the whole ring off-round, mid fills the five and seven-lobed body of the band, treble writes the fine scallop on the outer edge and the hole in the middle, and a fresh hat or stab now scallops the one stamp it is born into, which then ages backwards through the exposure as its own visible stratum. Where the stamps agree they pile into a dense luminous band; where one wandered it leaves a soft translucent lobe hanging off the side, which is what a loud moment looks like a second after it happens. The plate is white at its core and DIVERGES at the ends: most stamps are born mid-spectrum and stay white, but one laid down while the bass was doing the work goes slate blue and one laid down while the top end was carrying goes coral, so the layers of the stack are different colours from each other and a section change is a band of colour growing through the exposure. V3 re-centres that palette window on where the balance of real music actually sits, so the slate end finally appears at all instead of the plate reading white-and-coral forever. Each slice wears the spectral balance it was born with — nothing is a gradient laid across the screen, and a quiet, even passage stays a plain white plate. The kick is the only fast thing here: it punches the newest ring outward and lights it, and then that ring simply ages backwards through the exposure. Makes no sound of its own.',
-  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY, and since V2 it is a real one: it reshapes the whole response curve rather than just scaling it, so the entire throw does something on any material. Closed, only genuine peaks move the picture and a busy room stays a small still ring; open, quiet detail fills the frame and the room\'s own noise floor is enough to keep a plate breathing; the middle of the throw leaves the music exactly as the engine heard it. V3 re-seats where that throw sits: on the shipped build you had to pin this hand wide open just to get the brightness the scene used to have at neutral, and now neutral is neutral again — the trade is that past about the middle of the throw the halo stops growing in diameter and instead keeps getting wilder in its lobes and faster in its smear. It works with nothing connected too — it sizes the resting breath — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. The music colours the layers slate and coral; the hands own a colour of their own on top of that. Moving one FAST paints — fast being a real whip, since a deliberate sensitivity sweep is below the gate and paints nothing — the left breathing orange into the old end of the stack and the right violet into the live edge, both fading back over a couple of seconds and both capped so they tint the plate rather than replace it. In silence the ring keeps a slow breath so an unattended scene is still alive.',
-  sound: 'Makes no sound of its own — an audio-in scene, same as Cell Front V4-V14 and Penrose Bloom. Connect a source in MAP → Audio in, then SET REST with the room quiet so silence reads as silence. It wants a full spectrum with a real kick, and it wants DYNAMICS above all — the diameter tracks loudness, so a track that never drops never shows the scene\'s range. V3 is tuned against the rewritten engine on real four-on-the-floor techno, where the loudness is near-constant by design and what actually moves is each band\'s departure from its own recent average; the bass lobes read that departure and the fine scallop reads fresh treble transients, so a track that is merely loud still looks different from one that is doing something. The kick is the only unsmoothed move in the picture and it is read off the engine\'s time-domain detector, so four-on-the-floor draws one bright ring per beat marching backwards through the exposure. No MIDI out either — there are no events to mirror.',
+  desc: 'One closed curve around one centre, stamped into the frame thirty-two times a second and left there — so the picture is the last three seconds of the music standing still. LOUDNESS IS DIAMETER: the halo is a small quiet ring in an intro and swells to fill the frame on a drop, and because what you see is ninety-six stamps at once, that swell arrives as strata laid down over three seconds rather than a jumping outline. V3 re-seats every one of those numbers against the rewritten listening engine, which auto-ranges to the material instead of pinning near full scale — the diameter, the size of the lobes and the rate the stack smears at all move over their real range again for the first time, rather than sitting near a ceiling and breathing. The spectrum owns the SHAPE by harmonic order: bass swings the two and three-lobed forms that throw the whole ring off-round, mid fills the five and seven-lobed body of the band, treble writes the fine scallop on the outer edge and the hole in the middle, and a fresh hat or stab now scallops the one stamp it is born into, which then ages backwards through the exposure as its own visible stratum. Where the stamps agree they pile into a dense luminous band; where one wandered it leaves a soft translucent lobe hanging off the side, which is what a loud moment looks like a second after it happens. The plate is white at its core and DIVERGES at the ends: most stamps are born mid-spectrum and stay white, but one laid down while the bass was doing the work goes slate blue and one laid down while the top end was carrying goes coral, so the layers of the stack are different colours from each other and a section change is a band of colour growing through the exposure. V3 re-places that palette window against the balance real music actually has: the coral end is kept exactly where V2 had it — the warm leading edge is this plate’s signature and it was never the thing that broke — while the cool end is widened and pushed down so slate becomes reachable at all instead of never appearing, and reaches its full depth only for genuinely bass-dominated material. Both ends are live and the dark one is rationed. Each slice wears the spectral balance it was born with — nothing is a gradient laid across the screen, and a quiet, even passage stays a plain white plate. The kick is the only fast thing here: it punches the newest ring outward and lights it, and then that ring simply ages backwards through the exposure. Makes no sound of its own.',
+  interact: 'THIS SCENE LISTENS (SHOW CHECK → AUDIO IN, or MAP → Audio in) — a mic, a line-in, or CAPTURE APP AUDIO for a running app\'s own output. The music draws the curve; the hands decide how it is exposed and how hard it is listening. LEFT HAND / CC1 IS EXPOSURE: closed, you get a single crisp ring that moves like a live oscilloscope; opened, three full seconds of history smear out behind it into the layered plate. It answers the instant you move, with or without a signal. RIGHT HAND / CC2 IS SENSITIVITY, and since V2 it is a real one: it reshapes the whole response curve rather than just scaling it, so the entire throw does something on any material. Closed, only genuine peaks move the picture and a busy room stays a small still ring; open, quiet detail fills the frame and the room\'s own noise floor is enough to keep a plate breathing; the middle of the throw leaves the music exactly as the engine heard it. V3 re-seats where that throw sits: on the shipped build you had to pin this hand wide open just to get the brightness the scene used to have at neutral, and now neutral is neutral again, and the halo keeps growing all the way to the top of the throw — the diameter runs into a soft ceiling rather than a wall, so the last third of the reach reads as diminishing returns instead of as a dead hand. It works with nothing connected too — it sizes the resting breath — a gain, never a value, so a hand the wall\'s ghost drift parked somewhere just leaves the scene near its base sensitivity instead of pretending the room is loud. The music colours the layers slate and coral; the hands own a colour of their own on top of that. Moving one FAST paints — fast being a real whip, since a deliberate sensitivity sweep is below the gate and paints nothing — the left breathing orange into the old end of the stack and the right violet into the live edge, both fading back over a couple of seconds and both capped so they tint the plate rather than replace it. In silence the ring keeps a slow breath so an unattended scene is still alive.',
+  sound: 'Makes no sound of its own — an audio-in scene, same as Cell Front V4-V14 and Penrose Bloom. Connect a source in MAP → Audio in, then SET REST with the room quiet so silence reads as silence. It wants a full spectrum with a real kick, and it wants DYNAMICS above all — the diameter tracks loudness, so a track that never drops never shows the scene\'s range. V3 is tuned against the rewritten engine on real four-on-the-floor techno, where the loudness is near-constant by design and what actually moves is each band\'s departure from its own recent average; the bass lobes read that departure and the fine scallop reads fresh treble transients, so a track that is merely loud still looks different from one that is doing something. Colour is calibrated to where a four-to-the-floor set’s spectral balance actually sits: mid-spectrum is the white plate, a top-end section grows coral through the exposure, and a bass-dominated one cools it. The kick is the only unsmoothed move in the picture and it is read off the engine\'s time-domain detector, so four-on-the-floor draws one bright ring per beat marching backwards through the exposure. No MIDI out either — there are no events to mirror.',
 
   init(P) {
     const as = areaScale(P);
@@ -449,7 +484,17 @@ reg({
     // ~0.53 — the halo is genuinely small in an intro and full on a drop
     // instead of parked near the geometric ceiling. The old ^1.05 exponent is
     // gone: it shaved 1-2% and the window owns the shaping now.
-    const fieldT = clamp(0.56 * s.wL + 0.44 * s.wB + 0.34 * s.wM + 0.25 * s.wT);
+    // and a SOFT CAP instead of a clamp, by the same law the radius uses
+    // (Nima, Penrose V3): keep the body linear and bend only past a knee whose
+    // gradient is 1, so nothing creases. A hard clamp at 1 is what pinned the
+    // diameter for the top third of the CC2 throw; past 0.80 the field now
+    // asymptotes instead, so opening the sensitivity hand all the way still
+    // makes the halo grow — just less and less, which is what a ceiling should
+ // feel like. Measured hands-off: p50 0.785, p95 0.845, so this is a no-op
+    // on the neutral case and only shapes the top of the hand's range.
+    const fRaw = 0.50 * s.wL + 0.39 * s.wB + 0.30 * s.wM + 0.23 * s.wT;
+    const FK = 0.80, FS = 0.20;
+    const fieldT = fRaw <= FK ? fRaw : FK + FS * Math.tanh((fRaw - FK) / FS);
     s.field += (fieldT - s.field) * Math.min(1, dt * 2.2);
     // spectral balance of THIS moment — stamped into every slice as its colour.
     // TILT COMES OFF THE RAW BALANCE, not the sensitivity-shaped bands, and not
@@ -493,13 +538,13 @@ reg({
     // stamps: at 1.11 they land on top of each other and the plate collapses
     // into a thin ring, which is a direct driver of how much of the frame the
     // scene fills.
-    const spd = 0.55 + 1.48 * s.energy + 0.85 * s.rest;
+    const spd = 0.55 + 1.07 * s.energy + 0.85 * s.rest;
     const RATE = [0.55, -0.67, 0.62, -0.78, 0.86, -1.02, 0.44, -0.58, 0.79];
     for (let i = 0; i < 9; i++) {
       s.ph[i] += RATE[i] * spd * dt;
       if (s.ph[i] > 1e5 || s.ph[i] < -1e5) s.ph[i] = 0;
     }
-    s.rot += (0.10 + 0.36 * s.energy) * dt;
+    s.rot += (0.10 + 0.30 * s.energy) * dt;
     if (s.rot > TAU) s.rot -= TAU;
 
     /* ---- STAMP the curve into the ring buffer at a FIXED rate ----------- */
@@ -554,11 +599,18 @@ reg({
       // DIVERGING: white in the middle, cool one way, warm the other. The
       // plateau is smoothstepped out of the centre so the plate never shows
       // a seam where colour starts.
-      const u = clamp((sl.tilt - H3_RAMP[0]) / Math.max(1e-4, H3_RAMP[1] - H3_RAMP[0]));
-      const d = (u - 0.5) * 2;
-      const k = clamp((Math.abs(d) - H3_RAMP[2]) / Math.max(1e-4, 1 - H3_RAMP[2]));
+      // ASYMMETRIC (V3): the warm side reproduces V2's ramp, the cold side is
+      // wider and lower so slate is reachable without being cheap. Between the
+      // two onsets the stamp is pure core white — that is the plate.
+      let end = H3_CORE, k = 0;
+      if (sl.tilt >= H3_RAMP[2]) {
+        end = H3_WARM;
+        k = clamp((sl.tilt - H3_RAMP[2]) / Math.max(1e-4, H3_RAMP[3] - H3_RAMP[2]));
+      } else if (sl.tilt <= H3_RAMP[1]) {
+        end = H3_COLD;
+        k = clamp((H3_RAMP[1] - sl.tilt) / Math.max(1e-4, H3_RAMP[1] - H3_RAMP[0]));
+      }
       const tw = k * k * (3 - 2 * k);
-      const end = d < 0 ? H3_COLD : H3_WARM;
       let cr = H3_CORE[0] + (end[0] - H3_CORE[0]) * tw;
       let cg = H3_CORE[1] + (end[1] - H3_CORE[1]) * tw;
       let cb = H3_CORE[2] + (end[2] - H3_CORE[2]) * tw;
@@ -596,7 +648,7 @@ reg({
       // the newest ring is fat enough to read on scrim on its own.
       g.lineWidth = live ? lwLive : lwHist;
       g.strokeStyle = col(live ? (liveA + 0.30 * s.kEnv) * bright
-                               : (0.055 + 0.045 * sl.kick) * fade * bright * dens);
+                               : (0.066 + 0.054 * sl.kick) * fade * bright * dens);
       g.beginPath();
       for (let j = 0; j < H3_PTS; j++) {
         const r = sl.out[j] * S;
@@ -609,7 +661,7 @@ reg({
       if (live || i % 3 === 0) {
         g.lineWidth = live ? lwLive * 0.8 : lwHist * 0.8;
         g.strokeStyle = col(live ? (liveA * 0.78 + 0.22 * s.kEnv) * bright
-                                 : (0.062 + 0.048 * sl.kick) * fade * bright * dens);
+                                 : (0.074 + 0.058 * sl.kick) * fade * bright * dens);
         g.beginPath();
         for (let j = 0; j < H3_PTS; j++) {
           const r = sl.inn[j] * S;
