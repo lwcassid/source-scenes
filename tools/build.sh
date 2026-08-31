@@ -275,6 +275,9 @@ cd "$(dirname "$0")/.."
   cat parts/part198_cloudsteam3.js
   cat parts/part201_cloudsteam4.js
   cat parts/part205_cloudsteam5.js
+  cat parts/part216_eh31.js
+  cat parts/part217_ws10.js
+  cat parts/part218_chladni31.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
