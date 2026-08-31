@@ -2598,11 +2598,39 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   rack.appendChild(stat);
 
   const isAudioScene = () => focus.idx >= 0 && PIECES[focus.idx] && PIECES[focus.idx].audioIn;
+  // THE MONITOR IS THE OPERATOR'S CHOICE, NOT THE SCENE'S (Lance, DJ-set
+  // round): scenes are interchangeable now — the same scene can be driven
+  // by hands+MIDI at the installation or listen to a booth feed at a DJ
+  // set — so the console title becomes two TABS: THE RIG / AUDIO IN. The
+  // default still follows the scene's declaration (audioIn:true → AUDIO
+  // IN), a click pins your choice per-browser (srcConsoleMon), and the pin
+  // self-clears whenever it matches what auto would pick anyway, so nobody
+  // is ever stuck in an override they don't remember making.
+  let monPin = '';
+  try { monPin = localStorage.getItem('srcConsoleMon') || ''; } catch (e) {}
+  const autoMon = () => (isAudioScene() ? 'audio' : 'rig');
+  const showAudio = () => (monPin || autoMon()) === 'audio';
+  let tabRig = null, tabAud = null;
+  if (title) {
+    title.textContent = '';
+    const mk = (which, label) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'monTab'; b.textContent = label;
+      b.addEventListener('click', () => {
+        monPin = which === autoMon() ? '' : which;
+        try { monPin ? localStorage.setItem('srcConsoleMon', monPin) : localStorage.removeItem('srcConsoleMon'); } catch (e) {}
+        syncPanel();
+      });
+      title.appendChild(b);
+      return b;
+    };
+    tabRig = mk('rig', RIG_TITLE); tabAud = mk('audio', AUDIO_TITLE);
+  }
   function syncPanel() {
-    const on = isAudioScene();
+    const on = showAudio();
     split.style.display = on ? 'flex' : 'none';
     rigSplit.style.display = on ? 'none' : 'flex';
-    if (title) title.textContent = on ? AUDIO_TITLE : RIG_TITLE;
+    if (tabRig) { tabRig.classList.toggle('on', !on); tabAud.classList.toggle('on', on); }
     if (info) info.title = on ? AUDIO_INFO : RIG_INFO;
   }
   // openFocus() has no "scene changed" hook to call out to — piggyback the
@@ -2612,7 +2640,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
   function frameTick() {
     requestAnimationFrame(frameTick);
-    if (!isAudioScene() || !overlay.classList.contains('open')) return;
+    if (!showAudio() || !overlay.classList.contains('open')) return;
     const inControl = window.ELECTRON_ROLE === 'control';
     // Live values are mirrored onto the shared AUDIOIN object regardless of
     // role — real analysis in the show window (part2e_audioin.js's tick()),
@@ -2658,7 +2686,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   const traceCol = { level: 'rgba(220,220,220,.75)', bass: '#ffb14a', mid: '#7fd8d8', treble: '#c09aff' };
   function drawAudioLanes() {
     requestAnimationFrame(drawAudioLanes);
-    if (!lanes || !isAudioScene() || !overlay.classList.contains('open')) return;
+    if (!lanes || !showAudio() || !overlay.classList.contains('open')) return;
     const W = lanes.clientWidth | 0, H = rack.offsetHeight | 0;
     if (!W || !H) return;
     if (lanes.width !== W || lanes.height !== H) { lanes.width = W; lanes.height = H; lanes.style.height = H + 'px'; }

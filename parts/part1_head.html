@@ -424,6 +424,14 @@
   #audioStat b{color:var(--txt)}
   .monHead{display:flex;gap:14px;align-items:baseline;font-size:10px;letter-spacing:.14em;font-family:var(--mono)}
   .monHead #oChord{color:var(--acc)}
+  /* the console monitor tabs: THE RIG / AUDIO IN (the title IS the toggle) */
+  #rackTitle{display:inline-flex;gap:0}
+  .monTab{font:inherit;letter-spacing:.14em;text-transform:uppercase;background:none;
+    border:1px solid var(--line);color:#8a8f98;padding:2px 9px;cursor:pointer;line-height:1.4}
+  .monTab+.monTab{border-left:none}
+  .monTab.on{color:var(--acc);border-color:var(--acc)}
+  .monTab.on+.monTab{border-left:1px solid var(--acc)}
+  .monTab:hover{color:#cfd6e4}
   .monHead .mflag{color:var(--txt-dim)}
   #fVol{width:72px}
   #useHint{display:none;position:absolute;left:50%;top:18px;transform:translateX(-50%);z-index:7;
