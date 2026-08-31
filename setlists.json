@@ -140,6 +140,26 @@
           "id": "SRC-13",
           "min": 15,
           "out": "web"
+        },
+        {
+          "id": "SRC-09",
+          "min": 15,
+          "out": "web"
+        },
+        {
+          "id": "SRC-42",
+          "min": 15,
+          "out": "web"
+        },
+        {
+          "id": "SRC-15",
+          "min": 15,
+          "out": "web"
+        },
+        {
+          "id": "SRC-38",
+          "min": 15,
+          "out": "web"
         }
       ]
     }
