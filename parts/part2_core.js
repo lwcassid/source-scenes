@@ -212,9 +212,15 @@ const CAL = {
   REST_EPS: 0.06,    // raw distance from the rest reading that counts as a hand
   MOVE_EPS: 0.02,    // ...or this much movement inside the window, hand parked at rest
   WINDOW: 2.5,       // seconds of raw history the movement test looks at
-  ABSENT_HOLD: 1.2,  // seconds of confirmed absence before the channel lets go
-  REST_HOLD: 8,      // ...then the LAST POSE holds this long before resting
-  REST_RATE: 0.25,   // ease rate of the final melt to rest (~4s time constant)
+  // 0.55s (was 1.2): the exit sweep parks the channel at the field edge for
+  // exactly this window before the pose rewind — for a scene that inverts
+  // polarity at its own gate (Event Horizon, Ferro Bloom, White Study...)
+  // the field edge is MAXIMUM, so this window is a visible exit surge
+  // (Lance, Aug 31: "I don't want the controls to swing back to zero —
+  // that'll make many scenes intense"). Halving it is safe now that a
+  // confirmed absence just HOLDS the pose (below): a false confirmation is
+  // invisible, where the old melt made it a slow slam.
+  ABSENT_HOLD: 0.55, // seconds of confirmed absence before the channel lets go
   POSE_RATE: 0.8     // slow-follow rate of the remembered pose (~1.2s time
                      // constant): a deliberate reposition is caught in a
                      // couple of seconds, a 0.3s exit sweep barely moves it
@@ -300,26 +306,27 @@ function updateChannels(t, dt) {
     if (c.mode === 'live') {
       if (c.absentSince) {
         // a rest-calibrated sensor can tell "held still" from "nobody there".
-        // HOLD THE LAST POSE, THEN REST (Lance): when absence is confirmed,
-        // do NOT settle to anything yet — the player's pose holds for
-        // REST_HOLD seconds, then melts gently to rest (hand-space 1, arm's
-        // reach: since the NEAR=MORE flip, 0 = AT THE SOURCE = full blast,
-        // the old exit-slam bug). And the pose we hold is REWOUND past the
-        // exit sweep: a leaving hand is tracked live all the way out, so by
-        // confirmation the channel is already sitting at the field edge —
-        // the pose the player actually left lives in c.pose, the slow
-        // follower setChan keeps of where the hand was SITTING.
+        // THE LAST POSE IS THE REST POSE (Lance, Aug 31 — replacing the
+        // ~8s-hold-then-melt-to-1): there is NO melt any more, because no
+        // melt target is neutral for both polarities — hand-space 1 is
+        // quiet for a NEAR=MORE scene and MAXIMUM for every scene that
+        // inverts at its own gate (Event Horizon's conductor, Ferro
+        // Bloom's wide=more, White Study's inward field...), so the old
+        // melt surged half the favorites on every walk-away. The pose the
+        // player left is the one state every scene was, by definition,
+        // already happy showing; the scene's own presence gate owns the
+        // fade to its designed idle from there. The pose is REWOUND past
+        // the exit sweep (c.pose, the slow follower setChan keeps of where
+        // the hand was SITTING), so the leaving sweep never becomes the
+        // remembered state.
         if (t - c.absentSince > CAL.ABSENT_HOLD) {
           c.mode = 'drift';
-          c.restAt = t + CAL.REST_HOLD;
           if (!ambient) c.target = (c.pose !== undefined) ? c.pose : c.v;
         }
       } else if (t - c.last > 6) { c.mode = 'drift'; if (!ambient) c.target = c.v; } // HOLD, don't snap
     }
-    const resting = c.mode === 'drift' && !ambient && c.restAt && t >= c.restAt;
     if (c.mode === 'drift' && ambient) c.target = side === 'L' ? ghostL(t) : ghostR(t);
-    else if (resting) c.target = 1; // the melt to rest, after the held pose
-    c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : resting ? CAL.REST_RATE : 2.2));
+    c.v += (c.target - c.v) * Math.min(1, dt * (c.mode === 'live' ? 14 : 2.2));
   }
   SUMMON.step(t, dt);
 }
