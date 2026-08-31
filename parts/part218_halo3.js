@@ -120,13 +120,23 @@
      field, CC2 wide open  n/a / p50 1.000 (CLAMPED, p5 0.923 — the hand is
        dead over the top third of its throw) / p50 0.981, p95 0.990, max 0.992
        — asymptotic, so the hand keeps working to the end of the reach
-   So: warmer than V2 and warmer than V2 was, 14% MORE ink above 150 rather
-   than the first cut's nothing, more off-round, 1.6x the diameter range, and
-   the dim-outskirts recovery the round was mandated to deliver. The one
-   number still under V2 is >245 luma (-14%), and it is a colour artifact, not
-   a light loss: coral maxes at 153 luma by construction, so a warm core
-   cannot reach 245 the way a white one can — on the unweighted max-channel
-   measure the same pixels are UP (0.38% vs 0.34%).
+   So: the coral edge is BACK (positive on both rigs, from the first cut's
+   six-of-six negative), more off-round than V2, 1.6x the diameter range, and
+   the dim-outskirts recovery the round was mandated to deliver.
+
+   TWO NUMBERS ABOVE ARE RIG-DEPENDENT — an independent confirmation run on a
+   separately written driver reproduced the SHAPE of every result but not two
+   of the magnitudes, so do not quote these as settled:
+   · R-B of ink >150. This rig read V2 +12.3 and V3 +22.6, i.e. warmer than V2.
+     The confirming rig read V2 +28.2 and V3 +16.1 — warm, but LESS warm than
+     V2. Both agree the first cut was negative and that V3 is positive; they
+     disagree on whether V3 out-warms V2, so the honest claim is only that the
+     warmth returned, not that it exceeds the plate Lance shipped.
+   · >245 luma. This rig read V3 slightly UNDER V2 and explained it as a colour
+     artifact (coral maxes at 153 luma, so a warm core cannot clip white). The
+     confirming rig read it the other way, V3 0.140% against V2 0.059%. The
+     artifact argument may still be right; the deficit it explains is not
+     reliably there. Treat >245 as a wash between the two versions.
 
    HONEST CAVEATS. (1) The ramp is calibrated to techno's spectral centroid; a
    very bass-heavy set will sit cooler, which is now a graceful pale blue
@@ -135,8 +145,12 @@
    passage draws a smaller ring than the shipped V2 did. That IS the dynamic
    range this round exists to restore — "a quiet passage is a small ring and a
    drop fills the frame" is the scene's first law — but on a long ambient
-   intro it will read darker than the build people have seen. (3) The
-   >245-luma deficit above.
+   intro it will read darker than the build people have seen. (3) At neutral
+   hands the confirming rig measured s.field 0.873 against V2's 0.696 — higher
+   than the 0.785 recorded above, so the diameter rests nearer the top of its
+   throw than this header's own table implies. It is no longer PINNED (the
+   soft cap leaves real gradient above it, which is the fix that mattered),
+   but the resting size is a fair thing to want re-seated in a later round.
 
    KEPT FROM THE FIRST CUT, all of it measured rather than assumed:
    · ONE SHARED BAND WINDOW does the re-seating (Penrose V3's law: narrow the
