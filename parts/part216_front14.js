@@ -20,6 +20,51 @@
      V13 on the new engine        33.3    20.8%   18.7%
      V14 (this file)              60.5    33.3%   30.8%
 
+   · SATURATION FIX (the one shader change in V14, made after a scrim-
+     legibility review measured the light gain above and found it had bought
+     a BLOWOUT with it): the `overlap` weld term's threshold is 0.55 -> 1.20.
+     The 0.65 coefficient, the 1.6 clamp and the Reinhard soft-clip are all
+     untouched, and so is the radius — the radius growth is what buys the
+     legibility win; the overlap gain is what turned it into white paste.
+     WHY THE THRESHOLD AND NOT THE COEFFICIENT: `wsum` is already 1.0 at a
+     lobe's OWN centre before any neighbour contributes anything, so at 0.55
+     this was never really an overlap term — it was a x1.29 blanket gain over
+     the entire cloud that merely grew where lobes met. V14's bigger radii
+     (0.183 -> 0.242 at measured field) cut the lobe separation-to-radius
+     ratio 1.42 -> 1.24, which raised the neighbour leakage at a lobe centre
+     0.07 -> 0.14 and pushed that blanket through the clip. At 1.20 the boost
+     is ZERO until a second pocket genuinely contributes, and still reaches
+     ~x1.20 at a real weld, so the "overlapping pockets read brighter" moment
+     the term exists for survives intact.
+     Measured on the same rig as the numbers above — the real capture path,
+     the same 4 musical moments, identical still hands, and metrics taken on
+     the FINAL composited picture (the fx.bloom pass included; reading
+     P.canvas instead understates every bright number), HUD row excluded.
+     "flat" is the reviewer's structureless-white measure: pixels over luma
+     200 whose +-5px neighbourhood spans under 6 luma.
+
+       leg                     mean   >15     >50     >200    >245    flat px
+       V13                     32.9  21.5%   19.3%   4.66%   0.22%    19.2k
+       V14 with 0.55 (before)  65.0  35.4%   32.6%  18.59%   7.02%   133.8k
+       V14 with 1.20 (this)    60.8  36.1%   33.3%  12.63%   1.20%    57.7k
+
+     So: structureless white 133.8k -> 57.7k px (5.98% -> 2.58% of frame) and
+     literal clipping 7.02% -> 1.20% of frame, for -6% mean luma and NO loss
+     of scrim reach at all (>15 went 35.4% -> 36.1%). Read the stills: V14's
+     600x400 band of continuous white through the upper centre is gone and
+     the cell walls run through it again, with one compact bright weld left
+     where two pockets actually meet.
+     THE HONEST PART: this does NOT get all the way back to V13's 19.2k. It
+     cannot. Setting the coefficient to 0 — deleting the weld entirely —
+     bottoms out at 46.4k px (2.07% of frame) at mean 55.2, so the overlap
+     term is EXHAUSTED as a lever at ~2%, and the residual gap to V13 is the
+     bigger radii and the 20px bloom pass summing over a larger bright area,
+     neither of which this round is allowed to touch. 3x V13's plateau at 2x
+     V13's light is the deal on the table; the 0-coefficient version costs the
+     weld, reads uniformly grey and is not worth it. Quiet moments were
+     checked separately (the track's intro, 3 moments): mean 54.8 -> 48.3,
+     >15 29.5% -> 28.4%, >245 5.89% -> 0.90% — still far above V13's loud-leg
+     mean of 32.9, so nothing went dark.
    · MELODY now reads inp.audio.dev.mid, not `raw mid - eased mid`.
      dev.* IS "this band is above its own ~1.5s running level", AGC-
      normalized — exactly what melLift was hand-rolling, minus the
@@ -317,8 +362,18 @@ const CF14_FS = [
   '  float turb = 0.82 + 0.34 * grainF(pa * 4.3 + vec2(3.0, 7.0));',
   '  float sparkle = 0.62 + 0.38 * SH.z;',
   // overlapping pockets read brighter — the "weld" moment, emergent from
-  // density summing rather than a fourth hardcoded state
-  '  float overlap = clamp(wsum - 0.55, 0.0, 1.6) * 0.65;',
+  // density summing rather than a fourth hardcoded state.
+  // V14 SATURATION FIX: threshold 0.55 -> 1.20, coefficient 0.65 UNTOUCHED.
+  // wsum is 1.0 at a lobe's OWN centre before any neighbour contributes, so
+  // at 0.55 this term was never really about overlap: it was a x1.29 blanket
+  // gain over the whole cloud that happened to grow where lobes met. V14's
+  // bigger radii (0.183 -> 0.242 at measured field) shrank the lobe
+  // separation-to-radius ratio 1.42 -> 1.24, which raised the neighbour
+  // leakage at a lobe centre from 0.07 to 0.14 and pushed the blanket into
+  // the clip. At 1.20 the boost is zero until a SECOND pocket genuinely
+  // contributes, and still reaches ~x1.20 at a real weld — the look survives,
+  // the paste does not. See the header for the measured numbers.
+  '  float overlap = clamp(wsum - 1.20, 0.0, 1.6) * 0.65;',
   '  vec3 col = tint * (core + rim) * turb * sparkle * (1.0 + overlap);',
   '  col *= insideC * (0.55 + 0.45 * uPres);',
   '  for (int i = 0; i < 6; i++){',
