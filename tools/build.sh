@@ -257,6 +257,7 @@ cd "$(dirname "$0")/.."
   cat parts/part175_front11.js
   cat parts/part176_front12.js
   cat parts/part177_front13.js
+  cat parts/part216_front14.js
   cat parts/part176_penrose.js
   cat parts/part177_penrose2.js
   cat parts/part178_penrose3.js
@@ -267,9 +268,11 @@ cd "$(dirname "$0")/.."
   cat parts/part195_penrose8.js
   cat parts/part216_penrose9.js
   cat parts/part217_penrose10.js
+  cat parts/part219_penrose11.js
   cat parts/part193_fb23.js
   cat parts/part197_halo.js
   cat parts/part215_halo2.js
+  cat parts/part218_halo3.js
   cat parts/part195_cloudsteam.js
   cat parts/part196_cloudsteam2.js
   cat parts/part198_cloudsteam3.js

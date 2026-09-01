@@ -347,7 +347,12 @@ the reference implementation; read it before building a second one.
   moving at all, so a trail scene needs an explicit rest term that opens the
   shape and turns it FASTER — never bigger: rest must sit smaller than a loud
   track, or the music shrinks the picture. Cost is real — halve the tail
-  (draw every 2nd old stamp at double alpha) before shipping.
+  (draw every 2nd old stamp at double alpha) before shipping. And if a later
+  round ENLARGES the figure — bigger, deeper-lobed, faster-drifting — pay for
+  the extra area with per-stamp ALPHA, or the same light spread wider is a
+  dimmer picture with a higher MEAN: the gain lands in low-contrast fill,
+  which is exactly what mesh eats. Alpha lands superlinearly in the overlap
+  under `lighter`, so it buys the dense band and not the outskirts.
 - **Spend the dynamic range on the RIGHT axis (Nima, Penrose Bloom V2→V3).**
   V2 gave the radius almost all of it and the palette almost none: "the size
   change is too sensitive and the color change is not sensitive enough."
@@ -367,6 +372,15 @@ the reference implementation; read it before building a second one.
   arrives and you tune the wrong number chasing it. Keep the body linear and
   bend only past a knee — `r <= K ? r : K + S*tanh((r-K)/S)` — whose gradient
   is 1 at the knee, so nothing creases and the ceiling still holds.
+- **Place a colour ramp's ONSETS on percentiles; never centre it on the p50
+  (Nima, Spectrum Halo V3).** A symmetric window centred on the measured
+  median holds the middle of the data at its neutral stop and reaches its ends
+  only outside the data — so it spans nothing, and the only end it unlocks is
+  whichever one the tail happens to touch. Measure the driving signal's
+  percentiles first, then place where each colour STARTS (p10, p25) and let
+  full saturation fall in the tail. Asymmetric is the normal answer, because a
+  DARK stop costs luminance on scrim: reach it pale at p10 and deep only in
+  the last percent, while the bright stop keeps the wider, earlier throw.
 - **Colour a FIGURE, not every cell (Nima, Penrose Bloom V4).** An even tint
   across a structured field is wallpaper; the reference plates people bring
   in are always colouring a SUB-PATTERN out of a mostly bare ground. Find the
