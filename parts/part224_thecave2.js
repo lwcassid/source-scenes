@@ -276,7 +276,13 @@ reg({
       caveG.add(drips); T3.drips = drips; T3.dripVel = dvel;
     }
     // ---- HERO ASSETS — the cave's own life only (no bike, no city, no horizon) ----
-    if (typeof THREE.GLTFLoader === 'function') {
+    // WALL TILES SKIP THE GLB LIFE (perf hotfix, Sep 1): these loads — six
+    // models, the skinned jellies once per instance — fired at BOOT for the
+    // ambient tile in BOTH electron windows, each parsing megabytes of
+    // base64 data-URI, and the app took minutes to open. The tile shows the
+    // procedural cave (tubes, crystals, groves, drips); the full menagerie
+    // loads when the scene is opened big. Same gate the detail budget uses.
+    if (areaScale(P) > 1.6 && typeof THREE.GLTFLoader === 'function') {
       const loader = new THREE.GLTFLoader();
       T3.mixers = [];
       const fitIn = (m, target) => {
