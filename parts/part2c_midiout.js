@@ -29,7 +29,17 @@ const MOut = {
     if (!AE.ctx || !atAudio) return performance.now();
     return performance.now() + Math.max(0, (atAudio - AE.ctx.currentTime)) * 1000;
   },
-  wants() { return this.mode !== 'web'; },
+  // _tabHidden: A HIDDEN TAB NEVER PLAYS THE RACK (Lance, Sep 1 — the
+  // phantom middle-D hunt). A background browser tab left open on a scene
+  // kept sending its idle-lure breaths (Chladni/Lumen are rooted in D) to
+  // the Ableton bus for hours, into whichever armed track a DIFFERENT Live
+  // set had listening on All Ins. Visibility gates every send (notes, CC,
+  // clock — all ride wants()); hiding fires allOff so nothing hangs, and
+  // becoming visible re-parks CC74. Electron windows are EXEMPT: the show
+  // window must keep playing while buried/occluded (showtest verifies
+  // exactly that), and a stowed window has no scene to speak anyway.
+  _tabHidden: false,
+  wants() { return this.mode !== 'web' && !this._tabHidden; },
   // THE TILE GATE (Lance's library-lightning bug): wall tiles run every
   // scene's step() with the ghost hands, and old versions call sfxNote &
   // friends straight from step — so without this, a ghost-charged storm on
@@ -664,6 +674,16 @@ try {
 } catch (e) {}
 // leaving the page must not strand Live running on a clock that stopped arriving
 window.addEventListener('pagehide', () => { try { MOut.allOff(); } catch (e) {} });
+// the hidden-tab gate (see _tabHidden above) — plain browser only
+if (!window.ELECTRON_ROLE) {
+  document.addEventListener('visibilitychange', () => {
+    try {
+      if (document.hidden) { MOut._tabHidden = true; MOut.allOff(); }
+      else { MOut._tabHidden = false; MOut.parkExpr(); }
+    } catch (e) {}
+  });
+  if (document.hidden) MOut._tabHidden = true;   // opened in a background tab
+}
 
 /* ============================================================
    SOUNDING BUS — what the board is ringing with, right now
