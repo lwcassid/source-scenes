@@ -301,6 +301,14 @@ Live set changes.
 - **`evDrum` notes must land on pads that EXIST in the kit** (36 38 39 42
   43/45 46 49 51 53 — rig.json's pad map). Ferro's log drums fired 63/64
   for months and Live heard nothing; a made-up pad number fails SILENTLY.
+- **A hidden tab never plays the rack (Lance, Sep 1).** The engine gates
+  every MIDI send (notes, CC, clock) on tab visibility — a background
+  browser tab left on a scene once breathed idle D pad notes into a
+  DIFFERENT Live set's armed track for hours (the phantom middle-D hunt).
+  Hide = allOff + clock Stop; visible = CC74 re-park. Electron windows are
+  exempt (the buried show window must keep playing — showtest's law).
+  Idle-lure MIDI sends remain a deliberate installation feature; this rule
+  is about tabs nobody can see.
 - **The drift plays the picture, never the rack.** Ambient drift keeps a
   scene's inputs moving at idle, and any MIDI derived from raw inputs
   performs to an empty room (Weather rang 81 bells/40s; Lumen and the
