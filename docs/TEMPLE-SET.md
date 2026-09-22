@@ -2,7 +2,7 @@
 
 Nine soundscapes for a band to play over. Open the set on the live site with
 **`#set=TEMPLE`** (the queue drawer lists it as a shared set too). Five new
-scenes (SRC-51..55, now at V2) plus four recycled from the installation.
+scenes (SRC-51..55, now at V3) plus four recycled from the installation.
 Every feedback round becomes a new version file, same as every other scene.
 
 ## What the performance is (Lance's brief, Sep 2026)
@@ -38,9 +38,10 @@ V1 was five small objects with unlocks ("hold still two seconds", "settle a
 ring on a bar line") — art concepts, not instruments; Lance: "they suck if
 I'm gonna be frank … not dynamic, not expressive." The good scenes in the
 library (Vespers, Ridge Loom, Lumen Film) are **full-frame fields that obey
-the hand instantly and totally**, sound riding the light. V2 is that:
+the hand instantly and totally**, sound riding the light. Hand mappings are
+a per-scene creative call, not a rule — there is no "R is always X". V2 is that (V3 is the polish round on top — same mappings, real musical ideas):
 
-| Scene | The field | L | R (always the crescendo) | Rhythm |
+| Scene | The field | L | R | Rhythm |
 |---|---|---|---|---|
 | **Threshold** (51.2) | A curtain of light-strands that parts to a radiant field | temperature (ember → gold → blue) | how OPEN — pad level + filter = the door | none |
 | **The Commons** (52.2) | A liquid sky of ~9k stars, streaking and swirling | the wind (speed, curl) | the bend: a lens grips the sky; a high held voice steps the ladder | none — the sit-in |
@@ -64,7 +65,30 @@ the hand instantly and totally**, sound riding the light. V2 is that:
 
 Keys: D lyd · D dor · A aeo · G m · E aeo · (halo) · C♯ dor · A m · F m.
 
-## Honest V2 notes (what to tune with real hands)
+## V3 — the polish round (what each soundscape IS now)
+
+- **Threshold**: an organ that ASSEMBLES — one voice per fifth of the door,
+  rolled in low to high; temperature picks the chord's face (cold = fifths
+  and sus, hot = 9ths/13ths); the door's speed is a breath; strands in two
+  depths with light running up them; slow rays behind the open gate.
+- **The Commons**: the lens is steered by the hands' balance (L−R); lensed
+  stars stretch into arcs; parallax by size. A bowed lead with a mouth
+  (motion kicks its filter), and the brightest stars crossing the lens
+  PLINK on their own time, panned to where they are.
+- **Orbits**: a phasing choir — five band voices tremolo at their own
+  orbital rates, deeper and slower as orbits stretch; points glow while
+  they hang at apoapsis; each band's tracer plucks its rung at periapsis,
+  harder the faster it rushes.
+- **Transmission**: call and ANSWER — every pulse gets a dotted-eighth
+  chord stab (pad channel, real notes) with ping-pong behind it, and a
+  visible second ring; the kit is a pocket (kick 1 + and-of-3, rim on 3,
+  accented hats), not a metronome; rings ripple at weight.
+- **Ascension**: the harmony climbs — seven chords whose bass walks
+  F–A♭–B♭–C–D♭–E♭–F, struck on the bass channel, upper voices voice-led;
+  the perpetual-rise texture only above half updraft; the band is a DOME
+  arc; now and then a lone name rises and rings on arrival.
+
+## Honest notes (what to tune with real hands)
 
 - All new scenes are browser-sound and rig-agnostic; every event carries a
   MIDI role but nobody has done the RIG WALK (sound-craft's process law).
@@ -72,27 +96,28 @@ Keys: D lyd · D dor · A aeo · G m · E aeo · (halo) · C♯ dor · A m · F 
   on the pad channel so the rack has the harmony.
 - **Threshold**: the fully-open flood is the only "all light" state in the
   set — check it on the real surface; it may want a ceiling.
-- **The Commons**: the lens wanders on its own; a V3 could give its position
-  to the hands' balance (L−R) if Edson wants to aim it.
+- **The Commons**: the lens follows the hands' balance with a ~1 s lag; if
+  aiming feels mushy, quicken it (`dt * 0.8` in step).
 - **Orbits**: the stretch rotates the whole field off-centre by design; if
   it reads as "the picture fell over", pin the periapsis direction.
 - **Transmission**: rate thresholds (0.45 → beats, 0.78 → eighths) and the
   kit pattern are placeholders; a drummer should choose them.
-- **Ascension**: the perpetual-rise drone is browser-only (a gliding voice
-  would re-strike on the texture channel every semitone).
+- **Ascension**: the perpetual-rise texture is browser-only (a gliding voice
+  would re-strike on the texture channel every semitone); the bass walk is
+  the tune — if it reads as too busy at 2 bars a chord, make it 4.
 
 ## Shooting them (harness polarity gotcha)
 
-`node tools/shot.mjs SRC-5X.2 prefix "label:L:R:pres:act:ms"` takes hand
+`node tools/shot.mjs SRC-5X.3 prefix "label:L:R:pres:act:ms"` takes hand
 values as **reach-outward = 1**; the scenes read **lean-in = 1**. So `0`
 in the harness is the scene's maximum.
 
 ```
-SRC-51.2  "closed:0.6:1:1:-1:4000,half:0.5:0.5:1:-1:4000,open:0.1:0:1:-1:4000"
-SRC-52.2  "wind:0.1:0.7:1:-1:6000,bend:0.5:0.05:1:-1:6000"
-SRC-53.2  "circles:1:0.3:1:-1:6000,stretch:0.05:0.1:1:-1:7000"
-SRC-54.2  "breath:0.9:0.8:1:-1:6000,locked:0.1:0.1:1:-1:8000"
-SRC-55.2  "embers:0.9:0.8:1:-1:5000,storm:0.05:0.05:1:-1:10000"
+SRC-51.3  "closed:0.6:1:1:-1:4000,half:0.5:0.5:1:-1:4000,open:0.1:0:1:-1:4000"
+SRC-52.3  "wind:0.1:0.7:1:-1:6000,bend:0.5:0.05:1:-1:6000"
+SRC-53.3  "circles:1:0.3:1:-1:6000,stretch:0.05:0.1:1:-1:7000"
+SRC-54.3  "breath:0.9:0.8:1:-1:6000,locked:0.1:0.1:1:-1:8000"
+SRC-55.3  "embers:0.9:0.8:1:-1:5000,storm:0.05:0.05:1:-1:10000"
 ```
 
 ## The long list behind V1 (kept for the record)

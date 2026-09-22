@@ -61,7 +61,7 @@ Edson: THE TEMPLE SET — Threshold (SRC-51), The Commons (SRC-52), Orbits
   (SRC-53), Transmission (SRC-54), Ascension (SRC-55), plus the TEMPLE running
   order in setlists.json (which also recycles Chladni, Vespers, Spectrum Halo
   and White Study). Brief, the rethink and the order: `docs/TEMPLE-SET.md`;
-  his quickstart: `docs/EDSON-GUIDE.md`. (Built to V2 by Lance's sessions as a
+  his quickstart: `docs/EDSON-GUIDE.md`. (Built to V3 by Lance's sessions as a
   head start — every round from here is his.)
 Don't rework someone else's scene without coordinating; adopting an UNCLAIMED
 scene is fair game.

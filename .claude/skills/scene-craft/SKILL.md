@@ -152,6 +152,17 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    DESTINATION's pixels: blur the small offscreen, then upscale, never blur on
    the way onto a 1920x1200 stage.
 
+10. **A scene is a FULL-FRAME FIELD that obeys the hand instantly (Lance,
+   Temple set V1→V2).** Five small objects behind unlocks (hold still 2 s,
+   settle a ring on a bar line) were "not dynamic, not expressive — they
+   suck": an unlock is a wait, and a small object is a screensaver. Vespers,
+   Ridge Loom and Lumen Film are the bar: the whole picture is one field, the
+   hand changes what it is MADE OF, now, and the sound rides the light. No
+   "R is always X" either — hand mappings are a per-scene creative call.
+   Harness gotcha that cost a round: `tools/shot.mjs` takes hand values as
+   reach-outward = 1, scenes read lean-in = 1, so `0` in a shot spec is the
+   scene's MAXIMUM.
+
 ## Scrim rules (the projection surface is mosquito-net mesh)
 Black is invisible — only light exists, floating in the room. Thin lines and
 fine detail VANISH (fatten strokes 3×; band/ring width ≥ ~8px at 1080p).
