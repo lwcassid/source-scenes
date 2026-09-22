@@ -57,6 +57,10 @@ Nima: White Study (SRC-34), Stones/Sonora (SRC-32), Attractor Vespers (SRC-09),
   Film · SRC-39 Starling Field · SRC-40 Vortex Choir · SRC-41 Pour Cells ·
   SRC-42 Ridge Loom) — scored in `docs/INSTRUMENT-SURVEY.md` §ADDENDUM
 Lance: Night Circuit (SRC-18), Storm Garden (SRC-30), Bubble Field (SRC-04)
+Edson: THE TEMPLE SET — Constellation Vigil (SRC-51), Sand Mandala (SRC-52),
+  Harmonograph (SRC-53), Accretion (SRC-54), Totality (SRC-55). Brief, ideas
+  and the running order: `docs/TEMPLE-SET.md`; his quickstart: `docs/EDSON-GUIDE.md`.
+  (Built as V1s by Lance's session as a head start — every round from here is his.)
 Don't rework someone else's scene without coordinating; adopting an UNCLAIMED
 scene is fair game.
 
@@ -356,7 +360,8 @@ implementation, including hands staying live as a manual override
 ## Working agreements
 - EVERY SCENE-ROUND COMMIT NAMES ITS HUMAN: end the commit message with a
   `Round-By: <first name>` trailer — the person whose session/feedback round
-  it is (you know who you are talking to; lwcassid@gmail.com = Lance). The
+  it is (you know who you are talking to; lwcassid@gmail.com = Lance; Edson's
+  sessions say so in their first message — add his email here once known). The
   HISTORY panel reads this trailer, and it is the ONLY reliable "who": every
   session commits as author Claude, so a round without the trailer shows no
   name. ENFORCED: the pre-push hook refuses any push whose commits add a
@@ -412,7 +417,9 @@ conflict (one file per version), but a stale clone that rebuilds and pushes
    move: pull → build → push.
 
 ## Lanes (who touches what)
-- Kasia + Nima sessions: SCENE WORK ONLY — new versions of their scenes.
+- Kasia + Nima + Edson sessions: SCENE WORK ONLY — new versions of their scenes
+  (Edson's lane also covers `setlists.json`'s TEMPLE set — its order and MINs
+  are his running order).
   Do not modify core parts (`part1_head.html`, `part2*`, `part5_tail.js`,
   `part15_history.js`) or `tools/` without coordinating with Lance.
 - Lance handles structural work (harmony engine, UI/library chrome, tools).

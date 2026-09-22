@@ -580,16 +580,22 @@ const QUEUE = {
     const h = location.hash;
     const m = h.startsWith('#set=') ? h.slice(5) : h.startsWith('#fav=') ? h.slice(5) : null;
     if (m) {
-      const ids = m.split(',').filter(Boolean);
+      // `#set=TEMPLE` — a SHARED set by name (setlists.json), so a performer
+      // gets one link that opens their running order with its show settings,
+      // instead of a list of SRC numbers; `#set=a,b,c` stays the id form
+      const named = this.sets().find(s2 => s2.name.toLowerCase() === decodeURIComponent(m).replace(/[-_+]/g, ' ').toLowerCase());
+      const ids = named ? this.setIds(named) : m.split(',').filter(Boolean);
       if (ids.length) {
         this.shared = ids;
         libFilter = 'queue'; syncChips();
         const bn = document.getElementById('favBanner');
         bn.classList.add('open');
-        document.getElementById('favBannerText').textContent =
-          'SOMEONE SHARED A SET · ' + ids.length + ' SCENES, IN THEIR ORDER';
+        document.getElementById('favBannerText').textContent = named
+          ? 'SHARED SET · ' + named.name + ' · ' + ids.length + ' SCENES, IN ORDER'
+          : 'SOMEONE SHARED A SET · ' + ids.length + ' SCENES, IN THEIR ORDER';
         document.getElementById('favMerge').addEventListener('click', () => {
-          this.list = ids.slice(); this.save(); this.shared = null;
+          if (named) this.adoptSet(named); else this.list = ids.slice();
+          this.save(); this.shared = null;
           bn.classList.remove('open');
           history.replaceState(null, '', location.pathname);
           this.refresh();

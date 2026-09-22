@@ -9,7 +9,7 @@ parallel-work rules) and the skills in `.claude/skills/` —
 `scene-craft` (how scenes are built) and `sound-craft` (harmony engine,
 three-layer soundscape doctrine).
 
-**Guides & references:** `docs/KASIA-GUIDE.md` (collaborator quickstart),
+**Guides & references:** `docs/KASIA-GUIDE.md` / `docs/EDSON-GUIDE.md` (collaborator quickstarts), `docs/TEMPLE-SET.md` (the Temple performance set),
 `docs/SHOW-KIT.md` (running on-playa — the OFFLINE build is the show
 artifact), instrument + scrim surveys in `docs/`.
 
