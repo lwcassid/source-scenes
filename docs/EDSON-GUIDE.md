@@ -9,8 +9,10 @@ coding, nothing to install.
 
 **The live wall:** https://source-interaction-library.netlify.app
 **Your set, in order:** https://source-interaction-library.netlify.app/#set=TEMPLE
-**Your scenes:** Constellation Vigil (SRC-51) · Sand Mandala (SRC-52) ·
-Harmonograph (SRC-53) · Accretion (SRC-54) · Totality (SRC-55)
+**Your scenes:** Threshold (SRC-51) · The Commons (SRC-52) · Orbits (SRC-53) ·
+Transmission (SRC-54) · Ascension (SRC-55) — plus the TEMPLE running order,
+which also borrows Chladni Court, Attractor Vespers, Spectrum Halo and White
+Study from the installation
 **The brief and the idea list:** `docs/TEMPLE-SET.md` (ask Claude to show it)
 
 ---
@@ -33,11 +35,11 @@ That's it.
 2. **Say who you are first** ("This is Edson") — every version you make
    gets your name on it in the scene's HISTORY, and this is how it knows.
 3. Say what you want, like you'd say it to a person:
-   - *"Show me screenshots of Accretion as it is right now."*
-   - *"Make a new version of Sand Mandala with twelve-fold symmetry and slower, heavier sand."*
-   - *"Harmonograph's line is too faint — I want it to feel like light through glass."*
-   - *"In Totality, the corona should be longer and more violent when I reach."*
-   - *"Reorder the Temple set: Harmonograph first, then Vigil."*
+   - *"Show me screenshots of Orbits as it is right now."*
+   - *"Make a new version of The Commons where the wind is slower and the stars are bluer."*
+   - *"Transmission's kit is too busy — just a kick and a sub, nothing else."*
+   - *"In Ascension, the band at the top should be gold, not white, and the drone should climb slower."*
+   - *"Reorder the Temple set: Orbits before Vespers."*
 4. Claude knows the house rules (they're saved inside the project): it will
    make a **new version** of your scene, look at screenshots of its own work,
    and publish.
@@ -49,14 +51,14 @@ That's it.
 - **Nothing is ever overwritten.** Every round becomes a new version — V2,
   V3, V4 … — in the dropdown on your scene. Every old version stays there
   forever. Experiment freely.
-- **Sharing:** `#scene=SRC-54` opens Accretion directly (newest version);
+- **Sharing:** `#scene=SRC-54` opens Transmission directly (newest version);
   `#scene=SRC-54.2` pins V2. `#set=TEMPLE` opens your whole running order.
 
 ## Three rules of the road
 
-1. **Work on your own scenes** (SRC-51 to 55, and the TEMPLE set list). Ask
+1. **Work on your own scenes** (SRC-51 to 55, and the TEMPLE set list — the recycled four belong to their keepers). Ask
    in the group chat before touching someone else's.
-2. **Say in the chat when you're publishing** ("working on Totality tonight")
+2. **Say in the chat when you're publishing** ("working on Ascension tonight")
    so two people aren't pushing at the same moment.
 3. **If something looks wrong, nothing is lost.** Tell Claude: *"the last
    change broke it — go back to how it was."*

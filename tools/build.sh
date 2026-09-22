@@ -293,6 +293,11 @@ cd "$(dirname "$0")/.."
   cat parts/part228_harmonograph.js
   cat parts/part229_accretion.js
   cat parts/part230_eclipse.js
+  cat parts/part231_threshold.js
+  cat parts/part232_commons.js
+  cat parts/part233_orbits.js
+  cat parts/part234_transmission.js
+  cat parts/part235_ascension.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'

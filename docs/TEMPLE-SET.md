@@ -1,98 +1,104 @@
 # THE TEMPLE SET — Edson's performance
 
-Five scenes, one ritual arc, built Sep 2026 as a head start for Edson. Open
-the set on the live site with **`#set=TEMPLE`** (the queue drawer offers it
-as a shared set too). Every scene here is a V1: the point of a V1 is to be
-argued with. Each feedback round becomes a new version file, same as every
-other scene in the library.
+Nine soundscapes for a band to play over. Open the set on the live site with
+**`#set=TEMPLE`** (the queue drawer lists it as a shared set too). Five new
+scenes (SRC-51..55, now at V2) plus four recycled from the installation.
+Every feedback round becomes a new version file, same as every other scene.
 
-## The brief (what "Temple" means here)
+## What the performance is (Lance's brief, Sep 2026)
 
-Edson plays with dots and viscosity — particle simulations where the fun is
-in how the stuff flows. The Temple wants that, aimed at: **space, epic and
-high-end, thin lines, ceremonial, ritualistic, tasteful.** Lance's visual
-references, distilled:
+A large room, ~500 people. Edson plays the wall; a pianist, a guitarist, a
+flutist and maybe a drummer play OVER it. So each scene is a **soundscape
+with tooth**: it sounds finished with nobody touching it (drone, pedal,
+colour moving over a root), Edson's hands add expression — visibly and
+audibly — including a **crescendo** on demand, and the mids are left EMPTY
+for the instruments. Subtle and high quality beat clever. Beats are not off
+the table: White Study is one of the best scenes to jam on precisely because
+it gives the musicians space, so the set carries a pulse scene and the
+recycled club scene, and the SUMMONS works everywhere.
 
-1. **Prismatic flow** — a spectrum split along a ribbon of particles, not
-   flat neon. Iridescence comes from *temperature* or *age* of a form, never
-   from screen position.
-2. **Sparse white filaments on a huge black** — most of the frame is nothing.
-3. **Hair-thin crystalline lines, near-monochrome** — white/silver with a
-   faint red/blue fringe where lines cross, like light through glass.
-4. **Two soft spheres overlapping, one dark, one lit with a spectral
-   gradient** — the softest picture in the set is also the biggest.
-5. **Dots strung along curves in the dark** — LED points on a wire cage.
+Success criteria, in order: fun to jam on top of · sets the vibe · looks
+epic. Edson's job on the night is closer to DJing for the band — pick the
+soundscape, shape it, hand it to them, switch when it's time.
 
-House rules that still apply (they're in `scene-craft`): black is invisible
-on the scrim, so a "thin" line here is ~1.2–1.8 px at 1920×1200 *with a glow
-sprite under it*; every scene keeps one line-weight constant (`ms`) so the
-whole set can be fattened in one edit if the Temple surface eats it.
+## What Orbital Temple is about (so the scenes aren't literal)
 
-## The long list (fourteen ideas, very different on purpose)
+Edson's [Orbital Temple](https://orbitaltemple.art/) is a 250 g satellite
+with a golden dome, ten years in orbit, carrying the names of people the
+participants lost. It transmits back: *"Today, at this hour, the name you
+sent ascended, and there it remains."* Space as "the oldest commons we
+share"; heaven's gateways reclaimed from whoever decided who they open for;
+"a temple exists wherever names are spoken." The vibes we took, not the
+objects: **the gate · one shared sky · orbit and remaining · the message
+home · ascension.**
 
-| # | Idea | One line | Verdict |
-|---|------|----------|---------|
-| 1 | **Constellation Vigil** | Two candles in viscous dust; hold still and a star condenses; stars thread into a constellation over the whole set | **BUILT (SRC-51)** — memorial, and the only scene where minute nine looks different from minute one by construction |
-| 2 | **Sand Mandala** | Grains homed on an 8-fold mandala; L settles ring by ring, R sweeps it away | **BUILT (SRC-52)** — the Temple burns; a mandala is made to be unmade |
-| 3 | **Harmonograph** | Twin-pendulum pen; L tunes the frequency ratio through just-interval detents, R is the swing | **BUILT (SRC-53)** — the interval *is* the figure, which is the most honest sound-picture coupling in the library |
-| 4 | **Accretion** | Keplerian dust disc; L viscosity braids rings into infall streams, R feeds it; a photon ring; an earned heartbeat | **BUILT (SRC-54)** — Edson's dots-and-viscosity, pointed at the dark |
-| 5 | **Totality** | Two soft spheres; R slides the dark one across the lit one; the corona appears at totality; diamond ring on release | **BUILT (SRC-55)** — the climax; reference image 4 almost literally |
-| 6 | Orrery | Thin elliptical orbits, conjunctions ring bells | Too close to Epicycle Court (SRC-01) |
-| 7 | Censer | Curl-noise incense smoke rising from a thurible; viscosity = smoke thickness | Beautiful but not space; keep for a V2 of Vigil's dust |
-| 8 | Magnetosphere | Dipole field lines, solar-wind particles streaming along them, aurora at the poles | Strong candidate for scene six; overlaps Totality's streamers |
-| 9 | Nebula Nursery | SPH gas collapsing into stars, each birth a note | Needs a real fluid solver to look right; Cloud Steam already owns "soft mass" |
-| 10 | Galaxy Arms | Density-wave spiral, L arm tightness, R rotation | Epic but a RATE control (spin) is a weak control — see scene-craft |
-| 11 | Procession | Lines of dots walking an ellipse in step, a ceremony | Reads as a screensaver; no instrument in it |
-| 12 | Gravitational Lens | An Einstein ring bending a star field | One trick, no second minute |
-| 13 | Comet Rosary | Comets on eccentric orbits, tails as thin lines, perihelion = bell | Good; folded into Accretion's feed stream |
-| 14 | Lantern Ascent | Sky lanterns released by stillness, rising, thinning to stars | Folded into Vigil (the "oldest star ascends") |
+## The rethink (V1 → V2, after Lance's verdict)
 
-**Why these five:** each uses a different mechanic (stillness detector /
-homed grains / pendulum pen / orbital dynamics / occlusion), a different
-key and tempo, a different picture family (dots / dots-on-curves / one line
-/ disc / spheres), and together they make an arc.
+V1 was five small objects with unlocks ("hold still two seconds", "settle a
+ring on a bar line") — art concepts, not instruments; Lance: "they suck if
+I'm gonna be frank … not dynamic, not expressive." The good scenes in the
+library (Vespers, Ridge Loom, Lumen Film) are **full-frame fields that obey
+the hand instantly and totally**, sound riding the light. V2 is that:
 
-## The running order (and why)
+| Scene | The field | L | R (always the crescendo) | Rhythm |
+|---|---|---|---|---|
+| **Threshold** (51.2) | A curtain of light-strands that parts to a radiant field | temperature (ember → gold → blue) | how OPEN — pad level + filter = the door | none |
+| **The Commons** (52.2) | A liquid sky of ~9k stars, streaking and swirling | the wind (speed, curl) | the bend: a lens grips the sky; a high held voice steps the ladder | none — the sit-in |
+| **Orbits** (53.2) | Thousands of points in nested Keplerian orbits | eccentricity — every orbit stretches at once | light — count, brightness, trails; five band voices | none |
+| **Transmission** (54.2) | Rings from a beacon crossing the whole frame | rate — breath → heartbeat → locked to beats/eighths | weight — sub thump → earned kit, latched 4 bars | YES — the drummer's scene |
+| **Ascension** (55.2) | An updraft of sparks, ember → gold → white, remaining in a gold band | the updraft; also the rate of a perpetual-rise drone | the swell — pad, sub, band bells; kit past 70% | earned |
 
-| Slot | Scene | MIN | Role in the rite |
-|------|-------|-----|------------------|
-| 1 | Constellation Vigil (SRC-51) | 8 | Arrival. Quiet, hands learn stillness. The sky starts filling. |
-| 2 | Sand Mandala (SRC-52) | 8 | The making. Devotion builds it; the sweep is the first release. |
-| 3 | Harmonograph (SRC-53) | 7 | The meditation. One white line, two tones, pure intervals. |
-| 4 | Accretion (SRC-54) | 9 | The descent. Colour returns as heat; the heartbeat is earned. |
-| 5 | Totality (SRC-55) | 8 | Climax and release. The gong, the corona, the diamond ring. |
+## The running order
 
-Keys walk D dorian → A aeolian → E aeolian → C♯ phrygian → F aeolian; tempi
-58 → 66 → 60 → 84 → 56. Only Accretion has drums, and only when earned.
+| # | Scene | MIN | Role |
+|---|---|---|---|
+| 1 | Chladni Court (SRC-28) | 6 | tuning the room — no drums, ever |
+| 2 | Threshold (SRC-51) | 8 | open the gate |
+| 3 | The Commons (SRC-52) | 8 | the sit-in — flute and guitar |
+| 4 | Attractor Vespers (SRC-09) | 7 | the drone — one synth played by the light |
+| 5 | Orbits (SRC-53) | 8 | held voices, the far-end hang |
+| 6 | Spectrum Halo (SRC-49) | 8 | LISTENS to the band (audio-in) |
+| 7 | Transmission (SRC-54) | 9 | the pulse — drummer in |
+| 8 | White Study (SRC-34) | 10 | the jam |
+| 9 | Ascension (SRC-55) | 9 | finale |
 
-## What each scene needs next (the honest V1 list)
+Keys: D lyd · D dor · A aeo · G m · E aeo · (halo) · C♯ dor · A m · F m.
 
-- **All five** are browser-sound only and rig-agnostic: every event carries a
-  MIDI role, but nobody has done the RIG WALK (sound-craft's process law).
-  First Ableton session: walk the roles seat by seat with Lance.
-- **Vigil**: stillness threshold (2 s) and the gathered-dust requirement
-  are guesses; tune on the real sensors. The idle state could use one rare
-  autonomous star (ownership, not exclusivity).
-- **Mandala**: the complete-mandala payoff is one chord roll; it deserves a
-  window (45 s of something). The sweep's violet tint is a global — could be
-  a per-grain "was swept" freshness instead.
-- **Harmonograph**: the detent list is a taste call (minor third and minor
-  sixth in; major third out). The 1:1 detent is dull — consider dropping it.
-- **Accretion**: the heartbeat pattern is placeholder (kick on 1 and the
-  "and" of 3); the infall pluck register may want to be lower.
-- **Totality**: the lit sphere is bigger and bluer than the reference;
-  corona streamer count/length is a budget question at 1920×1200.
+## Honest V2 notes (what to tune with real hands)
 
-## How to shoot them (the harness polarity gotcha)
+- All new scenes are browser-sound and rig-agnostic; every event carries a
+  MIDI role but nobody has done the RIG WALK (sound-craft's process law).
+  Pad washes stay browser-side; each chord change places a rolled pad chord
+  on the pad channel so the rack has the harmony.
+- **Threshold**: the fully-open flood is the only "all light" state in the
+  set — check it on the real surface; it may want a ceiling.
+- **The Commons**: the lens wanders on its own; a V3 could give its position
+  to the hands' balance (L−R) if Edson wants to aim it.
+- **Orbits**: the stretch rotates the whole field off-centre by design; if
+  it reads as "the picture fell over", pin the periapsis direction.
+- **Transmission**: rate thresholds (0.45 → beats, 0.78 → eighths) and the
+  kit pattern are placeholders; a drummer should choose them.
+- **Ascension**: the perpetual-rise drone is browser-only (a gliding voice
+  would re-strike on the texture channel every semitone).
 
-`node tools/shot.mjs SRC-5X prefix "label:L:R:pres:act:ms"` takes hand values
-as **reach-outward = 1**; the scenes read **lean-in = 1** (NEAR = MORE). So
-`0` in the harness is the scene's maximum. States that show each scene:
+## Shooting them (harness polarity gotcha)
+
+`node tools/shot.mjs SRC-5X.2 prefix "label:L:R:pres:act:ms"` takes hand
+values as **reach-outward = 1**; the scenes read **lean-in = 1**. So `0`
+in the harness is the scene's maximum.
 
 ```
-SRC-51  "still:0.25:0.7:1:-1:9000"          two stars and a bridge
-SRC-52  "built:0:1:1:-1:14000,sweep:0.7:0.1:1:-1:5000"
-SRC-53  "fifth:0.53:0.1:1:-1:9000,octave:0.28:0.3:1:-1:8000"
-SRC-54  "rings:1:1:1:-1:5000,honey:0.1:0.1:1:-1:12000"
-SRC-55  "partial:0.7:0.5:1:-1:4000,total:0.2:0:1:-1:10000"
+SRC-51.2  "closed:0.6:1:1:-1:4000,half:0.5:0.5:1:-1:4000,open:0.1:0:1:-1:4000"
+SRC-52.2  "wind:0.1:0.7:1:-1:6000,bend:0.5:0.05:1:-1:6000"
+SRC-53.2  "circles:1:0.3:1:-1:6000,stretch:0.05:0.1:1:-1:7000"
+SRC-54.2  "breath:0.9:0.8:1:-1:6000,locked:0.1:0.1:1:-1:8000"
+SRC-55.2  "embers:0.9:0.8:1:-1:5000,storm:0.05:0.05:1:-1:10000"
 ```
+
+## The long list behind V1 (kept for the record)
+
+Vigil · Mandala · Harmonograph · Accretion · Totality were built and are
+still there as V1s of the same families. The other nine ideas (orrery,
+censer, magnetosphere, nebula nursery, galaxy arms, procession, lens, comet
+rosary, lantern ascent) were rejected for overlap, weak controls (a RATE is
+a weak control), or being one trick.

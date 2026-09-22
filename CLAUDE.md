@@ -57,10 +57,12 @@ Nima: White Study (SRC-34), Stones/Sonora (SRC-32), Attractor Vespers (SRC-09),
   Film · SRC-39 Starling Field · SRC-40 Vortex Choir · SRC-41 Pour Cells ·
   SRC-42 Ridge Loom) — scored in `docs/INSTRUMENT-SURVEY.md` §ADDENDUM
 Lance: Night Circuit (SRC-18), Storm Garden (SRC-30), Bubble Field (SRC-04)
-Edson: THE TEMPLE SET — Constellation Vigil (SRC-51), Sand Mandala (SRC-52),
-  Harmonograph (SRC-53), Accretion (SRC-54), Totality (SRC-55). Brief, ideas
-  and the running order: `docs/TEMPLE-SET.md`; his quickstart: `docs/EDSON-GUIDE.md`.
-  (Built as V1s by Lance's session as a head start — every round from here is his.)
+Edson: THE TEMPLE SET — Threshold (SRC-51), The Commons (SRC-52), Orbits
+  (SRC-53), Transmission (SRC-54), Ascension (SRC-55), plus the TEMPLE running
+  order in setlists.json (which also recycles Chladni, Vespers, Spectrum Halo
+  and White Study). Brief, the rethink and the order: `docs/TEMPLE-SET.md`;
+  his quickstart: `docs/EDSON-GUIDE.md`. (Built to V2 by Lance's sessions as a
+  head start — every round from here is his.)
 Don't rework someone else's scene without coordinating; adopting an UNCLAIMED
 scene is fair game.
 

@@ -165,8 +165,12 @@
     },
     {
       "name": "TEMPLE",
-      "note": "Edson's Temple performance, Sep 2026 — five new scenes built as one ritual arc, all browser sound until rigged: Constellation Vigil (arrival: hold still, light a star) · Sand Mandala (the making, and the sweeping away) · Harmonograph (the meditation: the interval is the figure) · Accretion (the descent: an offering to the dark, the heartbeat earned) · Totality (the climax and the release: the corona, the diamond ring). Open it with #set=TEMPLE.",
+      "note": "Edson's Temple performance, Sep 2026 — nine soundscapes for a band to play over (piano · guitar · flute · drums), from Orbital Temple's vibes: the gate, one shared sky, orbit, the transmission home, ascension. Five new scenes plus four recycled from the installation. Open with #set=TEMPLE. Arc: Chladni tunes the room · THRESHOLD opens the gate · THE COMMONS is the sit-in · Attractor Vespers the drone · ORBITS · Spectrum Halo listens to the band · TRANSMISSION brings the pulse · White Study is the jam · ASCENSION ends it.",
       "scenes": [
+        {
+          "id": "SRC-28",
+          "min": 6
+        },
         {
           "id": "SRC-51",
           "min": 8
@@ -176,16 +180,28 @@
           "min": 8
         },
         {
-          "id": "SRC-53",
+          "id": "SRC-09",
           "min": 7
+        },
+        {
+          "id": "SRC-53",
+          "min": 8
+        },
+        {
+          "id": "SRC-49",
+          "min": 8
         },
         {
           "id": "SRC-54",
           "min": 9
         },
         {
+          "id": "SRC-34",
+          "min": 10
+        },
+        {
           "id": "SRC-55",
-          "min": 8
+          "min": 9
         }
       ]
     }
