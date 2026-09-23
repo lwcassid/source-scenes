@@ -48,11 +48,12 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    player EARNS a way to summon a beloved autonomous event, keep the event
    visiting uninvited now and then anyway — ownership is priority, not
    exclusivity ("what happened to the pink accents?" — Lance, WS V7→V8).
-4. **The side law.** Left hand = warm orange country, right = violet, in
-   every scene. Intensity DIRECTION, though, is a judgement call, not a law
-   (Lance): `inp` arrives reach-outward = more (sphere = 0), but map
-   whichever polarity feels most natural for how the visuals move — invert
-   with `1 - inp` when approaching the source should intensify. The real
+4. **No hand-colour or hand-role convention (Lance, Sep 2026).** There is
+   no "left is warm, right is violet" and no "R is always the crescendo" —
+   an old per-scene choice had crept in as a law and it limits creativity;
+   each scene maps its hands and colours however serves it. Intensity
+   DIRECTION is likewise a judgement call: `inp` arrives lean-in = more,
+   but invert with `1 - inp` when reaching out should intensify. The real
    law is the FIELD EDGE: the boundary where tracking appears/disappears
    must be a gentle state, never a cliff — a hand entering mid-field must
    not slam the scene to max, a hand drifting out must not cut off at peak.
@@ -157,8 +158,7 @@ Every scene is a VISUAL + SOUND INSTRUMENT played by two theremin hands.
    settle a ring on a bar line) were "not dynamic, not expressive — they
    suck": an unlock is a wait, and a small object is a screensaver. Vespers,
    Ridge Loom and Lumen Film are the bar: the whole picture is one field, the
-   hand changes what it is MADE OF, now, and the sound rides the light. No
-   "R is always X" either — hand mappings are a per-scene creative call.
+   hand changes what it is MADE OF, now, and the sound rides the light.
    Harness gotcha that cost a round: `tools/shot.mjs` takes hand values as
    reach-outward = 1, scenes read lean-in = 1, so `0` in a shot spec is the
    scene's MAXIMUM.
