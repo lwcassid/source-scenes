@@ -273,6 +273,7 @@ cd "$(dirname "$0")/.."
   cat parts/part197_halo.js
   cat parts/part215_halo2.js
   cat parts/part218_halo3.js
+  cat parts/part241_halo4.js
   cat parts/part195_cloudsteam.js
   cat parts/part196_cloudsteam2.js
   cat parts/part198_cloudsteam3.js
