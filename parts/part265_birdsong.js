@@ -61,8 +61,9 @@
    (three noise octaves → two broad ones), forms growing INSIDE the core (one
    radius now owns the surface), forms too small to be the picture (petal-
    broad, 3–5 alive at once), a sheaf growing into the lens as a pale wall
-   (growth flattened to the picture plane, a real aperture), and faceted
-   beads that glittered (smooth spheres stretched along their flight).
+   (growth flattened to the picture plane, a real aperture), and blurred
+   beads printing as clusters of copies (the DOF gather's spiral is now
+   rotated per pixel; smooth spheres, stretched along their flight).
    NOT YET HEARD: the song, the sub and the forest air are wired, unheard. */
 (() => {
   const MUSIC = { bpm: 96, root: 52, mode: 'ionian', chordBars: 8, prog: [0, 5, 3, 4] };
@@ -240,11 +241,17 @@ void main(){
   // golden-angle gather; a sample reaches us if ITS blur covers the distance
   // (near samples always may; far ones only as far as our own blur allows,
   // so a blurred background never bleeds over a sharp foreground)
-  const int N = 36;
+  // THE SPIRAL IS ROTATED PER PIXEL. With one fixed spiral for every pixel,
+  // a small blurred bead is picked up by the same few taps all around it and
+  // prints as a cluster of copies of itself (it did: "raspberries"). A
+  // per-pixel rotation and jittered radius turns those copies into a soft disc.
+  const int N = 52;
+  float rot0 = h21(gl_FragCoord.xy) * 6.2832;
+  float jr = h21(gl_FragCoord.yx + 17.0);
   for (int i = 1; i < N; i++) {
     float fi = float(i);
-    float r = sqrt(fi / float(N)) * uCocMax;
-    float a = fi * 2.39996;
+    float r = sqrt((fi - 0.5 + jr) / float(N)) * uCocMax;
+    float a = fi * 2.39996 + rot0;
     vec2 uv = vUv + vec2(cos(a), sin(a)) * r * uPx;
     float ds = texture2D(tDep, uv).x;
     float zs = ds > 0.99999 ? 1e4 : linZ(ds);

@@ -23,26 +23,11 @@
   const ROWS = [];
   let group = null, instRow = null, title = null, loadEl = null, built = false;
 
-  function build() {
+  function build(ctx) {
     if (built) return; built = true;
-    const host = document.getElementById('sidebar');
-    const anchor = host && [...host.querySelectorAll('.sgroup')]
-      .find(g => (g.querySelector('h5') || {}).textContent === 'Source input');
-    if (!host) return;
-
-    group = document.createElement('section');
-    group.className = 'sgroup';
-    group.id = 'mixGroup';
-    group.style.display = 'none';
-
-    const h = document.createElement('h5');
-    h.textContent = 'Mix';
-    const sp = document.createElement('span');
-    // pointer-events:none, or a click on this label is not a click on the h5
-    // and part5_tail's fold bails — half the header would not fold
-    sp.style.cssText = 'float:right;font-size:9px;letter-spacing:.1em;opacity:.55;pointer-events:none';
-    h.appendChild(sp); title = sp;
-    group.appendChild(h);
+    // the <section>, the h5, the status label and finding where in the
+    // sidebar this goes are all PANELS' job now — parts/partcore_panels.js
+    group = ctx.group; title = ctx.status;
 
     // one row per layer: name · level · fader · solo
     for (let i = 0; i < 6; i++) {
@@ -99,8 +84,6 @@
     loadEl.style.opacity = '.55';
     group.appendChild(loadEl);
 
-    if (anchor && anchor.nextSibling) host.insertBefore(group, anchor.nextSibling);
-    else host.appendChild(group);
   }
 
   /* textContent and style only — never innerHTML, and never rebuild a row.
@@ -109,8 +92,7 @@
   function paint() {
     if (!built) return;
     const st = (window.MIX && MIX.state) ? MIX.state() : null;
-    if (!st) { if (group.style.display !== 'none') group.style.display = 'none'; return; }
-    if (group.style.display !== '') group.style.display = '';
+    if (!st) return;                       // show() has already hidden us
     if (title.textContent !== st.id) title.textContent = st.id;
 
     const focused = document.activeElement;
@@ -143,9 +125,11 @@
     if (loadEl.textContent !== txt) loadEl.textContent = txt;
   }
 
-  build();
-  // never let a repaint throw: at this interval one bad frame becomes a
-  // console flood, and a console flood looks exactly like a freeze.
-  const safePaint = () => { try { paint(); } catch (e) {} };
-  setInterval(safePaint, 120);
+  PANELS.register({
+    id: 'mix', title: 'Mix', status: true, after: 'Source input', every: 120,
+    build, paint,
+    // PANELS owns showing and hiding, so paint() never touches display and a
+    // hidden panel is not painted at all
+    show: () => !!(window.MIX && MIX.state && MIX.state())
+  });
 })();

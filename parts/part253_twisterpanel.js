@@ -87,24 +87,15 @@
     return { row, sel, g, fill };
   }
 
-  function build() {
+  function build(ctx) {
     if (built || !window.TWIST) return; built = true;
-    const host = document.getElementById('sidebar'); if (!host) return;
-    const anchor = [...host.querySelectorAll('.sgroup')]
-      .find(g => (g.querySelector('h5') || {}).textContent === 'Source input');
-
-    group = document.createElement('section');
-    group.className = 'sgroup'; group.id = 'twistGroup';
-
-    const h = document.createElement('h5');
-    h.textContent = 'Twister';
-    const st = document.createElement('span');
-    /* pointer-events:none so the whole header folds. part5_tail binds the
-       fold to the h5 and bails on `e.target !== h`, so a click landing on this
-       status span did nothing — the header looked dead on its right half. */
-    st.style.cssText = 'float:right;font-size:9px;letter-spacing:.1em;opacity:.6;pointer-events:none';
-    h.appendChild(st); statusEl = st;
-    group.appendChild(h);
+    /* The <section>, the h5, the status label (with the pointer-events:none
+       that keeps the whole header foldable) and the job of finding where in
+       the sidebar this goes now belong to PANELS — parts/partcore_panels.js.
+       This used to locate its anchor by matching the English string
+       'Source input' against an h5, which one rename would have broken
+       silently, here and in the mix panel both. */
+    group = ctx.group; statusEl = ctx.status;
 
     const key = document.createElement('p');
     key.className = 'sinfo';
@@ -221,12 +212,10 @@
     group.appendChild(help);
     helpEl = help; help._disp = help.style.display || '';
 
-    if (anchor && anchor.nextSibling) host.insertBefore(group, anchor.nextSibling);
-    else host.appendChild(group);
   }
 
   function paint() {
-    if (!built) { build(); return; }
+    if (!built) return;                    // PANELS calls build() before paint()
     const T = window.TWIST; if (!T) return;
     const devs = T.devices();
     const flood = T.rate > 400;
@@ -368,9 +357,8 @@
     if (noteEl.textContent !== n) noteEl.textContent = n;
   }
 
-  build();
-  // never let a repaint throw: at this interval one bad frame becomes a
-  // console flood, and a console flood looks exactly like a freeze.
-  const safePaint = () => { try { paint(); } catch (e) {} };
-  setInterval(safePaint, 150);
+  PANELS.register({
+    id: 'twist', title: 'Twister', status: true, after: 'Source input', every: 150,
+    build, paint
+  });
 })();

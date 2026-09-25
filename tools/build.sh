@@ -314,6 +314,7 @@ cd "$(dirname "$0")/.."
   cat parts/part248_poemdeck.js
   cat parts/part249_source.js
   cat parts/part250_mixer.js
+  cat parts/partcore_panels.js
   cat parts/part251_mixpanel.js
   cat parts/part252_twister.js
   cat parts/part253_twisterpanel.js
