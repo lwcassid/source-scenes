@@ -17,8 +17,13 @@
    THE MODEL IS THE HARDWARE. A slot IS an encoder, 1-16. Each slot can do one
    thing when TURNED and one when PUSHED, which is exactly what the device is.
    The factory default sends CC n and Note n on channel 1 for encoder n, so
-   AUTO-MAP needs no learning at all — and per-slot LEARN is there for when a
-   device does not match.
+   AUTO-MAP needs no learning at all.
+
+   THIS MODULE IS TWISTER-ONLY, by Edson's call on Sep 25: another controller
+   gets its own module rather than a generic learn mode in this one. That is
+   why there is no LEARN here — it was removed, not forgotten. A binding UI on
+   a panel touched mid-performance was sixteen ways to deafen the controller
+   for six seconds, to cover a case that does not arise.
 
    IT REFUSES to bind anything the hands own (midi.map.L/R) or show control
    owns (NAV.claims) — their own guard, so mapping a knob can never quietly
@@ -42,9 +47,10 @@
      🔴 And the trap the manual states outright: "If the encoder switch MIDI
      channel or number settings are changed from default the colour and
      animation controls do NOT change." So the LED is ALWAYS addressed by the
-     slot's factory number, never by whatever a LEARN bound the input to.
-     Two addresses per slot, which is why `led` is separate from `cc`/`note`. */
+     slot's factory number, never by whatever the input is bound to. Two
+     addresses per slot, which is why `led` is separate from `cc`/`note`. */
   const CH_RING = 0, CH_COLOUR = 1, CH_ANIM = 2;
+  const BLINK_S = 0.18;        // how long a pressed knob burns, in seconds
   const RGB_BRIGHT = 17, RGB_BRIGHT_TOP = 47;      // 17-47
   const RGB_PULSE = 9;                              // 9-16
 
@@ -90,12 +96,18 @@
   const PUSHES = Object.keys(FN).filter(k => k === 'none' || FN[k].push);
 
   /* the layout the device ships with, and the one the show uses */
-  function factory() {
+  /* `n` is how many layers the open scene actually has. THE GEOGRAPHY DOES
+     NOT MOVE with it: instrument volume stays on knob 8 and the poem cues on
+     9-12 whatever n is, because the thing being learned here is where your
+     hand goes in the dark, and a control that migrates between scenes is
+     worse than a dead one. Only the faders and solos shrink. */
+  function factory(n) {
     const s = [];
-    // `led` is the FACTORY number and never moves, even if a LEARN rebinds
-    // cc/note — see the note above the channel table.
+    const k = Math.max(0, Math.min(6, n === undefined ? 6 : n));
+    // `led` is the FACTORY number and never moves, even if cc/note are
+    // remapped on the device — see the note above the channel table.
     for (let i = 0; i < SLOTS; i++) s.push({ turn: 'none', push: 'none', cc: i, note: i, ch: 0, dev: null, led: i });
-    for (let i = 0; i < 6; i++) { s[i].turn = 'fader' + i; s[i].push = 'solo' + i; }
+    for (let i = 0; i < k; i++) { s[i].turn = 'fader' + i; s[i].push = 'solo' + i; }
     s[7].turn = 'inst';  s[7].push = 'unsolo';
     s[8].push = 'go';    s[9].push = 'back';
     s[10].push = 'abort'; s[11].push = 'stop';
@@ -110,11 +122,11 @@
     // a baffling "Cannot access 'FAV' before initialization" from a core file
     // that is not even broken.
     FN, TURNS, PUSHES, SLOTS, HUES,
-    slots: [], learn: null, note: null, _last: {}, _btn: {}, _wired: false, lastMsg: '',
+    slots: [], note: null, _last: {}, _btn: {}, _wired: false, lastMsg: '',
     // messages per second. A controller in the wrong mode can send hundreds,
     // and "it froze" is what that looks like from outside — so put a number
     // on screen instead of leaving it a mystery.
-    rate: 0, _n: 0, _rateT: 0, learnUntil: 0,
+    rate: 0, _n: 0, _rateT: 0,
     /* ENCODER MODE, detected rather than assumed. Factory is absolute CC
        (0-127 sweep). Relative sends tiny values around a centre — 63/65 for
        binary offset, 1/127 for two's complement — and reading those as
@@ -134,23 +146,58 @@
           return;
         }
       } catch (e) {}
+      /* NOTHING SAVED YET. A layout cannot be built here, because at load
+         time no scene is open and nLayers() can only guess six. `virgin` says
+         "this is a default, not a decision", and the panel maps it properly
+         the first time a scene with layers is actually open. A SAVED layout
+         is never touched that way — it is Edson's, stale or not. */
       this.slots = factory();
+      this.virgin = true;
     },
     saveColour() { try { localStorage.setItem(CKEY, JSON.stringify(this.colour)); } catch (e) {} },
     setColour(fam, v) { this.colour[fam] = v; this.saveColour(); this._sent = {}; },
     save() { try { localStorage.setItem(KEY, JSON.stringify(this.slots)); } catch (e) {} },
-    autoMap() { this.slots = factory(); this.save(); this.note = 'factory layout applied'; },
-    clearAll() { this.slots = factory().map(s => Object.assign(s, { turn: 'none', push: 'none' })); this.save(); },
-    setFn(i, which, fn) { if (this.slots[i]) { this.slots[i][which] = fn; this.save(); } },
-    LEARN_MS: 6000,
-    arm(i) {
-      this.learn = (this.learn === i) ? null : i;
-      this.note = this.learn === null ? null : 'turn or press encoder ' + (i + 1);
-      // a deadline, so an armed slot can never eat input indefinitely — the
-      // same six seconds NAV.arm uses, for the same reason
-      this.learnUntil = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + this.LEARN_MS;
+    autoMap() {
+      const n = this.nLayers();
+      this.slots = factory(n); this.save(); this._sent = {};
+      this.note = 'mapped ' + n + ' layer' + (n === 1 ? '' : 's') + ' + instrument + cues';
     },
-    disarm() { this.learn = null; this.note = null; },
+    clearAll() { this.slots = factory(0).map(s => Object.assign(s, { turn: 'none', push: 'none' })); this.save(); this._sent = {}; },
+    setFn(i, which, fn) { if (this.slots[i]) { this.slots[i][which] = fn; this.save(); } },
+    setSlotColour(i, v) {
+      if (!this.slots[i]) return;
+      if (v === null || v === undefined) delete this.slots[i].col; else this.slots[i].col = v;
+      this.save(); this._sent = {};
+    },
+
+    /* HOW MANY LAYERS ARE ACTUALLY THERE. A movement has two or three
+       visuals, not six, and mapping six faders put four dead knobs under
+       Edson's hands and four meaningless rows in the panel. Ask the open
+       mixer. Outside one there is nothing to fade, so fall back to the full
+       set rather than to nothing, or the panel becomes unconfigurable. */
+    nLayers() {
+      try { const n = (window.MIX && MIX.count) ? MIX.count() : 0; return n > 0 ? n : 6; }
+      catch (e) { return 6; }
+    },
+    turnOpts() {
+      const n = this.nLayers();
+      return TURNS.filter(k => k.indexOf('fader') !== 0 || +k.slice(5) < n);
+    },
+    pushOpts() {
+      const n = this.nLayers();
+      return PUSHES.filter(k => k.indexOf('solo') !== 0 || +k.slice(4) < n);
+    },
+
+    /* PRESS FEEDBACK. Edson: "when I click a nob, we should make it blink so
+       I know it worked." A push often fires something with no immediate
+       picture — an unsolo, a cue that waits for the next bar — and without
+       this the only confirmation is the thing itself, seconds later. */
+    _hit: {},
+    hit(i) { this._hit[i] = (typeof performance !== 'undefined' ? performance.now() : Date.now()); },
+    hitAge(i) {
+      const t = this._hit[i]; if (!t) return 99;
+      return ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t) / 1000;
+    },
 
     taken(p) {
       try {
@@ -173,43 +220,29 @@
       const isCC = hi === 0xB0, isNote = (hi === 0x90 && raw > 0);
       if (!isCC && !isNote) return;
       // never read our own light update back as a knob move
-      const echoAt = this._echo[ch + ':' + num];
-      if (echoAt && nowMs - echoAt < 40) return;
-
-      /* 🔴 THE BUG THAT MADE "THE TWISTER STOPS WORKING".
-         This branch SWALLOWS every message while armed — correct, so a knob
-         you are binding does not also fire what it is bound to. But it could
-         arm and NEVER DISARM: binding needed the value to move by 3, and a
-         slowly turned encoder moves by ONE per detent (and a relative one
-         sends 63/65, a step of two). Either way the bind never completed,
-         LEARN stayed on forever, and every message after it was eaten here —
-         while the page, the picture and the music all carried on perfectly
-         and the controller appeared dead. A reload cleared it because `learn`
-         was never persisted.
-         Three fixes: it times out, it accepts a relative encoder's step, and
-         it can never swallow more than a few seconds of input. */
-      if (this.learn !== null) {
-        if (nowMs > this.learnUntil) { this.learn = null; this.note = 'learn timed out'; }
+      /* THE ECHO GUARD IS FOR CC ONLY. Every light message we send is a CC,
+         so a note can never be our own echo — and keying the guard on
+         ch:num alone meant a PRESS arriving within 40ms of that knob's ring
+         update was thrown away as an echo. The painter runs every 80ms, so
+         that was roughly half of all presses, silently. */
+      /* AN ECHO IS THE SAME VALUE COMING BACK, not merely the same address.
+         Matching on address alone was too blunt in both directions: it
+         swallowed any press that shared a number with a light we had just
+         written — and we write COLOUR on channel 1, which is also where this
+         device can send its switches — while a note could never be our echo
+         at all, since every message we send is a CC. */
+      if (isCC) {
+        const e = this._echo['cc' + ch + ':' + num];
+        if (e && nowMs - e.t < 40 && raw === e.v) return;
       }
-      if (this.learn !== null) {
-        const p = { type: isCC ? 'cc' : 'note', ch, num, dev };
-        const why = this.taken(p);
-        if (why) { this.note = 'that one belongs to ' + why; return; }
-        if (isCC) {
-          const k = ch + ':' + num; const prev = this._last[k]; this._last[k] = raw;
-          // ANY change counts. A relative encoder moves by 1-2 and would never
-          // have cleared a threshold of 3.
-          if (prev === undefined || raw === prev) return;
-          this.slots[this.learn].cc = num;
-        } else {
-          this.slots[this.learn].note = num;
-        }
-        this.slots[this.learn].ch = ch; this.slots[this.learn].dev = dev;
-        this.note = 'slot ' + (this.learn + 1) + ' ← ' + (isCC ? 'CC' : 'NOTE') + num;
-        this.learn = null; this.save();
-        return;
-      }
+      this.lastRaw = { st: hi, ch, num, val: raw, t: Math.round(nowMs) };
 
+      /* TURNS FIRST, ACROSS ALL SLOTS, THEN PRESSES. Two passes, not one,
+         because a press may arrive on a different channel than the turn and
+         the old single pass skipped the slot outright on a channel mismatch —
+         so the tolerant press test below could never be reached. Turns still
+         require an exact channel match, so a press can never be mistaken for
+         a rotation. */
       for (let i = 0; i < this.slots.length; i++) {
         const s = this.slots[i];
         if (s.ch !== ch) continue;
@@ -218,7 +251,24 @@
           this.fire(s.turn, this.value(ch, num, raw, s.turn));
           this.lastMsg = 'K' + (i + 1); return;
         }
-        if (isNote && s.note === num && s.push !== 'none') { this.fire(s.push, 1); this.lastMsg = 'K' + (i + 1); return; }
+      }
+
+      /* A PRESS, WHICHEVER WAY THIS DEVICE SENDS ONE. The Twister's switch is
+         a note in some configurations and a CC on another channel in others,
+         and which is in force depends on how the unit was set up — Edson's
+         was configured with zerror, not the stock utility. So match on the
+         NUMBER and accept either shape: a note on any channel, or a non-zero
+         CC on a channel that is not this slot's turn channel. Rotations were
+         all tested in the pass above, so one can never be read as a press.
+         TWIST.lastRaw shows exactly what the hardware sent, if this ever
+         needs checking against the device. */
+      for (let i = 0; i < this.slots.length; i++) {
+        const s = this.slots[i];
+        if (s.dev && dev && s.dev !== dev) continue;
+        if (s.push === 'none' || num !== s.note) continue;
+        if (!(isNote || (isCC && ch !== s.ch && raw > 0))) continue;
+        this.hit(i);                         // burn the ring so the press is visible
+        this.fire(s.push, 1); this.lastMsg = 'K' + (i + 1); return;
       }
     },
 
@@ -313,12 +363,15 @@
     },
     send(ch, num, val) {
       const o = this.findOut(); if (!o) return;
+      const byte = Math.max(0, Math.min(127, Math.round(val)));
       try {
-        o.send([0xB0 | (ch & 15), num & 127, Math.max(0, Math.min(127, Math.round(val)))]);
+        o.send([0xB0 | (ch & 15), num & 127, byte]);
         this.sentCount++;
-        // remember what we just pushed, so the device's own report of it — if it
-        // ever makes one — cannot be read back as the operator turning a knob
-        this._echo[ch + ':' + num] = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+        // remember the exact byte we pushed, so the device's own report of it —
+        // if it ever makes one — cannot be read back as the operator turning a
+        // knob, while a different value on the same address still gets through
+        this._echo['cc' + ch + ':' + num] =
+          { t: (typeof performance !== 'undefined' ? performance.now() : Date.now()), v: byte };
       } catch (e) { this.outErr = 'send failed: ' + e.message; }
     },
 
@@ -357,7 +410,6 @@
     lightFor(i) {
       const S = this.slots[i];
       const fam = family(S.turn) || family(S.push);
-      const armed = this.learn === i;
       if (!fam) return { ring: 0, col: 0, anim: RGB_BRIGHT + 2 };          // assigned nothing: barely lit
 
       let ring = 0;
@@ -368,7 +420,9 @@
         // a cue or a solo has no value, so the ring reads as a full mark
         ring = 127;
       }
-      let col = this.colour[fam] !== undefined ? this.colour[fam] : DEFCOL[fam];
+      // a slot's own colour wins; otherwise the family default
+      let col = (S.col !== undefined && S.col !== null) ? S.col
+              : (this.colour[fam] !== undefined ? this.colour[fam] : DEFCOL[fam]);
 
       // brightness carries STATE: armed pulses, a soloed layer burns, a layer
       // the budget stood down is half-lit so the hardware never lies about
@@ -381,7 +435,9 @@
       const DIM = RGB_BRIGHT + 2, IDLE = RGB_BRIGHT + 10,
             ON = RGB_BRIGHT + 22, BURN = RGB_BRIGHT_TOP;
       let anim = ON;
-      if (armed) anim = RGB_PULSE + 3;                                    // pulsing: learning
+      // a knob you just pressed burns for a moment, so a push you cannot hear
+      // the result of still tells you it landed
+      if (this.hitAge(i) < BLINK_S) anim = BURN;
       else if (S.turn.indexOf('fader') === 0) {
         const n = +S.turn.slice(5);
         const st = (window.MIX && MIX.state) ? MIX.state() : null;
@@ -448,9 +504,7 @@
   // as well, and let Escape do it by hand.
   setInterval(() => {
     const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-    if (T.learn !== null && now > T.learnUntil) { T.learn = null; T.note = 'learn timed out'; }
   }, 500);
-  window.addEventListener('keydown', e => { if (e.key === 'Escape' && T.learn !== null) T.disarm(); });
   // 12 Hz is plenty for a light and gentle on a USB MIDI port; only changes
   // are actually transmitted, so a still rig sends nothing at all
   setInterval(() => {

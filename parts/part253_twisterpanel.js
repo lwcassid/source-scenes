@@ -5,9 +5,12 @@
    top-left under your hand, and you should never have to translate.
 
    Each slot shows what it does when TURNED and what it does when PUSHED.
-   Pick either from a dropdown. LEARN is only needed if the device does not
-   send the factory CC n / NOTE n on channel 1 — AUTO-MAP assumes it does and
-   lays the whole show out in one click.
+   Pick either from a dropdown. The Twister sends the factory CC n / NOTE n on
+   channel 1 — AUTO-MAP assumes it does and lays the whole show out in one
+   click, for exactly the layers the open scene actually has.
+
+   TWISTER-ONLY, by Edson's call on Sep 25. Another controller gets its own
+   module; there is no learn mode here to make this one generic.
 
    Injected at load from our own part file, so part5_tail.js binds its fold
    and per-browser memory to us afterwards, for free. Repaints with
@@ -16,7 +19,7 @@
    controller up before a scene is open, and a panel that hides when you need
    it is how you end up mapping in the dark. */
 (() => {
-  let group, cells = [], statusEl, noteEl, built = false, learnMode = false;
+  let group, cells = [], statusEl, noteEl, helpEl = null, built = false;
   const ROWS = [], COLS = [], LIGHTBTN = [];
 
   /* A cell is 50-odd pixels wide, so every option label is truncated to two or
@@ -25,6 +28,17 @@
      SURVIVES the truncation: "↻ LA…" and "↓ SO…" read at a glance.
      The border colour carries the same distinction for anyone not reading. */
   const GLYPH = { turn: '↻', push: '↓' };
+  /* the panel's approximation of what the ring will look like. The device
+     renders a hue from one MIDI byte; these are just close enough that the
+     swatch and the knob are recognisably the same colour. */
+  const CSS = { blue: '#3b6cff', cyan: '#19c8d8', green: '#2fc45c', yellow: '#d9d020',
+                amber: '#ee9b1c', red: '#e8402f', magenta: '#d62f9e', violet: '#8a4be0' };
+  const cssFor = v => {
+    if (!window.TWIST) return '#555';
+    const h = TWIST.HUES.find(x => x.v === v);
+    return h ? (CSS[h.k] || '#888') : '#888';
+  };
+  let lastN = -1;
   /* The glyph lives OUTSIDE the <select>, not inside its option text. A native
      select at fifty pixels spends fourteen of them on its own arrow, so a glyph
      in the label left about three characters for everything else and "↻L1" came
@@ -39,15 +53,37 @@
       + (kind === 'turn' ? 'color:var(--acc)' : 'color:var(--txt-dim)');
     const sel = document.createElement('select');
     sel.style.cssText = 'flex:1;min-width:0;width:100%;padding:3px 0 3px 2px;font-size:9px;letter-spacing:.02em';
-    opts.forEach(k => {
-      const o = document.createElement('option');
-      o.value = k;
-      o.textContent = (window.TWIST && TWIST.FN[k].short) ? TWIST.FN[k].short : k;
-      sel.appendChild(o);
-    });
+    /* The list is rebuilt when the open scene's layer count changes — a
+       movement with two visuals must not offer LAYER 5. Rebuilding a <select>
+       loses its value, so the caller's value is reapplied by the painter; and
+       we never touch a select the user currently has open. */
+    const fill = (ks, cur) => {
+      const keep = (cur === undefined) ? sel.value : cur;
+      sel.textContent = '';
+      const list = ks.slice();
+      /* A SAVED MAPPING THAT OUTLIVED ITS SCENE STILL HAS TO SHOW. A layout
+         stored when six layers were open keeps LAYER 5 on a knob; open a
+         movement with two and that option is gone, the <select> falls back to
+         empty, and the panel says the knob does nothing while the knob in
+         fact still carries it. So the stale value is appended, marked, and
+         left selectable-away. The hardware already tells the same story —
+         lightFor dims a fader past the end of the layer list. */
+      if (keep && list.indexOf(keep) < 0) list.push(keep);
+      list.forEach(k => {
+        const o = document.createElement('option');
+        o.value = k;
+        const short = (window.TWIST && TWIST.FN[k]) ? TWIST.FN[k].short : k;
+        const stale = ks.indexOf(k) < 0;
+        o.textContent = stale ? short + '!' : short;
+        if (stale) o.title = short + ' is not in this scene';
+        sel.appendChild(o);
+      });
+      sel.value = keep;
+    };
+    fill(opts);
     sel.addEventListener('change', () => onChange(sel.value));
     row.append(g, sel);
-    return { row, sel, g };
+    return { row, sel, g, fill };
   }
 
   function build() {
@@ -86,22 +122,35 @@
       top.style.cssText = 'display:flex;align-items:center;gap:4px;margin:0 0 3px';
       const n = document.createElement('span');
       n.textContent = (i + 1); n.style.cssText = 'font-size:9px;opacity:.5;flex:1';
-      const lb = document.createElement('button');
-      lb.textContent = '⌖'; lb.title = 'LEARN this slot — click, then turn or press that encoder';
-      // Hidden unless LEARN mode is on. AUTO-MAP covers the factory layout, which is
-      // what this Twister sends, so learning is the exception — and an armed slot
-      // swallows every MIDI message for LEARN_MS. One stray click mid-show would kill
-      // the knobs for six seconds. Behind a toggle, that cannot happen by accident.
-      lb.style.cssText = 'padding:1px 5px;font-size:9px;line-height:1.2;display:none';
-      lb.addEventListener('click', () => TWIST.arm(i));
-      top.append(n, lb); cell.appendChild(top);
 
-      const T = mkRow('turn', TWIST.TURNS, v => TWIST.setFn(i, 'turn', v));
-      const P = mkRow('push', TWIST.PUSHES, v => TWIST.setFn(i, 'push', v));
+      /* ONE SWATCH PER KNOB (Edson, Sep 25: "colours should be an individual
+         toggle for each button"). The cell is ~50px wide, which is no room for
+         a named dropdown, so the swatch IS the control: click steps forward
+         through the palette, shift-click steps back, and one more step past
+         the end returns it to AUTO — the family colour it had before anyone
+         touched it. The title attribute carries the name, because a dot in a
+         dark room is not self-describing. */
+      const sw = document.createElement('button');
+      sw.style.cssText = 'flex:0 0 11px;height:11px;padding:0;border-radius:3px;'
+        + 'border:1px solid var(--line2);cursor:pointer;line-height:0';
+      sw.addEventListener('click', e => {
+        e.preventDefault();
+        const S = TWIST.slots[i]; if (!S) return;
+        const H = TWIST.HUES, cur = (S.col === undefined || S.col === null) ? -1
+          : H.findIndex(x => x.v === S.col);
+        const step = e.shiftKey ? -1 : 1;
+        let next = cur + step;
+        if (next >= H.length || next < -1) next = -1;        // past either end: AUTO
+        TWIST.setSlotColour(i, next < 0 ? null : H[next].v);
+      });
+      top.append(n, sw); cell.appendChild(top);
+
+      const T = mkRow('turn', TWIST.turnOpts(), v => TWIST.setFn(i, 'turn', v));
+      const P = mkRow('push', TWIST.pushOpts(), v => TWIST.setFn(i, 'push', v));
       const tSel = T.sel, pSel = P.sel;
       cell.append(T.row, P.row);
       grid.appendChild(cell);
-      cells.push({ cell, lb, tSel, pSel });
+      cells.push({ cell, tSel, pSel, sw, fillT: T.fill, fillP: P.fill });
     }
     group.appendChild(grid);
 
@@ -156,32 +205,19 @@
     tb.textContent = 'TEST';
     tb.title = 'Flash every knob red, green, blue. If nothing happens the port is the problem, not the mapping.';
     tb.addEventListener('click', () => TWIST.test());
-    const ln = document.createElement('button');
-    ln.textContent = 'LEARN';
-    ln.title = 'Show a ⌖ on every slot. Click one, then turn or press that encoder to bind it. '
-             + 'Only needed off the factory numbers — a remapped encoder, banks 2–4, or another controller.';
-    ln.addEventListener('click', () => {
-      learnMode = !learnMode;
-      if (!learnMode) TWIST.disarm();
-      cells.forEach(c => { c.lb.style.display = learnMode ? '' : 'none'; });
-      ln.classList.toggle('on', learnMode);
-      ln.style.color = learnMode ? 'var(--hot)' : '';
-      safePaint();   // the painter owns noteEl; writing it here is overwritten in 150ms
-    });
-    row.append(am, cl, ln, lt, tb); group.appendChild(row);
+    row.append(am, cl, lt, tb); group.appendChild(row);
     LIGHTBTN.push(lt);
 
     noteEl = document.createElement('p');
     noteEl.className = 'sinfo';
+    noteEl.style.whiteSpace = 'pre-line';   // the raw-message line sits under the port line
     group.appendChild(noteEl);
 
     const help = document.createElement('p');
     help.className = 'sinfo';
     help.style.opacity = '.55';
-    help.innerHTML = '<b>L1-L6</b> layer faders &nbsp; <b>VOL</b> instrument &nbsp; <b>S1-S6</b> solo &nbsp; <b>US</b> unsolo<br>'
-      + '<b>GO BK AB ST</b> poem cues &nbsp;·&nbsp; hover a slot for the full name<br>'
-      + '⌖ binds a slot to a control — only needed off the factory numbers';
     group.appendChild(help);
+    helpEl = help;
 
     if (anchor && anchor.nextSibling) host.insertBefore(group, anchor.nextSibling);
     else host.appendChild(group);
@@ -197,14 +233,52 @@
             + (T.rate ? '  ' + T.rate + '/s' + (flood ? ' ⚠' : '') : '');
     if (statusEl.textContent !== s) statusEl.textContent = s;
 
+    /* THE LISTS FOLLOW THE SCENE. A movement with two visuals offers L1-L2 and
+       S1-S2, not six of each. Only rebuilt when the count actually changes —
+       refilling sixteen pairs of <select> every 150ms would fight the user for
+       the one they have open. */
+    const nL = T.nLayers();
+    // a never-configured controller lays itself out the first time a scene
+    // with layers is open — once, and never again over a saved layout
+    if (T.virgin && window.MIX && MIX.count && MIX.count() > 0) { T.virgin = false; T.autoMap(); }
+    if (nL !== lastN) {
+      lastN = nL;
+      const to = T.turnOpts(), po = T.pushOpts();
+      // the legend names the layers this scene actually has, not a fixed six
+      if (helpEl) {
+        const L = nL > 1 ? 'L1-L' + nL : 'L1', S = nL > 1 ? 'S1-S' + nL : 'S1';
+        helpEl.innerHTML = '<b>' + L + '</b> layer faders &nbsp; <b>VOL</b> instrument &nbsp; <b>'
+          + S + '</b> solo &nbsp; <b>US</b> unsolo<br>'
+          + '<b>GO BK AB ST</b> poem cues &nbsp;·&nbsp; hover a slot for the full name<br>'
+          + 'AUTO-MAP lays out the layers the open scene has &nbsp;·&nbsp; the dot sets that knob\'s light';
+      }
+      for (let i = 0; i < cells.length; i++) {
+        const C = cells[i], S = T.slots[i];
+        if (C.fillT) C.fillT(to, S ? S.turn : undefined);
+        if (C.fillP) C.fillP(po, S ? S.push : undefined);
+      }
+    }
+
     for (let i = 0; i < cells.length; i++) {
       const C = cells[i], S = T.slots[i]; if (!S) continue;
-      const armed = T.learn === i;
-      const lab = armed ? '…' : '⌖';
-      if (C.lb.textContent !== lab) C.lb.textContent = lab;
-      C.lb.classList.toggle('learning', armed);
       // a slot lit by a recent message, so you can see which knob you touched
-      C.cell.style.borderColor = armed ? 'var(--acc)' : 'var(--line2)';
+      const hit = T.hitAge(i) < 0.25;
+      C.cell.style.borderColor = hit ? 'var(--acc)' : 'var(--line2)';
+
+      if (C.sw) {
+        const auto = (S.col === undefined || S.col === null);
+        const eff = T.lightFor(i).col;               // what the knob will actually show
+        const bg = cssFor(eff);
+        if (C.sw.style.background !== bg) C.sw.style.background = bg;
+        // AUTO is drawn dimmer, so "I chose this" and "it came with the family"
+        // are not the same picture
+        const op = auto ? '0.4' : '1';
+        if (C.sw.style.opacity !== op) C.sw.style.opacity = op;
+        const h = T.HUES.find(x => x.v === eff);
+        const nm = (auto ? 'AUTO · ' : '') + (h ? h.k : 'unlit');
+        const tt = 'knob ' + (i + 1) + ' light: ' + nm + ' — click to change, shift-click to go back';
+        if (C.sw.title !== tt) C.sw.title = tt;
+      }
       if (document.activeElement !== C.tSel && C.tSel.value !== S.turn) C.tSel.value = S.turn;
       // the accent means "this turns something" — an empty slot must not wear it
       const tOn = S.turn !== 'none';
@@ -241,17 +315,18 @@
       if (T.outErr) n = '⚠ ' + T.outErr;
       else if (T.outName) n = '→ ' + T.outName + ' · ' + T.sentCount + ' msgs sent';
     }
-    // ARMED IS LOUD. While a slot is armed every MIDI message is swallowed by
-    // the learn branch, so from the outside the controller looks dead. It must
-    // be impossible to be in this state without seeing it.
-    if (T.learn !== null) {
-      const left = Math.max(0, Math.ceil((T.learnUntil - performance.now()) / 1000));
-      n = '● LEARNING slot ' + (T.learn + 1) + ' — turn or press it (' + left + 's) · Esc to cancel';
-      group.style.boxShadow = '0 0 0 1px var(--acc)';
-    } else if (learnMode) {
-      n = 'LEARN mode — click a ⌖ on a slot, then move that encoder. Escape cancels.';
-      if (group.style.boxShadow) group.style.boxShadow = '';
-    } else if (group.style.boxShadow) group.style.boxShadow = '';
+    /* THE LAST THING THE HARDWARE SAID, in plain sight. "I press ] and the
+       poem starts, I press the knob and it does not" is unanswerable from a
+       panel that only shows what we SEND. This shows what arrived and which
+       slot claimed it — so a press that never reaches us and a press that
+       reaches us and matches nothing look different. */
+    const R = T.lastRaw;
+    if (R) {
+      const kind = R.st === 0xB0 ? 'CC' : R.st === 0x90 ? 'NOTE' : ('0x' + R.st.toString(16));
+      n = (n ? n + '\n' : '') + 'in: ' + kind + ' ch' + R.ch + ' #' + R.num + ' = ' + R.val
+        + (T.lastMsg ? '  → ' + T.lastMsg : '  → no slot');
+    }
+    if (group.style.boxShadow) group.style.boxShadow = '';
     if (noteEl.textContent !== n) noteEl.textContent = n;
   }
 

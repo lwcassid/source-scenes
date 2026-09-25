@@ -279,3 +279,63 @@ Everything uncommitted — yours and ours — was committed to the local branch 
 Why: two clones both regenerating `index.html` is exactly the failure your `CLAUDE.md` warns
 about, and it already cost us an evening — a local server left rooted at the old clone served a
 49 KB-stale build, so a feature that was on disk appeared not to exist.
+
+---
+
+## Sep 25, 01:20 — the instrument holds its last position
+
+**This one may matter to you, because it changes what a walk-away looks like in
+our scenes and it started from a wrong assumption on our side.**
+
+Edson wants the last position to hold: hands away, the scene stays exactly where
+he left it. We went looking for what was pulling it back to zero and it was not
+where we expected.
+
+**Your core already holds.** `part2_core` parks the channel at the pose the
+player left, no melt — "THE LAST POSE IS THE REST POSE", Aug 31. We measured it:
+drive a channel to 0.5 with ghosts off, stop sending, and twelve seconds later
+`chan.L.v` is still `0.500` in `drift`. Nothing upstream takes it away. That
+behaviour is correct and we did not touch it.
+
+**It was our own scenes letting go.** All six plus the mixer ran the same gate —
+
+```js
+const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+s.pres += (live - s.pres) * dt * 1.5;
+want = SOURCE(inp.L) * s.pres + idle * (1 - s.pres);
+```
+
+— so once presence decayed the scene crossfaded off the held value onto its
+breathing idle. Ours to fix, and fixed in our layer only: `SOURCE_PRES()` in
+`parts/part249_source.js`, which returns 1. **No file of yours changed.**
+
+Worth knowing if you copy that gate: pinning presence also pins everything else
+`s.pres` drives — brightness, the audio gate, event arming. That is what Edson
+wants in performance. A scene that should breathe when nobody is there writes
+its own gate instead of calling `SOURCE_PRES()`.
+
+## Same session — two Twister bugs that were ours, and one worth stealing
+
+`part252_twister.js` is ours and touches nothing of yours, but two of these are
+general MIDI traps:
+
+1. **The echo guard was keyed on `ch:num` alone.** Every light message we send
+   is a CC, so a *note* could never be our own echo — but the guard swallowed
+   notes too. A knob PRESS arriving within 40ms of that knob's ring update was
+   discarded as an echo, and the painter runs every 80ms, so roughly half of all
+   presses vanished silently. It now also compares the value: an echo is the
+   same byte coming back, not merely the same address.
+2. **A press does not always arrive on the turn channel.** The dispatch loop did
+   `if (s.ch !== ch) continue` before ever testing the push binding, so a switch
+   that reports on another channel could never match. Now it is two passes —
+   turns with an exact channel match, then presses matched on number and
+   tolerant of shape (note on any channel, or a non-zero CC off the turn
+   channel). Edson's symptom was exact: *"if I press ] the poem starts, if I
+   press the knob it does not."*
+
+**LEARN is gone from our module entirely** — Edson's call: *"this is a
+Twister-only component, for other MIDI devices we can create other navs."*
+
+Also added, and cheap: the panel now prints the **last incoming MIDI message**
+and which slot claimed it (`in: CC ch1 #8 = 127 → K9`). "The knob does nothing"
+has several causes and this separates them at a glance.

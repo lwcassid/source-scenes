@@ -93,7 +93,7 @@
 
     step(P, dt, t, inp) {
       const s = P.state;
-      const live = (chan.L.mode === 'live' || chan.R.mode === 'live') ? 1 : 0;
+      const live = SOURCE_PRES();   // always 1 — the last position holds (part249_source.js)
       s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
       s.drift += dt;
       const idleE = 0.20 + Math.sin(s.drift * 0.045) * 0.09;
