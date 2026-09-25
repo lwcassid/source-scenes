@@ -204,6 +204,27 @@
           "min": 9
         }
       ]
+    },
+    {
+      "name": "BIRTH OF A TEMPLE",
+      "note": "Edson — Dustin Yellin's studio, Thu Oct 1 2026, the night the Orbital Temple launches. THREE MOVEMENTS, each a mixer holding two visuals on faders: inside a movement you MIX, between them you cut, and the cut is where the key and tempo change. I Origin (F aeolian 54): THE POINT + ECLIPSE. II Orbit (A aeolian 62): THE PASSAGE + THE NAMES. III Ascension (F aeolian 50): ASCENSION + THE POINT, RETURNED. It ends in the key it opened in, slower. Every movement is exactly one expensive layer plus one cheap one, so both can sit at full together. The six visuals (SRC-56..61) still exist as standalone scenes for working on them. The eleven Orbital Witness poems ride over everything via OWPOEM; the twelfth is silent.",
+      "scenes": [
+        {
+          "id": "SRC-62",
+          "min": 16,
+          "out": "both"
+        },
+        {
+          "id": "SRC-63",
+          "min": 16,
+          "out": "both"
+        },
+        {
+          "id": "SRC-64",
+          "min": 16,
+          "out": "both"
+        }
+      ]
     }
   ]
 }

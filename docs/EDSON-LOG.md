@@ -1,0 +1,254 @@
+# Edson's work log — for Lance (and for Lance's Claude session)
+
+**Read this cold before touching `NAV`, `AE`, `tools/build.sh` or `setlists.json`.**
+Living document: appended to as work happens. Newest section at the bottom.
+
+**Why it exists:** Edson is building his Oct 1 show — *Birth of a Temple*, Dustin
+Yellin's studio — on top of this library, under a hard deadline. Everything here
+is additive by design, but some of it wraps your objects at runtime, and a couple
+of decisions are ones you may want to adopt, reject, or do differently in core.
+**Nothing here is asking permission. It is telling you where to look.**
+
+---
+
+## 1 · What changed in YOUR files — the whole list
+
+```
+setlists.json   +21   one set appended: "BIRTH OF A TEMPLE"
+tools/build.sh  +11   eleven cat lines
+```
+
+**32 insertions, 0 deletions, 0 modifications.** Your four set lists are untouched
+and `RUN OF SHOW` is still `default: true`.
+
+**No core file touched**: `part1_head.html`, `part2*.js`, `part5_tail.js`,
+`part15_history.js`, and nothing else in `tools/`.
+
+**Verified after every change**: a sample of 17 of your scenes across every
+rendering stack and owner (SRC-28/38/15/42/09/34/16/13/44/49/43.11/18.16/51–55)
+opens, renders light to the canvas, and logs no errors. 329 scenes registered.
+
+---
+
+## 2 · New files (all Edson's)
+
+| file | what |
+|---|---|
+| `parts/part241_owpoem.js` | **OWPOEM** — the eleven Orbital Witness poems as a shared overlay that rides over any scene |
+| `parts/part242…247_*.js` | six scenes, SRC-56…61 — the visuals |
+| `parts/part248_poemdeck.js` | **POEMDECK** — a QLab-style cue player for the poems |
+| `parts/part249_source.js` | **SOURCE** — the polarity law, see §5 |
+| `parts/part250_mixer.js` | **the mixer**, SRC-62/63/64 — see §4, the part most likely to interest you |
+| `parts/part251_mixpanel.js` | the fader panel, injected into `#sidebar` |
+| `docs/THE-SOURCE-LAW.md` | the law, written up |
+| `parts/part257_isotrp.js` | **ISO** + four study scenes SRC-66…69 (after 404.zero's ISOTRP): a shared GLSL light-field renderer and a frame-exact sound/light sequencer. See the log, "ISOTRP studies" |
+| `assets/poems/`, `assets/poems-en/` | 22 placeholder voice files + READMEs |
+| `tools/poemshot.mjs` | shoot one poem fragment, one mode, over one scene |
+| `tools/poemsync.mjs` | free-running check that the type tracks the audio clock |
+
+**New globals**: `SOURCE`, `SOURCE_IDLE`, `OWPERF`, `OWPOEM`, `POEMDECK`, `MIX`.
+
+---
+
+## 3 · 🔴 Where we WRAP your objects — the bit that could surprise you
+
+All are wrap-and-call-through. Nothing is replaced, and an unclaimed input falls
+back to your behaviour unchanged. **But if you restructure any of these, look here.**
+
+| what | where | how |
+|---|---|---|
+| **`NAV.onMsg`** | `part248_poemdeck.js` | the deck claims its own note range for poem cues; everything else is handed straight to your `onMsg`. Deferred in a `setTimeout(0)` because `NAV` is defined in `part5_tail.js`, which concatenates after us. Feature-detected — if `NAV` is gone it goes quiet rather than throwing. |
+| **`A.out` / `A.revIn` / `A.delIn`** | `part250_mixer.js` | swapped to a layer's own gain nodes **around each layer's construction and each `tick()`**, restored in a `finally`. This is what puts a layer's voices, its `A.tone`/`A.pluck2` one-shots (which go straight to `A.out()`) and its reverb/delay sends on that layer's fader. |
+| **`A.voice`** | `part250_mixer.js` | patched only while a layer's `audio()` runs, to capture the voice handle so its `group` can be re-routed onto the layer bus. **Restored to the original property in a `finally`** — an earlier version restored a *bound copy*, which would have outlived the mixer and changed the shared audio API for every scene opened afterwards. |
+| **`P.hosted`** | the six layer scenes | the one place we reach into a scene's own `draw`. When true the scene skips its background fill and its debug HUD, because the mixer paints the ground once and draws one readout. Standalone it is `undefined` and nothing changes. **If `makeInstance` ever changes shape, this is the line to check.** |
+
+---
+
+## 4 · The mixer — the pattern worth a look
+
+`SRC-62/63/64` are three "movement" scenes. Each **hosts two of the six visuals as
+layers on faders**, so inside a movement you crossfade or blend instead of cutting.
+
+**It is a host, not a rewrite.** A scene instance is a plain object and `PIECES`
+holds every `def`, so the mixer builds sub-instances and calls **the same
+`init`/`step`/`draw` the six already have**. They are untouched and still open
+standalone. If the mixer is ever cut, the six are exactly as they were.
+
+**Compositing is nearly free** because of two properties your scenes already have:
+none of the six set `globalAlpha`, and everything they draw after the ground is
+already `'lighter'`. So a layer draws **straight onto the shared canvas under one
+`globalAlpha`** — no per-layer buffer, no extra full-frame composite.
+
+### ⭐ The measurement you may find more useful than the mixer
+
+Real frame rate, 1920×1200, hands wide, headless swiftshader (a pessimistic floor —
+read the ratios):
+
+| scene | fps | |
+|---|---|---|
+| SRC-57 Eclipse | **23** | 2,600 stroked paths |
+| SRC-60 Ascension | **29** | 2,400 stroked paths |
+| SRC-58 The Passage | **34** | 2,200 stroked paths |
+| SRC-59 The Names | **60** | **19,000 points — into an ImageData buffer** |
+| SRC-56 / SRC-61 | 57–60 | one gradient |
+
+**Cost is DRAW CALLS, not arithmetic.** The Names does ~40× more JavaScript than any
+other scene (7.8 ms/frame) and is the *cheapest* on the board, because it writes
+pixels into a half-res buffer and hands over one image. Eclipse does almost no
+JavaScript and is the most expensive, because it asks the rasteriser for 2,600
+separate stroked paths.
+
+**If a scene of yours is heavy, the lever is fewer paths — or the pixel-buffer
+route — long before it is fewer particles.**
+
+The mixer carries a **cost budget**: each layer declares a weight, and if more is
+asked for than the frame can carry, the **quietest** layer stands down rather than
+the frame rate dropping for the whole room.
+
+---
+
+## 5 · Decisions that might influence core
+
+### THE SOURCE LAW — a polarity convention
+Full write-up: **`docs/THE-SOURCE-LAW.md`**.
+
+> The Source is a concentration and release device. Both hands **at** the instrument
+> is **zero** — smallest, slowest. Opening a hand releases a layer. Both hands wide
+> is the most the scene can be.
+
+Edson's six all read `SOURCE(inp.X)` — i.e. `1 - inp`, which your scene-craft law 4
+already permits explicitly. **Suggestion, not a request:** it may be worth naming in
+`scene-craft` as a declared option beside NEAR = MORE, so a scene can say which pole
+it uses and a player knows before putting their hands up. A set where every scene
+agrees is worth more than any one scene's preference.
+
+It also resolved a hardware conflict for free: Edson's theremin firmware decays to
+CC 0 over 3 s on hand-exit. Under NEAR = MORE that landed a scene at **maximum**
+(and `CAL.POSE_RATE`'s rewind is tuned for a 0.3 s sweep, so it could not save it).
+Under the Source law CC 0 is **zero**, and the same ramp reads as release.
+
+### 🔴 `textIsContent: true` has a consequence worth documenting
+It lifts the performance-mode `fillText` no-op for the **whole scene**, not just the
+content you meant to protect. Edson's scenes needed it for the poems — and every
+one of their debug readouts was then going to ride onto the projection on the night.
+
+Each of his scenes now tests performance mode itself (`OWPERF()`, defined in
+`parts/part241_owpoem.js`) before drawing its HUD.
+**Anyone else who sets `textIsContent` will hit this.** Might be worth a line in
+`scene-craft`, or a separate opt-out for "this scene's TEXT is content but its HUD
+is not".
+
+---
+
+## 6 · Asks — none blocking, all small
+
+1. **`playwright-core` is not in `electron/package.json` or anywhere else**, so
+   `tools/shot.mjs` and `verify.sh` cannot run on a fresh clone. It was installed
+   locally with `--no-save` and driven with `CHROMIUM=/Applications/Google Chrome.app/…`.
+   **A devDependency and a line in the docs would save the next person an hour.**
+2. **A second bank hook on `NAV`** would be cleaner than wrapping `onMsg`. The wrap
+   works, so this is a nicety.
+3. **A hook on `PRE.rows()`** so an external module can contribute a SHOW CHECK row
+   without wrapping. Planned use: a "Poems 11/11 verified" row.
+4. **Nothing has been pushed.** The pre-push hook requires a `Round-By:` trailer and
+   a matching `verify.sh` stamp on `index.html`. Tell Edson how you want the sweep
+   run before this lands on `main`.
+
+---
+
+## Log
+
+### 2026-09-24
+- Six scenes **SRC-56…61** (Birth of a Temple set) — full-frame fields, Source law.
+- **OWPOEM**: the eleven poems as large spoken fragments, not subtitles. Two-language
+  facing-page mode. Clean cut, no motion, no cross-fade (Edson's call).
+  Timing runs off `AE.t()` and the sample is `start()`-scheduled, so audio zero and
+  fragment zero are the same instant by construction.
+- **POEMDECK**: cue list, single GO, **bar-quantised launch** via `T.next(4)` with
+  the pre-roll opening the dark as a visible countdown. A cue fired while one is
+  speaking is ignored.
+- **The Source law** applied to all six and written up.
+- **The mixer**: three movements, two layers each, per-layer audio on per-layer
+  faders, plus one locked INSTRUMENT fader across everything so Edson can step out
+  and leave the band alone in the room.
+- **Mix panel** injected into `#sidebar` after SOURCE INPUT. Inherits your fold and
+  persistence for free (we inject at load; `part5_tail.js` binds after us).
+- Bugs found and fixed in *our* code, noted because they are the instructive kind:
+  a `_loaded` latch that closed before the AudioContext existed (eleven silent
+  poems, nothing in the log); `A.voice` restored as a bound copy; layer HUDs drawing
+  over the mixer's; `Intl.Segmenter` needed for Chinese and Japanese word breaks.
+
+### 2026-09-24, late
+- **The Twister module** (`part252`/`part253`): a 4×4 panel shaped like the hardware, turn
+  and push per encoder, AUTO-MAP to the factory layout, per-slot LEARN.
+- 🔴 **A bug worth knowing about if you ever write a MIDI learn:** the learn branch
+  swallows input while armed (correct), but binding required the CC to move by 3 — and a
+  slowly turned encoder moves by ONE per detent. So it could arm and never disarm, eating
+  every message after it, while the page, the picture and the audio all carried on
+  perfectly. It reads exactly like "the controller died". Now: any change binds, a 6 s
+  timeout, Escape cancels, and the armed state is loud in the UI.
+- **Encoder mode is detected, not assumed** — absolute vs relative, by counting DISTINCT
+  values rather than their range. (Range alone misreads a slow absolute sweep, which
+  passes through the centre one step at a time. The first version of this detector was
+  worse than the bug it fixed.)
+- 🔴 **`AE.tone`/`pluck2`/`bell` connect to `this.master` directly, not `this.out()`** —
+  worth knowing for anyone routing a scene's audio somewhere else. Our mixer has to swap
+  `A.master` as well as `A.out`/`A.revIn`/`A.delIn`, or one-shots bypass the fader.
+- **`DIAG`** (`part254`): a flight recorder — fps, heap, live audio sources, MIDI msgs/sec,
+  sampled 1 Hz into localStorage, plus a persistent error trap and a stall watchdog.
+  `DIAG.dump()` after anything odd. Free for anyone to use.
+- **Canonical copy moved** to `0000 AI/tools/av-studio/source-scenes`. `~/projects/source-scenes`
+  is now the other session's clone. **Build and push from one place only** — see that
+  folder's README.
+
+### 2026-09-24, night — ISOTRP studies (SRC-66…69): a possible new layer
+A learning session, not a show scene (Edson: "we will imitate as close as we can so
+we can learn how to build things like that on our platform"). The reference was a
+30 s phone clip of 404.zero's *ISOTRP* at MUTEK.JP 2023: soft monochrome light
+fields (point, disc, ring with a hot edge, a dark-cored eclipse, a pinched spindle,
+a column, a full white wash) that live **one frame each**, fired by the same
+sequencer as the sound. Measured on the clip: 161 of 893 frames lit; every audio
+transient in the sparse passage lands on the same video frame as a flash.
+
+**What changed in your files:** `tools/build.sh` +1 cat line. Nothing else. One new
+part, `part257_isotrp.js`, holding everything below.
+
+**Three things in it worth your eye, because each one could become core:**
+1. **One shared WebGL context for a whole scene family** (`ISO.render`). Every
+   instance, wall tiles included, renders through one module-level renderer onto a
+   1600² canvas and copies its own corner out with `drawImage` (verified on the wall:
+   all four tiles render beside the other GL tiles). Today every GL scene makes its
+   own `WebGLRenderer` per tile and per open, and nothing disposes them. **Hypothesis,
+   not measured:** over a long session that could approach Chrome's ~16-context
+   limit, and when that happens the oldest contexts are dropped. A full-wall scroll in
+   headless Chrome logged no context loss, so it isn't biting today. A core
+   `GL.shared()` would rule it out for every scene.
+2. **A full-screen shader host.** The whole look is one fragment shader summing up
+   to 8 analytic lights (`uA[8]`/`uB[8]` uniform arrays), HalfFloat ping-pong
+   feedback, and a tone/tint/dither pass. It holds 60 fps at 1920×1200 on the
+   Apple-silicon Mac, including full density and 1.6 s feedback trails. **A
+   `reg({shader: FS, uniforms})` path in core would let a scene be 40 lines of GLSL.**
+3. **Frame-exact A/V.** `ISO.clock()` reads `AudioContext.getOutputTimestamp()`, so
+   it knows what the listener is hearing *now*. The audio `tick()` schedules ahead
+   (lookahead 120 ms, the same pattern as Ridge Loom); `draw()` lights an event on the
+   frame whose sound is at the speaker, and a one-frame event is guaranteed exactly
+   one frame. `AVOFF` (12 ms) is the picture's lead for the display's own latency.
+   **Re-measure it on the projectors** with a phone at 240 fps. With no audio running
+   (tiles), it falls back to a wall clock and makes no sound.
+
+**Decisions Edson made in this session that touch the group laws:**
+- 🔴 **Strobes are allowed in Edson's scenes.** His words: "We must have always complete
+  freedom to create." `scene-craft`'s "no full-frame strobe" is a medium law written
+  for the Cave's scrim. It is not a law for his work. SRC-67/68 strobe by design and
+  carry the STROBE tag. No warning card (this is a study, probably not in the ritual).
+- **60 fps is the target.** If a scene cannot share the frame and hold it, it runs alone.
+- 🔭 **FUTURE: this software should drive external lights and strobes.** The sequencer
+  here already produces the event list (time, duration, shape, weight) that a
+  DMX/Art-Net fixture or a hardware strobe would need. Only the output is missing.
+  Likely shape: a `LIGHT` output beside `MOut`, fed by the same audio-clock-stamped
+  events. The browser cannot open UDP, so it would go through the Electron show window
+  or a small local bridge (Web MIDI → a MIDI-to-DMX box is the zero-code route).
+  **Not built. Logged so the design leaves room for it.**
+
+**If you want the medium reference in one sentence:** darkness is the default and
+light is an event, which is scene-craft law 3 taken to its limit.

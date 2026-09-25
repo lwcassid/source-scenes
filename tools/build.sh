@@ -304,6 +304,23 @@ cd "$(dirname "$0")/.."
   cat parts/part238_orbits3.js
   cat parts/part239_transmission3.js
   cat parts/part240_ascension3.js
+  cat parts/part241_owpoem.js
+  cat parts/part242_point.js
+  cat parts/part243_eclipse.js
+  cat parts/part244_passage.js
+  cat parts/part245_names.js
+  cat parts/part246_ascension.js
+  cat parts/part247_return.js
+  cat parts/part248_poemdeck.js
+  cat parts/part249_source.js
+  cat parts/part250_mixer.js
+  cat parts/part251_mixpanel.js
+  cat parts/part252_twister.js
+  cat parts/part253_twisterpanel.js
+  cat parts/part254_diag.js
+  cat parts/part255_lflower.js
+  cat parts/part256_lflower2.js
+  cat parts/part257_isotrp.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'
