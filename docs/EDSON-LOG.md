@@ -225,10 +225,12 @@ is not".
    works, so this is a nicety.
 3. **A hook on `PRE.rows()`** so an external module can contribute a SHOW CHECK row
    without wrapping. Planned use: a "Poems 11/11 verified" row.
-4. **Nothing has been pushed.** Nine commits sit on the local branch `bot-oct1`,
-   every one carrying a `Round-By: Edson` trailer. `main` is untouched and still at
-   `origin/main`. Tell Edson how you want the sweep run before any of this lands on
-   `main` — and note that a branch push does not deploy, since Netlify builds `main`.
+4. **On a branch, not on `main`.** Eleven commits on `bot-oct1`, each carrying a
+   `Round-By: Edson` trailer, pushed and opened as **PR #58**. `main` is untouched
+   and still at `297a3c5`. Per `netlify.toml`, production stays pinned to `main`, so
+   **the live site is unchanged** — but every branch and PR builds as a preview, so
+   there is a deploy-preview link on the PR you can click and play. Tell Edson how
+   you want the sweep run before any of this lands on `main`.
 5. **`playwright-core` again**, from a different angle: `tools/twtest.mjs` needs it
    too. Same devDependency would cover both.
 
