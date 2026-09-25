@@ -357,8 +357,16 @@
     if (noteEl.textContent !== n) noteEl.textContent = n;
   }
 
-  PANELS.register({
-    id: 'twist', title: 'Twister', status: true, after: 'Source input', every: 150,
-    build, paint
+  /* A DRIVER, not a panel. MIDIRIG owns the sidebar group, the ADD button and
+     which scenes this controller belongs to; this file only knows how to draw
+     a Twister into whatever element it is handed. A second controller is a new
+     file that registers here and changes nothing else. */
+  MIDIRIG.registerDriver({
+    id: 'twister',
+    name: 'Midi Fighter Twister',
+    blurb: '16 encoders with push and RGB rings',
+    build, paint,
+    // deaf and dark when it is not in the open scene's rig
+    active(on) { try { if (!on && window.TWIST) TWIST.allOff(); else if (window.TWIST) TWIST._sent = {}; } catch (e) {} }
   });
 })();

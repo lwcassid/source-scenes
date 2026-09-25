@@ -12,8 +12,16 @@ const ok = (name, cond, got) => { console.log((cond ? '  ok   ' : '  FAIL ') + n
 await pg.goto(URL + '#scene=SRC-64', { waitUntil: 'load' });
 await pg.waitForTimeout(3200);
 
+/* The Twister is now a DRIVER in a per-scene rig (parts/partcore_midirig.js),
+   so on a fresh browser profile it is in no scene, is deaf, and draws nothing.
+   That is the point of it. Add it everywhere first, or this whole suite is
+   measuring a controller that was correctly asleep. */
+await pg.evaluate(() => MIDIRIG.add('twister', MIDIRIG.ALL));
+await pg.waitForTimeout(600);
+ok('the twister is in the rig', await pg.evaluate(() => TWIST.inRig()), false);
+
 console.log('LEARN is gone');
-const l = await pg.evaluate(() => ({ arm: typeof TWIST.arm, glyphs: [...document.querySelectorAll('#twistGroup button')].filter(x => x.textContent === '⌖').length }));
+const l = await pg.evaluate(() => ({ arm: typeof TWIST.arm, glyphs: [...document.querySelectorAll('#drvbody-twister button')].filter(x => x.textContent === '⌖').length }));
 ok('no TWIST.arm', l.arm === 'undefined', l); ok('no learn targets', l.glyphs === 0, l);
 
 console.log('the map follows the scene');
@@ -43,7 +51,7 @@ const bl = await pg.evaluate(async () => { window.__s = [];
 ok('press = BURN then back', bl.length === 2 && bl[0][2] === 47 && bl[1][2] === 39, bl);
 
 console.log('nothing overflows the rail');
-const g = await pg.evaluate(() => { const G = document.getElementById('twistGroup');
+const g = await pg.evaluate(() => { const G = document.getElementById('drvbody-twister');
   const row = [...G.querySelectorAll('.srow')].find(x => /AUTO-MAP/.test(x.textContent));
   const grid = G.querySelector('div[style*="grid"]');
   return { row: row.scrollWidth - Math.round(row.getBoundingClientRect().width),
@@ -53,21 +61,21 @@ ok('footer and grid fit', g.row === 0 && g.grid === 0, g);
 console.log('no Web MIDI: one button, and nothing that cannot work');
 const c = await pg.evaluate(() => { let n = 0; const real = window.connectMidi;
   window.connectMidi = function () { n++; return real && real.apply(this, arguments); };
-  const G = document.getElementById('twistGroup');
+  const G = document.getElementById('drvbody-twister');
   const seen = e => e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0;
   const btns = [...G.querySelectorAll('button')].filter(seen);
   btns.forEach(x => x.click());
   window.connectMidi = real;
   return { access: TWIST.hasAccess(), labels: btns.map(x => x.textContent),
            selects: [...G.querySelectorAll('select')].filter(seen).length,
-           status: G.querySelector('h5 span').textContent, calls: n }; });
+           status: document.getElementById('drvstat-twister').textContent, calls: n }; });
 ok('one visible button, and it connects', !c.access && c.labels.length === 1 && c.calls === 1, c);
 ok('no controls that cannot work', c.selects === 0, c);
 ok('header says NOT CONNECTED', c.status === 'NOT CONNECTED', c);
 
 console.log('the header folds anywhere along it, status label included');
 const fold = [];
-for (const id of ['twistGroup', 'mixGroup']) {
+for (const id of ['midiGroup', 'mixGroup']) {
   if (!await pg.evaluate(i => !!document.getElementById(i), id)) continue;
   await pg.evaluate(i => document.getElementById(i).classList.remove('fold'), id);
   const box = await pg.evaluate(i => { const r = document.getElementById(i).querySelector('h5 span').getBoundingClientRect();
@@ -80,7 +88,7 @@ ok('status label is not a dead zone', fold.length > 0 && fold.every(([, f]) => f
 
 console.log('connecting restores the layout, it does not flatten it');
 const lay = await pg.evaluate(async () => {
-  const G = document.getElementById('twistGroup');
+  const G = document.getElementById('drvbody-twister');
   const grid = G.querySelector('div[style*="grid-template"]');
   const row = [...G.querySelectorAll('.srow')].find(x => /AUTO-MAP/.test(x.textContent));
   const off = { grid: getComputedStyle(grid).display, row: getComputedStyle(row).display };
@@ -104,7 +112,7 @@ await pg.waitForTimeout(3200);
 // Stub just enough access that the body renders, so the dimming can be judged.
 await pg.evaluate(() => { if (typeof midi !== 'undefined' && !midi.access) midi.access = { inputs: new Map(), outputs: new Map() }; });
 await pg.waitForTimeout(400);
-const nm = await pg.evaluate(() => { const G = document.getElementById('twistGroup');
+const nm = await pg.evaluate(() => { const G = document.getElementById('drvbody-twister');
   const sels = [...G.querySelectorAll('select')];
   const am = [...G.querySelectorAll('button')].find(x => x.textContent === 'AUTO-MAP');
   // every binding that needs a mixer must be dimmed — no more, no fewer

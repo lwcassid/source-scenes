@@ -221,7 +221,15 @@
       return null;
     },
 
+    /* IS THIS CONTROLLER EVEN IN THIS SCENE. The listener stays attached to
+       the port for the life of the page — detaching and re-attaching on every
+       scene change is how you lose messages — so the gate is here instead.
+       A Twister that Edson has not added to the open scene does nothing at
+       all, which is the whole point of a per-scene rig. */
+    inRig() { return typeof MIDIRIG === 'undefined' || MIDIRIG.isActive('twister'); },
+
     handle(e) {
+      if (!this.inRig()) return;
       const d = e.data; if (!d || d.length < 2) return;
       this._n++;
       const nowMs = (typeof performance !== 'undefined') ? performance.now() : Date.now();
@@ -486,7 +494,7 @@
       return { ring, col, anim };
     },
     paintLights() {
-      if (!this.lights || !this.findOut()) return;
+      if (!this.lights || !this.inRig() || !this.findOut()) return;
       for (let i = 0; i < this.slots.length; i++) {
         const S = this.slots[i], n = (S.led === undefined ? i : S.led);
         const L = this.lightFor(i);
