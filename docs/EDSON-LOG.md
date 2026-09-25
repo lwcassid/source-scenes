@@ -9,6 +9,11 @@ is additive by design, but some of it wraps your objects at runtime, and a coupl
 of decisions are ones you may want to adopt, reject, or do differently in core.
 **Nothing here is asking permission. It is telling you where to look.**
 
+**Edson's standing rule, Sep 25:** anything built on top of this library that
+changes the TOOL — rather than just adding a scene — gets written into **§8**,
+with the suggestion for what core should do instead. A scene is ours to get wrong;
+the tool is shared.
+
 ---
 
 ## 0 · Start here — the state on 2026-09-25, 02:15
@@ -34,6 +39,13 @@ Fighter Twister, with the eleven Orbital Witness poems cued over the top.
    zone. This applies to your panels too. §7.
 4. **`textIsContent: true` lifts the `fillText` no-op for the whole scene**, so a
    scene's debug HUD rides onto the projection. §5.
+
+**If you read one section, read §8 — THE TOOL REGISTER.** Seven of our modules
+change how the TOOL behaves, not just what a scene draws: an overlay over every
+scene, a scene host, two injected sidebar panels, a MIDI consumer, a global error
+trap, and a computed setlist that reorders your library grid. None of it edits a
+file of yours, all of it is feature-detected and fails quiet — but each one is
+listed there with what it touches and what we think you should do in core.
 
 **To check the rig yourself:** `node tools/twtest.mjs` — 25 checks against a
 running page, exits non-zero on failure.
@@ -277,6 +289,39 @@ Three of the checks written for the above passed while the bugs were live:
 parent still reports the child's own `display`, and measuring one state never
 catches a bug that lives in the *transition* between two. `tools/twtest.mjs` now
 uses real mouse clicks, real geometry, and drives disconnected → connected.
+
+---
+
+## 8 · 🔴 THE TOOL REGISTER — everything of ours that changes the TOOL, and what we suggest
+
+**Edson's standing rule, Sep 25:** *anything we build that changes the tool itself —
+not just adds a scene — is written down here, as a suggestion.* This section is
+that register. It is complete as of 2026-09-25 and it is the first place to look
+if something in the shell behaves in a way your code does not explain.
+
+**None of this edits a file of yours.** Every item is additive, feature-detected,
+and fails quiet. But all of it changes how the TOOL behaves, not just what one
+scene draws, and that is a different kind of thing to hand you without saying so.
+
+| # | ours | what it changes about the tool | the suggestion |
+|---|---|---|---|
+| 1 | `part241_owpoem.js` | Puts an overlay into `#overlay` that rides over **any** scene, and adds `OWPERF()`. | **A z-order contract for `#overlay`.** Right now one module owns it by convention. If a second one ever wants it, they fight silently. |
+| 2 | `part248_poemdeck.js` | Claims the keys `] [ \ . =` **globally**, and wraps `NAV.onMsg` to claim a note range. | **A key registry** — `claimKey('])', owner)` — so two modules cannot take the same key without one of them finding out. Plus the second NAV bank from §6. |
+| 3 | `part250_mixer.js` | **Hosts other people's scenes as layers**, building sub-instances from `PIECES` and swapping `A.out / A.revIn / A.delIn / A.voice` around each one. Also claims `1-9 0 - +`. | **Make hosting first-class.** This is the most useful thing we built and the most fragile — it depends on a scene instance being a plain object and on the audio API being swappable. A real `hostInstance(def)` plus a per-instance audio bus would make it safe, and it is worth more to you than to us. |
+| 4 | `part251_mixpanel.js`, `part253_twisterpanel.js` | Inject `.sgroup` panels into `#sidebar`, **located by finding the `h5` that reads "Source input"**. | **A sidebar panel API** — `registerPanel({name, after, build, paint})`. Finding an anchor by its heading text is one rename away from breaking, and we would rather not be doing it. |
+| 5 | `part252_twister.js` | Adds `midimessage` listeners **alongside** your property handler on every MIDI input, wraps `NAV`, and calls your `connectMidi()` from our panel. | **A documented MIDI-consumer registration**, so several modules can read input without each attaching its own listener — and `connectMidi()` named as public, since a panel that cannot ask for permission is a panel that looks broken after every reload. |
+| 6 | `part254_diag.js` | Installs **global `error` and `unhandledrejection` handlers** and a stall watchdog for the whole app. | **This probably belongs in core, and you should take it if you want it.** It is the most tool-level thing here: it catches everyone's errors, not ours. We wrote it because a silent freeze mid-show is undiagnosable, but it is odd for a scene pack to own the app's error trap. |
+| 7 | `part264_mine.js` | Pushes a **computed** set into `SETLISTS.sets`, and overrides `tile.style.order` in the library grid on an interval while that set is open. | **A "newest first" sort option** in `sortSel` — the four existing sorts cannot express it, and SRC number ascending puts the newest scene at the bottom. And a blessed way to contribute computed sets, since `SETLISTS` being a const *binding* rather than a frozen object is currently the only reason this works. |
+
+**The one we would fix first if you only did one:** #4, the sidebar panel API. Two
+of our modules locate their anchor by matching the string `'Source input'` against
+an `h5`, and both would silently render in the wrong place — or not at all — if
+that heading were ever retitled.
+
+**Not in this register, because they are only conventions:** `SOURCE`,
+`SOURCE_IDLE` and `SOURCE_PRES` in `part249_source.js`. They add three globals and
+change nothing existing; a scene opts in by calling them. The polarity argument
+for them is §5.
 
 ---
 
