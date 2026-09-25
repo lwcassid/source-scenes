@@ -41,11 +41,12 @@
 precision highp float;
 varying vec2 vUv;
 uniform sampler2D uPrev;
-uniform float uFb, uZoom, uAsp, uSoft, uT, uBlur;
+uniform float uFb, uZoom, uAsp, uSoft, uT, uBlur, uFbMax;
 uniform vec2 uDrift, uPx;
 uniform vec4 uA[8];
 uniform vec4 uB[8];
 uniform int uN;
+uniform int uNfb;   // lights [0, uNfb) go through the feedback; the rest are drawn direct
 float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
   return mix(mix(h21(i), h21(i+vec2(1.0,0.0)), f.x), mix(h21(i+vec2(0.0,1.0)), h21(i+vec2(1.0,1.0)), f.x), f.y); }
@@ -97,9 +98,10 @@ float field(vec2 p, vec4 A, vec4 B){
 }
 void main(){
   vec2 p = (vUv - 0.5)*vec2(uAsp, 1.0);
-  float L = 0.0;
-  for (int i = 0; i < 8; i++){ if (i >= uN) break; L += field(p, uA[i], uB[i]); }
-  L *= 0.93 + 0.07*vn(p*3.0 + uT*0.3);            // light is never perfectly clean
+  float L = 0.0, Ld = 0.0;
+  for (int i = 0; i < 8; i++){ if (i >= uN) break; float v = field(p, uA[i], uB[i]); if (i < uNfb) L += v; else Ld += v; }
+  float haze = 0.93 + 0.07*vn(p*3.0 + uT*0.3);     // light is never perfectly clean
+  L *= haze; Ld *= haze;
   float prev = 0.0;
   if (uFb > 0.001) {
     vec2 pu = (vUv - 0.5)/uZoom + 0.5 + uDrift;
@@ -107,7 +109,8 @@ void main(){
     prev = 0.4*texture2D(uPrev, pu).r + 0.15*(texture2D(uPrev, pu+vec2(o.x,0.0)).r + texture2D(uPrev, pu-vec2(o.x,0.0)).r
          + texture2D(uPrev, pu+vec2(0.0,o.y)).r + texture2D(uPrev, pu-vec2(0.0,o.y)).r);
   }
-  gl_FragColor = vec4(L + prev*uFb, 0.0, 0.0, 1.0);
+  // uFbMax = 0: additive echoes (Trails V1). 1: echoes fade out of the brightest light, never pile up (Beam V2)
+  gl_FragColor = vec4(mix(L + prev*uFb, max(L, prev*uFb), uFbMax), Ld, 0.0, 1.0);   // r = remembered, g = direct
 }`;
 
   const FS_OUT = `
@@ -117,7 +120,8 @@ uniform sampler2D uTex;
 uniform float uExp, uT;
 float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void main(){
-  float L = 1.0 - exp(-2.0*max(0.0, texture2D(uTex, vUv).r*uExp));
+  vec4 tx = texture2D(uTex, vUv);
+  float L = 1.0 - exp(-2.0*max(0.0, (tx.r + tx.g)*uExp));
   // the reference's tint, measured: mids ~ (153,151,174), whites clip to white
   vec3 c = vec3(L, L*0.985, min(1.0, pow(L, 0.85)*1.05));
   c += (h21(vUv*vec2(1731.0, 977.0) + fract(uT)*61.0) - 0.5)*(1.5/255.0);   // dither: no banding in the falloffs
@@ -144,9 +148,9 @@ void main(){
     const fieldMat = new THREE.ShaderMaterial({
       uniforms: {
         uPrev: { value: null }, uFb: { value: 0 }, uZoom: { value: 1 }, uAsp: { value: rw / rh },
-        uSoft: { value: 0.3 }, uT: { value: 0 }, uBlur: { value: 0 },
+        uSoft: { value: 0.3 }, uT: { value: 0 }, uBlur: { value: 0 }, uFbMax: { value: 0 },
         uDrift: { value: new THREE.Vector2() }, uPx: { value: new THREE.Vector2(1 / rw, 1 / rh) },
-        uA: { value: A }, uB: { value: B }, uN: { value: 0 }
+        uA: { value: A }, uB: { value: B }, uN: { value: 0 }, uNfb: { value: 0 }
       },
       vertexShader: VS, fragmentShader: FS_FIELD, depthTest: false, depthWrite: false
     });
@@ -164,15 +168,17 @@ void main(){
   // lights: [{type, x, y, s, i, asp, prm, ang}]  (x,y in frame-height units, 0,0 = centre, +y up)
   function render(P, g, w, h, lights, o) {
     const I = P._iso, r = renderer(), u = I.fieldMat.uniforms;
+    // a light with direct: true skips the feedback (never trails); remembered lights go first
+    if (lights.some(L => L.direct)) lights = lights.filter(L => !L.direct).slice(-8).concat(lights.filter(L => L.direct));
     const n = Math.min(8, lights.length), off = lights.length - n;   // keep the newest 8
     for (let k = 0; k < 8; k++) {
       const L = k < n ? lights[off + k] : null;
       if (L) { I.A[k].set(L.x || 0, L.y || 0, L.s, L.i); I.B[k].set(L.type, L.asp || 1, L.prm || 0, L.ang || 0); }
       else I.A[k].w = 0;
     }
-    u.uN.value = n; u.uFb.value = o.fb || 0; u.uZoom.value = o.zoom || 1;
+    u.uN.value = n; u.uNfb.value = lights.slice(off).filter(L => !L.direct).length; u.uFb.value = o.fb || 0; u.uZoom.value = o.zoom || 1;
     u.uDrift.value.set(o.dx || 0, o.dy || 0); u.uSoft.value = o.soft !== undefined ? o.soft : 0.3;
-    u.uT.value = o.t || 0; u.uBlur.value = o.blur || 0;
+    u.uT.value = o.t || 0; u.uBlur.value = o.blur || 0; u.uFbMax.value = o.fbMax || 0;
     const src = I.rt[I.i], dst = I.rt[1 - I.i];
     u.uPrev.value = src.texture;
     I.quad.material = I.fieldMat; r.setRenderTarget(dst); r.render(I.scene, I.cam);
@@ -618,5 +624,7 @@ void main(){
     }
   });
 
-  window.ISO = { render, make, clock, pump, visible, TYPES };
+  // exported for later versions (SRC-68.2 builds on Beam + Gated + Trails); exports only, no behaviour
+  window.ISO = { render, make, clock, pump, visible, TYPES, genB, genC, soundB, beamLights, smoothstepJS,
+                 newSeq, audioOwns, hand, presence, noGL, noGLDraw, hud, weight, MUSIC_B };
 })();

@@ -38,7 +38,7 @@
     const h = TWIST.HUES.find(x => x.v === v);
     return h ? (CSS[h.k] || '#888') : '#888';
   };
-  let lastN = -1;
+  let lastN = -1, curTo = [], curPo = [];
   /* The glyph lives OUTSIDE the <select>, not inside its option text. A native
      select at fifty pixels spends fourteen of them on its own arrow, so a glyph
      in the label left about three characters for everything else and "↻L1" came
@@ -244,6 +244,7 @@
     if (nL !== lastN) {
       lastN = nL;
       const to = T.turnOpts(), po = T.pushOpts();
+      curTo = to; curPo = po;
       // the legend names the layers this scene actually has, not a fixed six
       if (helpEl) {
         const L = nL > 1 ? 'L1-L' + nL : 'L1', S = nL > 1 ? 'S1-S' + nL : 'S1';
@@ -281,7 +282,17 @@
       }
       if (document.activeElement !== C.tSel && C.tSel.value !== S.turn) C.tSel.value = S.turn;
       // the accent means "this turns something" — an empty slot must not wear it
-      const tOn = S.turn !== 'none';
+      /* A STALE BINDING READS AS STALE. The '!' appended to the option text is
+         clipped by the select's own arrow at this width, so the colour has to
+         carry it: a knob still bound to LAYER 5 in a two-layer scene goes dim,
+         matching what its LED is already doing. */
+      const tStale = S.turn !== 'none' && curTo.length && curTo.indexOf(S.turn) < 0;
+      const pStale = S.push !== 'none' && curPo.length && curPo.indexOf(S.push) < 0;
+      const tOp = tStale ? '0.35' : '1', pOp = pStale ? '0.35' : '1';
+      if (C.tSel.style.opacity !== tOp) C.tSel.style.opacity = tOp;
+      if (C.pSel.style.opacity !== pOp) C.pSel.style.opacity = pOp;
+
+      const tOn = S.turn !== 'none' && !tStale;
       const bc = tOn ? 'var(--acc)' : 'var(--line2)';
       if (C.tSel.style.borderColor !== bc) C.tSel.style.borderColor = bc;
       const ttl = '↻ TURN encoder ' + (i + 1) + ' — ' + (window.TWIST ? TWIST.FN[S.turn].label : S.turn);
