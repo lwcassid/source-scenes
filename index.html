@@ -148685,6 +148685,198 @@ reg({
     list() { return panels.map(p => ({ id: p.id, mounted: !!p.group, dead: p.dead, every: p.every || 150 })); }
   };
 })();
+/* ---------- LIBQ — library filtering from the URL, offered for core ----------
+
+   Edson, Sep 25: "Instead of pushing this `#set=MINE`, which is a hack, let's
+   build a proper way to send URL parameters that would help anyone filter for
+   anything. We don't need a UI for now."
+
+   WHAT THIS REPLACES, and why it was a hack. To get "only my scenes, newest
+   first" we had pushed a fake setlist into `SETLISTS` and then fought the
+   grid's sort on a 300ms interval, because none of the four sort options can
+   express "newest". It worked, and it was two wrongs: it abused a feature
+   meant for running orders, and it polled. Deleted.
+
+   WHAT THIS IS INSTEAD. A query string in the hash, read once, applied on the
+   same events the library already reacts to. It is general — nothing in it
+   knows who Edson is:
+
+       #lib?src=56-&sort=new          everything from SRC-56 up, newest first
+       #lib?tag=webgl&sort=new        every WebGL scene, newest first
+       #lib?tag=bokeh,webgl&match=all both tags, not either
+       #lib?text=circle               title/tech/tags/desc, same haystack as the search box
+       #lib?id=SRC-71,SRC-64          exactly these
+       #lib?src=56-71&sort=title&limit=12
+
+   KEYS
+     src    a number or a range — `71`, `56-`, `-40`, `56-71`
+     tag    comma list, matched against the scene's own `tags`
+     match  `any` (default) or `all`, for `tag`
+     text   substring over family + title + tech + tags + desc
+     id     comma list of scene or family ids
+     sort   `new` · `old` · `id` · `title`    (`new` = most recently BUILT)
+     limit  keep at most N tiles
+
+   THREE THINGS THAT MAKE IT COMPOSE INSTEAD OF FIGHT
+
+   1. IT ONLY EVER HIDES MORE. It runs after the library's own pass and never
+      un-hides a tile the search box or the IN QUEUE chip has hidden. So a URL
+      filter and a typed search AND together, which is what anyone would
+      expect, and neither has to know about the other.
+
+   2. IT IS EVENT-DRIVEN, NOT POLLED. We add our own listeners to the same
+      three controls the library uses — the search box, the sort select and
+      the filter chips — so ours run straight after theirs. No interval, no
+      wrapping of `applyLibrary` (several of your listeners hold a direct
+      reference to that function, captured at load, so a wrapper would be
+      bypassed by exactly the sort change it most needs to survive).
+
+   3. `sort` IS OPTIONAL. Without it the grid keeps whatever order the sort
+      dropdown says. We only take the order when the URL actually asked for one.
+
+   `new` IS REGISTRATION ORDER, NOT ID ORDER. `tools/build.sh` concatenates
+   part files in the order they were written, so the registry is the honest
+   record of what was made when — SRC-66.3 was built after SRC-69, and sorting
+   by number would put it in the wrong place.
+
+   OFFERED FOR CORE. Deliberately named off our numbering: we think URL
+   filtering belongs to the library, not to one person's scene pack. It adds
+   one global, reads one hash prefix nothing else uses, and does nothing at
+   all unless the URL asks.                                                */
+(() => {
+  if (typeof window === 'undefined' || window.LIBQ) return;
+
+  const PREFIX = '#lib?';
+  const famOf = id => String(id || '').split('.')[0];
+
+  function parse(hash) {
+    const h = hash || (typeof location !== 'undefined' ? location.hash : '');
+    if (!h || h.indexOf(PREFIX) !== 0) return null;
+    const p = new URLSearchParams(h.slice(PREFIX.length));
+    const q = {};
+    if (p.has('src')) q.src = p.get('src').trim();
+    if (p.has('tag')) q.tag = p.get('tag').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+    if (p.has('match')) q.match = p.get('match').toLowerCase() === 'all' ? 'all' : 'any';
+    if (p.has('text')) q.text = p.get('text').trim().toLowerCase();
+    if (p.has('id')) q.id = p.get('id').split(',').map(s => s.trim()).filter(Boolean);
+    if (p.has('sort')) q.sort = p.get('sort').trim().toLowerCase();
+    if (p.has('limit')) q.limit = Math.max(0, parseInt(p.get('limit'), 10) || 0);
+    return Object.keys(q).length ? q : null;
+  }
+
+  // `56-` / `-40` / `56-71` / `71`
+  function inSrc(n, spec) {
+    if (!isFinite(n)) return false;
+    const m = /^(\d+(?:\.\d+)?)?\s*-\s*(\d+(?:\.\d+)?)?$/.exec(spec);
+    if (!m) { const one = parseFloat(spec); return isFinite(one) ? n === one : true; }
+    const lo = m[1] === undefined ? -Infinity : parseFloat(m[1]);
+    const hi = m[2] === undefined ? Infinity : parseFloat(m[2]);
+    return n >= lo && n <= hi;
+  }
+
+  // every def that belongs to a family, so tags/text see all its versions
+  function defsByFam() {
+    const m = new Map();
+    if (typeof PIECES === 'undefined') return m;
+    for (const d of PIECES) {
+      const f = famOf(d.id);
+      if (!m.has(f)) m.set(f, []);
+      m.get(f).push(d);
+    }
+    return m;
+  }
+
+  function test(fam, defs, haystack, q) {
+    if (q.id && !q.id.some(x => x === fam || (defs || []).some(d => d.id === x))) return false;
+    if (q.src !== undefined && !inSrc(parseFloat(String(fam).replace(/^\D+/, '')), q.src)) return false;
+    if (q.text && !(haystack || '').includes(q.text)) return false;
+    if (q.tag && q.tag.length) {
+      const tags = new Set();
+      for (const d of defs || []) for (const t of (d.tags || [])) tags.add(String(t).toLowerCase());
+      const hit = t => [...tags].some(x => x.includes(t));
+      if (!(q.match === 'all' ? q.tag.every(hit) : q.tag.some(hit))) return false;
+    }
+    return true;
+  }
+
+  function apply() {
+    const q = parse();
+    if (!q || typeof grid === 'undefined' || !grid) return;
+    const byFam = defsByFam();
+
+    // registration order = build order. Index once; a family ranks by its
+    // NEWEST member, which is what "what did I work on last" actually means.
+    const newest = new Map();
+    if (typeof PIECES !== 'undefined') {
+      PIECES.forEach((d, i) => { const f = famOf(d.id); if (!newest.has(f) || i > newest.get(f)) newest.set(f, i); });
+    }
+
+    const keep = [];
+    for (const tile of grid.children) {
+      const fam = tile.dataset.pid || '';
+      // NEVER un-hide: the search box and the chips had their say first
+      if (tile.style.display === 'none') continue;
+      if (!test(fam, byFam.get(fam), tile.dataset.search, q)) { tile.style.display = 'none'; continue; }
+      keep.push(tile);
+    }
+
+    let ordered = keep;
+    if (q.sort) {
+      const rank = t => {
+        const fam = t.dataset.pid || '';
+        if (q.sort === 'id') return parseFloat(String(fam).replace(/^\D+/, '')) || 0;
+        if (q.sort === 'title') return 0;                       // resolved below
+        const i = newest.has(fam) ? newest.get(fam) : -1;
+        return q.sort === 'old' ? i : -i;                       // `new` = newest first
+      };
+      ordered = keep.slice();
+      if (q.sort === 'title') {
+        ordered.sort((a, b) => (a.querySelector('h3') || {}).textContent
+          .localeCompare((b.querySelector('h3') || {}).textContent));
+      } else {
+        ordered.sort((a, b) => rank(a) - rank(b));
+      }
+      ordered.forEach((t, i) => { const o = String(i - 10000); if (t.style.order !== o) t.style.order = o; });
+    }
+
+    // limit keeps the first N IN THE ORDER ASKED FOR, not in document order —
+    // `sort=new&limit=3` must be the three newest, which it was not at first
+    if (q.limit) ordered.slice(q.limit).forEach(t => { t.style.display = 'none'; });
+
+    const n = [...grid.children].filter(t => t.style.display !== 'none').length;
+    const el = document.getElementById('libCount');
+    if (el) el.textContent = n + ' scenes';
+  }
+
+  window.LIBQ = { parse, test, apply, PREFIX };
+
+  function hook() {
+    // our listeners are added AFTER theirs on the same controls, so they run
+    // straight after the library's own pass — no polling, no wrapping
+    const on = (id, ev) => { const e = document.getElementById(id); if (e) e.addEventListener(ev, () => setTimeout(apply, 0)); };
+    on('searchBox', 'input');
+    on('sortSel', 'change');
+    document.querySelectorAll('.fchip').forEach(c => c.addEventListener('click', () => setTimeout(apply, 0)));
+    /* CHANGING THE QUERY MUST WIDEN AS WELL AS NARROW. Our pass only ever
+       hides, which is right when it runs after the library's own pass — but
+       edit the URL in the address bar and the grid would shrink monotonically,
+       never recovering the tiles the previous query hid. So a hash change
+       asks the library to redo its pass first (which resets every tile's
+       display from the search box and the chips) and only then narrows.
+       Calling applyLibrary() is not wrapping it; their listeners keep the
+       reference they already had. */
+    window.addEventListener('hashchange', () => setTimeout(() => {
+      try { if (typeof applyLibrary === 'function') applyLibrary(); } catch (e) {}
+      apply();
+    }, 0));
+    setTimeout(apply, 0);
+  }
+
+  try {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook);
+    else hook();
+  } catch (e) { /* a URL filter must never take the library down */ }
+})();
 /* ---------- THE MIX PANEL ----------
    The faders, on screen. The mixer is unplayable without them: until now the
    only way to move a layer was the console or a number key, and neither is a
@@ -154067,107 +154259,6 @@ void main(){
     return r;
   }
 })();
-/* ---------- #set=MINE — Edson's own scenes, newest first ----------
-   Edson, Sep 25: "Is there a short URL that shows only the visuals I have
-   created, in reverse order of creation, so I always see the last scene I did?"
-
-   Yes:  index.html#set=MINE
-
-   HOW IT WORKS, AND WHY IT IS NOT A LIST. `#set=NAME` already does exactly the
-   right thing — part5_tail's QUEUE.boot() looks the name up in SETLISTS, sets
-   libFilter to 'queue' and shows those scenes, in that order, on the home
-   view. The only question was where the list comes from.
-
-   A hand-written list in setlists.json would be stale the moment either
-   session adds a scene, and the whole point is that the newest work is the
-   first thing on screen. So this set's `scenes` is a GETTER: it is computed
-   from the live PIECES registry at the instant the link is opened. Add a
-   scene, reload, it is at the top. Nothing to maintain, and nothing to
-   remember to run.
-
-   `SETLISTS` is a const BINDING, not a frozen object, so pushing a set into
-   `SETLISTS.sets` is allowed and touches no file of theirs. We run before
-   part5_tail concatenates, and `sets()` reads `SETLISTS.sets` at call time —
-   so by the time the boot code looks, we are in the list.
-
-   WHAT COUNTS AS MINE: every scene from SRC-56 up. Lance, Nima and Kasia's
-   work is SRC-55 and below; everything above it came out of one of Edson's
-   sessions — the Birth of a Temple set, the L-Flower and ISOTRP studies, and
-   The Circle. One number to change if that ever stops being true.
-
-   ORDER IS REGISTRATION ORDER, REVERSED — not id order. The ids were not
-   issued strictly in sequence (SRC-66.2 was built after SRC-69), but
-   tools/build.sh concatenates part files in creation order, so the registry
-   is the honest record of what was made when. */
-(() => {
-  const FIRST_MINE = 56;          // SRC-55 and below belongs to the group
-  const NAME = 'MINE';
-
-  function isMine(p) {
-    if (!p || typeof p.id !== 'string' || p.id.indexOf('SRC-') !== 0) return false;
-    const n = parseFloat(p.id.slice(4));
-    return isFinite(n) && n >= FIRST_MINE;
-  }
-
-  try {
-    if (typeof SETLISTS === 'undefined' || !SETLISTS || !Array.isArray(SETLISTS.sets)) return;
-    if (SETLISTS.sets.some(s => s && s.name === NAME)) return;    // idempotent
-
-    const set = { name: NAME, note: 'Everything Edson has made, newest first. Computed, never edited.' };
-    Object.defineProperty(set, 'scenes', {
-      enumerable: true,
-      get() {
-        if (typeof PIECES === 'undefined') return [];
-        const out = [];
-        // walk the registry backwards: the last thing registered is the last
-        // thing built, and that is what should be on screen first
-        for (let i = PIECES.length - 1; i >= 0; i--) if (isMine(PIECES[i])) out.push(PIECES[i].id);
-        return out;
-      }
-    });
-    SETLISTS.sets.push(set);
-
-    /* ---- NEWEST FIRST, which the library cannot do on its own ----
-       The sort dropdown offers most-worked-on, SRC number, title and version
-       count. SRC number is ASCENDING, so the newest scene lands at the BOTTOM
-       — the opposite of the point. Adding a fifth option would mean editing
-       part1_head.html, which is theirs and which we do not touch.
-
-       So we set the flex order ourselves, and only while this set is the one
-       on screen. It is done on a slow interval rather than by wrapping
-       applyLibrary() because several of their listeners hold a DIRECT
-       reference to that function (`addEventListener('change', applyLibrary)`),
-       captured before we could wrap it — a wrapper would be bypassed by
-       exactly the sort-dropdown change it most needs to survive. An interval
-       is self-healing whatever re-sorts the grid and whoever called it.
-
-       Versions collapse into one tile per family, so a family ranks by its
-       NEWEST member: SRC-66.3 built after SRC-69 puts the whole SRC-66 family
-       above it, which is the honest answer to "what did I work on last". */
-    const famOfId = id => id.split('.')[0];
-    let lastKey = '';
-    setInterval(() => {
-      try {
-        if (typeof QUEUE === 'undefined' || !QUEUE.shared || typeof grid === 'undefined') return;
-        const ids = set.scenes;
-        if (!ids.length || QUEUE.shared.length !== ids.length || QUEUE.shared[0] !== ids[0]) return;
-        const key = ids[0] + '/' + ids.length;
-        const rank = new Map();
-        for (let i = 0; i < ids.length; i++) {
-          const f = famOfId(ids[i]);
-          if (!rank.has(f)) rank.set(f, i);      // first sighting = newest
-        }
-        for (const tile of grid.children) {
-          const r = rank.get(famOfId(tile.dataset.pid || ''));
-          if (r === undefined) continue;
-          const o = String(r - 1000);            // below every untouched tile
-          if (tile.style.order !== o) tile.style.order = o;
-        }
-        lastKey = key;
-      } catch (e) {}
-    }, 300);
-  } catch (e) { /* a set that cannot be built must never take the app down */ }
-})();
 /* ---------- THE FAVICON — a pure laser green circle ----------
    Edson, Sep 25: "Also add a favicon. Can be just a green circle. Pure laser
    green."
@@ -154456,8 +154547,12 @@ void main(){
   // prints as a cluster of copies of itself (it did: "raspberries"). A
   // per-pixel rotation and jittered radius turns those copies into a soft disc.
   const int N = 52;
-  float rot0 = h21(gl_FragCoord.xy) * 6.2832;
-  float jr = h21(gl_FragCoord.yx + 17.0);
+  // interleaved gradient noise, not white noise: it spreads the rotations
+  // evenly between neighbours, so the edge of a blur is a fine even grain
+  // instead of fur
+  float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  float rot0 = ign * 6.2832;
+  float jr = fract(ign * 7.13 + 0.37);
   for (int i = 1; i < N; i++) {
     float fi = float(i);
     float r = sqrt((fi - 0.5 + jr) / float(N)) * uCocMax;
