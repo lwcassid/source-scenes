@@ -12,9 +12,9 @@
    everyone, forever, and it took one line.
 
    AN SVG DATA URI, not a .png. No new file to serve, no binary in the repo,
-   and it stays crisp at every size a browser asks for. The circle is drawn at
-   r=13 in a 32-box so it does not touch the edges — a favicon that bleeds to
-   its own border reads as a square at 16px.
+   and it stays crisp at every size a browser asks for. The circle is r=6.5 in
+   a 32-box — half the size it started at (Edson, Sep 25), so it reads as a
+   small deliberate dot with air around it rather than a disc filling the tab.
 
    THE GREEN is #00FF41: full green, a little blue, no red. Flat #00FF00 is
    the same hue a browser paints on an error chip and reads as "system", while
@@ -25,7 +25,7 @@
   try {
     if (typeof document === 'undefined' || !document.head) return;
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
-              + '<circle cx="16" cy="16" r="13" fill="' + GREEN + '"/></svg>';
+              + '<circle cx="16" cy="16" r="6.5" fill="' + GREEN + '"/></svg>';
     const href = 'data:image/svg+xml,' + encodeURIComponent(svg);
 
     // replace any icon the page already declares, rather than adding a second

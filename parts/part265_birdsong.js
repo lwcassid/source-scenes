@@ -119,7 +119,7 @@ float coreDisp(vec3 p){
     r += a * (1.0 - abs(n));
     a *= 0.4; f *= 2.3;
   }
-  return uAmp * (uLobe * 1.3 * lobes + 1.1 * (r - 0.62));
+  return uAmp * (uLobe * 1.7 * lobes + 0.8 * (r - 0.62));
 }`;
   const CORE_NORMAL = `
   vec3 sp = normalize(position);
@@ -163,7 +163,7 @@ void main(){
   float n1 = fbm(p * vec2(2.6, 2.0) + 3.0);
   float n2 = fbm(p * vec2(5.0, 4.0) - 7.0);
   vec3 canopy = mix(vec3(0.016, 0.030, 0.010), vec3(0.070, 0.115, 0.036), n1);
-  canopy = mix(canopy, vec3(0.13, 0.19, 0.07), smoothstep(0.55, 0.8, n2) * smoothstep(0.35, 0.9, p.y));
+  canopy = mix(canopy, vec3(0.11, 0.16, 0.06), 0.55 * smoothstep(0.5, 0.85, n2) * smoothstep(0.35, 0.9, p.y));
   vec3 earth = mix(vec3(0.040, 0.030, 0.020), vec3(0.100, 0.078, 0.052), fbm(p * vec2(3.0, 5.0) + 11.0));
   earth = mix(earth, vec3(0.05, 0.07, 0.03), smoothstep(yg - 0.16, yg, p.y) * 0.6);   // grass at the lip
   vec3 col = mix(canopy, earth, ground);
@@ -189,13 +189,13 @@ void main(){
     vec2 cid = floor(p / 0.14) + vec2(float(i), float(j));
     float pr = h21(cid + 0.3);
     float hi = smoothstep(0.42, 0.9, cid.y * 0.14);             // mostly high in the canopy
-    if (pr < 0.10 + 0.55 * hi) {
+    if (pr < 0.03 + 0.30 * hi * smoothstep(0.35, 0.75, fbm(cid * 0.35 + 5.0))) {   // clustered where the canopy opens
       vec2 ctr = (cid + vec2(h21(cid + 1.7), h21(cid + 4.1))) * 0.14;
-      float r = 0.022 + 0.034 * h21(cid + 9.3);
+      float r = 0.018 + 0.055 * pow(h21(cid + 9.3), 1.6);
       float d = length(p - ctr) / r;
       float disc = smoothstep(1.0, 0.9, d) * (0.65 + 0.5 * smoothstep(0.6, 0.98, d));
       float tw = 0.75 + 0.25 * sin(uT * (0.4 + h21(cid) * 0.9) + pr * 30.0);
-      float br = (0.08 + 0.55 * pow(h21(cid + 5.5), 3.0)) * mix(0.35, 1.0, hi) * tw;
+      float br = (0.04 + 0.7 * pow(h21(cid + 5.5), 4.0)) * mix(0.3, 1.0, hi) * tw;
       bok += disc * br * mix(vec3(0.55, 0.70, 0.45), vec3(0.95, 0.98, 0.90), h21(cid + 2.2));
     }
   }
@@ -256,8 +256,8 @@ void main(){
   const PAL = {
     core:  [0.090, 0.180, 0.620],   // cornflower
     deep:  [0.040, 0.075, 0.420],
-    pale:  [0.330, 0.600, 0.720],   // the pale cyan sheafs
-    ice:   [0.620, 0.720, 0.880],   // near-white accents
+    pale:  [0.340, 0.560, 1.000],   // the pale cyan sheafs (biased blue: the forest light greens it)
+    ice:   [0.640, 0.740, 1.000],   // near-white accents
     lilac: [0.200, 0.260, 0.780]
   };
 
@@ -398,7 +398,7 @@ void main(){
       const ph = genPhrase(s, t0, G.sx, s.rnd);
       for (const e of ph.ev) { s.q.push(e); if (onEv) onEv(e); }
       // the rest between phrases: long and rare near the source, short wide open
-      const rest = (2.8 - 2.4 * s.dens) * (0.7 + 0.6 * s.rnd());
+      const rest = (2.3 - 2.05 * s.dens) * (0.7 + 0.6 * s.rnd());
       q.next = ph.end + rest;
     }
   }
@@ -489,7 +489,7 @@ void main(){
 
       // the core: a dense sphere displaced in its vertex shader
       W.coreU = { uNT: { value: 0 }, uAmp: { value: 0.2 }, uScale: { value: 0.6 }, uLobe: { value: 0.6 } };
-      const cm = clay(PAL.core, 0.62, 0.8);
+      const cm = clay(PAL.core, 0.82, 0.35);
       cm.side = THREE.FrontSide;
       cm.onBeforeCompile = sh => {
         Object.assign(sh.uniforms, W.coreU);
@@ -520,7 +520,7 @@ void main(){
         g.setAttribute('normal', new THREE.BufferAttribute(nr, 3).setUsage(THREE.DynamicDrawUsage));
         g.setIndex(idx);
         g.setDrawRange(0, 0);
-        const m = new THREE.Mesh(g, clay(PAL.core, 0.55, 1.0));
+        const m = new THREE.Mesh(g, clay(PAL.core, 0.72, 0.45));
         m.frustumCulled = false; m.visible = false;
         W.scene.add(m);
         W.slots.push({ g, pos, nr, mesh: m, busy: null });
@@ -528,8 +528,8 @@ void main(){
 
       // the droplets: instanced clay beads, stretched along their velocity
       W.MAXD = 700;
-      const dm = clay([1, 1, 1], 0.5, 0.8);
-      W.drops = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), dm, W.MAXD);
+      const dm = clay([1, 1, 1], 0.6, 0.4);
+      W.drops = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 14, 10), dm, W.MAXD);   // smooth normals: an icosahedron's facets read as glitter
       W.drops.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       W.drops.setColorAt(0, new THREE.Color(1, 1, 1));
       W.drops.count = 0; W.drops.frustumCulled = false;
@@ -541,7 +541,7 @@ void main(){
         tCol: { value: W.rt.texture }, tDep: { value: W.rt.depthTexture },
         uPx: { value: new THREE.Vector2(1 / W.rw, 1 / W.rh) },
         uNear: { value: W.cam.near }, uFar: { value: W.cam.far },
-        uFocus: { value: 7.5 }, uAper: { value: 0.12 }, uProj: { value: W.proj }, uCocMax: { value: 22 },
+        uFocus: { value: 7.5 }, uAper: { value: 0.12 }, uProj: { value: W.proj }, uCocMax: { value: 34 },
         uExp: { value: 1.25 }, uT: { value: 0 }, uVig: { value: 1 }
       };
       W.lensScene = new THREE.Scene();
@@ -558,9 +558,9 @@ void main(){
       s.R += (SOURCE(inp.R) - s.R) * Math.min(1, dt * 6);
       s.dens = s.R;
       const L = s.L, R = s.R;
-      const wantDist = 10.5 - 6.4 * L;
+      const wantDist = 8.2 - 4.4 * L;       // mid-hand: the creature fills about half the frame height, like the reference
       s.dist += (wantDist - s.dist) * Math.min(1, dt * 5);
-      s.reach = 0.8 + 0.75 * L;
+      s.reach = 0.95 + 0.45 * L;
       // the core breathes; agitation is the noise's own speed and depth
       s.swell *= Math.exp(-dt * 1.3);                         // attack quick, recover slow
       s.ntV += ((0.12 + 1.1 * R) - s.ntV) * Math.min(1, dt * 2);
@@ -582,7 +582,7 @@ void main(){
       s.q = s.q.filter(e => !e.dead);
       for (const g of s.gest) if (g.alive && t < g.lastWall + 0.6) singing = true;
       // between phrases the core sinks to a seed; singing swells it
-      const wantSize = (singing ? 0.78 : 0.58) + 0.28 * s.swell;
+      const wantSize = (singing ? 0.66 : 0.48) + 0.24 * s.swell;
       s.size += (wantSize - s.size) * Math.min(1, dt * (wantSize > s.size ? 9 : 1.6));
       updateGestures(P, dt, t);
       updateDrops(P, dt, t);
@@ -634,7 +634,7 @@ void main(){
       r.setRenderTarget(null);
       const lu = W.lensU;
       lu.uFocus.value = Math.max(0.8, s.focus);
-      lu.uAper.value = 0.10 + 0.10 * s.L;                     // macro: shallower as you come in
+      lu.uAper.value = 0.12 + 0.16 * s.L;                     // macro: shallower as you come in
       lu.uT.value = t;
       r.clear(true, true, true);
       r.render(W.lensScene, W.orth);
@@ -708,8 +708,8 @@ void main(){
     g.got = e.k + 1;
     g.target = g.got / g.n;
     g.lastWall = t;
-    if (g.got >= g.n) g.dieAt = t + (g.type === 'comb' ? 0.8 : 0.45) + 0.3 * s.rnd();
-    if (g.type === 'splash') spray(P, g, 14 + ((s.rnd() * 12) | 0));
+    if (g.got >= g.n) g.dieAt = t + (g.type === 'comb' ? 1.8 : 1.3) + 0.8 * s.rnd();   // long enough that 3–5 forms overlap
+    if (g.type === 'splash') spray(P, g, 10 + ((s.rnd() * 8) | 0));
   }
 
   function birth(P, spec, t) {
@@ -721,7 +721,8 @@ void main(){
     // PITCH DECIDES WHERE: a high call grows upward, a low one sideways and down
     const el = (spec.deg - 6) / 4 * 0.9 + (rnd() - 0.5) * 0.4;
     const azm = spec.pan * 1.1 + (rnd() - 0.5) * 0.8 + s.az;   // pan decides left or right, in view
-    const dir = nrm([Math.sin(azm) * Math.cos(el), Math.sin(el), Math.cos(azm) * Math.cos(el) * 0.6]);
+    // flattened toward the picture plane: a form that grows at the lens becomes a wall, not a gesture
+    const dir = nrm(rot(nrm([Math.sin(azm - s.az) * Math.cos(el), Math.sin(el), Math.cos(azm - s.az) * Math.cos(el) * 0.3]), [0, 1, 0], s.az));
     const g = { id: spec.id, type: spec.type, n: spec.n, got: 0, target: 0, gr: 0, die: 0, dieAt: 1e9,
                 born: t, lastWall: t, alive: true, dir, rnd, slot: null, reach: s.reach };
     const R0 = 0.55 * s.size;
@@ -738,15 +739,15 @@ void main(){
     const r = rnd();
     const col = spec.type === 'comb' ? (r < 0.5 ? PAL.ice : PAL.pale)
       : spec.type === 'ring' ? (r < 0.45 ? PAL.lilac : r < 0.75 ? PAL.core : PAL.ice)
-      : (r < 0.45 ? PAL.pale : r < 0.8 ? PAL.core : PAL.deep);
+      : (r < 0.3 ? PAL.pale : r < 0.82 ? PAL.core : PAL.deep);   // mostly the creature's own blue; pale is the accent
     sl.mesh.material.color.setRGB(col[0], col[1], col[2]);
     g.col = col;
     const reach = g.reach;
     if (spec.type === 'sheaf') {
-      g.spine = makeSpine(o, dir, reach * (1.1 + 0.9 * rnd()), (rnd() < 0.5 ? -1 : 1) * (1.2 + 1.6 * rnd()), (rnd() - 0.5) * 3.0, rnd);
-      g.nS = 4 + ((rnd() * 6) | 0);
-      g.gap = 0.05 + 0.05 * rnd();
-      g.wid = 0.05 + 0.05 * rnd();
+      g.spine = makeSpine(o, dir, reach * (1.5 + 1.0 * rnd()), (rnd() < 0.5 ? -1 : 1) * (0.8 + 1.3 * rnd()), (rnd() - 0.5) * 2.4, rnd);
+      g.nS = 5 + ((rnd() * 6) | 0);
+      g.gap = 0.07 + 0.07 * rnd();
+      g.wid = 0.10 + 0.12 * rnd();          // broad, like petals: the reference's ribbons are as wide as a finger of the core
       g.gd = 0.05 + 0.05 * rnd();
     } else if (spec.type === 'ring') {
       // a hoop above or around the core, tilted so it reads as an ellipse
@@ -756,14 +757,14 @@ void main(){
       const ax = nrm(rot([Math.sin(tl) * Math.cos(ta), Math.sin(tl) * Math.sin(ta), Math.cos(tl)], [0, 1, 0], s.az));
       const e1 = nrm(cross(ax, [0, 1, 0.001])), e2 = cross(ax, e1);
       g.ring = { c: add(sc(dir, reach * 0.35 * rnd()), [0, reach * (0.15 + 0.55 * rnd()) * (el > -0.2 ? 1 : -1), 0]),
-                 r: reach * (0.65 + 0.45 * rnd()), ax, e1, e2, th0: rnd() * 6.283, turns: 0.95 + 0.25 * rnd(),
-                 hoop: rnd() < 0.6, nS: 1 + ((rnd() * 3) | 0), wid: 0.035 + 0.05 * rnd() };
+                 r: reach * (0.55 + 0.45 * rnd()), ax, e1, e2, th0: rnd() * 6.283, turns: 0.95 + 0.25 * rnd(),
+                 hoop: rnd() < 0.6, nS: 1 + ((rnd() * 3) | 0), wid: 0.06 + 0.07 * rnd() };
       g.gd = 0.07;
     } else {
       // the comb: an arc of spine with teeth standing off it
       g.spine = makeSpine(o, dir, reach * (0.9 + 0.6 * rnd()), (rnd() < 0.5 ? -1 : 1) * (1.6 + 1.2 * rnd()), (rnd() - 0.5) * 0.8, rnd);
-      g.teeth = 18 + ((rnd() * 7) | 0);
-      g.tl = reach * (0.14 + 0.14 * rnd());
+      g.teeth = 16 + ((rnd() * 7) | 0);
+      g.tl = reach * (0.22 + 0.18 * rnd());
       g.gd = 0.04;
     }
     s.gest.push(g);
@@ -845,7 +846,7 @@ void main(){
         E.p[0] = SA.p[0]; E.p[1] = SA.p[1]; E.p[2] = SA.p[2];
         E.t[0] = SA.t[0]; E.t[1] = SA.t[1]; E.t[2] = SA.t[2];
         E.w[0] = SA.w[0]; E.w[1] = SA.w[1]; E.w[2] = SA.w[2];
-        return 0.045 * g.reach * taper(x) * thin;
+        return 0.075 * g.reach * taper(x) * thin;
       }, 0.03, 1.5, 0.1);
       // the teeth, each growing once the spine has passed it
       for (let k = 0; k < g.teeth && ns < SMAX; k++) {
@@ -862,7 +863,7 @@ void main(){
           E.p[2] = b[2] + n[2] * d + tt[2] * d * d * 0.8;
           E.t[0] = n[0] + tt[0] * d * 1.6; E.t[1] = n[1] + tt[1] * d * 1.6; E.t[2] = n[2] + tt[2] * d * 1.6;
           E.w[0] = tt[0]; E.w[1] = tt[1]; E.w[2] = tt[2];
-          return 0.022 * g.reach * (1 - 0.6 * x) * thin;
+          return 0.036 * g.reach * (1 - 0.6 * x) * thin;
         }, 0.0, 1, 0.3);
       }
     }
@@ -888,7 +889,7 @@ void main(){
     for (let i = 0; i < n; i++) {
       const d = nrm(add(g.dir, [(rnd() - 0.5) * 1.1, (rnd() - 0.5) * 1.1, (rnd() - 0.5) * 1.1]));
       const sp = (1.4 + 2.2 * rnd()) * g.reach;
-      addDrop(P, sc(d, R0 * 0.95), sc(d, sp), (0.018 + 0.05 * Math.pow(rnd(), 2)) * g.reach,
+      addDrop(P, sc(d, R0 * 0.95), sc(d, sp), (0.012 + 0.04 * Math.pow(rnd(), 3)) * g.reach,
         rnd() < 0.8 ? PAL.core : PAL.pale, 0.7 + 0.7 * rnd());
     }
   }
@@ -904,7 +905,7 @@ void main(){
       else { const R = g.ring, th = R.th0 + rnd() * g.gr * R.turns * 6.2832;
         p = add(R.c, sc(add(sc(R.e1, Math.cos(th)), sc(R.e2, Math.sin(th))), R.r)); }
       const out = nrm(add(p, [(rnd() - 0.5), (rnd() - 0.5), (rnd() - 0.5)]));
-      addDrop(P, p, sc(out, 0.3 + 0.7 * rnd()), (0.012 + 0.03 * rnd()) * g.reach, g.col, 0.5 + 0.6 * rnd());
+      addDrop(P, p, sc(out, 0.3 + 0.7 * rnd()), (0.008 + 0.022 * Math.pow(rnd(), 2)) * g.reach, g.col, 0.5 + 0.6 * rnd());
     }
   }
   function updateDrops(P, dt, t) {
@@ -930,7 +931,7 @@ void main(){
       o.position.set(d.p[0], d.p[1], d.p[2]);
       qv.set(d.v[0], d.v[1], d.v[2]).normalize();
       if (sp > 1e-4) o.quaternion.setFromUnitVectors(W.qU, qv);
-      o.scale.set(sz, sz * (1 + sp * 0.35), sz);           // a bead stretches along its flight
+      o.scale.set(sz, sz * (1 + sp * 0.9), sz);    // a bead stretches along its flight: splash, not berries           // a bead stretches along its flight
       o.updateMatrix();
       W.drops.setMatrixAt(n, o.matrix);
       W.col.setRGB(d.col[0], d.col[1], d.col[2]);
