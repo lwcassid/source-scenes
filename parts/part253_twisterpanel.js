@@ -1,37 +1,31 @@
 /* ---------- THE TWISTER PANEL ----------
-   The controller's own group in the sidebar, directly under SOURCE INPUT —
-   with the things you play, not down with the reading matter. It is a 4x4
-   grid because the device is a 4x4 grid: slot 1 in the panel is the encoder
-   top-left under your hand, and you should never have to translate.
+   Two surfaces, on Edson's call, Sep 25:
 
-   Each slot shows what it does when TURNED and what it does when PUSHED.
-   Pick either from a dropdown. The Twister sends the factory CC n / NOTE n on
-   channel 1 — AUTO-MAP assumes it does and lays the whole show out in one
-   click, for exactly the layers the open scene actually has.
+   THE RAIL is a picture of the controller and nothing else — "a beautiful,
+   clean visualization of the controller's current state", after 404zero's
+   zerror MIDI surface: a 4x4 of knob discs, each with its value arc in the
+   colour its LED is showing, a tiny label underneath, and an empty or dark
+   knob drawn as a thin outline. Under it, MAP — and in a scene, AUTO-MAP.
+   Slot 1 is the encoder top-left under your hand; you never translate.
 
-   TWISTER-ONLY, by Edson's call on Sep 25. Another controller gets its own
-   module; there is no learn mode here to make this one generic.
+   THE MAP WINDOW is where everything else went: the knob editor (turn and
+   push per knob, the light swatch), UNMAP and COPY FROM, and the device's
+   own tools — TEST and the lights switch. They were on the rail and they
+   were too loud there: "the button LIT 40 is confusing … I don't like the
+   button TEST in home, it has too much prominence." It opens like the
+   SOURCE MAP popover beside the rail, only bigger, and at this width the
+   dropdowns finally read in full.
 
-   Injected at load from our own part file, so part5_tail.js binds its fold
-   and per-browser memory to us afterwards, for free. Repaints with
-   textContent and value writes only — never innerHTML, never while a control
-   has focus. Unlike the mix panel this one is ALWAYS visible: you set the
-   controller up before a scene is open, and a panel that hides when you need
-   it is how you end up mapping in the dark. */
+   Knob 16 is SOUND OUT by the driver's suggestion — AUTO-MAP puts it there
+   and a dark scene keeps it live — but every knob, 16 included, is yours.
+
+   Repaints with textContent and value writes only — never innerHTML over a
+   live control, never while a control has focus. */
 (() => {
-  let group, cells = [], statusEl, noteEl, helpEl = null, built = false;
-  const ROWS = [], LIGHTBTN = [], AMBTN = [];
-  let keyEl = null, gridEl = null, rowEl = null, connRow = null;
-
-  /* A cell is 50-odd pixels wide, so every option label is truncated to two or
-     three characters — which made the two dropdowns indistinguishable. The
-     glyph goes INSIDE the option text, first, so it is the one thing that
-     SURVIVES the truncation: "↻ LA…" and "↓ SO…" read at a glance.
-     The border colour carries the same distinction for anyone not reading. */
   const GLYPH = { turn: '↻', push: '↓' };
   /* the panel's approximation of what the ring will look like. The device
-     renders a hue from one MIDI byte; these are just close enough that the
-     swatch and the knob are recognisably the same colour. */
+     renders a hue from one MIDI byte; these are close enough that the drawn
+     knob and the real one are recognisably the same colour. */
   const CSS = { blue: '#3b6cff', cyan: '#19c8d8', green: '#2fc45c', yellow: '#d9d020',
                 amber: '#ee9b1c', red: '#e8402f', magenta: '#d62f9e', violet: '#8a4be0' };
   const cssFor = v => {
@@ -39,44 +33,223 @@
     const h = TWIST.HUES.find(x => x.v === v);
     return h ? (CSS[h.k] || '#888') : '#888';
   };
-  let lastN = -1, curTo = [], curPo = [];
-  /* The glyph lives OUTSIDE the <select>, not inside its option text. A native
-     select at fifty pixels spends fourteen of them on its own arrow, so a glyph
-     in the label left about three characters for everything else and "↻L1" came
-     back as "↻L" — which is any of six layers. Out here the glyph is always
-     visible AND the code gets the whole field. */
+  const needsMix = fn => fn !== 'none' && (fn.indexOf('fader') === 0 || fn.indexOf('solo') === 0 || fn === 'unsolo');
+
+  /* ================= THE RAIL ================= */
+  let built = false, statusEl = null, cv = null, btnRow = null, amBtn = null, mapBtn = null, connRow = null;
+
+  function btn(label, title, fn, css) {
+    const b = document.createElement('button');
+    b.textContent = label; if (title) b.title = title;
+    b.style.cssText = 'flex:1;min-width:0' + (css ? ';' + css : '');
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  function build(ctx) {
+    if (built || !window.TWIST) return; built = true;
+    statusEl = ctx.status;
+    const g = ctx.group;
+
+    cv = document.createElement('canvas');
+    cv.id = 'twSurface';
+    cv.title = 'The Twister as it is right now — MAP to change what each knob does';
+    cv.style.cssText = 'display:block;width:100%;cursor:pointer;margin:0 0 12px';
+    cv.addEventListener('click', () => openPop(true));
+    g.appendChild(cv);
+
+    btnRow = document.createElement('div');
+    btnRow.className = 'srow';
+    btnRow.style.cssText = 'display:flex;gap:6px;min-width:0';
+    /* AUXILIARY, and they look it (Edson, Sep 25: "the buttons on the bottom
+       are auxiliars"): the picture is the panel; these are small, quiet,
+       outlined, and do not compete with it. */
+    const AUX = 'padding:4px 0;font-size:8.5px;letter-spacing:.16em;background:transparent;'
+      + 'border:1px solid var(--line2);color:var(--txt-dim);box-shadow:none';
+    amBtn = btn('AUTO-MAP', 'Lay out this scene: its layers, the solos and the poem cues', () => TWIST.autoMap(), AUX);
+    mapBtn = btn('MAP', 'Everything else: what each knob does, its light, TEST', () => openPop(!(pop && pop.style.display !== 'none')), AUX);
+    btnRow.append(amBtn, mapBtn);
+    g.appendChild(btnRow);
+
+    /* DISCONNECTED SHOWS ONE THING. Edson, Sep 25: "if it's disconnected do
+       not show the interface, just the connect button." */
+    connRow = document.createElement('div');
+    connRow.className = 'srow';
+    connRow.style.display = 'none';
+    connRow.appendChild(btn('CONNECT THE TWISTER',
+      'Ask the browser for MIDI. Permission is per page load, so a reload always needs this again.',
+      () => TWIST.connect()));
+    g.appendChild(connRow);
+  }
+
+  /* ---- the picture ----
+     Drawn every paint; sixteen discs is nothing. Theme colours come from the
+     page's own tokens, so it is right in light and dark without a table. */
+  function tok(name, fb) {
+    // from BODY: the theme is a class on body (body.light), so the tokens
+    // resolved on <html> are always the dark ones
+    try { const v = getComputedStyle(document.body).getPropertyValue(name).trim(); return v || fb; }
+    catch (e) { return fb; }
+  }
+  // the colour actually painted behind the picture — the first ancestor with
+  // an opaque background, since the two rails do not share one token
+  function railBg() {
+    for (let e = cv; e; e = e.parentElement) {
+      const c = getComputedStyle(e).backgroundColor;
+      if (c && c !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(c)) return c;
+    }
+    return tok('--bg', '#111');
+  }
+  function draw() {
+    const T = window.TWIST; if (!cv || !T) return;
+    // a folded rail, or the show fullscreen, has no picture to keep fresh —
+    // and the show has to hold 60fps
+    if (!cv.offsetParent || document.fullscreenElement) return;
+    const W = Math.max(120, Math.round(cv.parentNode ? cv.parentNode.clientWidth : 220));
+    /* ONE MODULE, repeated. A knob's whole footprint is its arc radius R;
+       every other size — disc, lit pad, empty ring, label — is derived from
+       it, and a row is almost exactly a column, so the 4x4 reads as the square
+       grid the hardware is. */
+    const cw = W / 4, ch = cw * 0.98, R = cw * 0.29;
+    const H = Math.round(ch * 4);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== W * dpr || cv.height !== H * dpr) {
+      cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + 'px';
+    }
+    const g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+
+    const dim = tok('--txt-dim', '#888'),
+          line = tok('--line2', tok('--line', '#444')), mono = tok('--mono', 'ui-monospace, monospace'),
+          bg = railBg();
+    const live = T.hasAccess();
+    const hasMix = T.hasMix(), nL = T.nLayers();
+    const r = R - 5;                                           // the disc inside the arc
+    const A0 = Math.PI * 0.75, SWEEP = Math.PI * 1.5;          // a knob's 270°
+
+    for (let i = 0; i < 16; i++) {
+      const cx = (i % 4 + 0.5) * cw, cy = Math.floor(i / 4) * ch + R + 3;
+      const S = live ? T.slotAt(i) : null;
+      const on = S && (S.turn !== 'none' || S.push !== 'none');
+
+      if (!on) {
+        /* AN UNUSED KNOB IS A KNOB, just without colour (Edson, Sep 25: the
+           orange outline "is getting too much attention"). Same track, same
+           disc, same dot — grey, and quieter than anything that does work. */
+        g.globalAlpha = live ? 0.55 : 0.35;
+        g.lineCap = 'round';
+        g.strokeStyle = line; g.lineWidth = 3;
+        g.beginPath(); g.arc(cx, cy, R - 1.5, A0, A0 + SWEEP); g.stroke();
+        g.fillStyle = '#2b2b30';
+        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = line; g.lineWidth = 1;
+        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+        g.fillStyle = '#55555c';
+        g.beginPath(); g.arc(cx, cy, Math.max(2, R * 0.13), 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 1;
+        continue;
+      }
+
+      const L = T.lightFor(i, S);
+      const col = cssFor(L.col);
+      const stale = (S.turn !== 'none' && !hasMix && needsMix(S.turn))
+        || (S.turn.indexOf('fader') === 0 && +S.turn.slice(5) >= nL);
+      g.globalAlpha = stale ? 0.35 : 1;
+
+      /* THREE KINDS OF KNOB, one colour each — the knob's own LED colour,
+         never a second one (Edson, Sep 25), and the centre dot ALWAYS there:
+           TURNS          a value arc around a dark disc; a grey dot (no push)
+           ONLY PUSHES    no arc — a pad lit in its colour; a dot in the
+                          page's own background, a hole punched in the pad
+           BOTH           the arc, and the dot in the knob's colour */
+      const turns = S.turn !== 'none', pushes = S.push !== 'none';
+      g.lineCap = 'round';
+      if (turns) {
+        const v = L.ring / 127;
+        g.strokeStyle = line; g.lineWidth = 3;
+        g.beginPath(); g.arc(cx, cy, R - 1.5, A0, A0 + SWEEP); g.stroke();
+        if (v > 0.004) {
+          g.strokeStyle = col; g.lineWidth = 3.2;
+          g.beginPath(); g.arc(cx, cy, R - 1.5, A0, A0 + SWEEP * v); g.stroke();
+        }
+        // the disc — dark in both themes, like the hardware, with a rim so it
+        // still reads against a dark panel
+        g.fillStyle = '#2b2b30';
+        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = line; g.lineWidth = 1;
+        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+      } else {
+        g.fillStyle = col;
+        g.beginPath(); g.arc(cx, cy, R - 3, 0, Math.PI * 2); g.fill();
+      }
+      g.fillStyle = (turns && pushes) ? col : (turns ? '#6c6c74' : bg);
+      g.beginPath(); g.arc(cx, cy, Math.max(2, R * 0.13), 0, Math.PI * 2); g.fill();
+      // pressed: the rim burns for a moment, as the LED does
+      if (T.hitAge(i) < 0.25) {
+        g.strokeStyle = '#fff'; g.lineWidth = 1.5;
+        g.beginPath(); g.arc(cx, cy, turns ? r : R - 3, 0, Math.PI * 2); g.stroke();
+      }
+
+      // the label, tiny, underneath
+      const lab = [S.turn, S.push].filter(f => f !== 'none').map(f => T.FN[f].short).join(' ');
+      g.fillStyle = dim; g.font = '8.5px ' + mono; g.textAlign = 'center'; g.textBaseline = 'top';
+      g.fillText(lab, cx, cy + R + 4);
+      g.globalAlpha = 1;
+    }
+  }
+
+  function paint() {
+    if (!built) return;
+    const T = window.TWIST; if (!T) return;
+    const live = T.hasAccess();
+    T.sync();
+    const key = T.key(), mapped = T.mapped();
+
+    const devs = T.devices();
+    let s = !live ? 'NOT CONNECTED'
+      : (T.connected() ? 'CONNECTED' : (devs.length ? devs.length + ' MIDI IN' : 'NO MIDI'))
+        + (T.rate > 400 ? '  ' + T.rate + '/s ⚠' : '');
+    if (live && key && !mapped) s = 'DARK · ' + s;
+    if (statusEl.textContent !== s) statusEl.textContent = s;
+
+    const show = (el, on, d) => { const w = on ? (d || '') : 'none'; if (el.style.display !== w) el.style.display = w; };
+    show(btnRow, live, 'flex');
+    show(connRow, !live);
+    show(amBtn, !!key);          // at the home there is no scene to lay out
+    draw();
+
+    if (pop && pop.style.display !== 'none') paintPop(T, live, key, mapped);
+  }
+
+  /* ================= THE MAP WINDOW ================= */
+  let pop = null, whereEl = null, connBox = null, homeBox = null, darkBox = null, mapBox = null, devBox = null;
+  let cells = [], helpEl = null, noteEl = null, lightBtn = null, copySels = [], lastN = -1, lastKey = null, lastCopy = null,
+      curTo = [], curPo = [];
+
   function mkRow(kind, opts, onChange) {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:2px;margin-top:3px';
+    row.style.cssText = 'display:flex;align-items:center;gap:4px;margin-top:4px';
     const g = document.createElement('span');
     g.textContent = GLYPH[kind];
-    g.style.cssText = 'flex:0 0 8px;font-size:10px;line-height:1;'
+    g.style.cssText = 'flex:0 0 10px;font-size:11px;line-height:1;'
       + (kind === 'turn' ? 'color:var(--acc)' : 'color:var(--txt-dim)');
     const sel = document.createElement('select');
-    sel.style.cssText = 'flex:1;min-width:0;width:100%;padding:3px 0 3px 2px;font-size:9px;letter-spacing:.02em';
-    /* The list is rebuilt when the open scene's layer count changes — a
-       movement with two visuals must not offer LAYER 5. Rebuilding a <select>
-       loses its value, so the caller's value is reapplied by the painter; and
-       we never touch a select the user currently has open. */
+    sel.style.cssText = 'flex:1;min-width:0;width:100%;padding:3px 2px;font-size:10px;letter-spacing:.02em';
+    /* A SAVED MAPPING THAT OUTLIVED ITS SCENE STILL HAS TO SHOW. A knob on
+       LAYER 5 in a two-layer movement keeps the option, marked, so the editor
+       never claims a knob does nothing while it in fact still carries it. */
     const fill = (ks, cur) => {
       const keep = (cur === undefined) ? sel.value : cur;
       sel.textContent = '';
       const list = ks.slice();
-      /* A SAVED MAPPING THAT OUTLIVED ITS SCENE STILL HAS TO SHOW. A layout
-         stored when six layers were open keeps LAYER 5 on a knob; open a
-         movement with two and that option is gone, the <select> falls back to
-         empty, and the panel says the knob does nothing while the knob in
-         fact still carries it. So the stale value is appended, marked, and
-         left selectable-away. The hardware already tells the same story —
-         lightFor dims a fader past the end of the layer list. */
       if (keep && list.indexOf(keep) < 0) list.push(keep);
       list.forEach(k => {
         const o = document.createElement('option');
         o.value = k;
-        const short = (window.TWIST && TWIST.FN[k]) ? TWIST.FN[k].short : k;
+        const lab = (window.TWIST && TWIST.FN[k]) ? TWIST.FN[k].label : k;
         const stale = ks.indexOf(k) < 0;
-        o.textContent = stale ? short + '!' : short;
-        if (stale) o.title = short + ' is not in this scene';
+        o.textContent = k === 'none' ? '—' : (stale ? lab + ' (not here)' : lab);
         sel.appendChild(o);
       });
       sel.value = keep;
@@ -84,289 +257,272 @@
     fill(opts);
     sel.addEventListener('change', () => onChange(sel.value));
     row.append(g, sel);
-    return { row, sel, g, fill };
+    return { row, sel, fill };
   }
 
-  function build(ctx) {
-    if (built || !window.TWIST) return; built = true;
-    /* The <section>, the h5, the status label (with the pointer-events:none
-       that keeps the whole header foldable) and the job of finding where in
-       the sidebar this goes now belong to PANELS — parts/partcore_panels.js.
-       This used to locate its anchor by matching the English string
-       'Source input' against an h5, which one rename would have broken
-       silently, here and in the mix panel both. */
-    group = ctx.group; statusEl = ctx.status;
+  function h4(text) {
+    const h = document.createElement('h4');
+    h.textContent = text;
+    h.style.cssText = 'font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--txt);margin:0 0 8px';
+    return h;
+  }
+  function para(text, faint) {
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:10.5px;line-height:1.65;color:var(--txt-dim);margin:6px 0' + (faint ? ';font-size:9.5px;color:var(--txt-faint)' : '');
+    if (text) p.textContent = text;
+    return p;
+  }
+  function row(...els) {
+    const r = document.createElement('div');
+    r.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0';
+    els.forEach(e => { e.style.flex = '1'; e.style.minWidth = '0'; r.appendChild(e); });
+    return r;
+  }
+  function copySel() {
+    const sel = document.createElement('select');
+    sel.style.cssText = 'font-size:10px';
+    sel.title = 'Start from another scene\'s map. It is copied, so the two never edit each other.';
+    sel.addEventListener('change', () => { if (sel.value) TWIST.copyFrom(sel.value); sel.value = ''; });
+    copySels.push(sel);
+    return sel;
+  }
 
-    const key = document.createElement('p');
-    key.className = 'sinfo';
-    key.style.cssText = 'margin:0 0 6px;opacity:.7';
-    key.innerHTML = '<b style="color:var(--acc)">↻ turn</b> = a value &nbsp;·&nbsp; <b>↓ push</b> = an action';
-    group.appendChild(key); keyEl = key; key._disp = key.style.display || '';
+  function buildPop() {
+    if (pop) return;
+    const T = window.TWIST;
+    pop = document.createElement('div');
+    pop.id = 'twMap';
+    pop.style.cssText = 'display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:160;'
+      + 'width:min(580px,calc(100vw - var(--rail) - 28px));max-height:86vh;overflow-y:auto;'
+      + 'background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;'
+      + 'box-shadow:0 18px 50px rgba(0,0,0,.3)';
 
+    const head = document.createElement('div');
+    head.style.cssText = 'display:flex;align-items:baseline;gap:10px;margin:0 0 6px';
+    const t = h4('Midi Fighter Twister'); t.style.margin = '0';
+    whereEl = document.createElement('span');
+    whereEl.style.cssText = 'flex:1;font:9px var(--mono);letter-spacing:.14em;color:var(--txt-faint)';
+    const x = document.createElement('button');
+    x.textContent = '×'; x.title = 'close (Esc)';
+    x.style.cssText = 'padding:0 8px;font-size:13px;line-height:1.4';
+    x.addEventListener('click', () => openPop(false));
+    head.append(t, whereEl, x);
+    pop.appendChild(head);
+
+    connBox = document.createElement('div');
+    connBox.append(para('MIDI permission is per page load — a reload always needs it again.'),
+      row(btn('CONNECT THE TWISTER', '', () => TWIST.connect())));
+    pop.appendChild(connBox);
+
+    homeBox = para('This is the desk. Open a scene to map its knobs — each scene maps the Twister or leaves it dark. Here, and in a dark scene, knob 16 is SOUND OUT.');
+    pop.appendChild(homeBox);
+
+    darkBox = document.createElement('div');
+    darkBox.append(para('Not mapped in this scene — the knobs do nothing here and their lights are off, except knob 16, SOUND OUT.'),
+      row(btn('AUTO-MAP', 'Lay out this scene: its layers, the solos and the poem cues', () => TWIST.autoMap()), copySel()));
+    pop.appendChild(darkBox);
+
+    mapBox = document.createElement('div');
+    const key = para(''); key.innerHTML = '<b style="color:var(--acc)">↻ turn</b> = a value &nbsp;·&nbsp; <b>↓ push</b> = an action &nbsp;·&nbsp; the square sets that knob\'s light';
+    mapBox.appendChild(key);
     const grid = document.createElement('div');
-    // minmax(0,1fr), not 1fr. A grid track defaults to min-width:auto, so a
-    // column refuses to shrink below its content and the fourth one simply
-    // overflowed the 248px rail and got clipped. The cells need min-width:0
-    // for the same reason.
-    grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin:0 0 8px';
-    for (let i = 0; i < TWIST.SLOTS; i++) {
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0';
+    for (let i = 0; i < T.SLOTS; i++) {
       const cell = document.createElement('div');
-      cell.style.cssText = 'border:1px solid var(--line2);border-radius:5px;padding:3px 3px 4px;min-width:0;overflow:hidden';
-
+      cell.style.cssText = 'border:1px solid var(--line2);border-radius:6px;padding:5px 6px 7px;min-width:0;overflow:hidden';
       const top = document.createElement('div');
-      top.style.cssText = 'display:flex;align-items:center;gap:4px;margin:0 0 3px';
+      top.style.cssText = 'display:flex;align-items:center;gap:4px';
       const n = document.createElement('span');
-      n.textContent = (i + 1); n.style.cssText = 'font-size:9px;opacity:.5;flex:1';
-
-      /* ONE SWATCH PER KNOB (Edson, Sep 25: "colours should be an individual
-         toggle for each button"). The cell is ~50px wide, which is no room for
-         a named dropdown, so the swatch IS the control: click steps forward
-         through the palette, shift-click steps back, and one more step past
-         the end returns it to AUTO — the family colour it had before anyone
-         touched it. The title attribute carries the name, because a dot in a
-         dark room is not self-describing. */
+      n.textContent = i + 1; n.style.cssText = 'font:9px var(--mono);opacity:.55;flex:1';
+      /* ONE SWATCH PER KNOB: click steps forward through the palette,
+         shift-click back, one more past the end returns to AUTO (the family
+         colour). */
       const sw = document.createElement('button');
-      sw.style.cssText = 'flex:0 0 11px;height:11px;padding:0;border-radius:3px;'
-        + 'border:1px solid var(--line2);cursor:pointer;line-height:0';
+      sw.style.cssText = 'flex:0 0 12px;height:12px;padding:0;border-radius:3px;border:1px solid var(--line2);cursor:pointer;line-height:0';
       sw.addEventListener('click', e => {
         e.preventDefault();
         const S = TWIST.slots[i]; if (!S) return;
-        const H = TWIST.HUES, cur = (S.col === undefined || S.col === null) ? -1
-          : H.findIndex(x => x.v === S.col);
-        const step = e.shiftKey ? -1 : 1;
-        let next = cur + step;
-        if (next >= H.length || next < -1) next = -1;        // past either end: AUTO
+        const H = TWIST.HUES, cur = (S.col === undefined || S.col === null) ? -1 : H.findIndex(q => q.v === S.col);
+        let next = cur + (e.shiftKey ? -1 : 1);
+        if (next >= H.length || next < -1) next = -1;
         TWIST.setSlotColour(i, next < 0 ? null : H[next].v);
       });
       top.append(n, sw); cell.appendChild(top);
-
-      const T = mkRow('turn', TWIST.turnOpts(), v => TWIST.setFn(i, 'turn', v));
-      const P = mkRow('push', TWIST.pushOpts(), v => TWIST.setFn(i, 'push', v));
-      const tSel = T.sel, pSel = P.sel;
-      cell.append(T.row, P.row);
+      const Tr = mkRow('turn', T.turnOpts(), v => TWIST.setFn(i, 'turn', v));
+      const Pr = mkRow('push', T.pushOpts(), v => TWIST.setFn(i, 'push', v));
+      cell.append(Tr.row, Pr.row);
       grid.appendChild(cell);
-      cells.push({ cell, tSel, pSel, sw, fillT: T.fill, fillP: P.fill });
+      cells.push({ cell, tSel: Tr.sel, pSel: Pr.sel, sw, fillT: Tr.fill, fillP: Pr.fill });
     }
-    group.appendChild(grid); gridEl = grid; grid._disp = grid.style.display || '';
+    mapBox.appendChild(grid);
+    mapBox.appendChild(row(
+      btn('AUTO-MAP', 'Lay out this scene again: its layers, the solos and the poem cues', () => TWIST.autoMap()),
+      btn('UNMAP', 'This scene goes back to dark: the knobs do nothing here and their lights go off', () => TWIST.unmap()),
+      copySel()));
+    helpEl = para('', true);
+    mapBox.appendChild(helpEl);
+    pop.appendChild(mapBox);
 
-    /* ---- LED COLOURS ----
-       The 1-126 scale is a hue sweep and the exact hue per number is not
-       published, so these are adjustable and the DEVICE is the authority, not
-       my table. Four families, because four is what you can hold in your head
-       in a dark room. */
-    /* The four family colour rows (layers / instr / solo / cues) were removed
-       on Sep 25: colour is per knob now, set by the swatch on each slot, and
-       two ways to choose the same thing is one too many on a rail this
-       narrow. TWIST.colour and DEFCOL stay — they are what a slot falls back
-       to when its own colour is AUTO. */
-
-    const row = document.createElement('div');
-    row.className = 'srow';
-    // Five buttons total 336px against a 219px rail. Without wrapping, TEST falls
-    // off the edge — the same clipping the colour rows hit.
-    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;min-width:0';
-    const am = document.createElement('button');
-    am.textContent = 'AUTO-MAP';
-    am.title = 'Assume the factory layout: encoder n sends CC n and NOTE n on channel 1';
-    am.addEventListener('click', () => { if (TWIST.hasMix()) TWIST.autoMap(); });
-    AMBTN.push(am);
-    const cl = document.createElement('button');
-    cl.textContent = 'CLEAR';
-    cl.addEventListener('click', () => TWIST.clearAll());
-    const lt = document.createElement('button');
-    lt.title = 'Stop sending to the controller\'s lights, or start again';
-    lt.addEventListener('click', () => {
+    devBox = document.createElement('div');
+    devBox.style.cssText = 'border-top:1px solid var(--line);margin-top:12px;padding-top:10px';
+    devBox.appendChild(h4('The device'));
+    lightBtn = btn('LIGHTS: ON', 'Stop sending to the controller\'s lights, or start again', () => {
       TWIST.lights = !TWIST.lights;
       if (!TWIST.lights) TWIST.allOff(); else TWIST._sent = {};
     });
-    const tb = document.createElement('button');
-    tb.textContent = 'TEST';
-    tb.title = 'Flash every knob red, green, blue. If nothing happens the port is the problem, not the mapping.';
-    tb.addEventListener('click', () => TWIST.test());
-    row.append(am, cl, lt, tb); group.appendChild(row); rowEl = row; row._disp = row.style.display || '';
-    LIGHTBTN.push(lt);
+    devBox.appendChild(row(
+      btn('TEST', 'Flash every knob red, green, blue. If nothing happens the port is the problem, not the mapping.', () => TWIST.test()),
+      lightBtn,
+      // taking it off the desk lives here, not on the rail — Edson, Sep 25
+      // says only what it does (Edson, Sep 25: "this is disconnecting? if yes,
+      // it should only say that")
+      btn('DISCONNECT', 'Disconnect the Twister: deaf and dark in every scene until you ADD it again. Its maps are kept.',
+        () => { openPop(false); MIDIRIG.remove('twister'); })));
+    noteEl = para('', true);
+    noteEl.style.whiteSpace = 'pre-line';
+    noteEl.style.fontFamily = 'var(--mono)';
+    devBox.appendChild(noteEl);
+    pop.appendChild(devBox);
 
-    /* DISCONNECTED SHOWS ONE THING. Sixteen slots of controls that cannot do
-       anything is not information, it is a panel pretending to work — Edson,
-       Sep 25: "if it's disconnected do not show the interface, just the
-       connect button." Everything above is hidden and this replaces it. */
-    connRow = document.createElement('div');
-    connRow.className = 'srow';
-    connRow.style.display = 'none';
-    const cb = document.createElement('button');
-    cb.textContent = 'CONNECT THE TWISTER';
-    cb.style.cssText = 'flex:1;min-width:0';
-    cb.title = 'Ask the browser for MIDI. Permission is per page load, so a reload always needs this again.';
-    cb.addEventListener('click', () => TWIST.connect());
-    connRow.appendChild(cb);
-    group.appendChild(connRow);
+    document.body.appendChild(pop);
 
-    noteEl = document.createElement('p');
-    noteEl.className = 'sinfo';
-    noteEl.style.whiteSpace = 'pre-line';   // the raw-message line sits under the port line
-    group.appendChild(noteEl);
-
-    const help = document.createElement('p');
-    help.className = 'sinfo';
-    help.style.opacity = '.55';
-    group.appendChild(help);
-    helpEl = help; help._disp = help.style.display || '';
-
+    /* It closes the way the SOURCE MAP popover does: Esc, or a click
+       elsewhere. Esc is taken in the CAPTURE phase and stopped, because in a
+       scene Escape also means CLOSE THE SCENE (two handlers in core) — one
+       keystroke must close the window, not the window and the scene. Only
+       while the window is open; otherwise Escape is theirs, untouched. */
+    window.addEventListener('keydown', e => {
+      if (e.key !== 'Escape' || pop.style.display === 'none') return;
+      e.stopImmediatePropagation(); e.stopPropagation(); e.preventDefault();
+      openPop(false);
+    }, true);
+    document.addEventListener('pointerdown', e => {
+      if (pop.style.display === 'none') return;
+      if (pop.contains(e.target) || (mapBtn && mapBtn.contains(e.target)) || (cv && cv.contains(e.target))) return;
+      openPop(false);
+    });
   }
 
-  function paint() {
-    if (!built) return;                    // PANELS calls build() before paint()
-    const T = window.TWIST; if (!T) return;
-    const devs = T.devices();
-    const flood = T.rate > 400;
-    const s = (T.connected() ? 'CONNECTED' : (devs.length ? devs.length + ' MIDI IN' : 'NO MIDI'))
-            + (T.modeOf() ? '  ' + T.modeOf() : '')
-            + (T.rate ? '  ' + T.rate + '/s' + (flood ? ' ⚠' : '') : '');
-    if (statusEl.textContent !== s) statusEl.textContent = s;
+  function openPop(on) {
+    if (on) buildPop();
+    if (!pop) return;
+    pop.style.display = on ? '' : 'none';
+    if (mapBtn) mapBtn.classList.toggle('on', !!on);
+    if (on) { lastN = -1; lastCopy = null; paint(); }
+  }
 
-    /* THE LISTS FOLLOW THE SCENE. A movement with two visuals offers L1-L2 and
-       S1-S2, not six of each. Only rebuilt when the count actually changes —
-       refilling sixteen pairs of <select> every 150ms would fight the user for
-       the one they have open. */
-    /* THE BODY ONLY EXISTS WHILE THERE IS SOMETHING BEHIND IT.
-       Restore each element's OWN display, never ''. The grid carries
-       `display:grid` and the footer `display:flex` in their inline cssText, so
-       setting '' to un-hide them erases that and they fall back to block —
-       which stacked all sixteen slots into one column the moment the Twister
-       connected. `_disp` is captured at build time, before anything hides. */
-    const live = T.hasAccess();
-    for (const el of [keyEl, gridEl, rowEl, helpEl]) {
-      if (!el) continue;
-      const want = live ? (el._disp || '') : 'none';
-      if (el.style.display !== want) el.style.display = want;
-    }
-    if (connRow && connRow.style.display !== (live ? 'none' : '')) connRow.style.display = live ? 'none' : '';
-    if (!live) {
-      const s2 = 'NOT CONNECTED';
-      if (statusEl.textContent !== s2) statusEl.textContent = s2;
-      const n2 = 'MIDI permission is per page load — a reload always needs it again.';
-      if (noteEl.textContent !== n2) noteEl.textContent = n2;
-      return;
+  function paintPop(T, live, key, mapped) {
+    const show = (el, on) => { const w = on ? '' : 'none'; if (el.style.display !== w) el.style.display = w; };
+    show(connBox, !live);
+    show(homeBox, live && !key);
+    show(darkBox, live && !!key && !mapped);
+    show(mapBox, live && !!key && mapped);
+    show(devBox, live);
+    const where = key ? key + (mapped ? '' : ' · DARK') : 'THE DESK';
+    if (whereEl.textContent !== where) whereEl.textContent = where;
+    if (!live) return;
+
+    const hasMix = T.hasMix(), nL = T.nLayers();
+    if (key !== lastKey) { lastKey = key; lastN = -1; lastCopy = null; }
+
+    // COPY FROM: every other mapped scene, plus the old shared map if there was one
+    const srcs = T.mappedScenes().filter(k => k !== key);
+    const sig = srcs.join(',') + (T.legacy ? '|old' : '');
+    if (sig !== lastCopy && !copySels.includes(document.activeElement)) {
+      lastCopy = sig;
+      for (const sel of copySels) {
+        sel.textContent = '';
+        const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); };
+        add('', srcs.length || T.legacy ? 'COPY FROM…' : 'nothing to copy yet');
+        for (const k of srcs) {
+          let t = k;
+          try { const p = PIECES.find(q => String(q.id).split('.')[0] === k); if (p && p.title) t = k + ' · ' + p.title; } catch (e) {}
+          add(k, t);
+        }
+        if (T.legacy) add('~old', 'the old shared map');
+        sel.disabled = !(srcs.length || T.legacy);
+      }
     }
 
-    const hasMix = T.hasMix();
-    const nL = T.nLayers();
-    // a never-configured controller lays itself out the first time a scene
-    // with layers is open — once, and never again over a saved layout
-    if (T.virgin && window.MIX && MIX.count && MIX.count() > 0) { T.virgin = false; T.autoMap(); }
-    if (nL !== lastN) {
-      lastN = nL;
-      const to = T.turnOpts(), po = T.pushOpts();
-      curTo = to; curPo = po;
-      // the legend names the layers this scene actually has, not a fixed six
-      if (helpEl) {
+    if (mapped) {
+      /* THE LISTS FOLLOW THE SCENE: two layers offer L1-L2, not six. Only
+         rebuilt when the count or the scene changes — refilling 32 selects
+         every paint would fight the one you have open. */
+      if (nL !== lastN) {
+        lastN = nL;
+        curTo = T.turnOpts(); curPo = T.pushOpts();
         const L = nL > 1 ? 'L1-L' + nL : 'L1', S = nL > 1 ? 'S1-S' + nL : 'S1';
-        helpEl.innerHTML = '<b>' + L + '</b> layer faders &nbsp; <b>VOL</b> instrument &nbsp; <b>'
-          + S + '</b> solo &nbsp; <b>US</b> unsolo<br>'
-          + '<b>GO BK AB ST</b> poem cues &nbsp;·&nbsp; hover a slot for the full name<br>'
-          + 'AUTO-MAP lays out the layers the open scene has &nbsp;·&nbsp; the dot sets that knob\'s light';
+        helpEl.innerHTML = '<b>' + L + '</b> layer faders &nbsp; <b>' + S + '</b> solo &nbsp; <b>US</b> unsolo &nbsp; '
+          + '<b>GO BK AB ST</b> poem cues &nbsp; <b>OUT</b> sound out — AUTO-MAP puts it on knob 16';
+        cells.forEach((C, i) => {
+          const S2 = T.slots[i];
+          C.fillT(curTo, S2 ? S2.turn : undefined);
+          C.fillP(curPo, S2 ? S2.push : undefined);
+        });
       }
-      for (let i = 0; i < cells.length; i++) {
-        const C = cells[i], S = T.slots[i];
-        if (C.fillT) C.fillT(to, S ? S.turn : undefined);
-        if (C.fillP) C.fillP(po, S ? S.push : undefined);
-      }
-    }
-
-    for (let i = 0; i < cells.length; i++) {
-      const C = cells[i], S = T.slots[i]; if (!S) continue;
-      // a slot lit by a recent message, so you can see which knob you touched
-      const hit = T.hitAge(i) < 0.25;
-      C.cell.style.borderColor = hit ? 'var(--acc)' : 'var(--line2)';
-
-      if (C.sw) {
-        const auto = (S.col === undefined || S.col === null);
-        const eff = T.lightFor(i).col;               // what the knob will actually show
-        const bg = cssFor(eff);
+      cells.forEach((C, i) => {
+        const S2 = T.slots[i]; if (!S2) return;
+        const hit = T.hitAge(i) < 0.25;
+        const bc = hit ? 'var(--acc)' : 'var(--line2)';
+        if (C.cell.style.borderColor !== bc) C.cell.style.borderColor = bc;
+        const auto = (S2.col === undefined || S2.col === null);
+        const eff = T.lightFor(i).col, bg = cssFor(eff);
         if (C.sw.style.background !== bg) C.sw.style.background = bg;
-        // AUTO is drawn dimmer, so "I chose this" and "it came with the family"
-        // are not the same picture
         const op = auto ? '0.4' : '1';
         if (C.sw.style.opacity !== op) C.sw.style.opacity = op;
-        const h = T.HUES.find(x => x.v === eff);
-        const nm = (auto ? 'AUTO · ' : '') + (h ? h.k : 'unlit');
-        const tt = 'knob ' + (i + 1) + ' light: ' + nm + ' — click to change, shift-click to go back';
+        const h = T.HUES.find(q => q.v === eff);
+        const tt = 'knob ' + (i + 1) + ' light: ' + (auto ? 'AUTO · ' : '') + (h ? h.k : 'unlit') + ' — click to change, shift-click to go back';
         if (C.sw.title !== tt) C.sw.title = tt;
-      }
-      if (document.activeElement !== C.tSel && C.tSel.value !== S.turn) C.tSel.value = S.turn;
-      // the accent means "this turns something" — an empty slot must not wear it
-      /* A STALE BINDING READS AS STALE. The '!' appended to the option text is
-         clipped by the select's own arrow at this width, so the colour has to
-         carry it: a knob still bound to LAYER 5 in a two-layer scene goes dim,
-         matching what its LED is already doing. */
-      /* A control with nothing behind it is dim, whether that is because the
-         layer does not exist in this scene or because this scene has no mixer
-         at all. Same signal, same cause from the player's side: do not reach
-         for this one. */
-      const needsMix = fn => fn !== 'none' && (fn.indexOf('fader') === 0 || fn.indexOf('solo') === 0 || fn === 'inst' || fn === 'unsolo');
-      const tStale = S.turn !== 'none' && ((curTo.length && curTo.indexOf(S.turn) < 0) || (!hasMix && needsMix(S.turn)));
-      const pStale = S.push !== 'none' && ((curPo.length && curPo.indexOf(S.push) < 0) || (!hasMix && needsMix(S.push)));
-      const tOp = tStale ? '0.35' : '1', pOp = pStale ? '0.35' : '1';
-      if (C.tSel.style.opacity !== tOp) C.tSel.style.opacity = tOp;
-      if (C.pSel.style.opacity !== pOp) C.pSel.style.opacity = pOp;
-
-      const tOn = S.turn !== 'none' && !tStale;
-      const bc = tOn ? 'var(--acc)' : 'var(--line2)';
-      if (C.tSel.style.borderColor !== bc) C.tSel.style.borderColor = bc;
-      const ttl = '↻ TURN encoder ' + (i + 1) + ' — ' + (window.TWIST ? TWIST.FN[S.turn].label : S.turn);
-      if (C.tSel.title !== ttl) C.tSel.title = ttl;
-      const ptl = '↓ PUSH encoder ' + (i + 1) + ' — ' + (window.TWIST ? TWIST.FN[S.push].label : S.push);
-      if (C.pSel.title !== ptl) C.pSel.title = ptl;
-      if (document.activeElement !== C.pSel && C.pSel.value !== S.push) C.pSel.value = S.push;
-      const dim = (S.turn === 'none' && S.push === 'none') ? '0.45' : '1';
-      if (C.cell.style.opacity !== dim) C.cell.style.opacity = dim;
-    }
-    if (LIGHTBTN[0]) {
-      const lab = !T.findOut() ? 'NO OUT' : (T.lights ? 'LIT ' + T.sentCount : 'LIGHTS OFF');
-      if (LIGHTBTN[0].textContent !== lab) LIGHTBTN[0].textContent = lab;
-      LIGHTBTN[0].classList.toggle('on', !!(T.lights && T.findOut()));
+        if (document.activeElement !== C.tSel && C.tSel.value !== S2.turn) C.tSel.value = S2.turn;
+        if (document.activeElement !== C.pSel && C.pSel.value !== S2.push) C.pSel.value = S2.push;
+        // a control with nothing behind it in this scene is dim
+        const tStale = S2.turn !== 'none'
+          && ((curTo.length && curTo.indexOf(S2.turn) < 0) || (!hasMix && needsMix(S2.turn)));
+        const pStale = S2.push !== 'none' && ((curPo.length && curPo.indexOf(S2.push) < 0) || (!hasMix && needsMix(S2.push)));
+        const tOp = tStale ? '0.35' : '1', pOp = pStale ? '0.35' : '1';
+        if (C.tSel.style.opacity !== tOp) C.tSel.style.opacity = tOp;
+        if (C.pSel.style.opacity !== pOp) C.pSel.style.opacity = pOp;
+        const tb = (S2.turn !== 'none' && !tStale) ? 'var(--acc)' : 'var(--line2)';
+        if (C.tSel.style.borderColor !== tb) C.tSel.style.borderColor = tb;
+        const dimc = (S2.turn === 'none' && S2.push === 'none') ? '0.5' : '1';
+        if (C.cell.style.opacity !== dimc) C.cell.style.opacity = dimc;
+      });
     }
 
-    // say what the output actually is, or exactly why there is none
+    const lab = !T.findOut() ? 'LIGHTS: NO OUTPUT' : (T.lights ? 'LIGHTS: ON' : 'LIGHTS: OFF');
+    if (lightBtn.textContent !== lab) lightBtn.textContent = lab;
+
+    /* WHAT WENT OUT AND WHAT CAME IN, in plain sight: "I press the knob and
+       nothing happens" is unanswerable from a panel that only shows what we
+       send. A press that never arrives and one that arrives and matches no
+       knob look different here. */
     let n = T.note || '';
-    if (!n) {
-      if (T.outErr) n = '⚠ ' + T.outErr;
-      else if (T.outName) n = '→ ' + T.outName + ' · ' + T.sentCount + ' msgs sent';
-    }
-    /* THE LAST THING THE HARDWARE SAID, in plain sight. "I press ] and the
-       poem starts, I press the knob and it does not" is unanswerable from a
-       panel that only shows what we SEND. This shows what arrived and which
-       slot claimed it — so a press that never reaches us and a press that
-       reaches us and matches nothing look different. */
-    if (AMBTN[0]) {
-      AMBTN[0].style.opacity = hasMix ? '1' : '0.4';
-      AMBTN[0].title = hasMix
-        ? 'Lay out the layers this scene has, plus instrument and poem cues'
-        : 'This scene has no mixer — there are no layers to map';
-    }
-    if (!hasMix) {
-      n = (n ? n + '\n' : '') + 'no mixer in this scene — faders, solos and VOL do nothing here. Poem cues still work.';
-    }
+    if (T.outErr) n = (n ? n + '\n' : '') + '⚠ ' + T.outErr;
+    else if (T.outName) n = (n ? n + '\n' : '') + '→ ' + T.outName + ' · ' + T.sentCount + ' light messages sent';
+    if (T.modeOf()) n += '\nencoders: ' + T.modeOf() + (T.rate ? ' · ' + T.rate + ' msg/s' : '');
+    if (key && mapped && !hasMix) n += '\nno mixer in this scene — faders and solos do nothing here. Poem cues and SOUND OUT still work.';
     const R = T.lastRaw;
     if (R) {
       const kind = R.st === 0xB0 ? 'CC' : R.st === 0x90 ? 'NOTE' : ('0x' + R.st.toString(16));
-      n = (n ? n + '\n' : '') + 'in: ' + kind + ' ch' + R.ch + ' #' + R.num + ' = ' + R.val
-        + (T.lastMsg ? '  → ' + T.lastMsg : '  → no slot');
+      n += '\nin: ' + kind + ' ch' + R.ch + ' #' + R.num + ' = ' + R.val + (T.lastMsg ? '  → ' + T.lastMsg : '  → no knob');
     }
-    if (group.style.boxShadow) group.style.boxShadow = '';
     if (noteEl.textContent !== n) noteEl.textContent = n;
   }
 
   /* A DRIVER, not a panel. MIDIRIG owns the sidebar group, the ADD button and
-     which scenes this controller belongs to; this file only knows how to draw
-     a Twister into whatever element it is handed. A second controller is a new
-     file that registers here and changes nothing else. */
+     the desk; this file only knows how to draw a Twister. */
   MIDIRIG.registerDriver({
     id: 'twister',
     name: 'Midi Fighter Twister',
     blurb: '16 encoders with push and RGB rings',
     build, paint,
-    // deaf and dark when it is not in the open scene's rig
-    active(on) { try { if (!on && window.TWIST) TWIST.allOff(); else if (window.TWIST) TWIST._sent = {}; } catch (e) {} }
+    // off the desk: dark, deaf, and its window closed
+    active(on) {
+      try {
+        if (!on) { if (window.TWIST) TWIST.allOff(); openPop(false); }
+        else if (window.TWIST) TWIST._sent = {};
+      } catch (e) {}
+    }
   });
+  window.TWISTPANEL = { open: () => openPop(true), close: () => openPop(false) };
 })();

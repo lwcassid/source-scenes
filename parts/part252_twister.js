@@ -29,7 +29,12 @@
    owns (NAV.claims) — their own guard, so mapping a knob can never quietly
    steal the instrument out from under him. */
 (() => {
-  const KEY = 'srcTwist2', CKEY = 'srcTwistCol', SLOTS = 16;
+  /* ONE MAP PER SCENE (Edson, Sep 25: "each scene can map it or not").
+     `srcTwistMaps` is { family id: 16 slots }. A scene with no entry is DARK:
+     the knobs do nothing and the lights are off. `srcTwist2` was the single
+     map every scene shared; it is read to migrate, and kept as a COPY FROM
+     source, never written again. */
+  const KEY = 'srcTwistMaps', OLDKEY = 'srcTwist2', CKEY = 'srcTwistCol', SLOTS = 16;
 
   /* ---------- THE LIGHTS ----------
      From the official guide (channels 0-based, as the manual numbers them):
@@ -62,11 +67,11 @@
     { k: 'yellow',  v: 60 }, { k: 'amber',  v: 72 }, { k: 'red',    v: 85 },
     { k: 'magenta', v: 100 }, { k: 'violet', v: 113 },
   ];
-  const DEFCOL = { fader: 72, inst: 85, solo: 45, cue: 15 };     // amber · red · green · blue
+  const DEFCOL = { fader: 72, out: 85, solo: 45, cue: 15 };      // amber · red · green · blue
   function family(fn) {
     if (fn === 'none') return null;
     if (fn.indexOf('fader') === 0) return 'fader';
-    if (fn === 'inst') return 'inst';
+    if (fn === 'vol') return 'out';
     if (fn.indexOf('solo') === 0 || fn === 'unsolo') return 'solo';
     return 'cue';
   }
@@ -79,7 +84,13 @@
     fader3: { label: 'LAYER 4',        short: 'L4',  turn: true },
     fader4: { label: 'LAYER 5',        short: 'L5',  turn: true },
     fader5: { label: 'LAYER 6',        short: 'L6',  turn: true },
-    inst:   { label: 'INSTRUMENT VOL', short: 'VOL', turn: true },
+    /* SOUND OUT, not INSTRUMENT VOL. Edson, Sep 25: "instrument volume and
+       sound out seem to be the same thing … just always map the sound out to
+       the last knob." It is the rail's own SOUND OUT slider. Knob 16 is where
+       the DRIVER puts it — AUTO-MAP, and a dark scene — but it is a
+       suggestion: "each user should be able to control the destiny of their
+       knobs." Any knob can carry it, and knob 16 can carry anything. */
+    vol:    { label: 'SOUND OUT',      short: 'OUT', turn: true },
     solo0:  { label: 'SOLO 1',         short: 'S1',  push: true },
     solo1:  { label: 'SOLO 2',         short: 'S2',  push: true },
     solo2:  { label: 'SOLO 3',         short: 'S3',  push: true },
@@ -101,14 +112,19 @@
      9-12 whatever n is, because the thing being learned here is where your
      hand goes in the dark, and a control that migrates between scenes is
      worse than a dead one. Only the faders and solos shrink. */
-  function factory(n) {
+  /* `noMix`: a scene with no mixer at all. UNSOLO is a mixer control and
+     would be a dead knob there, so it is left off. */
+  const VOLKNOB = 15;                 // knob 16, 0-based
+  const volSlot = () => ({ turn: 'vol', push: 'none', cc: VOLKNOB, note: VOLKNOB, ch: 0, dev: null, led: VOLKNOB });
+  function factory(n, noMix) {
     const s = [];
     const k = Math.max(0, Math.min(6, n === undefined ? 6 : n));
     // `led` is the FACTORY number and never moves, even if cc/note are
     // remapped on the device — see the note above the channel table.
     for (let i = 0; i < SLOTS; i++) s.push({ turn: 'none', push: 'none', cc: i, note: i, ch: 0, dev: null, led: i });
     for (let i = 0; i < k; i++) { s[i].turn = 'fader' + i; s[i].push = 'solo' + i; }
-    s[7].turn = 'inst';  s[7].push = 'unsolo';
+    if (!noMix) s[7].push = 'unsolo';
+    s[VOLKNOB].turn = 'vol';
     s[8].push = 'go';    s[9].push = 'back';
     s[10].push = 'abort'; s[11].push = 'stop';
     return s;
@@ -121,8 +137,8 @@
     // declared after it permanently in the temporal dead zone. The symptom is
     // a baffling "Cannot access 'FAV' before initialization" from a core file
     // that is not even broken.
-    FN, TURNS, PUSHES, SLOTS, HUES,
-    slots: [], note: null, _last: {}, _btn: {}, _wired: false, lastMsg: '',
+    FN, TURNS, PUSHES, SLOTS, HUES, VOLKNOB,
+    slots: [], maps: {}, legacy: null, _key: null, note: null, _last: {}, _btn: {}, _wired: false, lastMsg: '',
     // messages per second. A controller in the wrong mode can send hundreds,
     // and "it froze" is what that looks like from outside — so put a number
     // on screen instead of leaving it a mystery.
@@ -138,31 +154,86 @@
     load() {
       try { this.colour = Object.assign({}, DEFCOL, JSON.parse(localStorage.getItem(CKEY) || '{}')); }
       catch (e) { this.colour = Object.assign({}, DEFCOL); }
-      try {
-        const m = JSON.parse(localStorage.getItem(KEY) || 'null');
-        if (m && m.length === SLOTS) {
-          this.slots = m;
-          this.slots.forEach((sl, i) => { if (sl.led === undefined) sl.led = i; });   // migrate
-          return;
-        }
-      } catch (e) {}
-      /* NOTHING SAVED YET. A layout cannot be built here, because at load
-         time no scene is open and nLayers() can only guess six. `virgin` says
-         "this is a default, not a decision", and the panel maps it properly
-         the first time a scene with layers is actually open. A SAVED layout
-         is never touched that way — it is Edson's, stale or not. */
-      this.slots = factory();
-      this.virgin = true;
+      const ok = m => Array.isArray(m) && m.length === SLOTS;
+      const fix = m => {
+        m.forEach((sl, i) => {
+          if (sl.led === undefined) sl.led = i;                       // migrate
+          if (sl.turn === 'inst') sl.turn = 'none';                   // INSTRUMENT VOL is gone
+        });
+        return m;
+      };
+      /* a map from BEFORE SOUND OUT existed gets the driver's suggestion once,
+         on knob 16 if that knob was free — the old map and anything copied
+         from it. A map made since is never touched: its knob 16 is a choice. */
+      const suggest = m => { if (!m.some(sl => sl.turn === 'vol') && m[VOLKNOB].turn === 'none') m[VOLKNOB].turn = 'vol'; return m; };
+      try { const L = JSON.parse(localStorage.getItem(OLDKEY) || 'null'); if (ok(L)) this.legacy = suggest(fix(L)); } catch (e) {}
+      let maps = null;
+      try { maps = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+      if (maps && typeof maps === 'object') {
+        for (const k in maps) if (ok(maps[k])) this.maps[k] = fix(maps[k]);
+        return;
+      }
+      /* FIRST LOAD SINCE THE SPLIT. The old map goes to every scene that had
+         the Twister added to it by name — those were decisions. It does NOT go
+         to scenes that only had it through ALL: that was a default, and the
+         default is dark now. Every other scene can still COPY FROM it. */
+      if (this.legacy) {
+        try {
+          const rig = JSON.parse(localStorage.getItem('srcMidiRig') || '{}') || {};
+          for (const k in rig) if (k !== '*' && (rig[k] || []).indexOf('twister') >= 0)
+            this.maps[k] = JSON.parse(JSON.stringify(this.legacy));
+        } catch (e) {}
+      }
+      this.persist();
+    },
+    persist() { try { localStorage.setItem(KEY, JSON.stringify(this.maps)); } catch (e) {} },
+
+    /* FOLLOW THE OPEN SCENE. Called from the light loop and from every
+       incoming message, so a scene change is picked up within 80ms and a
+       message can never be read against the previous scene's map. */
+    key() { return (typeof MIDIRIG !== 'undefined') ? MIDIRIG.sceneKey() : ''; },
+    sync() {
+      const k = this.key();
+      if (k === this._key) return;
+      // the very first sync counts as leaving a lit scene: a page loaded at
+      // the home must not inherit whatever the knobs showed last session
+      const wasLit = this._key === null || this.mapped();
+      this._key = k;
+      this.slots = (k && this.maps[k]) || [];
+      this._sent = {}; this._acc = {}; this._hit = {}; this.lastMsg = ''; this.note = null;
+      this._cleared = false;
+      if (wasLit && !this.mapped()) this.allOff();      // walking into a dark scene
+    },
+    mapped() { return this.slots.length === SLOTS; },
+    mappedScenes() { return Object.keys(this.maps).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })); },
+    /* take another scene's map as this one's starting point — a copy, so
+       editing one never edits the other */
+    copyFrom(src) {
+      const k = this.key(); if (!k) return false;
+      const from = src === '~old' ? this.legacy : this.maps[src];
+      if (!from) return false;
+      this.slots = this.maps[k] = JSON.parse(JSON.stringify(from));
+      this.persist(); this._sent = {};
+      this.note = 'copied the map from ' + (src === '~old' ? 'the old shared map' : src);
+      return true;
+    },
+    /* back to dark: this scene has no map at all, not a map of nothing */
+    unmap() {
+      const k = this.key(); if (!k) return;
+      delete this.maps[k]; this.slots = []; this.persist();
+      this.allOff(); this.note = null;
     },
     saveColour() { try { localStorage.setItem(CKEY, JSON.stringify(this.colour)); } catch (e) {} },
     setColour(fam, v) { this.colour[fam] = v; this.saveColour(); this._sent = {}; },
-    save() { try { localStorage.setItem(KEY, JSON.stringify(this.slots)); } catch (e) {} },
+    save() { const k = this.key(); if (k && this.mapped()) { this.maps[k] = this.slots; this.persist(); } },
     autoMap() {
-      const n = this.nLayers();
-      this.slots = factory(n); this.save(); this._sent = {};
-      this.note = 'mapped ' + n + ' layer' + (n === 1 ? '' : 's') + ' + instrument + cues';
+      const k = this.key(); if (!k) return;
+      // no mixer: map what does exist here, the poem cues, not six dead faders
+      const mix = this.hasMix(), n = mix ? this.nLayers() : 0;
+      this.slots = this.maps[k] = factory(n, !mix); this.persist(); this._sent = {};
+      this.note = mix ? 'mapped ' + n + ' layer' + (n === 1 ? '' : 's') + ' + cues + sound out'
+                      : 'mapped the poem cues — this scene has no mixer';
     },
-    clearAll() { this.slots = factory(0).map(s => Object.assign(s, { turn: 'none', push: 'none' })); this.save(); this._sent = {}; },
     setFn(i, which, fn) { if (this.slots[i]) { this.slots[i][which] = fn; this.save(); } },
     setSlotColour(i, v) {
       if (!this.slots[i]) return;
@@ -221,15 +292,28 @@
       return null;
     },
 
-    /* IS THIS CONTROLLER EVEN IN THIS SCENE. The listener stays attached to
-       the port for the life of the page — detaching and re-attaching on every
-       scene change is how you lose messages — so the gate is here instead.
-       A Twister that Edson has not added to the open scene does nothing at
-       all, which is the whole point of a per-scene rig. */
-    inRig() { return typeof MIDIRIG === 'undefined' || MIDIRIG.isActive('twister'); },
+    /* IS THIS CONTROLLER ON THE DESK, AND DOES THIS SCENE MAP IT. The
+       listener stays attached to the port for the life of the page —
+       detaching and re-attaching on every scene change is how you lose
+       messages — so the gate is here instead. At the home, and in any scene
+       nobody has mapped, the Twister does nothing at all. */
+    onDesk() { return typeof MIDIRIG === 'undefined' || MIDIRIG.isActive('twister'); },
+    inRig() { this.sync(); return this.onDesk() && this.mapped(); },
+    /* WHAT IS LIVE RIGHT NOW, as [index, slot] pairs. A mapped scene: all
+       sixteen. A dark scene or the home: knob 16 alone, because SOUND OUT is
+       the one control that must always be under the hand. */
+    _vol: null,
+    live() {
+      this.sync();
+      if (!this.onDesk()) return [];
+      if (this.mapped()) return this.slots.map((S, i) => [i, S]);
+      return [[VOLKNOB, this._vol || (this._vol = volSlot())]];
+    },
+    slotAt(i) { if (this.mapped()) return this.slots[i]; return i === VOLKNOB ? (this._vol || (this._vol = volSlot())) : null; },
 
     handle(e) {
-      if (!this.inRig()) return;
+      const LIVE = this.live();
+      if (!LIVE.length) return;
       const d = e.data; if (!d || d.length < 2) return;
       this._n++;
       const nowMs = (typeof performance !== 'undefined') ? performance.now() : Date.now();
@@ -262,8 +346,7 @@
          so the tolerant press test below could never be reached. Turns still
          require an exact channel match, so a press can never be mistaken for
          a rotation. */
-      for (let i = 0; i < this.slots.length; i++) {
-        const s = this.slots[i];
+      for (const [i, s] of LIVE) {
         if (s.ch !== ch) continue;
         if (s.dev && dev && s.dev !== dev) continue;
         if (isCC && s.cc === num && s.turn !== 'none') {
@@ -281,8 +364,7 @@
          all tested in the pass above, so one can never be read as a press.
          TWIST.lastRaw shows exactly what the hardware sent, if this ever
          needs checking against the device. */
-      for (let i = 0; i < this.slots.length; i++) {
-        const s = this.slots[i];
+      for (const [i, s] of LIVE) {
         if (s.dev && dev && s.dev !== dev) continue;
         if (s.push === 'none' || num !== s.note) continue;
         if (!(isNote || (isCC && ch !== s.ch && raw > 0))) continue;
@@ -335,7 +417,7 @@
     current(fn) {
       try {
         if (fn.indexOf('fader') === 0 && window.MIX) return MIX.get(+fn.slice(5)) || 0;
-        if (fn === 'inst' && window.MIX) { const st = MIX.state(); return st ? st.inst : 1; }
+        if (fn === 'vol') { const v = document.getElementById('volSlider'); return v ? +v.value / 100 : 0; }
       } catch (e) {}
       return 0;
     },
@@ -347,7 +429,15 @@
 
     fire(fn, val) {
       if (fn.indexOf('fader') === 0) { if (window.MIX) MIX.set(+fn.slice(5), val); return; }
-      if (fn === 'inst') { if (window.MIX) MIX.instrument(val); return; }
+      if (fn === 'vol') {
+        // through the rail slider's own 'input' handler, so AE.vol, its label
+        // and the Electron relay all happen exactly as if the mouse did it
+        const v = document.getElementById('volSlider'); if (!v) return;
+        const n = String(Math.round(clamp(val) * 100));
+        if (v.value !== n) { v.value = n; v.dispatchEvent(new Event('input')); }
+        const f = document.getElementById('fVol'); if (f) f.value = n;
+        return;
+      }
       if (fn.indexOf('solo') === 0) { if (window.MIX) MIX.solo(+fn.slice(4)); return; }
       if (fn === 'unsolo') { const P = window.MIX && MIX.P(); if (P) P.state.solo = -1; return; }
       if (!window.POEMDECK) return;
@@ -436,7 +526,9 @@
           }
         }, k * 600);
       });
-      setTimeout(() => { this._sent = {}; this.paintLights(); }, 2000);
+      // after the flash, back to what this scene says — which, at the home or
+      // in a dark scene, is OFF, not the last blue frame of the test
+      setTimeout(() => { this._sent = {}; if (!this.inRig()) { this.allOff(); this._cleared = true; } this.paintLights(); }, 2000);
       this.note = 'TEST → ' + o.name + ' · watch the knobs';
       return true;
     },
@@ -452,8 +544,9 @@
     },
 
     /* one place that decides what each light should be */
-    lightFor(i) {
-      const S = this.slots[i];
+    lightFor(i, S) {
+      S = S || this.slotAt(i);
+      if (!S) return { ring: 0, col: 0, anim: RGB_BRIGHT, off: true };
       const fam = family(S.turn) || family(S.push);
       if (!fam) return { ring: 0, col: 0, anim: RGB_BRIGHT + 2 };          // assigned nothing: barely lit
 
@@ -494,10 +587,18 @@
       return { ring, col, anim };
     },
     paintLights() {
-      if (!this.lights || !this.inRig() || !this.findOut()) return;
-      for (let i = 0; i < this.slots.length; i++) {
-        const S = this.slots[i], n = (S.led === undefined ? i : S.led);
-        const L = this.lightFor(i);
+      /* DARK MEANS DARK ON THE DEVICE, not only "we stopped sending". The
+         allOff() on entering a dark scene cannot reach a port that is not
+         open yet — a page loaded at the home, CONNECT pressed later — and
+         the knobs would keep whatever they showed last session. So the first
+         time an output exists while we are dark, clear it, once per scene.
+         Knob 16 is then painted on top: SOUND OUT is live even here. */
+      const LIVE = this.live();                                     // syncs the scene
+      if (!this.lights || !this.findOut()) return;
+      if (!this.mapped() && !this._cleared) { this.allOff(); this._cleared = true; }
+      for (const [i, S] of LIVE) {
+        const n = (S.led === undefined ? i : S.led);
+        const L = this.lightFor(i, S);
         const prev = this._sent[i] || {};
         // only what changed — the device does not need 480 messages a second
         if (prev.col !== L.col) { this.send(CH_COLOUR, n, L.col); }

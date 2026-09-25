@@ -120,7 +120,8 @@
           g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
           g.fillStyle = 'rgba(225,225,235,0.8)';
           const bars = s.L.map((L, i) => L.short + ' ' + Math.round(s.fade[i] * 100)).join('   ');
-          g.fillText(M.part + ' · ' + bars + '   INST ' + Math.round(s.inst * 100) + '   load ' + s.spent + '/' + BUDGET, 10, h - 10);
+          // no INST here: SOUND OUT is the one level now (Edson, Sep 25)
+          g.fillText(M.part + ' · ' + bars + '   load ' + s.spent + '/' + BUDGET, 10, h - 10);
         }
         if (typeof OWPOEM !== 'undefined') { OWPOEM.tick(); OWPOEM.draw(g, w, h); }
       },
@@ -264,7 +265,13 @@
     const k = e.key;
     if (k >= '1' && k <= '9') { const i = +k - 1; if (i < MIX.count()) { e.preventDefault(); MIX.solo(i); } return; }
     if (k === '0') { e.preventDefault(); MIX.P().state.solo = -1; return; }
-    if (k === '-' || k === '_') { e.preventDefault(); MIX.instrument(MIX.P().state.inst - 0.1); return; }
-    if (k === '+') { e.preventDefault(); MIX.instrument(MIX.P().state.inst + 0.1); return; }
+    /* − + step SOUND OUT, the rail's own volume, not a second hidden
+       instrument level — Edson, Sep 25: they were the same thing twice, and
+       a trim with no slider on screen is a volume drop nobody can explain. */
+    const step = d => { const v = document.getElementById('volSlider'); if (!v) return;
+      v.value = String(Math.max(0, Math.min(100, +v.value + d))); v.dispatchEvent(new Event('input'));
+      const f = document.getElementById('fVol'); if (f) f.value = v.value; };
+    if (k === '-' || k === '_') { e.preventDefault(); step(-10); return; }
+    if (k === '+') { e.preventDefault(); step(10); return; }
   });
 })();

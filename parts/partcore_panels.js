@@ -59,7 +59,18 @@
          build(ctx) {},            // once; ctx = {group, h5, status}
          paint(ctx) {},            // on the shared loop
          show(ctx) {}              // optional; false hides the whole group
+         home: true                // optional; see 6
        });
+
+   6. A PANEL CAN LIVE AT THE HOME TOO. The library has its own rail
+      (#librail) and a scene has #sidebar, and core keeps SOURCE INPUT and
+      SOUND OUT in both as two copies of the same markup. `home: true` does
+      it with ONE element instead: the group is moved into whichever rail is
+      on screen, right after its `after` anchor in that rail. Moving, not
+      cloning, is the point — open selects, a half-typed field and the fold
+      all survive the trip, and there is one set of listeners, not two.
+      Edson, Sep 25, about the MIDI controller: "it should live in the home,
+      like the source."
 
    Registering after load is fine — it mounts immediately. The one thing it
    cannot retrofit is part5_tail's fold binding, which runs once over the
@@ -71,21 +82,46 @@
   const panels = [];
   let started = false;
 
-  function host() { return document.getElementById('sidebar'); }
+  /* A scene is open when the overlay is. Only a `home` panel ever asks. */
+  function sceneOpen() {
+    const o = document.getElementById('overlay');
+    return !!o && getComputedStyle(o).display !== 'none';
+  }
+  function host(p) {
+    if (p && p.home && !sceneOpen()) return document.getElementById('librail') || document.getElementById('sidebar');
+    return document.getElementById('sidebar');
+  }
 
   /* Find where to insert. `after` may name a panel we registered or the
      heading of one of theirs; both are hints, and a miss appends. */
-  function anchorFor(after) {
-    const h = host(); if (!h || !after) return null;
-    const mine = panels.find(p => p.id === after && p.group);
-    if (mine) return mine.group;
-    const want = String(after).trim().toLowerCase();
-    return [...h.querySelectorAll('.sgroup')]
-      .find(g => ((g.querySelector('h5') || {}).textContent || '').trim().toLowerCase() === want) || null;
+  /* `after` may also be a LIST, tried in order — the two rails do not carry
+     the same groups (the home has SOUND IN; a scene folds audio-in into its
+     SOUND OUT), so one hint cannot name the right spot in both. */
+  function anchorFor(after, h) {
+    if (!h || !after) return null;
+    for (const a of (Array.isArray(after) ? after : [after])) {
+      const mine = panels.find(p => p.id === a && p.group);
+      if (mine && mine.group.parentNode === h) return mine.group;
+      const want = String(a).trim().toLowerCase();
+      const g = [...h.querySelectorAll(':scope > .sgroup')]
+        .find(x => ((x.querySelector('h5') || {}).firstChild || {}).textContent
+          && x.querySelector('h5').firstChild.textContent.trim().toLowerCase() === want);
+      if (g) return g;
+    }
+    return null;
+  }
+
+  // put the group after its anchor in rail `h`; a miss appends
+  function place(p, h) {
+    const anchor = anchorFor(p.after, h);
+    if (anchor && anchor.parentNode === h) h.insertBefore(p.group, anchor.nextSibling);
+    else h.appendChild(p.group);        // a panel never loses itself
+    // the home rail's CONTROLS toggle folds every group marked railfold
+    p.group.classList.toggle('railfold', h.id === 'librail');
   }
 
   function mount(p) {
-    const h = host(); if (!h || p.group) return;
+    const h = host(p); if (!h || p.group) return;
     const group = document.createElement('section');
     group.className = 'sgroup';
     group.id = p.id + 'Group';
@@ -101,11 +137,8 @@
     }
     group.appendChild(h5);
 
-    const anchor = anchorFor(p.after);
-    if (anchor && anchor.parentNode === h) h.insertBefore(group, anchor.nextSibling);
-    else h.appendChild(group);          // a panel never loses itself
-
     p.group = group; p.ctx = { group, h5, status, id: p.id };
+    place(p, h);
     try { p.build && p.build(p.ctx); }
     catch (e) { p.dead = 'build: ' + e.message; group.remove(); p.group = null; }
   }
@@ -114,6 +147,8 @@
     for (const p of panels) {
       if (p.dead) continue;
       if (!p.group) { mount(p); if (!p.group) continue; }
+      // follow the view: checked every tick, so the move lands with the switch
+      if (p.home) { const h = host(p); if (h && p.group.parentNode !== h) { place(p, h); p.last = 0; } }
       if (now - p.last < (p.every || 150)) continue;
       p.last = now;
       try {
@@ -148,7 +183,7 @@
       if (panels.some(p => p.id === spec.id)) return null;      // idempotent
       const p = Object.assign({ last: 0, bad: 0, group: null, dead: null }, spec);
       panels.push(p);
-      if (host()) mount(p);
+      if (host(p)) mount(p);
       start();
       return p;
     },

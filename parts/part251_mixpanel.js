@@ -21,7 +21,7 @@
    made their own SHOW CHECK buttons flicker, and they wrote that down. */
 (() => {
   const ROWS = [];
-  let group = null, instRow = null, title = null, loadEl = null, built = false;
+  let group = null, title = null, loadEl = null, built = false;
 
   function build(ctx) {
     if (built) return; built = true;
@@ -56,27 +56,14 @@
       ROWS.push({ row, nm, sl, val, so });
     }
 
-    // THE INSTRUMENT — everything this machine makes, under one level, so a
-    // solo or a full step-out is one reach and not six.
-    const ir = document.createElement('div');
-    ir.className = 'srow';
-    ir.style.marginTop = '10px';
-    const inm = document.createElement('span');
-    inm.textContent = 'INSTRUMENT';
-    inm.style.cssText = 'flex:0 0 74px;font-size:9.5px;letter-spacing:.1em;color:var(--acc)';
-    const isl = document.createElement('input');
-    isl.type = 'range'; isl.min = '0'; isl.max = '1'; isl.step = '0.01'; isl.value = '1';
-    isl.title = 'Your whole output — pull it out and the room is the band';
-    isl.addEventListener('input', () => { if (window.MIX) MIX.instrument(+isl.value); });
-    const ival = document.createElement('span');
-    ival.style.cssText = 'flex:0 0 26px;text-align:right;font-size:9.5px;opacity:.7';
-    ir.append(inm, isl, ival);
-    group.appendChild(ir);
-    instRow = { sl: isl, val: ival };
+    /* NO INSTRUMENT ROW. Edson, Sep 25: "instrument volume and sound out
+       seem to be the same thing. So no need to have the instrument volume."
+       SOUND OUT is the one level — the rail slider, Twister knob 16 by
+       default, and − + in the mixer's keys. The mixer's inst stays at 1. */
 
     const info = document.createElement('p');
     info.className = 'sinfo';
-    info.textContent = 'a layer under 1% stops rendering and falls silent · number keys solo · 0 clears · − + trim the instrument';
+    info.textContent = 'a layer under 1% stops rendering and falls silent · number keys solo · 0 clears';
     group.appendChild(info);
 
     loadEl = document.createElement('p');
@@ -115,12 +102,6 @@
       if (R.row.style.opacity !== op) R.row.style.opacity = op;
       R.so.classList.toggle('on', st.solo === i);
     }
-    if (focused !== instRow.sl) {
-      const v = String(st.inst);
-      if (instRow.sl.value !== v) instRow.sl.value = v;
-    }
-    const ip = Math.round(st.inst * 100) + '';
-    if (instRow.val.textContent !== ip) instRow.val.textContent = ip;
     const txt = 'load ' + st.load + (st.solo >= 0 ? '  ·  SOLO ' + st.layers[st.solo] : '');
     if (loadEl.textContent !== txt) loadEl.textContent = txt;
   }
