@@ -41,6 +41,7 @@ opens, renders light to the canvas, and logs no errors. 329 scenes registered.
 | `parts/part250_mixer.js` | **the mixer**, SRC-62/63/64 — see §4, the part most likely to interest you |
 | `parts/part251_mixpanel.js` | the fader panel, injected into `#sidebar` |
 | `docs/THE-SOURCE-LAW.md` | the law, written up |
+| `parts/part262_eclipse3.js` | **SRC-66.3**, Light Eclipse V3: the same pulse, much stronger, instant attack, slow release |
 | `parts/part260_eclipse2.js` | **SRC-66.2**, ISOTRP A · Light Eclipse V2: the light pulses gently with the line-in |
 | `parts/part259_beam2.js` | **SRC-68.2**, ISOTRP C · Beam V2: the right hand unlocks Gated's elements past 50% and Trails past 70% |
 | `parts/part257_isotrp.js` | **ISO** + four study scenes SRC-66…69 (after 404.zero's ISOTRP): a shared GLSL light-field renderer and a frame-exact sound/light sequencer. See the log, "ISOTRP studies" |
@@ -441,3 +442,32 @@ folds. The Mix panel had the same span and the same problem; also fixed.
 
 Any `.sgroup` header with a right-hand status label has this, including yours if
 you add one. One CSS property.
+
+### 2026-09-25 — ISOTRP A · Light Eclipse V3 (SRC-66.3)
+Edson on V2: "its too gentle. We can move it more. Attack is quick and recover slow."
+Only the envelope changed: attack ~15 ms (full swell on the next frame), release time
+constant max(0.6 s, 1.6 beats), and each kick RESETS the swell to its peak (`max`, not
+`+=`), so a busy track keeps breathing instead of pinning at the top. Depth: size up to
+~+30%, exposure up to ~+100%, and the eclipse core contracts on the hit. Measured after one
+hard kick at full reach: 0.98 at 17 ms, 0.59 at 0.5 s, 0.35 at 1 s, 0.21 at 1.5 s; mean
+brightness 126 → 183.
+
+---
+
+## Sep 25, 02:08 — `display = ''` is not "un-hide"
+
+Worth a line because it is a general trap, not a one-off. Hiding the Twister
+panel's body while disconnected was done with `el.style.display = 'none'` and
+un-hidden with `el.style.display = ''`. That is wrong for any element whose
+display comes from its own inline `cssText`: the grid carries `display:grid` and
+the footer `display:flex` there, so `''` **erased** them and both fell back to
+`block`. All sixteen slots stacked into one full-width column the instant the
+Twister connected.
+
+Each element's own display is now captured at build time and restored, never
+`''`. If you hide anything in the shell this way, the same applies.
+
+The harness missed it because it only ever measured the panel in one state.
+`tools/twtest.mjs` now drives the disconnected → connected transition and
+asserts the grid comes back as a 4-column grid, the footer as flex, and the
+cells at cell width. 25 checks.

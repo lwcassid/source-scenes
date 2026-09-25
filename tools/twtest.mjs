@@ -78,6 +78,25 @@ for (const id of ['twistGroup', 'mixGroup']) {
 }
 ok('status label is not a dead zone', fold.length > 0 && fold.every(([, f]) => f), fold);
 
+console.log('connecting restores the layout, it does not flatten it');
+const lay = await pg.evaluate(async () => {
+  const G = document.getElementById('twistGroup');
+  const grid = G.querySelector('div[style*="grid-template"]');
+  const row = [...G.querySelectorAll('.srow')].find(x => /AUTO-MAP/.test(x.textContent));
+  const off = { grid: getComputedStyle(grid).display, row: getComputedStyle(row).display };
+  if (typeof midi !== 'undefined' && !midi.access) midi.access = { inputs: new Map(), outputs: new Map() };
+  await new Promise(r => setTimeout(r, 400));
+  const cs = getComputedStyle(grid);
+  return { off, gridDisplay: cs.display, columns: cs.gridTemplateColumns.split(' ').length,
+           rowDisplay: getComputedStyle(row).display,
+           cellW: Math.round(grid.firstChild.getBoundingClientRect().width) }; });
+ok('hidden while disconnected', lay.off.grid === 'none' && lay.off.row === 'none', lay);
+// un-hiding with display:'' would erase the inline display:grid and stack all
+// sixteen slots into one column — which is exactly what happened once
+ok('grid comes back as a 4-column grid', lay.gridDisplay === 'grid' && lay.columns === 4, lay);
+ok('footer comes back as flex', lay.rowDisplay === 'flex', lay);
+ok('cells are still cell-width', lay.cellW > 40 && lay.cellW < 70, lay);
+
 console.log('a scene with no mixer says so');
 await pg.goto(URL + '#scene=SRC-67', { waitUntil: 'load' });
 await pg.waitForTimeout(3200);

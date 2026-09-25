@@ -110,7 +110,7 @@
     key.className = 'sinfo';
     key.style.cssText = 'margin:0 0 6px;opacity:.7';
     key.innerHTML = '<b style="color:var(--acc)">↻ turn</b> = a value &nbsp;·&nbsp; <b>↓ push</b> = an action';
-    group.appendChild(key); keyEl = key;
+    group.appendChild(key); keyEl = key; key._disp = key.style.display || '';
 
     const grid = document.createElement('div');
     // minmax(0,1fr), not 1fr. A grid track defaults to min-width:auto, so a
@@ -156,7 +156,7 @@
       grid.appendChild(cell);
       cells.push({ cell, tSel, pSel, sw, fillT: T.fill, fillP: P.fill });
     }
-    group.appendChild(grid); gridEl = grid;
+    group.appendChild(grid); gridEl = grid; grid._disp = grid.style.display || '';
 
     /* ---- LED COLOURS ----
        The 1-126 scale is a hue sweep and the exact hue per number is not
@@ -192,7 +192,7 @@
     tb.textContent = 'TEST';
     tb.title = 'Flash every knob red, green, blue. If nothing happens the port is the problem, not the mapping.';
     tb.addEventListener('click', () => TWIST.test());
-    row.append(am, cl, lt, tb); group.appendChild(row); rowEl = row;
+    row.append(am, cl, lt, tb); group.appendChild(row); rowEl = row; row._disp = row.style.display || '';
     LIGHTBTN.push(lt);
 
     /* DISCONNECTED SHOWS ONE THING. Sixteen slots of controls that cannot do
@@ -219,7 +219,7 @@
     help.className = 'sinfo';
     help.style.opacity = '.55';
     group.appendChild(help);
-    helpEl = help;
+    helpEl = help; help._disp = help.style.display || '';
 
     if (anchor && anchor.nextSibling) host.insertBefore(group, anchor.nextSibling);
     else host.appendChild(group);
@@ -239,11 +239,17 @@
        S1-S2, not six of each. Only rebuilt when the count actually changes —
        refilling sixteen pairs of <select> every 150ms would fight the user for
        the one they have open. */
-    /* the body only exists while there is something behind it */
+    /* THE BODY ONLY EXISTS WHILE THERE IS SOMETHING BEHIND IT.
+       Restore each element's OWN display, never ''. The grid carries
+       `display:grid` and the footer `display:flex` in their inline cssText, so
+       setting '' to un-hide them erases that and they fall back to block —
+       which stacked all sixteen slots into one column the moment the Twister
+       connected. `_disp` is captured at build time, before anything hides. */
     const live = T.hasAccess();
-    const bodyShow = live ? '' : 'none';
     for (const el of [keyEl, gridEl, rowEl, helpEl]) {
-      if (el && el.style.display !== bodyShow) el.style.display = bodyShow;
+      if (!el) continue;
+      const want = live ? (el._disp || '') : 'none';
+      if (el.style.display !== want) el.style.display = want;
     }
     if (connRow && connRow.style.display !== (live ? 'none' : '')) connRow.style.display = live ? 'none' : '';
     if (!live) {
