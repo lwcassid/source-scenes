@@ -20,7 +20,7 @@
    it is how you end up mapping in the dark. */
 (() => {
   let group, cells = [], statusEl, noteEl, helpEl = null, built = false;
-  const ROWS = [], COLS = [], LIGHTBTN = [];
+  const ROWS = [], LIGHTBTN = [], AMBTN = [];
 
   /* A cell is 50-odd pixels wide, so every option label is truncated to two or
      three characters — which made the two dropdowns indistinguishable. The
@@ -159,29 +159,11 @@
        published, so these are adjustable and the DEVICE is the authority, not
        my table. Four families, because four is what you can hold in your head
        in a dark room. */
-    const colWrap = document.createElement('div');
-    colWrap.style.cssText = 'display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;margin:0 0 8px';
-    const COLROWS = [];
-    [['fader', 'layers'], ['inst', 'instr'], ['solo', 'solo'], ['cue', 'cues']].forEach(([fam, lab]) => {
-      const r = document.createElement('div');
-      r.style.cssText = 'display:flex;align-items:center;gap:3px';
-      const sw = document.createElement('span');
-      sw.style.cssText = 'flex:0 0 9px;height:9px;border-radius:50%;border:1px solid var(--line2)';
-      const t = document.createElement('span');
-      t.textContent = lab;
-      t.style.cssText = 'flex:0 0 30px;font-size:9px;opacity:.65';
-      const sel = document.createElement('select');
-      sel.style.cssText = 'flex:1;min-width:0;padding:2px 0 2px 2px;font-size:9px';
-      (window.TWIST ? TWIST.HUES : []).forEach(h => {
-        const o = document.createElement('option'); o.value = h.v; o.textContent = h.k; sel.appendChild(o);
-      });
-      sel.title = 'the colour this family lights up on the controller';
-      sel.addEventListener('change', () => { if (window.TWIST) TWIST.setColour(fam, +sel.value); });
-      r.append(sw, t, sel); colWrap.appendChild(r);
-      COLROWS.push({ fam, sel, sw });
-    });
-    group.appendChild(colWrap);
-    COLS.push(COLROWS);
+    /* The four family colour rows (layers / instr / solo / cues) were removed
+       on Sep 25: colour is per knob now, set by the swatch on each slot, and
+       two ways to choose the same thing is one too many on a rail this
+       narrow. TWIST.colour and DEFCOL stay — they are what a slot falls back
+       to when its own colour is AUTO. */
 
     const row = document.createElement('div');
     row.className = 'srow';
@@ -191,7 +173,8 @@
     const am = document.createElement('button');
     am.textContent = 'AUTO-MAP';
     am.title = 'Assume the factory layout: encoder n sends CC n and NOTE n on channel 1';
-    am.addEventListener('click', () => TWIST.autoMap());
+    am.addEventListener('click', () => { if (TWIST.hasMix()) TWIST.autoMap(); });
+    AMBTN.push(am);
     const cl = document.createElement('button');
     cl.textContent = 'CLEAR';
     cl.addEventListener('click', () => TWIST.clearAll());
@@ -237,6 +220,7 @@
        S1-S2, not six of each. Only rebuilt when the count actually changes —
        refilling sixteen pairs of <select> every 150ms would fight the user for
        the one they have open. */
+    const hasMix = T.hasMix();
     const nL = T.nLayers();
     // a never-configured controller lays itself out the first time a scene
     // with layers is open — once, and never again over a saved layout
@@ -286,8 +270,13 @@
          clipped by the select's own arrow at this width, so the colour has to
          carry it: a knob still bound to LAYER 5 in a two-layer scene goes dim,
          matching what its LED is already doing. */
-      const tStale = S.turn !== 'none' && curTo.length && curTo.indexOf(S.turn) < 0;
-      const pStale = S.push !== 'none' && curPo.length && curPo.indexOf(S.push) < 0;
+      /* A control with nothing behind it is dim, whether that is because the
+         layer does not exist in this scene or because this scene has no mixer
+         at all. Same signal, same cause from the player's side: do not reach
+         for this one. */
+      const needsMix = fn => fn !== 'none' && (fn.indexOf('fader') === 0 || fn.indexOf('solo') === 0 || fn === 'inst' || fn === 'unsolo');
+      const tStale = S.turn !== 'none' && ((curTo.length && curTo.indexOf(S.turn) < 0) || (!hasMix && needsMix(S.turn)));
+      const pStale = S.push !== 'none' && ((curPo.length && curPo.indexOf(S.push) < 0) || (!hasMix && needsMix(S.push)));
       const tOp = tStale ? '0.35' : '1', pOp = pStale ? '0.35' : '1';
       if (C.tSel.style.opacity !== tOp) C.tSel.style.opacity = tOp;
       if (C.pSel.style.opacity !== pOp) C.pSel.style.opacity = pOp;
@@ -302,17 +291,6 @@
       if (document.activeElement !== C.pSel && C.pSel.value !== S.push) C.pSel.value = S.push;
       const dim = (S.turn === 'none' && S.push === 'none') ? '0.45' : '1';
       if (C.cell.style.opacity !== dim) C.cell.style.opacity = dim;
-    }
-    /* the colour rows: swatch, and the select showing what is chosen. The
-       swatch only APPROXIMATES the hue — the 1-126 scale's exact colours are
-       not published, so the device is the authority and these are adjustable. */
-    const HUECSS = v => 'hsl(' + Math.round(((v - 1) / 125) * 330) + ',85%,55%)';
-    const CR = COLS[0];
-    if (CR) for (const r of CR) {
-      const v = (T.colour && T.colour[r.fam] !== undefined) ? T.colour[r.fam] : 0;
-      if (document.activeElement !== r.sel && +r.sel.value !== v) r.sel.value = String(v);
-      const css = HUECSS(v);
-      if (r.sw.style.background !== css) r.sw.style.background = css;
     }
     if (LIGHTBTN[0]) {
       const lab = !T.findOut() ? 'NO OUT' : (T.lights ? 'LIT ' + T.sentCount : 'LIGHTS OFF');
@@ -331,6 +309,15 @@
        panel that only shows what we SEND. This shows what arrived and which
        slot claimed it — so a press that never reaches us and a press that
        reaches us and matches nothing look different. */
+    if (AMBTN[0]) {
+      AMBTN[0].style.opacity = hasMix ? '1' : '0.4';
+      AMBTN[0].title = hasMix
+        ? 'Lay out the layers this scene has, plus instrument and poem cues'
+        : 'This scene has no mixer — there are no layers to map';
+    }
+    if (!hasMix) {
+      n = (n ? n + '\n' : '') + 'no mixer in this scene — faders, solos and VOL do nothing here. Poem cues still work.';
+    }
     const R = T.lastRaw;
     if (R) {
       const kind = R.st === 0xB0 ? 'CC' : R.st === 0x90 ? 'NOTE' : ('0x' + R.st.toString(16));

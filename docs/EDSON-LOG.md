@@ -41,6 +41,7 @@ opens, renders light to the canvas, and logs no errors. 329 scenes registered.
 | `parts/part250_mixer.js` | **the mixer**, SRC-62/63/64 — see §4, the part most likely to interest you |
 | `parts/part251_mixpanel.js` | the fader panel, injected into `#sidebar` |
 | `docs/THE-SOURCE-LAW.md` | the law, written up |
+| `parts/part259_beam2.js` | **SRC-68.2**, ISOTRP C · Beam V2: the right hand unlocks Gated's elements past 50% and Trails past 70% |
 | `parts/part257_isotrp.js` | **ISO** + four study scenes SRC-66…69 (after 404.zero's ISOTRP): a shared GLSL light-field renderer and a frame-exact sound/light sequencer. See the log, "ISOTRP studies" |
 | `assets/poems/`, `assets/poems-en/` | 22 placeholder voice files + READMEs |
 | `tools/poemshot.mjs` | shoot one poem fragment, one mode, over one scene |
@@ -339,3 +340,46 @@ Twister-only component, for other MIDI devices we can create other navs."*
 Also added, and cheap: the panel now prints the **last incoming MIDI message**
 and which slot claimed it (`in: CC ch1 #8 = 127 → K9`). "The knob does nothing"
 has several causes and this separates them at a glance.
+
+### 2026-09-25 — ISOTRP C · Beam V2 (SRC-68.2)
+Edson liked V1 of the Beam. In V2 the right hand becomes a **key with thresholds**: 0-50% chops the beam as
+before; **past 50%** Gated's random elements join (from one a bar, small, up to dense
+and large); **past 70%** Trails wakes up and the **left hand** (still the width) also
+sets the trail length. New part `part259_beam2.js` + one `build.sh` line.
+
+**`part257_isotrp.js` grew three additive options.** V1 renders unchanged; SRC-68 and
+SRC-69 were re-shot after the change:
+- **More exports on `window.ISO`**, so later versions reuse the gen/sound/beam pieces.
+- **`fbMax`**: feedback as `max(light, echo)` instead of `light + echo`. Echoes fade out of
+  the brightest light and never pile up to white. Additive feedback under a strobing
+  beam burned the frame white inside two seconds.
+- **`direct: true` lights** skip the feedback: a second channel (`g`) in the same
+  HalfFloat target. In V2 the beam and the frame-sized lights stay crisp, and only the
+  shapes leave trails. **Worth knowing for any feedback scene:** decide per light what
+  is remembered. Feedback on everything turns every big light into fog.
+
+Measured: 60 fps at 1920×1200 at both hands 100% (elements + trails + chopped beam).
+
+---
+
+## Sep 25, 01:40 — a control with nothing behind it now says so
+
+Opening one of the ISOTRP scenes (SRC-67) with the Twister mapped looked like
+the controller had broken. It had not: **most scenes in this library have no
+mixer**, so the layer faders, the solos and the instrument fader all still match
+their MIDI and still report a hit, but `MIX.P()` is null and every one of them
+is a no-op. From the hands, "does nothing" and "is broken" are the same thing.
+
+So `TWIST.hasMix()`, and when it is false the panel dims every mixer-bound
+control, greys AUTO-MAP with the reason, and says in one line: *no mixer in this
+scene — faders, solos and VOL do nothing here. Poem cues still work.* The LEDs
+were already telling this truth (`lightFor` dims a fader with no layer behind
+it); the screen just was not.
+
+**This is only our module** (`part252/253`), and it reads `MIX` through the
+public `MIX.P()`. Nothing of yours changed. If you ever give a non-mixer scene
+its own faders, the check is one function.
+
+Also removed: the four family colour rows in the Twister panel. Colour is per
+knob now — a swatch on each slot — and two ways to set the same thing was one
+too many on a 219px rail. `TWIST.colour` and `DEFCOL` stay as the AUTO fallback.

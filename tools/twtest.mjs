@@ -50,6 +50,24 @@ const g = await pg.evaluate(() => { const G = document.getElementById('twistGrou
            grid: grid.scrollWidth - Math.round(grid.getBoundingClientRect().width) }; });
 ok('footer and grid fit', g.row === 0 && g.grid === 0, g);
 
+console.log('a scene with no mixer says so');
+await pg.goto(URL + '#scene=SRC-67', { waitUntil: 'load' });
+await pg.waitForTimeout(3200);
+const nm = await pg.evaluate(() => { const G = document.getElementById('twistGroup');
+  const sels = [...G.querySelectorAll('select')];
+  const am = [...G.querySelectorAll('button')].find(x => x.textContent === 'AUTO-MAP');
+  // every binding that needs a mixer must be dimmed — no more, no fewer
+  const needs = f => f !== 'none' && (f.indexOf('fader') === 0 || f.indexOf('solo') === 0 || f === 'inst' || f === 'unsolo');
+  const expect = TWIST.slots.reduce((a2, S) => a2 + (needs(S.turn) ? 1 : 0) + (needs(S.push) ? 1 : 0), 0);
+  return { hasMix: TWIST.hasMix(), expect, dim: sels.filter(s => s.style.opacity === '0.35').length,
+           amDim: am.style.opacity === '0.4',
+           note: [...G.querySelectorAll('p.sinfo')][1].textContent.indexOf('no mixer') >= 0,
+           cueLeds: [8, 9, 10, 11].map(i => TWIST.lightFor(i).anim),
+           faderLeds: [0, 1].map(i => TWIST.lightFor(i).anim) }; });
+ok('every mixer control dimmed, exactly', !nm.hasMix && nm.expect > 0 && nm.dim === nm.expect, nm);
+ok('AUTO-MAP disabled and explained', nm.amDim && nm.note, nm);
+ok('poem cues stay live, faders go dim', nm.cueLeds.every(x => x === 39) && nm.faderLeds.every(x => x === 19), nm);
+
 console.log('the last position holds');
 await pg.goto(URL + '#scene=SRC-56', { waitUntil: 'load' });
 await pg.waitForTimeout(2500);

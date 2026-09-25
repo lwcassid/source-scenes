@@ -179,6 +179,17 @@
       try { const n = (window.MIX && MIX.count) ? MIX.count() : 0; return n > 0 ? n : 6; }
       catch (e) { return 6; }
     },
+
+    /* IS THERE ANYTHING FOR THE FADERS TO DRIVE. Most scenes in this library
+       are not ours and have no mixer — SRC-67 is one. There the layer faders,
+       the solos and the instrument fader all still MATCH and still report a
+       hit, but MIX.P() is null so every one of them is a no-op. From the
+       hands that is indistinguishable from a broken controller, which is what
+       it looked like. The poem cues are unaffected: POEMDECK is global and
+       works in any scene. */
+    hasMix() {
+      try { return !!(window.MIX && MIX.P && MIX.P()); } catch (e) { return false; }
+    },
     turnOpts() {
       const n = this.nLayers();
       return TURNS.filter(k => k.indexOf('fader') !== 0 || +k.slice(5) < n);
