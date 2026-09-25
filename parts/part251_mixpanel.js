@@ -38,7 +38,9 @@
     const h = document.createElement('h5');
     h.textContent = 'Mix';
     const sp = document.createElement('span');
-    sp.style.cssText = 'float:right;font-size:9px;letter-spacing:.1em;opacity:.55';
+    // pointer-events:none, or a click on this label is not a click on the h5
+    // and part5_tail's fold bails — half the header would not fold
+    sp.style.cssText = 'float:right;font-size:9px;letter-spacing:.1em;opacity:.55;pointer-events:none';
     h.appendChild(sp); title = sp;
     group.appendChild(h);
 

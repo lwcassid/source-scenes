@@ -50,24 +50,41 @@ const g = await pg.evaluate(() => { const G = document.getElementById('twistGrou
            grid: grid.scrollWidth - Math.round(grid.getBoundingClientRect().width) }; });
 ok('footer and grid fit', g.row === 0 && g.grid === 0, g);
 
-console.log('no Web MIDI: the panel offers the fix instead of a dead button');
+console.log('no Web MIDI: one button, and nothing that cannot work');
 const c = await pg.evaluate(() => { let n = 0; const real = window.connectMidi;
   window.connectMidi = function () { n++; return real && real.apply(this, arguments); };
   const G = document.getElementById('twistGroup');
-  const btn = [...G.querySelectorAll('button')].map(x => x.textContent);
-  const cb = [...G.querySelectorAll('button')].find(x => x.textContent === 'CONNECT');
-  if (cb) cb.click();
-  const t = [...G.querySelectorAll('button')].find(x => x.textContent === 'TEST'); t.click();
+  const seen = e => e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0;
+  const btns = [...G.querySelectorAll('button')].filter(seen);
+  btns.forEach(x => x.click());
   window.connectMidi = real;
-  return { access: TWIST.hasAccess(), buttons: btn, calls: n,
-           note: [...G.querySelectorAll('p.sinfo')][1].textContent.indexOf('no MIDI yet') >= 0 }; });
-ok('says CONNECT, not NO OUT', !c.access && c.buttons.indexOf('CONNECT') >= 0, c);
-ok('CONNECT and TEST both reach connectMidi', c.calls === 2, c);
-ok('and the note says permission is per page load', c.note, c);
+  return { access: TWIST.hasAccess(), labels: btns.map(x => x.textContent),
+           selects: [...G.querySelectorAll('select')].filter(seen).length,
+           status: G.querySelector('h5 span').textContent, calls: n }; });
+ok('one visible button, and it connects', !c.access && c.labels.length === 1 && c.calls === 1, c);
+ok('no controls that cannot work', c.selects === 0, c);
+ok('header says NOT CONNECTED', c.status === 'NOT CONNECTED', c);
+
+console.log('the header folds anywhere along it, status label included');
+const fold = [];
+for (const id of ['twistGroup', 'mixGroup']) {
+  if (!await pg.evaluate(i => !!document.getElementById(i), id)) continue;
+  await pg.evaluate(i => document.getElementById(i).classList.remove('fold'), id);
+  const box = await pg.evaluate(i => { const r = document.getElementById(i).querySelector('h5 span').getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width }; }, id);
+  if (box.w > 0) await pg.mouse.click(box.x, box.y);
+  fold.push([id, await pg.evaluate(i => document.getElementById(i).classList.contains('fold'), id)]);
+  await pg.evaluate(i => document.getElementById(i).classList.remove('fold'), id);
+}
+ok('status label is not a dead zone', fold.length > 0 && fold.every(([, f]) => f), fold);
 
 console.log('a scene with no mixer says so');
 await pg.goto(URL + '#scene=SRC-67', { waitUntil: 'load' });
 await pg.waitForTimeout(3200);
+// headless has no Web MIDI, and the panel correctly hides its body without it.
+// Stub just enough access that the body renders, so the dimming can be judged.
+await pg.evaluate(() => { if (typeof midi !== 'undefined' && !midi.access) midi.access = { inputs: new Map(), outputs: new Map() }; });
+await pg.waitForTimeout(400);
 const nm = await pg.evaluate(() => { const G = document.getElementById('twistGroup');
   const sels = [...G.querySelectorAll('select')];
   const am = [...G.querySelectorAll('button')].find(x => x.textContent === 'AUTO-MAP');

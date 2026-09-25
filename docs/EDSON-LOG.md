@@ -420,3 +420,24 @@ state after a reload, it is probably the same cause.
 
 `tools/twtest.mjs` now covers it — 20 checks, including that CONNECT and TEST
 both reach `connectMidi()`.
+
+---
+
+## Sep 25, 01:55 — two small UI laws, one of which is yours
+
+**1. A disconnected panel shows one button.** Sixteen slots of controls that
+cannot do anything is not information, it is a panel pretending to work. With
+no `midi.access` the Twister group now hides its body entirely and shows
+`CONNECT THE TWISTER` plus one line about permission being per page load. Header
+reads `NOT CONNECTED`.
+
+**2. `pointer-events: none` on a header's status label — this one may affect
+your panels too.** `part5_tail`'s collapsible-groups code bails on
+`if (e.target !== h) return`, which is right: it keeps controls inside a header
+working. But a *non-interactive* label in there becomes a dead zone — our
+Twister status span is 91px wide, so the right half of that header did not fold
+and looked broken. The span is now `pointer-events: none` and the whole header
+folds. The Mix panel had the same span and the same problem; also fixed.
+
+Any `.sgroup` header with a right-hand status label has this, including yours if
+you add one. One CSS property.

@@ -21,6 +21,7 @@
 (() => {
   let group, cells = [], statusEl, noteEl, helpEl = null, built = false;
   const ROWS = [], LIGHTBTN = [], AMBTN = [];
+  let keyEl = null, gridEl = null, rowEl = null, connRow = null;
 
   /* A cell is 50-odd pixels wide, so every option label is truncated to two or
      three characters — which made the two dropdowns indistinguishable. The
@@ -98,7 +99,10 @@
     const h = document.createElement('h5');
     h.textContent = 'Twister';
     const st = document.createElement('span');
-    st.style.cssText = 'float:right;font-size:9px;letter-spacing:.1em;opacity:.6';
+    /* pointer-events:none so the whole header folds. part5_tail binds the
+       fold to the h5 and bails on `e.target !== h`, so a click landing on this
+       status span did nothing — the header looked dead on its right half. */
+    st.style.cssText = 'float:right;font-size:9px;letter-spacing:.1em;opacity:.6;pointer-events:none';
     h.appendChild(st); statusEl = st;
     group.appendChild(h);
 
@@ -106,7 +110,7 @@
     key.className = 'sinfo';
     key.style.cssText = 'margin:0 0 6px;opacity:.7';
     key.innerHTML = '<b style="color:var(--acc)">↻ turn</b> = a value &nbsp;·&nbsp; <b>↓ push</b> = an action';
-    group.appendChild(key);
+    group.appendChild(key); keyEl = key;
 
     const grid = document.createElement('div');
     // minmax(0,1fr), not 1fr. A grid track defaults to min-width:auto, so a
@@ -152,7 +156,7 @@
       grid.appendChild(cell);
       cells.push({ cell, tSel, pSel, sw, fillT: T.fill, fillP: P.fill });
     }
-    group.appendChild(grid);
+    group.appendChild(grid); gridEl = grid;
 
     /* ---- LED COLOURS ----
        The 1-126 scale is a hue sweep and the exact hue per number is not
@@ -181,9 +185,6 @@
     const lt = document.createElement('button');
     lt.title = 'Stop sending to the controller\'s lights, or start again';
     lt.addEventListener('click', () => {
-      // with no Web MIDI there is nothing to light; this click is the gesture
-      // that can open it, so spend it on that instead of toggling nothing
-      if (!TWIST.hasAccess()) { TWIST.connect(); return; }
       TWIST.lights = !TWIST.lights;
       if (!TWIST.lights) TWIST.allOff(); else TWIST._sent = {};
     });
@@ -191,8 +192,23 @@
     tb.textContent = 'TEST';
     tb.title = 'Flash every knob red, green, blue. If nothing happens the port is the problem, not the mapping.';
     tb.addEventListener('click', () => TWIST.test());
-    row.append(am, cl, lt, tb); group.appendChild(row);
+    row.append(am, cl, lt, tb); group.appendChild(row); rowEl = row;
     LIGHTBTN.push(lt);
+
+    /* DISCONNECTED SHOWS ONE THING. Sixteen slots of controls that cannot do
+       anything is not information, it is a panel pretending to work — Edson,
+       Sep 25: "if it's disconnected do not show the interface, just the
+       connect button." Everything above is hidden and this replaces it. */
+    connRow = document.createElement('div');
+    connRow.className = 'srow';
+    connRow.style.display = 'none';
+    const cb = document.createElement('button');
+    cb.textContent = 'CONNECT THE TWISTER';
+    cb.style.cssText = 'flex:1;min-width:0';
+    cb.title = 'Ask the browser for MIDI. Permission is per page load, so a reload always needs this again.';
+    cb.addEventListener('click', () => TWIST.connect());
+    connRow.appendChild(cb);
+    group.appendChild(connRow);
 
     noteEl = document.createElement('p');
     noteEl.className = 'sinfo';
@@ -223,6 +239,21 @@
        S1-S2, not six of each. Only rebuilt when the count actually changes —
        refilling sixteen pairs of <select> every 150ms would fight the user for
        the one they have open. */
+    /* the body only exists while there is something behind it */
+    const live = T.hasAccess();
+    const bodyShow = live ? '' : 'none';
+    for (const el of [keyEl, gridEl, rowEl, helpEl]) {
+      if (el && el.style.display !== bodyShow) el.style.display = bodyShow;
+    }
+    if (connRow && connRow.style.display !== (live ? 'none' : '')) connRow.style.display = live ? 'none' : '';
+    if (!live) {
+      const s2 = 'NOT CONNECTED';
+      if (statusEl.textContent !== s2) statusEl.textContent = s2;
+      const n2 = 'MIDI permission is per page load — a reload always needs it again.';
+      if (noteEl.textContent !== n2) noteEl.textContent = n2;
+      return;
+    }
+
     const hasMix = T.hasMix();
     const nL = T.nLayers();
     // a never-configured controller lays itself out the first time a scene
@@ -296,9 +327,7 @@
       if (C.cell.style.opacity !== dim) C.cell.style.opacity = dim;
     }
     if (LIGHTBTN[0]) {
-      const lab = !T.hasAccess() ? 'CONNECT'
-                : !T.findOut() ? 'NO OUT'
-                : (T.lights ? 'LIT ' + T.sentCount : 'LIGHTS OFF');
+      const lab = !T.findOut() ? 'NO OUT' : (T.lights ? 'LIT ' + T.sentCount : 'LIGHTS OFF');
       if (LIGHTBTN[0].textContent !== lab) LIGHTBTN[0].textContent = lab;
       LIGHTBTN[0].classList.toggle('on', !!(T.lights && T.findOut()));
     }
@@ -319,10 +348,6 @@
       AMBTN[0].title = hasMix
         ? 'Lay out the layers this scene has, plus instrument and poem cues'
         : 'This scene has no mixer — there are no layers to map';
-    }
-    if (!T.hasAccess()) {
-      n = 'no MIDI yet — press CONNECT (or TEST) here. Permission is per page load, '
-        + 'so a reload always needs it again.';
     }
     if (!hasMix) {
       n = (n ? n + '\n' : '') + 'no mixer in this scene — faders, solos and VOL do nothing here. Poem cues still work.';
