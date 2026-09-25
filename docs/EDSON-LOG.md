@@ -592,3 +592,36 @@ The harness missed it because it only ever measured the panel in one state.
 `tools/twtest.mjs` now drives the disconnected → connected transition and
 asserts the grid comes back as a 4-column grid, the footer as flex, and the
 cells at cell width. 25 checks.
+
+---
+
+## Sep 25, 13:45 — a computed setlist, `#set=MINE`
+
+Edson wanted one short URL that shows only his own scenes, newest first, so the
+last thing he built is the first thing on screen.
+
+`#set=NAME` already does almost all of it — `QUEUE.boot()` resolves the name in
+`SETLISTS`, sets `libFilter = 'queue'` and shows those scenes on the home view.
+The only question was where the list comes from, and a hand-written one in
+`setlists.json` is stale the moment either of us adds a scene.
+
+So `parts/part264_mine.js` pushes a set whose **`scenes` is a getter**, computed
+from the live `PIECES` registry when the link is opened: everything from SRC-56
+up, in reverse registration order. Nothing to maintain. **`setlists.json` is not
+touched** — the set exists only at runtime, so your file still contains exactly
+your four sets plus BIRTH OF A TEMPLE.
+
+Two things in there that might be useful to you:
+
+- **`SETLISTS` is a const BINDING, not a frozen object**, so a module can
+  contribute a set without editing the JSON. If you ever want generated sets —
+  "everything that listens", "everything added this week" — that is the hook.
+- **The library cannot sort newest-first.** `sortSel` offers most-worked-on, SRC
+  number, title and version count, and SRC number is ascending, so the newest
+  scene lands at the bottom. We set `tile.style.order` ourselves, on an
+  interval, and only while that set is on screen. **Not** by wrapping
+  `applyLibrary()`: several of your listeners hold a direct reference to it
+  (`addEventListener('change', applyLibrary)`) captured before any wrapper could
+  exist, so a wrapper is bypassed by exactly the sort-dropdown change it most
+  needs to survive. If a fifth sort option ever appeals, "newest first" is the
+  one we reached for.
