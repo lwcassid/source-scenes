@@ -88,7 +88,11 @@
       n.textContent = (i + 1); n.style.cssText = 'font-size:9px;opacity:.5;flex:1';
       const lb = document.createElement('button');
       lb.textContent = '⌖'; lb.title = 'LEARN this slot — click, then turn or press that encoder';
-      lb.style.cssText = 'padding:1px 5px;font-size:9px;line-height:1.2';
+      // Hidden unless LEARN mode is on. AUTO-MAP covers the factory layout, which is
+      // what this Twister sends, so learning is the exception — and an armed slot
+      // swallows every MIDI message for LEARN_MS. One stray click mid-show would kill
+      // the knobs for six seconds. Behind a toggle, that cannot happen by accident.
+      lb.style.cssText = 'padding:1px 5px;font-size:9px;line-height:1.2;display:none';
       lb.addEventListener('click', () => TWIST.arm(i));
       top.append(n, lb); cell.appendChild(top);
 
@@ -130,8 +134,12 @@
     group.appendChild(colWrap);
     COLS.push(COLROWS);
 
+    let learnMode = false;
     const row = document.createElement('div');
     row.className = 'srow';
+    // Five buttons total 336px against a 219px rail. Without wrapping, TEST falls
+    // off the edge — the same clipping the colour rows hit.
+    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;min-width:0';
     const am = document.createElement('button');
     am.textContent = 'AUTO-MAP';
     am.title = 'Assume the factory layout: encoder n sends CC n and NOTE n on channel 1';
@@ -149,7 +157,21 @@
     tb.textContent = 'TEST';
     tb.title = 'Flash every knob red, green, blue. If nothing happens the port is the problem, not the mapping.';
     tb.addEventListener('click', () => TWIST.test());
-    row.append(am, cl, lt, tb); group.appendChild(row);
+    const ln = document.createElement('button');
+    ln.textContent = 'LEARN';
+    ln.title = 'Show a ⌖ on every slot. Click one, then turn or press that encoder to bind it. '
+             + 'Only needed off the factory numbers — a remapped encoder, banks 2–4, or another controller.';
+    ln.addEventListener('click', () => {
+      learnMode = !learnMode;
+      if (!learnMode) TWIST.disarm();
+      cells.forEach(c => { c.lb.style.display = learnMode ? '' : 'none'; });
+      ln.classList.toggle('on', learnMode);
+      ln.style.color = learnMode ? 'var(--hot)' : '';
+      if (noteEl) noteEl.textContent = learnMode
+        ? 'LEARN mode — click a ⌖, then move that encoder. Escape cancels.'
+        : '';
+    });
+    row.append(am, cl, ln, lt, tb); group.appendChild(row);
     LIGHTBTN.push(lt);
 
     noteEl = document.createElement('p');

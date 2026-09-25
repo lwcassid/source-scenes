@@ -252,3 +252,30 @@ part, `part257_isotrp.js`, holding everything below.
 
 **If you want the medium reference in one sentence:** darkness is the default and
 light is an event, which is scene-craft law 3 taken to its limit.
+
+---
+
+## Sep 25, 00:45 — one clone, not two
+
+`~/projects/source-scenes` is gone (retired to the Trash). **If you were working there, your
+work is not lost and you do not need to do anything except change directory.**
+
+The only clone on this machine is now:
+
+```
+/Users/edsonpavoni/Library/CloudStorage/Dropbox/0000 AI/tools/av-studio/source-scenes
+```
+
+Before the delete: both clones were the same repo at the same commit (`297a3c5`, 540 commits);
+the retired one had zero commits outside `origin` and zero stashes; a full-tree diff confirmed
+this copy is a strict superset. `part255_lflower.js`, `part256_lflower2.js` and
+`part257_isotrp.js` are all here and registered in `tools/build.sh`, and
+`scratchshots/lf_shot.mjs` and `lf_loss.mjs` were copied across.
+
+Everything uncommitted — yours and ours — was committed to the local branch **`bot-oct1`**
+(`9b5f0a6`) so nothing depends on a file sitting in a folder any more. **Nothing was pushed.**
+`main` is untouched and still at `origin/main`.
+
+Why: two clones both regenerating `index.html` is exactly the failure your `CLAUDE.md` warns
+about, and it already cost us an evening — a local server left rooted at the old clone served a
+49 KB-stale build, so a feature that was on disk appeared not to exist.
