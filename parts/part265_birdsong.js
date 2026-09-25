@@ -246,8 +246,12 @@ void main(){
   // prints as a cluster of copies of itself (it did: "raspberries"). A
   // per-pixel rotation and jittered radius turns those copies into a soft disc.
   const int N = 52;
-  float rot0 = h21(gl_FragCoord.xy) * 6.2832;
-  float jr = h21(gl_FragCoord.yx + 17.0);
+  // interleaved gradient noise, not white noise: it spreads the rotations
+  // evenly between neighbours, so the edge of a blur is a fine even grain
+  // instead of fur
+  float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  float rot0 = ign * 6.2832;
+  float jr = fract(ign * 7.13 + 0.37);
   for (int i = 1; i < N; i++) {
     float fi = float(i);
     float r = sqrt((fi - 0.5 + jr) / float(N)) * uCocMax;
