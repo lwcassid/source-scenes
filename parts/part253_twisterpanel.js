@@ -16,7 +16,7 @@
    controller up before a scene is open, and a panel that hides when you need
    it is how you end up mapping in the dark. */
 (() => {
-  let group, cells = [], statusEl, noteEl, built = false;
+  let group, cells = [], statusEl, noteEl, built = false, learnMode = false;
   const ROWS = [], COLS = [], LIGHTBTN = [];
 
   /* A cell is 50-odd pixels wide, so every option label is truncated to two or
@@ -134,7 +134,6 @@
     group.appendChild(colWrap);
     COLS.push(COLROWS);
 
-    let learnMode = false;
     const row = document.createElement('div');
     row.className = 'srow';
     // Five buttons total 336px against a 219px rail. Without wrapping, TEST falls
@@ -167,9 +166,7 @@
       cells.forEach(c => { c.lb.style.display = learnMode ? '' : 'none'; });
       ln.classList.toggle('on', learnMode);
       ln.style.color = learnMode ? 'var(--hot)' : '';
-      if (noteEl) noteEl.textContent = learnMode
-        ? 'LEARN mode — click a ⌖, then move that encoder. Escape cancels.'
-        : '';
+      safePaint();   // the painter owns noteEl; writing it here is overwritten in 150ms
     });
     row.append(am, cl, ln, lt, tb); group.appendChild(row);
     LIGHTBTN.push(lt);
@@ -251,6 +248,9 @@
       const left = Math.max(0, Math.ceil((T.learnUntil - performance.now()) / 1000));
       n = '● LEARNING slot ' + (T.learn + 1) + ' — turn or press it (' + left + 's) · Esc to cancel';
       group.style.boxShadow = '0 0 0 1px var(--acc)';
+    } else if (learnMode) {
+      n = 'LEARN mode — click a ⌖ on a slot, then move that encoder. Escape cancels.';
+      if (group.style.boxShadow) group.style.boxShadow = '';
     } else if (group.style.boxShadow) group.style.boxShadow = '';
     if (noteEl.textContent !== n) noteEl.textContent = n;
   }
