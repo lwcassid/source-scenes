@@ -389,7 +389,33 @@
     /* ---- a direct test, because "the lights do not change" has many causes ----
        Walks every knob through red · green · blue · off, ignoring all state.
        If this does nothing, the problem is the PORT, not the light logic. */
+    /* IS WEB MIDI EVEN OPEN. Permission is per page load and needs a user
+       gesture, so a reload leaves the panel reading NO MIDI / NO OUT with
+       every control inert — which is indistinguishable from broken hardware,
+       and was. */
+    hasAccess() {
+      try { return !!(typeof midi !== 'undefined' && midi.access); } catch (e) { return false; }
+    },
+    /* A BUTTON CLICK IS A USER GESTURE, so the panel can do this itself
+       instead of sending Edson to another section to find CONNECT. This is
+       their own connectMidi() — the same call their CONNECT button makes. */
+    connect() {
+      if (this.hasAccess()) return true;
+      try {
+        if (typeof connectMidi === 'function') { connectMidi(); this.note = 'connecting to MIDI…'; return true; }
+        this.note = 'no connectMidi() in this build';
+      } catch (e) { this.note = 'connect failed: ' + e.message; }
+      return false;
+    },
+
     test() {
+      // no MIDI at all: connect first, on this very click, then test
+      if (!this.hasAccess()) {
+        this.connect();
+        this.note = 'connecting to MIDI, then testing…';
+        setTimeout(() => { this._sent = {}; this.test(); }, 900);
+        return false;
+      }
       const o = this.findOut();
       if (!o) { this.note = 'TEST: ' + (this.outErr || 'no output port'); return false; }
       const steps = [[85, 'red'], [45, 'green'], [15, 'blue']];

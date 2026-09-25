@@ -50,6 +50,21 @@ const g = await pg.evaluate(() => { const G = document.getElementById('twistGrou
            grid: grid.scrollWidth - Math.round(grid.getBoundingClientRect().width) }; });
 ok('footer and grid fit', g.row === 0 && g.grid === 0, g);
 
+console.log('no Web MIDI: the panel offers the fix instead of a dead button');
+const c = await pg.evaluate(() => { let n = 0; const real = window.connectMidi;
+  window.connectMidi = function () { n++; return real && real.apply(this, arguments); };
+  const G = document.getElementById('twistGroup');
+  const btn = [...G.querySelectorAll('button')].map(x => x.textContent);
+  const cb = [...G.querySelectorAll('button')].find(x => x.textContent === 'CONNECT');
+  if (cb) cb.click();
+  const t = [...G.querySelectorAll('button')].find(x => x.textContent === 'TEST'); t.click();
+  window.connectMidi = real;
+  return { access: TWIST.hasAccess(), buttons: btn, calls: n,
+           note: [...G.querySelectorAll('p.sinfo')][1].textContent.indexOf('no MIDI yet') >= 0 }; });
+ok('says CONNECT, not NO OUT', !c.access && c.buttons.indexOf('CONNECT') >= 0, c);
+ok('CONNECT and TEST both reach connectMidi', c.calls === 2, c);
+ok('and the note says permission is per page load', c.note, c);
+
 console.log('a scene with no mixer says so');
 await pg.goto(URL + '#scene=SRC-67', { waitUntil: 'load' });
 await pg.waitForTimeout(3200);

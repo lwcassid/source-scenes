@@ -181,6 +181,9 @@
     const lt = document.createElement('button');
     lt.title = 'Stop sending to the controller\'s lights, or start again';
     lt.addEventListener('click', () => {
+      // with no Web MIDI there is nothing to light; this click is the gesture
+      // that can open it, so spend it on that instead of toggling nothing
+      if (!TWIST.hasAccess()) { TWIST.connect(); return; }
       TWIST.lights = !TWIST.lights;
       if (!TWIST.lights) TWIST.allOff(); else TWIST._sent = {};
     });
@@ -293,7 +296,9 @@
       if (C.cell.style.opacity !== dim) C.cell.style.opacity = dim;
     }
     if (LIGHTBTN[0]) {
-      const lab = !T.findOut() ? 'NO OUT' : (T.lights ? 'LIT ' + T.sentCount : 'LIGHTS OFF');
+      const lab = !T.hasAccess() ? 'CONNECT'
+                : !T.findOut() ? 'NO OUT'
+                : (T.lights ? 'LIT ' + T.sentCount : 'LIGHTS OFF');
       if (LIGHTBTN[0].textContent !== lab) LIGHTBTN[0].textContent = lab;
       LIGHTBTN[0].classList.toggle('on', !!(T.lights && T.findOut()));
     }
@@ -314,6 +319,10 @@
       AMBTN[0].title = hasMix
         ? 'Lay out the layers this scene has, plus instrument and poem cues'
         : 'This scene has no mixer — there are no layers to map';
+    }
+    if (!T.hasAccess()) {
+      n = 'no MIDI yet — press CONNECT (or TEST) here. Permission is per page load, '
+        + 'so a reload always needs it again.';
     }
     if (!hasMix) {
       n = (n ? n + '\n' : '') + 'no mixer in this scene — faders, solos and VOL do nothing here. Poem cues still work.';

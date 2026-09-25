@@ -41,6 +41,7 @@ opens, renders light to the canvas, and logs no errors. 329 scenes registered.
 | `parts/part250_mixer.js` | **the mixer**, SRC-62/63/64 — see §4, the part most likely to interest you |
 | `parts/part251_mixpanel.js` | the fader panel, injected into `#sidebar` |
 | `docs/THE-SOURCE-LAW.md` | the law, written up |
+| `parts/part260_eclipse2.js` | **SRC-66.2**, ISOTRP A · Light Eclipse V2: the light pulses gently with the line-in |
 | `parts/part259_beam2.js` | **SRC-68.2**, ISOTRP C · Beam V2: the right hand unlocks Gated's elements past 50% and Trails past 70% |
 | `parts/part257_isotrp.js` | **ISO** + four study scenes SRC-66…69 (after 404.zero's ISOTRP): a shared GLSL light-field renderer and a frame-exact sound/light sequencer. See the log, "ISOTRP studies" |
 | `assets/poems/`, `assets/poems-en/` | 22 placeholder voice files + READMEs |
@@ -383,3 +384,39 @@ its own faders, the check is one function.
 Also removed: the four family colour rows in the Twister panel. Colour is per
 knob now — a swatch on each slot — and two ways to set the same thing was one
 too many on a 219px rail. `TWIST.colour` and `DEFCOL` stay as the AUTO fallback.
+
+### 2026-09-25 — ISOTRP A · Light Eclipse V2 (SRC-66.2)
+Edson: "a beautiful starting point for us... make the entire thing pulse gently with the
+sound it's listening to." V1's shape and hands are unchanged; the line-in drives a pulse on
+two clocks (Cell Front V9's rule): the **kick** (`inp.audio.kick.n` rising edge) is the only
+fast move, a swell in over ~70 ms that relaxes over about a beat; **level + bass**, eased at
+~2/s, set a slow breathing body. R (the light) also sets the pulse depth. With no live
+input it follows its own transport, one soft swell a beat. Measured: 60 fps; a hard kick at
+full reach = +5-6% mean brightness and a slightly larger light, back to rest in ~0.7 s.
+
+---
+
+## Sep 25, 01:50 — NO OUT was a diagnosis, not a next step
+
+Edson reloaded into a tab with no Web MIDI and the Twister panel read
+`NO MIDI` / `NO OUT`, every control inert, TEST doing nothing. All of that was
+*correct* — and useless, because the panel stated a condition without offering
+the one action that fixes it, and the CONNECT that does fix it lives in another
+section.
+
+**Web MIDI permission is per page load and needs a user gesture.** A button
+click IS that gesture, so the panel now spends it properly:
+
+- the lights button reads **CONNECT** while `midi.access` is missing, and
+  calling it runs your own `connectMidi()` — the same call your CONNECT button
+  makes, not a reimplementation;
+- **TEST** with no access connects first and then tests itself ~900ms later;
+- the note says *"no MIDI yet — press CONNECT (or TEST) here. Permission is per
+  page load, so a reload always needs it again."*
+
+Worth knowing generally: **a reload always drops MIDI**, and until this the only
+sign was a panel that looked broken. If the control window shows a similar dead
+state after a reload, it is probably the same cause.
+
+`tools/twtest.mjs` now covers it — 20 checks, including that CONNECT and TEST
+both reach `connectMidi()`.
