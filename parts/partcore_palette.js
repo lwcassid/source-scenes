@@ -193,8 +193,29 @@
     return of(f);
   }
 
+  /* WHO READS WHICH SLOT. A layer's own declaration names exactly the slots
+     it reads (56.3 names c0 and g0, 71.2 names c3, c4, g0, g2 …), so a host
+     knows, per slot, which of its layers read it and whether any of them is
+     up. Edson, Sep 27 19:12: "when I change color in the circle nothing
+     happens" — he had turned c0 and c1, which the Circle never reads. A slot
+     nobody on the wall reads must say so. */
+  function readers(st) {
+    const f = (typeof focus !== 'undefined') ? focus.P : null, out = {};
+    const add = (slot, who, live, what) => { (out[slot] = out[slot] || []).push({ who, live, what }); };
+    if (f && f.state && f.state.pal === st && f.state.L) {
+      f.state.L.forEach((L, i) => {
+        const nm = L.def && L.def.palette && L.def.palette.names; if (!nm) return;
+        const live = (f.state.fade && f.state.fade[i] > 0.02) || (f.state.want && f.state.want[i] > 0.02);
+        Object.keys(nm).forEach(k => add(k, L.short || L.id, !!live, nm[k]));
+      });
+    } else if (f && f.def && f.def.palette && f.def.palette.names) {
+      Object.keys(f.def.palette.names).forEach(k => add(k, '', true, f.def.palette.names[k]));
+    }
+    return out;
+  }
+
   const PAL = {
-    PRESETS, ORDER, NC, NG, NS,
+    PRESETS, ORDER, NC, NG, NS, readers,
     hex2rgb, rgb2hex, rgb2hsl, hsl2rgb, declare, ramp, make, of, active,
     has(P) { return !!of(P); },
     ver(P) { const st = of(P); return st ? st.ver : 0; },
@@ -354,12 +375,18 @@ vec3 palC(int i){ return uPalC[i]; }
     g.appendChild(picker); ui.picker = picker;
 
     const dots = document.createElement('div');
-    dots.style.cssText = 'display:flex;gap:8px;margin:4px 0 10px';
+    dots.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:4px 0 10px';
+    ui.dotLabels = [];
     for (let i = 0; i < NC; i++) {
+      const cell = document.createElement('div'); cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;min-width:0';
       const d = document.createElement('div'); d.className = 'paldot';
       d.style.cssText = 'width:22px;height:22px;border-radius:50%;cursor:pointer;border:1px solid rgba(255,255,255,.18)';
       d.addEventListener('click', () => { const st = active(); if (st) pick(rgb2hex(st.C[i]), v => PAL.set('c', i, v)); });
-      dots.appendChild(d); ui.dots.push(d);
+      // who reads this colour, on the wall right now
+      const lab = document.createElement('div');
+      lab.style.cssText = 'font:7px/1.25 ui-monospace,monospace;letter-spacing:.06em;color:var(--txt-dim,#999);text-align:center;margin-top:3px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
+      cell.appendChild(d); cell.appendChild(lab); dots.appendChild(cell);
+      ui.dots.push(d); ui.dotLabels.push(lab);
     }
     g.appendChild(dots);
 
@@ -422,12 +449,31 @@ vec3 palC(int i){ return uPalC[i]; }
   function paint(ctx) {
     const st = active(); if (!st || !ui) return;
     if (ctx.status) ctx.status.textContent = (st.key || '') + ' · v' + st.ver;
-    if (st.ver === ui.seen && st === ui.st) return;          // nothing moved
-    ui.seen = st.ver; ui.st = st;
+    /* who reads what: follows the faders, so it is checked every paint and
+       the DOM is touched only when the answer changes */
+    const R = readers(st);
+    const rkey = JSON.stringify(R) + st.sel;
+    if (st.ver === ui.seen && st === ui.st && rkey === ui.rkey) return;          // nothing moved
+    ui.seen = st.ver; ui.st = st; ui.rkey = rkey;
     const nm = st.cur.names || {};
-    ui.dots.forEach((d, i) => { d.style.background = rgb2hex(st.C[i]); d.title = (nm['c' + i] || 'c' + i) + ' · ' + rgb2hex(st.C[i]); });
+    const whoLine = slot => { const r = R[slot] || []; return r.map(x => x.who).filter(Boolean).join(' · '); };
+    const isLive = slot => (R[slot] || []).some(x => x.live);
+    const why = slot => { const r = R[slot] || []; return r.length ? r.map(x => (x.who ? x.who + ': ' : '') + x.what.toLowerCase() + (x.live ? '' : ' (its fader is down)')).join('\n') : 'nothing in this scene reads this colour'; };
+    ui.dots.forEach((d, i) => {
+      const slot = 'c' + i, live = isLive(slot), any = (R[slot] || []).length > 0;
+      d.style.background = rgb2hex(st.C[i]);
+      d.style.opacity = live ? '1' : (any ? '0.45' : '0.2');
+      d.style.borderStyle = any ? 'solid' : 'dashed';
+      d.title = slot + ' · ' + (nm[slot] || '') + ' · ' + rgb2hex(st.C[i]) + '\n' + why(slot);
+      const L = ui.dotLabels[i]; L.textContent = any ? (whoLine(slot) || nm[slot] || '') : '—';
+      L.style.opacity = live ? '1' : '0.45'; L.title = d.title;
+    });
     ui.rows.forEach((r, j) => {
-      r.name.textContent = 'g' + j + ' · ' + (nm['g' + j] || '') + (st.sel === j ? '  ◂' : '');
+      const slot = 'g' + j, live = isLive(slot), any = (R[slot] || []).length > 0;
+      const who = whoLine(slot);
+      r.name.textContent = slot + ' · ' + (nm[slot] || '') + (any ? (who ? ' → ' + who : '') : ' → nothing reads it') + (st.sel === j ? '  ◂' : '');
+      r.name.title = why(slot);
+      r.name.parentNode.style.opacity = live ? '1' : '0.5';
       r.cells.forEach((c, k) => { c.style.background = rgb2hex(st.SW[j][k]); c.title = st.cur.g[j][k]; });
       const g = r.cv.getContext('2d'), W = r.cv.width, H = r.cv.height;
       for (let x = 0; x < W; x++) { const c = sampleRow(st, j, x / (W - 1)); g.fillStyle = rgb2hex(c); g.fillRect(x, 0, 1, H); }
