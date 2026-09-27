@@ -156965,6 +156965,44 @@ void main(){
         if (id !== this._scene) { this._scene = id; this.send({ t: 'scene', id }); }
       } catch (e) {}
       if (now - this._pingT > 2000) { this._pingT = now; this.send({ t: 'ping', ts: now }); }
+      /* THE SNAPSHOT, every 1.5 s: the scene and the whole mixer state. A page
+         that joins late — the room opens the link after Edson is already in
+         Act I, or reloads mid-jam — lands where he is within 1.5 s, with his
+         faders, instead of waiting for the next change. Applied idempotently. */
+      if (now - (this._snapT || 0) > 1500) { this._snapT = now; this.send(this.snapshot()); }
+    },
+    snapshot() {
+      const o = { t: 'snap', scene: this._scene === undefined ? null : this._scene, mix: null };
+      try {
+        const P = window.MIX && MIX.P && MIX.P();
+        if (P) {
+          const s = P.state;
+          o.mix = { id: P.def.id, want: Array.from(s.want), macro: Object.assign({}, s.macro || {}),
+                    solo: s.solo, black: !!s.black, keep: s.keep ? Array.from(s.keep) : null };
+        }
+      } catch (e) {}
+      return o;
+    },
+    applySnap(o) {
+      if (typeof focus === 'undefined' || typeof PIECES === 'undefined') return;
+      const cur = focus.idx >= 0 ? PIECES[focus.idx].id : null;
+      if (o.scene !== cur) {
+        if (o.scene === null) { if (typeof closeFocus === 'function') closeFocus(); return; }
+        const i = PIECES.findIndex(p => p.id === o.scene);
+        if (i >= 0 && typeof openFocus === 'function') openFocus(i);
+        return;                               // the mixer is applied on the next snapshot, once it exists
+      }
+      const m = o.mix, P = window.MIX && MIX.P && MIX.P();
+      if (!m || !P || P.def.id !== m.id) return;
+      const s = P.state;
+      // BLACKOUT is a toggle that stores the faders it zeroed; mirror the
+      // sender's stored faders rather than toggling on top of ours
+      if (m.black && !s.black) { m.keep && m.keep.forEach((v, i) => { if (i < s.want.length) s.want[i] = v; }); MIX.blackout(); }
+      else if (!m.black && s.black) { MIX.blackout(); }
+      if (m.black) { if (m.keep) s.keep = m.keep.slice(0, s.want.length); }
+      else m.want.forEach((v, i) => { if (i < s.want.length && Math.abs(s.want[i] - v) > 0.001) s.want[i] = v; });
+      if (s.macro) for (const k in m.macro) s.macro[k] = m.macro[k];
+      if (!m.black) s.solo = m.solo;
     },
     wrapOurs() {
       if (this._wrapped) return; this._wrapped = true;
@@ -156989,9 +157027,11 @@ void main(){
     onMsg(o) {
       if (!o || !o.t) return;
       if (this.cfg && this.cfg.role === 'send') { if (o.t === 'pong') this.rtt = Math.round(performance.now() - o.ts); return; }
-      this.lastMsg = o.t + (o.fn ? ':' + o.fn : '');
+      // the heartbeat traffic (snapshots, pings) is not "the last thing he did"
+      if (o.t !== 'snap' && o.t !== 'ping') this.lastMsg = o.t + (o.fn ? ':' + o.fn : '');
       try {
         if (o.t === 'ping') { this.send({ t: 'pong', ts: o.ts }); return; }
+        if (o.t === 'snap') { this.applySnap(o); return; }
         if (o.t === 'h') { setChan('L', +o.L); setChan('R', +o.R); return; }
         if (o.t === 'mix') {
           // a macro may belong to a plain scene that declares its own (MIX.MP,
@@ -157135,6 +157175,44 @@ void main(){
         if (id !== this._scene) { this._scene = id; this.send({ t: 'scene', id }); }
       } catch (e) {}
       if (now - this._pingT > 2000) { this._pingT = now; this.send({ t: 'ping', ts: now }); }
+      /* THE SNAPSHOT, every 1.5 s: the scene and the whole mixer state. A page
+         that joins late — the room opens the link after Edson is already in
+         Act I, or reloads mid-jam — lands where he is within 1.5 s, with his
+         faders, instead of waiting for the next change. Applied idempotently. */
+      if (now - (this._snapT || 0) > 1500) { this._snapT = now; this.send(this.snapshot()); }
+    },
+    snapshot() {
+      const o = { t: 'snap', scene: this._scene === undefined ? null : this._scene, mix: null };
+      try {
+        const P = window.MIX && MIX.P && MIX.P();
+        if (P) {
+          const s = P.state;
+          o.mix = { id: P.def.id, want: Array.from(s.want), macro: Object.assign({}, s.macro || {}),
+                    solo: s.solo, black: !!s.black, keep: s.keep ? Array.from(s.keep) : null };
+        }
+      } catch (e) {}
+      return o;
+    },
+    applySnap(o) {
+      if (typeof focus === 'undefined' || typeof PIECES === 'undefined') return;
+      const cur = focus.idx >= 0 ? PIECES[focus.idx].id : null;
+      if (o.scene !== cur) {
+        if (o.scene === null) { if (typeof closeFocus === 'function') closeFocus(); return; }
+        const i = PIECES.findIndex(p => p.id === o.scene);
+        if (i >= 0 && typeof openFocus === 'function') openFocus(i);
+        return;                               // the mixer is applied on the next snapshot, once it exists
+      }
+      const m = o.mix, P = window.MIX && MIX.P && MIX.P();
+      if (!m || !P || P.def.id !== m.id) return;
+      const s = P.state;
+      // BLACKOUT is a toggle that stores the faders it zeroed; mirror the
+      // sender's stored faders rather than toggling on top of ours
+      if (m.black && !s.black) { m.keep && m.keep.forEach((v, i) => { if (i < s.want.length) s.want[i] = v; }); MIX.blackout(); }
+      else if (!m.black && s.black) { MIX.blackout(); }
+      if (m.black) { if (m.keep) s.keep = m.keep.slice(0, s.want.length); }
+      else m.want.forEach((v, i) => { if (i < s.want.length && Math.abs(s.want[i] - v) > 0.001) s.want[i] = v; });
+      if (s.macro) for (const k in m.macro) s.macro[k] = m.macro[k];
+      if (!m.black) s.solo = m.solo;
     },
     wrapOurs() {
       if (this._wrapped) return; this._wrapped = true;
@@ -157159,9 +157237,11 @@ void main(){
     onMsg(o) {
       if (!o || !o.t) return;
       if (this.cfg && this.cfg.role === 'send') { if (o.t === 'pong') this.rtt = Math.round(performance.now() - o.ts); return; }
-      this.lastMsg = o.t + (o.fn ? ':' + o.fn : '');
+      // the heartbeat traffic (snapshots, pings) is not "the last thing he did"
+      if (o.t !== 'snap' && o.t !== 'ping') this.lastMsg = o.t + (o.fn ? ':' + o.fn : '');
       try {
         if (o.t === 'ping') { this.send({ t: 'pong', ts: o.ts }); return; }
+        if (o.t === 'snap') { this.applySnap(o); return; }
         if (o.t === 'h') { setChan('L', +o.L); setChan('R', +o.R); return; }
         if (o.t === 'mix') {
           // a macro may belong to a plain scene that declares its own (MIX.MP,
