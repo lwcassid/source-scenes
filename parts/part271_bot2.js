@@ -30,8 +30,12 @@
 
   MIX.make({
     id: 'SRC-73', part: 'I', title: 'BoT 0.2 · I · The Sky', tech: 'SIX LAYERS / F AEOLIAN 54',
-    layers: ['SRC-56.2', 'SRC-71', 'SRC-58.2', 'SRC-77', 'SRC-78', 'SRC-57'],
-    cost: { 'SRC-56.2': 1, 'SRC-71': 2, 'SRC-58.2': 3, 'SRC-77': 1, 'SRC-78': 1 },
+    /* Sep 27 (PLAN-PALETTE): the four generated layers are their versions
+       that READ the palette below — 56.3, 71.2, 58.3, 57.2. The old ones are
+       untouched and still open. `cost` follows the ids: Eclipse and the
+       Passage are the heavies (3), or the budget lets them meet. */
+    layers: ['SRC-56.3', 'SRC-71.2', 'SRC-58.3', 'SRC-77', 'SRC-78', 'SRC-57.2'],
+    cost: { 'SRC-56.3': 1, 'SRC-71.2': 2, 'SRC-58.3': 3, 'SRC-77': 1, 'SRC-78': 1, 'SRC-57.2': 3 },
     macros: [
       { k: 'depth', label: 'DEPTH', def: 0 },      // the flat gold disc → a body in a space
       { k: 'dir',   label: 'DIRECTION', def: 1 }   // the Passage: 1 = up
