@@ -77,8 +77,12 @@ s = await mix();
 ok('knob 13 → DEPTH 0.5', s.macro[0] === 0.5, s.macro);
 const light = await pg.evaluate(() => TWIST.lightFor(12));
 ok('the ring shows the macro value', light.ring === 64, light);
-// the media layer: fader up from nothing starts the clip; down parks it
-await pg.evaluate(() => MIX.set(3, 1));
+// the media layer: fader up from nothing starts the clip; down parks it.
+// HEADLESS HAS NO AUDIO SINK: with --mute-audio an UNMUTED <video> reports
+// paused=false but its clock never leaves 0 (measured Sep 27 11:00, even on a
+// plain element with no WebAudio). Mute the element here so the clock runs
+// off the video track; the sound path is judged by ears in a real Chrome.
+await pg.evaluate(() => { MEDIA.item('SRC-77')._el.muted = true; MIX.set(3, 1); });
 await wait(2500);
 let m = await pg.evaluate(() => MEDIA.state('SRC-77'));
 ok('LAUNCH CLIP: fader up → the clip is playing from the top', m && m.ready && !m.paused && m.t > 0.3 && m.t < 2.6, m);
@@ -168,6 +172,7 @@ await scene('SRC-79');
 const qr = await pg.evaluate(() => MEDIA.state('SRC-79'));
 ok('the QR still is ready standalone', qr && qr.ready, qr);
 await scene('SRC-77');
+await pg.evaluate(() => { MEDIA.item('SRC-77')._el.muted = true; });   // headless: see above
 await wait(1500);
 const clipF = await pg.evaluate(() => MEDIA.state('SRC-77'));
 ok('the clip plays when it is the focused scene', clipF && clipF.ready && !clipF.paused, clipF);
