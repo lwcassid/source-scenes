@@ -1,10 +1,14 @@
-# The eleven voices — PLACEHOLDERS
+# The eleven voices (the LANGUAGE pass) — 1 real, 10 PLACEHOLDERS
 
-**Generated 2026-09-24 with macOS `say`, one voice and one language per poem, so the
+**The poems run twice (Edson, 2026-09-27): all of them in the languages (this bank), then all of them in English (`../poems-en/`).**
+
+**✅ Real so far (2026-09-27):** `ow1.mp3` Tetsuro Hoshi, 日本語. (Amanda Perry's English OW5 is in the English bank.) Raw originals + transcripts: `artworks/first-witness-series/recordings/`.
+
+**The other ten were generated 2026-09-24 with macOS `say`, one voice and one language per poem, so the
 timing, the two-language layout and eleven different scripts could be tested before
 the real recordings land.**
 
-🔴 **THESE ARE NOT THE ARTWORK. Replace every one of them.**
+🔴 **THE TEN PLACEHOLDERS ARE NOT THE ARTWORK. Replace every one of them.**
 
 On the night each poem is a friend reading in their mother tongue. Drop the real file
 over the placeholder, keep the filename, and nothing else has to change — the tool
@@ -12,11 +16,11 @@ reads `ow1.mp3` … `ow11.mp3` from this folder and re-measures the duration on 
 
 | file | placeholder voice | language | ⚠️ |
 |---|---|---|---|
-| ow1.mp3 | Daniel | English | canonical language ✅ |
+| ow1.mp3 | ✅ **REAL — Tetsuro Hoshi** | 日本語 | dropped in 2026-09-27, from `#1 japanese.mp4` |
 | ow2.mp3 | Thomas | Français | machine translation |
 | ow3.mp3 | Majed | العربية | machine translation · RTL |
 | ow4.mp3 | Kyoko | 日本語 | machine translation |
-| ow5.mp3 | Lekha | हिन्दी | 🔴 **canonically YORUBA** (Oxum) — no Yoruba system voice exists, so the placeholder is Hindi. The real recording must be Yoruba. |
+| ow5.mp3 | Lekha | हिन्दी | 🔴 **canonically YORUBA** (Oxum) — no Yoruba system voice exists, so the placeholder is Hindi. Still needs a non-English reader. (Amanda Perry's English reading, 2026-09-27, is the English pass: `../poems-en/ow5.mp3`.) |
 | ow6.mp3 | Luciana | Português | canonical language ✅ (Edson's own tongue) |
 | ow7.mp3 | Anna | Deutsch | machine translation |
 | ow8.mp3 | Alice | Italiano | machine translation |

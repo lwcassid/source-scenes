@@ -30,7 +30,11 @@
    it runs on a reading-speed estimate, so the typography can be judged today
    and the recordings dropped in on Friday without touching a line. */
 (() => {
-  /* 🔴 `spoken` IS A PLACEHOLDER UNTIL FRIDAY. `text` is the canonical line,
+  /* 🔴 `spoken` IS A PLACEHOLDER UNTIL THE REAL VOICE LANDS. Real so far
+     (2026-09-27): OW1 (Tetsuro Hoshi, 日本語) here, and OW5 (Amanda Perry) in
+     the ENGLISH bank. THE POEMS RUN TWICE (Edson, Sep 27): all of them in the
+     languages, then all of them in English — ORDER below is one pass; the
+     English pass is the same ORDER after setVoices('en'). `text` is the canonical line,
      locked in artworks/first-witness-series/CURATORIAL.md, and never changes.
      `spoken` is what the RECORDING says — on the night, a friend reading in
      their mother tongue. Right now it is a machine translation voiced by
@@ -40,14 +44,23 @@
      ⚠️ OW5 is canonically YORUBA (Oxum). There is no Yoruba system voice —
      the placeholder is Hindi and that mismatch is deliberate and temporary. */
   const POEMS = [
+    /* ✅ REAL (2026-09-27): Tetsuro Hoshi reading in Japanese. Transcribed
+       with whisper.cpp; the last word came back 承認 (approval) and is written
+       here as 証人 (witness), same reading, which is what the English says.
+       Confirm with Tetsuro. Raw file: artworks/first-witness-series/recordings/ */
     { n: 1,  lang: 'English', text: "who can be accepted, who shall be denied, I'm god, as I witness the heavens I've created and destroyed",
-             spokenLang: 'English' },
+             spokenLang: '日本語', spoken: "誰が受け入れられ、誰が拒まれるのか、それを決めるのは私だ。私は神。この手で作り、そして滅ぼしてきた天を、今ここに証人としよう。" },
     { n: 2,  lang: 'English', text: "trembling before reaching the ocean, a river looks back on her journey, oblivious to the pleasure of becoming",
              spokenLang: 'Français', spoken: "tremblante avant d'atteindre l'océan, une rivière se retourne sur son voyage, ignorant le plaisir de devenir", draft: true },
     { n: 3,  lang: 'English', text: "there is a sword glowing with flames, blocking the path to the third heaven — they say.",
              spokenLang: 'العربية', spoken: "هناك سيف يتوهج باللهب، يسد الطريق إلى السماء الثالثة — هكذا يقولون.", draft: true },
     { n: 4,  lang: 'English', text: "although bottomless, the sacred space is never empty",
              spokenLang: '日本語', spoken: "底がないのに、聖なる空間は決して空ではない", draft: true },
+    /* OW5's ENGLISH bank is REAL (2026-09-27): Amanda Perry, the canonical
+       line word for word, in assets/poems-en/ow5.mp3. Edson, same day: the
+       poems run in the languages first and then in English — so her reading
+       is the English pass, and this native entry is still the Hindi TTS
+       placeholder waiting for a non-English reader (canonically Yoruba). */
     { n: 5,  lang: 'English', text: "standing half Oxum, half mirror, a woman showing no fear of being naked opens her eyes looking exactly into mine, and without moving anything but her arm, takes a rose crystal egg from the place in her body that bleeds",
              spokenLang: 'हिन्दी', spoken: "आधी ओशुम, आधी दर्पण, एक स्त्री जो नग्न होने से नहीं डरती, अपनी आँखें खोलकर सीधे मेरी आँखों में देखती है, और अपनी बाँह के सिवा कुछ हिलाए बिना, अपने शरीर की उस जगह से जहाँ से रक्त बहता है, एक गुलाबी स्फटिक का अंडा निकालती है", draft: true },
     { n: 6,  lang: 'Português', text: "Das coisas que me ligam à terra, meu filho e essa dor nas costas",
@@ -118,7 +131,8 @@
      5,   // हिन्दी      (canonically Yoruba — see the assets README)
      7,   // Deutsch
      9,   // 中文
-     1,   // English    — last, as asked
+     1,   // 日本語      — Tetsuro Hoshi (Sep 27). "English last" now means the
+           //               ENGLISH PASS comes after this whole list, not this slot.
     12    // the silence
   ];
 

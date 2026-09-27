@@ -1,4 +1,4 @@
-# The eleven voices — ENGLISH SET (placeholders)
+# The eleven voices — ENGLISH SET (the second pass; 1 real, 10 placeholders)
 
 **Generated 2026-09-24 with macOS `say`, eleven different English voices across six
 accents (UK, US, Irish, Australian, South African, Indian).**
@@ -16,7 +16,7 @@ next door, nothing is translated: these read the locked lines from
 | ow2 | Samantha | en_US |
 | ow3 | Moira | en_IE |
 | ow4 | Karen | en_AU |
-| ow5 | Tessa | en_ZA |
+| ow5 | ✅ **REAL — Amanda Perry** (2026-09-27) | — |
 | ow6 | Rishi | en_IN |
 | ow7 | Fred | en_US |
 | ow8 | Tara | en_IN |
