@@ -270,11 +270,18 @@
     solo(i) { const P = this.P(); if (P && i < P.state.L.length) P.state.solo = (P.state.solo === i) ? -1 : i; },
     /* 0.2 — MACROS: the host's declared slow moves, by index. Outside a host
        every one of these is a no-op, never an error. */
-    macroDefs() { const P = this.P(); return (P && P.def._macros) ? P.def._macros : []; },
+    /* MP(): the piece that carries macros — a movement (its `_macros`, built
+       by makeMixer) OR any plain scene that declares `macros: [{k, label,
+       def}]` in its reg (SRC-80.2, Sep 27: "use some twister controls to
+       control colour"). A scene reads them from `P.state.macro[k]`, which it
+       seeds itself in init(). A scene that declares nothing is untouched. */
+    MP() { const f = (typeof focus !== 'undefined') ? focus.P : null;
+           return (f && f.def && (f.def._macros || (f.def.macros && f.def.macros.length))) ? f : null; },
+    macroDefs() { const P = this.MP(); return P ? (P.def._macros || P.def.macros || []) : []; },
     macroCount() { return this.macroDefs().length; },
     macroNames() { return this.macroDefs().map(d => d.label); },
-    macro(i, v) { const P = this.P(), d = this.macroDefs()[i]; if (P && d) P.state.macro[d.k] = clamp(v); },
-    getMacro(i) { const P = this.P(), d = this.macroDefs()[i]; return (P && d) ? (P.state.macro[d.k] || 0) : 0; },
+    macro(i, v) { const P = this.MP(), d = this.macroDefs()[i]; if (P && d) { if (!P.state.macro) P.state.macro = {}; P.state.macro[d.k] = clamp(v); } },
+    getMacro(i) { const P = this.MP(), d = this.macroDefs()[i]; return (P && d && P.state.macro) ? (P.state.macro[d.k] || 0) : 0; },
     /* BLACKOUT: every fader glides to nothing in about 1.5 s and the wall is
        black — the 8:00 silence, the twelfth Witness. Press again and the
        faders come back to exactly where they were. A toggle, so one knob. */

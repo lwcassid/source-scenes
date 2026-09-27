@@ -252,10 +252,13 @@
     autoMap() {
       const k = this.key(); if (!k) return;
       // no mixer: map what does exist here, the poem cues, not six dead faders
-      const mix = this.hasMix(), n = mix ? this.nLayers() : 0, nm = mix ? this.nMacros() : 0;
+      // a plain scene that DECLARES macros (reg `macros: [...]`) gets them on
+      // 13/14/15/7 as a movement would; one that declares nothing gets none
+      const mix = this.hasMix(), n = mix ? this.nLayers() : 0, nm = (mix || this.hasMacros()) ? this.nMacros() : 0;
       this.slots = this.maps[k] = factory(n, !mix, nm); this.persist(); this._sent = {};
       this.note = mix ? 'mapped ' + n + ' layer' + (n === 1 ? '' : 's') + (nm ? ' + ' + nm + ' macro' + (nm === 1 ? '' : 's') : '') + ' + cues + blackout + sound out'
-                      : 'mapped the poem cues — this scene has no mixer';
+                      : nm ? 'mapped ' + nm + ' macro' + (nm === 1 ? '' : 's') + ' + the poem cues + sound out — this scene has no mixer'
+                           : 'mapped the poem cues — this scene has no mixer';
     },
     setFn(i, which, fn) { if (this.slots[i]) { this.slots[i][which] = fn; this.save(); } },
     setSlotColour(i, v) {
@@ -287,8 +290,12 @@
     /* how many macros the open movement declares; with no mixer, all four,
        so the editor stays configurable (as nLayers does for faders) */
     nMacros() {
-      try { return (window.MIX && MIX.P && MIX.P() && MIX.macroCount) ? MIX.macroCount() : 4; }
+      try { return (window.MIX && MIX.MP && MIX.MP() && MIX.macroCount) ? MIX.macroCount() : 4; }
       catch (e) { return 4; }
+    },
+    /* a scene (movement or plain) that declares its own macros */
+    hasMacros() {
+      try { return !!(window.MIX && MIX.MP && MIX.MP() && MIX.macroCount && MIX.macroCount() > 0); } catch (e) { return false; }
     },
     turnOpts() {
       const n = this.nLayers(), m = this.nMacros();
