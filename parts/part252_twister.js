@@ -117,6 +117,11 @@
        ~1.5 s; press again and they come back where they were. The 8:00
        silence and the twelfth Witness. A no-op outside a movement. */
     blackout: { label: 'BLACKOUT',     short: 'BLK', push: true },
+    /* SHOT (Sep 27, 16:15): a clip on a BUTTON, not a fader — the host's
+       `shots` (part250). Press = play it from the top over everything; it
+       leaves by itself; press again = cut. Knob 7's push in a host that has
+       one (the launch in Act I). A no-op anywhere else. */
+    shot0:  { label: 'SHOT 1',         short: 'SH1', push: true },
     /* THE PALETTE (partcore_palette.js, Sep 27): the open scene's five
        generators and three bands, on knobs. HUE i rotates generator i (the
        middle = as declared, a full turn end to end); BAND j brightens or
@@ -150,7 +155,7 @@
      knobs 13, 14, 15 and then 7 — the bottom row is the same in every act,
      so the hand learns one geography in the dark. */
   const MACRO_KNOBS = [12, 13, 14, 6];
-  function factory(n, noMix, nMac) {
+  function factory(n, noMix, nMac, nShot) {
     const s = [];
     const k = Math.max(0, Math.min(6, n === undefined ? 6 : n));
     const m = Math.max(0, Math.min(4, nMac === undefined ? 0 : nMac));
@@ -167,6 +172,7 @@
     if (noMix) { s[10].push = 'abort'; s[11].push = 'stop'; }
     else { s[10].push = 'stop'; s[11].push = 'blackout'; }
     for (let i = 0; i < m; i++) s[MACRO_KNOBS[i]].turn = 'macro' + i;
+    if (!noMix && nShot > 0) s[6].push = 'shot0';   // knob 7: under macro D's turn, a push nobody had
     return s;
   }
 
@@ -272,7 +278,8 @@
       // a plain scene that DECLARES macros (reg `macros: [...]`) gets them on
       // 13/14/15/7 as a movement would; one that declares nothing gets none
       const mix = this.hasMix(), n = mix ? this.nLayers() : 0, nm = (mix || this.hasMacros()) ? this.nMacros() : 0;
-      this.slots = this.maps[k] = factory(n, !mix, nm); this.persist(); this._sent = {};
+      const ns = (mix && window.MIX && MIX.shotCount) ? MIX.shotCount() : 0;
+      this.slots = this.maps[k] = factory(n, !mix, nm, ns); this.persist(); this._sent = {};
       this.note = mix ? 'mapped ' + n + ' layer' + (n === 1 ? '' : 's') + (nm ? ' + ' + nm + ' macro' + (nm === 1 ? '' : 's') : '') + ' + cues + blackout + sound out'
                       : nm ? 'mapped ' + nm + ' macro' + (nm === 1 ? '' : 's') + ' + the poem cues + sound out — this scene has no mixer'
                            : 'mapped the poem cues — this scene has no mixer';
@@ -501,6 +508,7 @@
       // 0.2 — both are no-ops outside a movement, never errors
       if (fn.indexOf('macro') === 0) { if (window.MIX && MIX.macro) MIX.macro(+fn.slice(5), val); return; }
       if (fn === 'blackout') { if (window.MIX && MIX.blackout) MIX.blackout(); return; }
+      if (fn.indexOf('shot') === 0) { if (window.MIX && MIX.shot) MIX.shot(+fn.slice(4)); return; }
       // THE PALETTE — every write through PAL.set; no palette, no-op
       if (isPal(fn)) {
         if (!window.PAL) return;
@@ -664,6 +672,10 @@
       else if (S.push === 'blackout') {
         const st = (window.MIX && MIX.state) ? MIX.state() : null;
         anim = !st ? DIM : (st.black ? BURN : ON);                        // burning while the wall is black
+      }
+      else if (S.push.indexOf('shot') === 0) {
+        const st = (window.MIX && MIX.state) ? MIX.state() : null, sh = st && st.shots && st.shots[+S.push.slice(4)];
+        anim = !sh ? DIM : (sh.on ? BURN : ON);                           // burning while the clip is on the wall
       }
       return { ring, col, anim };
     },

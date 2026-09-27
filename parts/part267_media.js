@@ -106,6 +106,9 @@
            when none does. */
         wake(P) { P.state.on = true; want(M, P, true, true); },
         sleep(P) { P.state.on = false; want(M, P, false); },
+        /* a SHOT (part250) asks this to know when to let go: a clip that has
+           played to its end. A still is never done; a looping clip never ends. */
+        done(P) { const e = M._el; return M.kind === 'video' && !!e && (e.ended || (e.duration > 0 && e.currentTime >= e.duration - 0.05)); },
         step(P, dt) {
           P.state.t += dt;
           if (!P.hosted) want(M, P, !!P.focused, false);
@@ -169,7 +172,7 @@
   MEDIA.reg({
     id: 'SRC-77', title: 'BoT · Launch Clip', src: 'assets/media/launch.mp4', kind: 'video', loop: false, fit: 'contain',
     tags: ['ACT 1'],
-    desc: 'Transporter-18, Oct 1 2026, 2:18 PM New York: the launch and the separation, a few seconds, no countdown — shown like a reel, then gone. Alex cuts the real clip on the afternoon of the launch; until then this file is a placeholder that says so on screen. In Act 1 it sits on a fader: bring it up and it plays from the top with its own sound, pull it down and it is gone.',
+    desc: 'Transporter-18, Oct 1 2026, 2:18 PM New York: the launch and the separation, a few seconds, no countdown — shown like a reel, then gone. Alex cuts the real clip on the afternoon of the launch; until then it is Edson\'s own rocket clip (Sep 27). In Act 1 it is a SHOT, not a fader: one press on the Twister (knob 7) or L plays it from the top over everything, with its own sound, and it fades away by itself when it ends; press again to cut it early.',
     sound: 'The rocket. The clip\'s own audio through the layer\'s bus; the band holds one note under it.'
   });
   MEDIA.reg({

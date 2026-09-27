@@ -39,18 +39,21 @@
     },
 
     /* ---- the two things you actually press ---- */
-    go() { this.launch(OWPOEM.at(1)); },
-    back() { this.launch(OWPOEM.at(-1)); },
-    fire(n) { this.launch(n - 1); },              // fire(6) = OW6, 1-based on purpose
+    /* Each spoken poem is TWO cues — its language, then its English (Edson,
+       Sep 27) — so GO from OW6 native is OW6 English, and the GO after that is
+       the next poem. OWPOEM.cues() owns the list; this only walks it. */
+    go() { const c = OWPOEM.cueAt(1); return this.launch(c.idx, c.bank, c.k); },
+    back() { const c = OWPOEM.cueAt(-1); return this.launch(c.idx, c.bank, c.k); },
+    fire(n) { return this.launch(n - 1, 'native'); },   // fire(6) = OW6, 1-based on purpose, its language first
 
-    launch(idx) {
+    launch(idx, bank, k) {
       if (idx === undefined || idx < 0) return false;
       // IGNORED while one is speaking (Edson's call): they are minutes apart,
       // so a second press is a mistake, not an intention.
       if (OWPOEM.speaking()) return false;
       const when = this.gridAhead();
       OWPOEM.auto = false;
-      OWPOEM.playAt(idx, when || (OWPOEM.now() + 0.28));
+      OWPOEM.playAt(idx, when || (OWPOEM.now() + 0.28), bank, k);
       this.armed = idx; this.armedAt = OWPOEM.now();
       return true;
     },
@@ -64,17 +67,19 @@
 
     /* ---- what the standby readout needs ---- */
     state() {
-      const nextIdx = OWPOEM.at(1);
-      const nextP = OWPOEM.POEMS[nextIdx] || null;
+      const nc = OWPOEM.cueAt(1);
+      const nextP = OWPOEM.POEMS[nc.idx] || null;
       const cur = (OWPOEM.i >= 0) ? OWPOEM.POEMS[OWPOEM.i] : null;
       const waiting = cur && OWPOEM.now() < OWPOEM.tStart;
       return {
         standbyN: nextP ? nextP.n : null,
-        standbyLang: nextP ? (OWPOEM.voices === 'en' ? 'English' : nextP.spokenLang) : null,
+        standbyBank: nextP ? nc.bank : null,
+        standbyLang: nextP ? (nc.bank === 'en' ? 'English' : nextP.spokenLang) : null,
         curN: cur ? cur.n : null,
+        curBank: cur ? OWPOEM.voices : null,
         phase: waiting ? 'armed' : (cur ? OWPOEM.ph : 'idle'),
         countdown: waiting ? OWPOEM.countdown() : 0,
-        pos: (OWPOEM.orderPos() + 1) + '/' + OWPOEM.ORDER.length,
+        pos: (OWPOEM.orderPos() + 1) + '/' + OWPOEM.cues().length,
         quantise: this.quantise
       };
     }

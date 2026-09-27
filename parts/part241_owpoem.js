@@ -32,9 +32,10 @@
 (() => {
   /* 🔴 `spoken` IS A PLACEHOLDER UNTIL THE REAL VOICE LANDS. Real so far
      (2026-09-27): OW1 (Tetsuro Hoshi, 日本語) here, and OW5 (Amanda Perry) in
-     the ENGLISH bank. THE POEMS RUN TWICE (Edson, Sep 27): all of them in the
-     languages, then all of them in English — ORDER below is one pass; the
-     English pass is the same ORDER after setVoices('en'). `text` is the canonical line,
+     the ENGLISH bank. EVERY POEM IS HEARD TWICE (Edson, Sep 27): "poem in its
+     language immediately followed by its English" — ORDER below lists the
+     poems; cues() expands each spoken one into a native cue then an English
+     cue, and GO walks that. `text` is the canonical line,
      locked in artworks/first-witness-series/CURATORIAL.md, and never changes.
      `spoken` is what the RECORDING says — on the night, a friend reading in
      their mother tongue. Right now it is a machine translation voiced by
@@ -119,7 +120,14 @@
      spoken line — the set ends on the silence rather than merely lacking a
      twelfth poem. Move it or drop it; it is one number in this array.
 
-     This is the cue list. Edit it here, or live: OWPOEM.ORDER = [...]. */
+     This is the running order. Edit it here, or live: OWPOEM.ORDER = [...].
+
+     THE CUE LIST IS TWICE AS LONG (Edson, Sep 27, 14:02): "poem in its
+     language immediately followed by its English." Every spoken entry here
+     becomes two cues — the friend's voice from assets/poems/, then the same
+     poem from assets/poems-en/ — and the silence stays one cue. cues() is
+     that expansion; GO / BACK / the auto cycle walk it, so the Twister needs
+     nothing new. ?poems=en still forces a bank for a bare play(idx). */
   const ORDER = [
      6,   // Português  — Edson's own tongue, and the line about his son
      2,   // Français
@@ -131,8 +139,7 @@
      5,   // हिन्दी      (canonically Yoruba — see the assets README)
      7,   // Deutsch
      9,   // 中文
-     1,   // 日本語      — Tetsuro Hoshi (Sep 27). "English last" now means the
-           //               ENGLISH PASS comes after this whole list, not this slot.
+     1,   // 日本語      — Tetsuro Hoshi (Sep 27), then its English, as every one
     12    // the silence
   ];
 
@@ -249,14 +256,13 @@
     mode: 'pair',            // 'pair' | 'solo'
     grain: 'word',           // 'word' = one at a time (default) · 'phrase' = 2–3
     voices: 'native',        // 'native' = eleven languages · 'en' = all English
-    /* Switch banks live. Both sets are in the build, so this costs a reload of
-       eleven small buffers and nothing else. ?poems=en picks it at startup. */
+    /* The DEFAULT bank for a bare play(idx) — a harness, ?poems=en, or a
+       direct fire. The cue list sets the bank per cue and ignores this. Both
+       banks are always loaded, so switching costs nothing. */
     setVoices(which) {
       if (which !== 'en' && which !== 'native') return;
       if (which === this.voices) return;
-      this.stop(); this.voices = which; this._loaded = false; this._pxFor = -1;
-      buffers.native = {}; buffers.en = {};
-      this.load();
+      this.stop(); this.voices = which; this._pxFor = -1;
     },
     i: -1, ph: 'off', dur: 0, frozen: false, offAt: undefined,
     tArm: 0, tStart: 0, tEnd: 0, tGone: 0,
@@ -289,15 +295,17 @@
       // latch closes only once the fetches have actually been started.
       if (typeof AE === 'undefined' || !AE.ctx) return;
       this._loaded = true;
-      POEMS.forEach(p => {
+      // BOTH banks, always: a cue pair plays native then English seconds
+      // apart, so there is no moment to fetch the second bank in between.
+      ['native', 'en'].forEach(set => POEMS.forEach(p => {
         if (p.silent) return;
-        const set = this.voices, bank = FILES[set] || FILES.native;
+        const bank = FILES[set] || FILES.native;
         const url = bank[p.n]; if (!url) { buffers[set][p.n] = false; return; }
         fetch(url).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
           .then(ab => AE.ctx.decodeAudioData(ab))
           .then(buf => { buffers[set][p.n] = buf; })
           .catch(() => { buffers[set][p.n] = false; });
-      });
+      }));
     },
 
     /* ---------- SCHEDULING ----------
@@ -315,8 +323,13 @@
        just before one and it snaps. Either way it is fully open at tStart,
        so the room never sees a delay — it sees an approach — and the voice
        lands on the beat. Their own law: anticipation beats surprise. */
-    playAt(idx, when) {
+    playAt(idx, when, bank, k) {
       const p = POEMS[idx]; if (!p) return;
+      // bank: which voice speaks this cue ('native' | 'en'); k: its index in
+      // cues(), so GO continues from here. A bare play(idx) keeps the default
+      // bank and lands on that poem's first matching cue.
+      if (bank === 'en' || bank === 'native') this.voices = bank;
+      this.cue = (k !== undefined && k >= 0) ? k : this.cueIndexOf(p.n, this.voices);
       // AE.master is built inside ensure(), and a poem can be fired BEFORE any
       // scene has opened. Without this the master bus does not exist, the
       // fallback reaches for ctx.destination, and the control-window mute gate
@@ -362,18 +375,34 @@
     play(idx) { this.playAt(idx, this.now() + MINROLL); },
 
     ORDER,
-    /* step through the RUNNING ORDER, not the OW numbering */
-    orderPos() {
-      const n = (this.last === undefined) ? -1 : this.last + 1;
-      return this.ORDER.indexOf(n);
+    /* the cue list: ORDER with every spoken poem doubled — its language, then
+       its English. Computed each time so a live edit of ORDER is honoured. */
+    cues() {
+      const out = [];
+      for (const n of this.ORDER) {
+        const p = POEMS[n - 1]; if (!p) continue;
+        if (p.silent || !p.text) out.push({ n, bank: 'native' });
+        else { out.push({ n, bank: 'native' }); out.push({ n, bank: 'en' }); }
+      }
+      return out;
     },
-    at(dir) {
-      const O = this.ORDER; if (!O.length) return -1;
-      const k = this.orderPos();
-      const j = (k < 0) ? (dir > 0 ? 0 : O.length - 1) : ((k + dir) % O.length + O.length) % O.length;
-      return O[j] - 1;                                       // OW number -> POEMS index
+    cue: -1,                                                  // index into cues() of the last cue fired
+    cueIndexOf(n, bank) {
+      const C = this.cues();
+      let k = C.findIndex(c => c.n === n && c.bank === bank);
+      if (k < 0) k = C.findIndex(c => c.n === n);
+      return k;
     },
-    step(dir) { const i = this.at(dir); if (i >= 0) this.play(i); },
+    /* step through the CUE LIST, not the OW numbering */
+    orderPos() { return this.cue; },
+    cueAt(dir) {
+      const C = this.cues(); if (!C.length) return { k: -1, idx: -1, bank: 'native' };
+      const k = this.cue;
+      const j = (k < 0) ? (dir > 0 ? 0 : C.length - 1) : ((k + dir) % C.length + C.length) % C.length;
+      return { k: j, idx: C[j].n - 1, bank: C[j].bank };      // OW number -> POEMS index
+    },
+    at(dir) { return this.cueAt(dir).idx; },
+    step(dir) { const c = this.cueAt(dir); if (c.idx >= 0) this.playAt(c.idx, this.now() + MINROLL, c.bank, c.k); },
     next() { this.step(1); },
     prev() { this.step(-1); },
     stopAudio() { if (this.src) { try { this.src.stop(); } catch (e) {} this.src = null; } },

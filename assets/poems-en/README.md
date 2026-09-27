@@ -1,4 +1,4 @@
-# The eleven voices — ENGLISH SET (the second pass; 1 real, 10 placeholders)
+# The eleven voices — ENGLISH SET (each poem's second cue; 1 real, 10 placeholders)
 
 **Generated 2026-09-24 with macOS `say`, eleven different English voices across six
 accents (UK, US, Irish, Australian, South African, Indian).**
@@ -24,7 +24,8 @@ next door, nothing is translated: these read the locked lines from
 | ow10 | Ralph | en_US |
 | ow11 | Karen | en_AU |
 
-## Switching between the two sets
+## Playing
+Every spoken poem is two cues: its language (`../poems/`), then this bank (Edson, 2026-09-27). GO walks both. To force a bank for a bare `play(idx)`:
 ```
 OWPOEM.setVoices('en')      // all English
 OWPOEM.setVoices('native')  // eleven languages

@@ -49,6 +49,17 @@
     MIXERS.push(M.id);
     const cost = Object.assign({}, COST, M.cost || {});
     const MAC = M.macros || [];
+    /* SHOTS (Sep 27, 16:15): a clip that is a BUTTON, not a layer. Edson: "not
+       as a layer, but as a click on a button of the Twister." A shot is a
+       hosted scene like a layer, appended AFTER the faders in s.L, so every
+       index a fader, the Twister or REMOTE knows is unchanged. It has no
+       fader: MIX.shot(j) (Twister SHOT, the L key) plays it from the top over
+       everything, with its sound; it fades out by itself when the clip ends,
+       and a second press cuts it early. It is outside the budget and SOLO,
+       BLACKOUT kills it and never brings it back, and REMOTE relays the press
+       (through MIX.fire) but never the state, so a late joiner does not
+       restart the rocket halfway through. */
+    const SHOTS = M.shots || [];
     reg({
       id: M.id, family: M.id, ver: 1, title: M.title, tech: M.tech,
       audioIn: true, textIsContent: true, _macros: MAC,
@@ -60,15 +71,17 @@
       desc: M.desc, interact: M.interact, sound: M.sound,
 
       init(P) {
-        const s = { L: [], insts: [], fade: new Float32Array(M.layers.length),
-                    want: new Float32Array(M.layers.length), live: [], spent: 0,
+        const nL = M.layers.length, nT = nL + SHOTS.length;   // faders, then shots
+        const s = { L: [], insts: [], fade: new Float32Array(nT),
+                    want: new Float32Array(nL), live: [], spent: 0,
                     inst: 1, solo: -1, pres: 0,
                     // 0.2: macros (one shared object every layer reads), wake
                     // flags, and BLACKOUT's kept faders
-                    macro: {}, on: new Uint8Array(M.layers.length), black: false, keep: null, glide: 0 };
+                    macro: {}, on: new Uint8Array(nT), black: false, keep: null, glide: 0,
+                    nL, shotWant: new Float32Array(SHOTS.length), shotT: new Float32Array(SHOTS.length) };
         MAC.forEach(d => { s.macro[d.k] = (d.def !== undefined) ? d.def : 0; });
         s.pal = (window.PAL && M.palette) ? PAL.of(P) : null;
-        M.layers.forEach((id, i) => {
+        M.layers.concat(SHOTS.map(x => x.id)).forEach((id, i) => {
           const def = (typeof PIECES !== 'undefined') ? PIECES.find(x => x.id === id) : null;
           // "THE POINT" and "THE PASSAGE" both abbreviate to "THE" if you just
           // take the first letters. Drop the article, and prefer what comes
@@ -78,7 +91,8 @@
           const full = (def ? def.title.toUpperCase() : id).replace(/^\s*BOT\s*·\s*/, '');
           const shortName = (full.indexOf(',') >= 0 ? full.split(',').pop() : full)
             .replace(/^\s*THE\s+/, '').trim();
-          s.L.push({ id, def, name: full, short: shortName, cost: cost[id] || 2 });
+          const shot = i >= nL ? SHOTS[i - nL] : null;
+          s.L.push({ id, def, name: full, short: shot ? (shot.label || shortName) : shortName, cost: cost[id] || 2, shot: !!shot });
           const sub = {
             def, canvas: P.canvas, g: P.g, w: P.w, h: P.h, state: {},
             seed: (P.seed + i * 7919) | 0, focused: true, visible: true, rand: null,
@@ -101,8 +115,16 @@
         s.glide = Math.max(0, s.glide - dt);
         const rate = s.glide > 0 ? 2.2 : 4.5;   // BLACKOUT glides (~1.5 s); a knob jump is a move, not a jolt
         for (let i = 0; i < s.L.length; i++) {
-          const target = (s.solo >= 0) ? (i === s.solo ? 1 : 0) : s.want[i];
-          s.fade[i] += (target - s.fade[i]) * Math.min(1, dt * rate);
+          const j = i - s.nL;                                  // >= 0: a shot
+          if (j >= 0) {
+            // a shot ends itself: once it has been awake a moment and its
+            // clip says it is over, it lets go (the last frame fades out)
+            if (s.on[i]) s.shotT[j] += dt; else s.shotT[j] = 0;
+            const def = s.L[i].def;
+            if (s.shotWant[j] > 0 && s.shotT[j] > 0.5 && def && def.done) { try { if (def.done(s.insts[i])) s.shotWant[j] = 0; } catch (e) {} }
+          }
+          const target = (j >= 0) ? s.shotWant[j] : (s.solo >= 0) ? (i === s.solo ? 1 : 0) : s.want[i];
+          s.fade[i] += (target - s.fade[i]) * Math.min(1, dt * (j >= 0 ? 6 : rate));
           const on = s.fade[i] > CULL;
           /* WAKE / SLEEP. A layer is told when its fader arrives from nothing
              and when it goes back to nothing. A clip starts from the top on
@@ -112,7 +134,7 @@
           if (on && !s.on[i]) { try { if (def && def.wake) def.wake(s.insts[i]); } catch (e) {} }
           else if (!on && s.on[i]) { try { if (def && def.sleep) def.sleep(s.insts[i]); } catch (e) {} }
           s.on[i] = on ? 1 : 0;
-          if (on) order.push(i);
+          if (on && j < 0) order.push(i);                     // shots are outside the budget
         }
         /* THE BUDGET. With one heavy and one cheap layer per movement this
            never bites — it is here so a third layer added later degrades the
@@ -124,6 +146,7 @@
           if (spent + c <= BUDGET || !keep.length) { keep.push(i); spent += c; }
         }
         keep.sort((a, b) => a - b);          // draw in set order, not by level
+        for (let i = s.nL; i < s.L.length; i++) if (s.on[i]) keep.push(i);   // a shot is always drawn, and last
         s.live = keep; s.spent = spent;
         for (const i of keep) { try { s.L[i].def.step(s.insts[i], dt, t, inp); } catch (e) {} }
       },
@@ -143,7 +166,8 @@
           const ms = Math.max(1, Math.sqrt(areaScale(P)));
           g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
           g.fillStyle = 'rgba(225,225,235,0.8)';
-          const bars = s.L.map((L, i) => L.short + ' ' + Math.round(s.fade[i] * 100)).join('   ');
+          const bars = s.L.slice(0, s.nL).map((L, i) => L.short + ' ' + Math.round(s.fade[i] * 100)).join('   ')
+                     + s.L.slice(s.nL).map((L, j) => s.on[s.nL + j] ? '   · ▶ ' + L.short : '').join('');
           const macs = MAC.length ? '   ·   ' + MAC.map(d => d.label + ' ' + Math.round((s.macro[d.k] || 0) * 100)).join('  ') : '';
           // no INST here: SOUND OUT is the one level now (Edson, Sep 25)
           g.fillText(M.part + ' · ' + bars + macs + '   load ' + s.spent + '/' + BUDGET + (s.black ? '   · BLACKOUT' : ''), 10, h - 10);
@@ -266,12 +290,13 @@
     MIXERS,
     P() { const f = (typeof focus !== 'undefined') ? focus.P : null;
           return (f && MIXERS.indexOf(f.def.id) >= 0) ? f : null; },
-    count() { const P = this.P(); return P ? P.state.L.length : 0; },
-    names() { const P = this.P(); return P ? P.state.L.map(l => l.short) : []; },
-    set(i, v) { const P = this.P(); if (P && i >= 0 && i < P.state.L.length) P.state.want[i] = clamp(v); },
+    // FADERS ONLY: the shots sit after them in s.L and are not faders
+    count() { const P = this.P(); return P ? P.state.nL : 0; },
+    names() { const P = this.P(); return P ? P.state.L.slice(0, P.state.nL).map(l => l.short) : []; },
+    set(i, v) { const P = this.P(); if (P && i >= 0 && i < P.state.nL) P.state.want[i] = clamp(v); },
     get(i) { const P = this.P(); return P ? P.state.want[i] : 0; },
     instrument(v) { const P = this.P(); if (P) P.state.inst = clamp(v); },
-    solo(i) { const P = this.P(); if (P && i < P.state.L.length) P.state.solo = (P.state.solo === i) ? -1 : i; },
+    solo(i) { const P = this.P(); if (P && i < P.state.nL) P.state.solo = (P.state.solo === i) ? -1 : i; },
     /* 0.2 — MACROS: the host's declared slow moves, by index. Outside a host
        every one of these is a no-op, never an error. */
     /* MP(): the piece that carries macros — a movement (its `_macros`, built
@@ -304,17 +329,38 @@
        faders come back to exactly where they were. A toggle, so one knob. */
     blackout() {
       const P = this.P(); if (!P) return; const s = P.state;
-      if (!s.black) { s.keep = Array.from(s.want); s.keepSolo = s.solo; s.want.fill(0); s.solo = -1; s.black = true; }
+      if (!s.black) { s.keep = Array.from(s.want); s.keepSolo = s.solo; s.want.fill(0); s.solo = -1; s.black = true; if (s.shotWant) s.shotWant.fill(0); }
       else { if (s.keep) s.keep.forEach((v, i) => { s.want[i] = v; }); s.solo = (s.keepSolo === undefined ? -1 : s.keepSolo); s.black = false; }
       s.glide = 1.6;
     },
-    /* a layer's own event, by index (a clip restarts) */
-    fire(i) { const P = this.P(); if (!P) return; const L = P.state.L[i]; if (L && L.def && L.def.wake) { try { L.def.wake(P.state.insts[i]); } catch (e) {} } },
+    /* a layer's own event, by index (a clip restarts). Past the faders the
+       index is a SHOT, and fire toggles it: play from the top / cut. Shots go
+       through fire so REMOTE (which wraps fire) relays the press as it is. */
+    fire(i, v) {
+      const P = this.P(); if (!P) return; const s = P.state;
+      if (i >= s.nL && i < s.L.length) {
+        const j = i - s.nL;
+        // `v` is decided by the SENDER (MIX.shot), so a wall that missed a
+        // press or joined late obeys it instead of toggling its own state
+        const on = (v === undefined) ? !(s.shotWant[j] > 0) : v > 0;
+        if (!on) { s.shotWant[j] = 0; return; }
+        if (s.black) return;                                 // the wall is black on purpose
+        if (s.on[i]) { const L = s.L[i]; try { if (L.def && L.def.wake) L.def.wake(s.insts[i]); } catch (e) {} s.shotT[j] = 0; }
+        s.shotWant[j] = 1;                                   // waking from nothing starts it from the top
+        return;
+      }
+      const L = s.L[i]; if (L && L.def && L.def.wake) { try { L.def.wake(s.insts[i]); } catch (e) {} }
+    },
+    shotCount() { const P = this.P(); return P ? P.state.L.length - P.state.nL : 0; },
+    shotNames() { const P = this.P(); return P ? P.state.L.slice(P.state.nL).map(l => l.short) : []; },
+    shot(j) { const P = this.P(); if (!P || j < 0 || j >= this.shotCount()) return;
+              this.fire(P.state.nL + j, P.state.shotWant[j] > 0 ? 0 : 1); },
     make: makeMixer,
     state() {
       const P = this.P(); if (!P) return null; const s = P.state;
-      return { id: P.def.id, layers: s.L.map(l => l.short),
-               fade: Array.from(s.fade).map(x => +x.toFixed(2)),
+      return { id: P.def.id, layers: s.L.slice(0, s.nL).map(l => l.short),
+               fade: Array.from(s.fade).slice(0, s.nL).map(x => +x.toFixed(2)),
+               shots: s.L.slice(s.nL).map((l, j) => ({ name: l.short, want: s.shotWant[j], fade: +s.fade[s.nL + j].toFixed(2), on: !!s.on[s.nL + j] })),
                want: Array.from(s.want).map(x => +x.toFixed(2)),
                live: s.live.slice(), load: s.spent + '/' + BUDGET,
                inst: +s.inst.toFixed(2), solo: s.solo,
@@ -332,6 +378,7 @@
     if (k >= '1' && k <= '9') { const i = +k - 1; if (i < MIX.count()) { e.preventDefault(); MIX.solo(i); } return; }
     if (k === '0') { e.preventDefault(); MIX.P().state.solo = -1; return; }
     if (k === 'b' || k === 'B') { e.preventDefault(); MIX.blackout(); return; }
+    if ((k === 'l' || k === 'L') && MIX.shotCount()) { e.preventDefault(); MIX.shot(0); return; }   // L = LAUNCH, the first shot
     /* − + step SOUND OUT, the rail's own volume, not a second hidden
        instrument level — Edson, Sep 25: they were the same thing twice, and
        a trim with no slider on screen is a volume drop nobody can explain. */

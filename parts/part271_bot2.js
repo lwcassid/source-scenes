@@ -29,13 +29,16 @@
   const MACS = 'The MACROS (knobs 13, 14, 15, 7) are the act\'s slow decided moves; they hold where you leave them. BLACKOUT (knob 12, or B) glides everything to black and back. ';
 
   MIX.make({
-    id: 'SRC-73', part: 'I', title: 'BoT 0.2 · I · The Sky', tech: 'SIX LAYERS / F AEOLIAN 54',
+    id: 'SRC-73', part: 'I', title: 'BoT 0.2 · I · The Sky', tech: 'FIVE LAYERS + THE LAUNCH / F AEOLIAN 54',
     /* Sep 27 (PLAN-PALETTE): the four generated layers are their versions
        that READ the palette below — 56.3, 71.2, 58.3, 57.2. The old ones are
        untouched and still open. `cost` follows the ids: Eclipse and the
        Passage are the heavies (3), or the budget lets them meet. */
-    layers: ['SRC-56.3', 'SRC-71.2', 'SRC-58.3', 'SRC-77', 'SRC-78', 'SRC-57.2'],
-    cost: { 'SRC-56.3': 1, 'SRC-71.2': 2, 'SRC-58.3': 3, 'SRC-77': 1, 'SRC-78': 1, 'SRC-57.2': 3 },
+    layers: ['SRC-56.3', 'SRC-71.2', 'SRC-58.3', 'SRC-78', 'SRC-57.2'],
+    cost: { 'SRC-56.3': 1, 'SRC-71.2': 2, 'SRC-58.3': 3, 'SRC-78': 1, 'SRC-57.2': 3 },
+    /* Sep 27, 16:15 — Edson: the launch clip "not as a layer, but as a click
+       on a button of the Twister." A SHOT (part250): knob 7's push, or L. */
+    shots: [{ id: 'SRC-77', label: 'LAUNCH' }],
     macros: [
       { k: 'depth', label: 'DEPTH', def: 0 },      // the flat gold disc → a body in a space
       { k: 'dir',   label: 'DIRECTION', def: 1 }   // the Passage: 1 = up
@@ -58,8 +61,8 @@
     music: { bpm: 54, root: 41, mode: 'aeolian', chordBars: 8,
              chords: [[0, 7, 12, 19], [0, 7, 14, 19], [0, 8, 15, 20], [0, 7, 12, 17]],
              chordNames: ['F5', 'Fsus2', 'D♭maj7/F', 'Fsus4'] },
-    desc: 'Act one. It opens on a flat gold circle, alone — a light on the wall, the room lit by it. Turn DEPTH and it turns out to sit in a space. Bring up THE CIRCLE and the ring is alive with the band; bring up THE PASSAGE and you are travelling upward through stars. When the story reaches today at 2:18, the LAUNCH CLIP is a fader: up, it plays from the top, a few seconds, then gone. THE TEMPLE is a still behind the talk, a button not a chapter. ECLIPSE is the crown for the triumph. Layers are added and removed; nothing cuts.',
-    interact: SRC + FAD + MACS + 'DEPTH is macro A, DIRECTION is macro B (leave it up).',
+    desc: 'Act one. It opens on a flat gold circle, alone — a light on the wall, the room lit by it. Turn DEPTH and it turns out to sit in a space. Bring up THE CIRCLE and the ring is alive with the band; bring up THE PASSAGE and you are travelling upward through stars. When the story reaches today at 2:18, the LAUNCH is a button: one press and the rocket plays from the top over everything, with its sound, then it is gone. THE TEMPLE is a still behind the talk, a button not a chapter. ECLIPSE is the crown for the triumph. Layers are added and removed; nothing cuts.',
+    interact: SRC + FAD + MACS + 'DEPTH is macro A, DIRECTION is macro B (leave it up). THE LAUNCH is a press, not a fader: knob 7 (or L) plays the clip from the top over everything; it leaves by itself when it ends, and a second press cuts it.',
     sound: 'F aeolian, eight bars a chord, the slowest of the night — this act is a held state that a band plays over. Each layer keeps its own sound on its own fader; the clip brings its own.'
   });
 

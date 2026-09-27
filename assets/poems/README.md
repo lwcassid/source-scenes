@@ -1,6 +1,6 @@
 # The eleven voices (the LANGUAGE pass) — 1 real, 10 PLACEHOLDERS
 
-**The poems run twice (Edson, 2026-09-27): all of them in the languages (this bank), then all of them in English (`../poems-en/`).**
+**Every poem plays twice, back to back (Edson, 2026-09-27): its language from this bank, then immediately its English from `../poems-en/`. One GO per cue, 23 cues.**
 
 **✅ Real so far (2026-09-27):** `ow1.mp3` Tetsuro Hoshi, 日本語. (Amanda Perry's English OW5 is in the English bank.) Raw originals + transcripts: `artworks/first-witness-series/recordings/`.
 
@@ -33,8 +33,8 @@ reads `ow1.mp3` … `ow11.mp3` from this folder and re-measures the duration on 
 ## There is a second set
 
 `assets/poems-en/` holds the same eleven in **English**, eleven different voices across
-six accents — and those read the **canonical** lines, untranslated. Switch with
-`OWPOEM.setVoices('en')` / `('native')`, or `?poems=en`. Both are in the build.
+six accents — and those read the **canonical** lines, untranslated. The cue list plays
+them itself; `OWPOEM.setVoices('en')` / `?poems=en` only set the bank for a bare `play(idx)`. Both are in the build.
 
 ## Replacing them
 

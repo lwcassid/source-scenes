@@ -58,18 +58,18 @@ await open('set=BIRTH+OF+A+TEMPLE+0.2');
 const setIds = await pg.evaluate(() => (typeof QUEUE !== 'undefined' && QUEUE.shared) ? QUEUE.shared.slice() : null);
 ok('three acts, in order', setIds && setIds.join() === 'SRC-73,SRC-74,SRC-75', setIds);
 
-console.log('ACT I · SRC-73: six layers, two macros, the media layers wake and sleep');
+console.log('ACT I · SRC-73: five layers, two macros, THE LAUNCH is a shot on a button');
 await scene('SRC-73');
 let s = await mix();
-ok('host is open with six layers', s && s.layers.length === 6, s);
+ok('host is open with five layers and one shot, LAUNCH', s && s.layers.length === 5 && s.shots && s.shots.length === 1 && s.shots[0].name === 'LAUNCH', s);
 ok('macros are DEPTH and DIRECTION, DIRECTION starts UP', s && s.macroNames.join() === 'DEPTH,DIRECTION' && s.macro[1] === 1, s);
 ok('layer 1 opened up, the rest down', s && s.want[0] === 1 && s.want.slice(1).every(v => v === 0), s);
-// the Twister lays the act out: faders 1-6, macros on 13/14, STOP on 11, BLACKOUT on 12
+// the Twister lays the act out: faders 1-5, macros on 13/14, SHOT on 7's push, STOP on 11, BLACKOUT on 12
 await pg.evaluate(() => { MIDIRIG.add('twister'); TWIST.autoMap(); });
 await wait(300);
 const lay = await pg.evaluate(() => TWIST.slots.map(S => S.turn + '/' + S.push));
-ok('AUTO-MAP: faders on 1-6', lay.slice(0, 6).every((x, i) => x === 'fader' + i + '/solo' + i), lay);
-ok('AUTO-MAP: macro A on 13, macro B on 14, nothing on 15 and 7', lay[12] === 'macro0/none' && lay[13] === 'macro1/none' && lay[14] === 'none/none' && lay[6] === 'none/none', lay);
+ok('AUTO-MAP: faders on 1-5, knob 6 free', lay.slice(0, 5).every((x, i) => x === 'fader' + i + '/solo' + i) && lay[5] === 'none/none', lay);
+ok('AUTO-MAP: macro A on 13, macro B on 14, nothing on 15; knob 7 PUSH = the shot', lay[12] === 'macro0/none' && lay[13] === 'macro1/none' && lay[14] === 'none/none' && lay[6] === 'none/shot0', lay);
 ok('AUTO-MAP: GO BACK STOP BLACKOUT on 9-12, SOUND OUT on 16', lay[8] === 'none/go' && lay[9] === 'none/back' && lay[10] === 'none/stop' && lay[11] === 'none/blackout' && lay[15] === 'vol/none', lay);
 // a knob turn reaches the macro, and the light reads it back
 await pg.evaluate(() => TWIST.fire('macro0', 0.5));
@@ -77,27 +77,43 @@ s = await mix();
 ok('knob 13 → DEPTH 0.5', s.macro[0] === 0.5, s.macro);
 const light = await pg.evaluate(() => TWIST.lightFor(12));
 ok('the ring shows the macro value', light.ring === 64, light);
-// the media layer: fader up from nothing starts the clip; down parks it.
-// HEADLESS HAS NO AUDIO SINK: with --mute-audio an UNMUTED <video> reports
-// paused=false but its clock never leaves 0 (measured Sep 27 11:00, even on a
-// plain element with no WebAudio). Mute the element here so the clock runs
-// off the video track; the sound path is judged by ears in a real Chrome.
-await pg.evaluate(() => { MEDIA.item('SRC-77')._el.muted = true; MIX.set(3, 1); });
+// THE SHOT. HEADLESS HAS NO AUDIO SINK: with --mute-audio an UNMUTED <video>
+// reports paused=false but its clock never leaves 0 (measured Sep 27 11:00).
+// Mute the element here so the clock runs off the video track; the sound
+// path is judged by ears in a real Chrome.
+await pg.evaluate(() => { MEDIA.item('SRC-77')._el.muted = true; TWIST.fire('shot0', 1); });
 await wait(2500);
 let m = await pg.evaluate(() => MEDIA.state('SRC-77'));
-ok('LAUNCH CLIP: fader up → the clip is playing from the top', m && m.ready && !m.paused && m.t > 0.3 && m.t < 2.6, m);
-await pg.evaluate(() => MIX.set(3, 0));
-await wait(1800);
+s = await mix();
+ok('LAUNCH: one press → the clip plays from the top', m && m.ready && !m.paused && m.t > 0.3 && m.t < 2.6, m);
+ok('LAUNCH is on the wall at full, drawn last, and no fader moved', s.shots[0].fade > 0.95 && s.live[s.live.length - 1] === 5 && s.want.slice(1).every(v => v === 0), s);
+const shl = await pg.evaluate(() => TWIST.lightFor(6));
+ok('knob 7 burns while the clip is on the wall', shl.anim === 47, shl);
+await pg.evaluate(() => TWIST.fire('shot0', 1));
+await wait(1500);
 m = await pg.evaluate(() => MEDIA.state('SRC-77'));
-ok('fader down → parked', m && m.paused, m);
-await pg.evaluate(() => MIX.set(3, 1));
+s = await mix();
+ok('a second press cuts it: gone and parked', s.shots[0].fade < 0.03 && m.paused, { s: s.shots, m });
+await pg.evaluate(() => MIX.shot(0));
 await wait(1200);
 m = await pg.evaluate(() => MEDIA.state('SRC-77'));
-ok('fader up again → from the top again', m && !m.paused && m.t < 1.4, m);
+ok('press again → from the top again', m && !m.paused && m.t < 1.4, m);
+// it leaves by itself. Wait for the real end: the local python server
+// ignores Range requests, so a seek to near the end does nothing here.
+const dur = await pg.evaluate(() => MEDIA.item('SRC-77')._el.duration || 40);
+await wait(Math.min(45, dur) * 1000 + 1500);
+s = await mix();
+m = await pg.evaluate(() => MEDIA.state('SRC-77'));
+ok('at the end of the clip the shot lets go by itself', s.shots[0].want === 0 && s.shots[0].fade < 0.03 && m.paused, { s: s.shots, m });
+// BLACKOUT kills a shot and never brings it back
+await pg.evaluate(() => MIX.shot(0)); await wait(800);
+await pg.evaluate(() => MIX.blackout()); await wait(2000);
+await pg.evaluate(() => MIX.blackout()); await wait(2000);
+s = await mix();
+ok('BLACKOUT and back: the shot stays gone', s.shots[0].want === 0 && s.shots[0].fade < 0.03, s.shots);
+const still = await pg.evaluate(() => { MIX.set(3, 1); return MEDIA.state('SRC-78'); });
+ok('THE TEMPLE still is loaded, on fader 4', still && still.ready && !still.err, still);
 await pg.evaluate(() => MIX.set(3, 0));
-const still = await pg.evaluate(() => { MIX.set(4, 1); return MEDIA.state('SRC-78'); });
-ok('THE TEMPLE still is loaded', still && still.ready && !still.err, still);
-await pg.evaluate(() => MIX.set(4, 0));
 // BLACKOUT: everything glides to black and comes back where it was
 await pg.evaluate(() => { MIX.set(0, 1); MIX.set(1, 0.7); MIX.set(2, 0.4); });
 await wait(600);
@@ -111,11 +127,13 @@ await pg.evaluate(() => TWIST.fire('blackout', 1));
 await wait(2500);
 s = await mix();
 ok('BLACKOUT again: back to 1 / 0.7 / 0.4', !s.black && s.want[0] === 1 && s.want[1] === 0.7 && s.want[2] === 0.4 && s.fade[0] > 0.9, s);
-await shot('I_flat', [1, 0, 0, 0, 0, 0], [0, 1]);
-await shot('I_space', [1, 0.8, 0.7, 0, 0, 0], [1, 1]);
-await shot('I_clip', [0.3, 0, 0.5, 1, 0, 0], [1, 1], 2500);
-await shot('I_triumph', [0.6, 0.5, 1, 0, 0, 0.8], [1, 1]);
-const f1 = await pg.evaluate(async () => { MIX.set(0, 1); MIX.set(1, 1); MIX.set(2, 1); MIX.set(3, 0); MIX.set(4, 0); MIX.set(5, 1); return 1; });
+await shot('I_flat', [1, 0, 0, 0, 0], [0, 1]);
+await shot('I_space', [1, 0.8, 0.7, 0, 0], [1, 1]);
+await pg.evaluate(() => MIX.shot(0));
+await shot('I_launch', [0.3, 0, 0.5, 0, 0], [1, 1], 2500);
+await pg.evaluate(() => MIX.shot(0));
+await shot('I_triumph', [0.6, 0.5, 1, 0, 0.8], [1, 1]);
+const f1 = await pg.evaluate(async () => { MIX.set(0, 1); MIX.set(1, 1); MIX.set(2, 1); MIX.set(3, 0); MIX.set(4, 1); return 1; });
 await wait(1500);
 const fpsI = await fps(3000);
 console.log('  fps  ACT I with Point+Circle+Passage+Eclipse up: ' + fpsI + ' (headless, pessimistic; budget stands layers down)');
@@ -126,7 +144,9 @@ s = await mix();
 ok('four layers, INSIDE / DIVIDE / DIRECTION, DIRECTION starts DOWN', s && s.layers.length === 4 && s.macroNames.join() === 'INSIDE,DIVIDE,DIRECTION' && s.macro[2] === 0, s);
 await pg.evaluate(() => TWIST.autoMap());
 const lay2 = await pg.evaluate(() => TWIST.slots.map(S => S.turn));
-ok('AUTO-MAP: three macros on 13, 14, 15; knob 7 free', lay2[12] === 'macro0' && lay2[13] === 'macro1' && lay2[14] === 'macro2' && lay2[6] === 'none', lay2);
+ok('AUTO-MAP: three macros on 13, 14, 15; knob 7 free (no shot in this act)', lay2[12] === 'macro0' && lay2[13] === 'macro1' && lay2[14] === 'macro2' && lay2[6] === 'none', lay2);
+const push7 = await pg.evaluate(() => TWIST.slots[6].push);
+ok('knob 7 push is empty where the act has no shot', push7 === 'none', push7);
 await pg.evaluate(() => { MIX.set(1, 1); MIX.macro(1, 0.75); });
 await wait(2500);
 const dv = await pg.evaluate(() => { const P = MIX.P(); return +P.state.insts[1].state.divide.toFixed(2); });
