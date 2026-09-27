@@ -164,6 +164,41 @@ const h = await pg.evaluate(() => { const s = focus.P.state;
   return { mode: chan.L.mode, pres: s.pres, size: +s.size.toFixed(3), heat: +s.heat.toFixed(3) }; });
 ok('hands gone 9s, scene unchanged', h.mode === 'drift' && h.pres > 0.999 && h.size === 0.5 && h.heat === 0.3, h);
 
+console.log('THE PALETTE on knobs (Sep 27): hue / band / preset, mapped by hand');
+await pg.goto('about:blank');
+await pg.goto(URL + '#scene=SRC-73', { waitUntil: 'load' });
+await pg.waitForTimeout(3000);
+await pg.evaluate(() => { if (typeof midi !== 'undefined' && !midi.access) midi.access = { inputs: new Map(), outputs: new Map() }; localStorage.removeItem('srcPalettes'); PAL.set('reset'); });
+const pk = await pg.evaluate(() => {
+  const c2 = PAL.state().c[2];
+  const cur = TWIST.current('hue2');                       // a relative knob picks up from the middle
+  TWIST.fire('hue2', 0.8); const c2b = PAL.state().c[2];
+  TWIST.fire('band1', 0.9); const b1 = PAL.state().band[1];
+  const g2 = PAL.state().g[1][0]; TWIST.fire('preset', 1); const g2b = PAL.state().g[1][0];   // the band touched last
+  const inOpts = ['hue0', 'band2'].every(k => TWIST.turnOpts().indexOf(k) >= 0) && TWIST.pushOpts().indexOf('preset') >= 0;
+  PAL.set('reset'); PAL.forget('SRC-73');
+  return { cur, turned: c2b !== c2, b1, presetStepped: g2b !== g2, inOpts, fam: TWIST.lightFor(0, { turn: 'hue0', push: 'none', led: 0 }).anim };
+});
+ok('palette knobs: HUE 3 rotates COPPER, BAND g1 brightens, PRESET steps the band touched last, all offered in MAP', pk.cur === 0.5 && pk.turned && pk.b1 === 0.9 && pk.presetStepped && pk.inOpts, pk);
+const auto73 = await pg.evaluate(() => { TWIST.autoMap(); return TWIST.slots.some(S => /^(hue|band)\d$/.test(S.turn) || S.push === 'preset'); });
+ok('AUTO-MAP places no palette knob (the sixteen are spoken for)', !auto73, auto73);
+await pg.goto('about:blank');
+await pg.goto(URL + '#scene=SRC-28', { waitUntil: 'load' });
+await pg.waitForTimeout(2500);
+const pf = await pg.evaluate(() => { TWIST.fire('hue0', 0.9); TWIST.fire('preset', 1);
+  return { act: PAL.active(), light: TWIST.lightFor(0, { turn: 'hue0', push: 'none', led: 0 }).anim, stored: localStorage.getItem('srcPalettes') }; });
+ok('a foreign scene: palette knobs are no-ops, their light is dim', pf.act === null && pf.light === 19 && (!pf.stored || pf.stored.indexOf('SRC-28') < 0), pf);
+console.log('SRC-80.3: the colour macros ARE the palette, and AUTO-MAP still lands them');
+await pg.goto('about:blank');
+await pg.goto(URL + '#scene=SRC-80.3', { waitUntil: 'load' });
+await pg.waitForTimeout(3000);
+const cs = await pg.evaluate(() => { TWIST.autoMap(); const lay = [12, 13, 14].map(i => TWIST.slots[i].turn);
+  const c0 = PAL.state().c[0]; TWIST.fire('macro0', 0.75); const c0b = PAL.state().c[0];
+  const back = MIX.getMacro(0); PAL.set('hue', 0, 0.3); const follows = MIX.getMacro(0);
+  PAL.set('reset'); PAL.forget('SRC-80');
+  return { lay, moved: c0 !== c0b, back, follows }; });
+ok('COLOR A / COLOR B / ADD B on 13 / 14 / 15; COLOR A moves c0; the knob reads the palette back', cs.lay.join() === 'macro0,macro1,macro2' && cs.moved && cs.back === 0.75 && cs.follows === 0.3, cs);
+
 ok('no page errors', errs.length === 0, errs.slice(0, 3));
 await b.close();
 console.log(fails ? '\n' + fails + ' FAILED' : '\nall passed');

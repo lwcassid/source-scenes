@@ -61,6 +61,18 @@ await wait(500);
 const deck2 = await Rc.p.evaluate(() => ({ armed: POEMDECK.armed, last: REMOTE.state().last }));
 ok('a GO reached the receiver\'s deck', deck2.last === 'deck:go', { deck, deck2 });
 
+console.log('THE PALETTE crosses (Sep 27): one PAL.set on the sender, the same slot on the receiver');
+await S.p.evaluate(() => { PAL.set('reset'); PAL.set('c', 2, '#00ff00'); PAL.set('preset', 0, 'SILVER2'); });
+await wait(700);
+let pl = await Rc.p.evaluate(() => PAL.state());
+ok('receiver: c2 green, g0 SILVER2', pl && pl.c[2] === '#00ff00' && pl.g[0][0] === '#3e3e3e', pl && [pl.c, pl.g[0]]);
+const v0 = pl.ver;
+await wait(3200);
+pl = await Rc.p.evaluate(() => PAL.state());
+ok('two snapshots later nothing rebuilt (a snapshot that changes nothing costs nothing)', pl.ver === v0, [v0, pl.ver]);
+await S.p.evaluate(() => { PAL.set('reset'); PAL.forget('SRC-73'); });
+await wait(600);
+
 console.log('THE SCENE follows: Act II, then close');
 await S.p.evaluate(() => openFocus(PIECES.findIndex(p => p.id === 'SRC-74')));
 await wait(2500);

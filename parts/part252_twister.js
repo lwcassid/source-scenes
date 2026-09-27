@@ -67,11 +67,13 @@
     { k: 'yellow',  v: 60 }, { k: 'amber',  v: 72 }, { k: 'red',    v: 85 },
     { k: 'magenta', v: 100 }, { k: 'violet', v: 113 },
   ];
-  const DEFCOL = { fader: 72, out: 85, solo: 45, cue: 15, macro: 113 };      // amber · red · green · blue · violet
+  const DEFCOL = { fader: 72, out: 85, solo: 45, cue: 15, macro: 113, pal: 100 };  // amber · red · green · blue · violet · magenta
+  const isPal = fn => /^(hue|band)\d$/.test(fn) || fn === 'preset';
   function family(fn) {
     if (fn === 'none') return null;
     if (fn.indexOf('fader') === 0) return 'fader';
     if (fn.indexOf('macro') === 0) return 'macro';
+    if (isPal(fn)) return 'pal';
     if (fn === 'vol') return 'out';
     if (fn.indexOf('solo') === 0 || fn === 'unsolo') return 'solo';
     return 'cue';
@@ -115,6 +117,21 @@
        ~1.5 s; press again and they come back where they were. The 8:00
        silence and the twelfth Witness. A no-op outside a movement. */
     blackout: { label: 'BLACKOUT',     short: 'BLK', push: true },
+    /* THE PALETTE (partcore_palette.js, Sep 27): the open scene's five
+       generators and three bands, on knobs. HUE i rotates generator i (the
+       middle = as declared, a full turn end to end); BAND j brightens or
+       darkens band j's highlight; PRESET (push) steps the last-touched band
+       to the next measured metal. Not placed by AUTO-MAP — the sixteen are
+       spoken for — map them by hand in MAP. A scene with no palette: no-ops. */
+    hue0:   { label: 'HUE c0',         short: 'H0',  turn: true },
+    hue1:   { label: 'HUE c1',         short: 'H1',  turn: true },
+    hue2:   { label: 'HUE c2',         short: 'H2',  turn: true },
+    hue3:   { label: 'HUE c3',         short: 'H3',  turn: true },
+    hue4:   { label: 'HUE c4',         short: 'H4',  turn: true },
+    band0:  { label: 'BAND g0',        short: 'B0',  turn: true },
+    band1:  { label: 'BAND g1',        short: 'B1',  turn: true },
+    band2:  { label: 'BAND g2',        short: 'B2',  turn: true },
+    preset: { label: 'NEXT METAL',     short: 'PRE', push: true },
   };
   const TURNS = Object.keys(FN).filter(k => k === 'none' || FN[k].turn);
   const PUSHES = Object.keys(FN).filter(k => k === 'none' || FN[k].push);
@@ -299,11 +316,13 @@
     },
     turnOpts() {
       const n = this.nLayers(), m = this.nMacros();
-      return TURNS.filter(k => (k.indexOf('fader') !== 0 || +k.slice(5) < n) && (k.indexOf('macro') !== 0 || +k.slice(5) < m));
+      // palette knobs only where the open scene declares a palette
+      const pal = !!(window.PAL && PAL.active());
+      return TURNS.filter(k => (k.indexOf('fader') !== 0 || +k.slice(5) < n) && (k.indexOf('macro') !== 0 || +k.slice(5) < m) && (pal || !isPal(k)));
     },
     pushOpts() {
-      const n = this.nLayers();
-      return PUSHES.filter(k => k.indexOf('solo') !== 0 || +k.slice(4) < n);
+      const n = this.nLayers(), pal = !!(window.PAL && PAL.active());
+      return PUSHES.filter(k => (k.indexOf('solo') !== 0 || +k.slice(4) < n) && (pal || !isPal(k)));
     },
 
     /* PRESS FEEDBACK. Edson: "when I click a nob, we should make it blink so
@@ -455,6 +474,8 @@
         if (fn.indexOf('fader') === 0 && window.MIX) return MIX.get(+fn.slice(5)) || 0;
         if (fn.indexOf('macro') === 0 && window.MIX && MIX.getMacro) return MIX.getMacro(+fn.slice(5)) || 0;
         if (fn === 'vol') { const v = document.getElementById('volSlider'); return v ? +v.value / 100 : 0; }
+        // a palette knob picks up where the palette is (the middle = as declared)
+        if (isPal(fn) && fn !== 'preset' && window.PAL) return PAL.get(fn);
       } catch (e) {}
       return 0;
     },
@@ -480,6 +501,14 @@
       // 0.2 — both are no-ops outside a movement, never errors
       if (fn.indexOf('macro') === 0) { if (window.MIX && MIX.macro) MIX.macro(+fn.slice(5), val); return; }
       if (fn === 'blackout') { if (window.MIX && MIX.blackout) MIX.blackout(); return; }
+      // THE PALETTE — every write through PAL.set; no palette, no-op
+      if (isPal(fn)) {
+        if (!window.PAL) return;
+        if (fn === 'preset') PAL.set('preset', -1, 'next');
+        else if (fn.indexOf('hue') === 0) PAL.set('hue', +fn.slice(3), val);
+        else PAL.set('band', +fn.slice(4), val);
+        return;
+      }
       if (!window.POEMDECK) return;
       if (fn === 'go') POEMDECK.go();
       else if (fn === 'back') POEMDECK.back();
@@ -628,6 +657,9 @@
         const n = +S.turn.slice(5);
         const st = (window.MIX && MIX.state) ? MIX.state() : null;
         anim = (!st || !st.macro || n >= st.macro.length) ? DIM : ON;   // no such macro here
+      }
+      else if (isPal(S.turn) || S.push === 'preset') {
+        anim = (window.PAL && PAL.active()) ? ON : DIM;                   // no palette in this scene
       }
       else if (S.push === 'blackout') {
         const st = (window.MIX && MIX.state) ? MIX.state() : null;

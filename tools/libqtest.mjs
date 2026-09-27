@@ -30,6 +30,14 @@ const go = async hash => {
   await pg.waitForTimeout(3200);
   return shown();
 };
+/* the family `new` must put first: the one whose newest version was
+   registered last (Sep 27: once 56.3/57.2/58.3/71.2 and 56.4 landed, that is
+   no longer "SRC-73 or later", so ask the page instead of guessing a name) */
+const newestFam = () => pg.evaluate(() => {
+  let best = null, at = -1;
+  PIECES.forEach((d, i) => { const f = (d.family || d.id).replace(/\.\d+.*$/, ''); const n = parseFloat(f.replace(/^\D+/, ''));
+    if (n >= 56 && !/h$/.test(d.id) && i > at) { at = i; best = f; } });   // src=56-, and not a history entry
+  return best; });
 const t = async (label, hash, expect) => {
   const r = await go(hash);
   ok(label.padEnd(26) + r.length + ' tiles · ' + r.slice(0, 6).join(' '), expect(r), r.slice(0, 8));
@@ -38,12 +46,14 @@ const t = async (label, hash, expect) => {
 console.log('every key');
 // `new` puts the last registered family first — whatever anyone built most
 // recently (SRC-80 arrived Sep 27), so the check is "newer than the acts", not a name
-await t('src=56-&sort=new',    '#lib?src=56-&sort=new',         r => r.length > 14 && +r[0].slice(4) >= 73);
+await go('#lib');
+const NEWEST = await newestFam();
+await t('src=56-&sort=new',    '#lib?src=56-&sort=new',         r => r.length > 14 && r[0] === NEWEST);
 await t('tag=webgl&sort=new',  '#lib?tag=webgl&sort=new',       r => r.length > 4);
 await t('tag=bokeh+webgl all', '#lib?tag=bokeh,webgl&match=all', r => r.length === 1 && r[0] === 'SRC-71');
 await t('text=circle',         '#lib?text=circle',              r => r.includes('SRC-71'));
 await t('id=SRC-71,SRC-64',    '#lib?id=SRC-71,SRC-64',         r => r.length === 2);
-await t('sort=new&limit=3',    '#lib?src=56-&sort=new&limit=3', r => r.length === 3 && +r[0].slice(4) >= 73);
+await t('sort=new&limit=3',    '#lib?src=56-&sort=new&limit=3', r => r.length === 3 && r[0] === NEWEST);
 // `old` is registration order reversed, and a family moves to the NEW end the
 // moment it gets a version (56.2 did on Sep 27) — so the first tile is
 // whichever family in range has gone longest without a round, not SRC-56
@@ -64,7 +74,7 @@ await pg.evaluate(() => { const s = document.getElementById('searchBox'); s.valu
   const q = document.getElementById('sortSel'); q.value = 'title'; q.dispatchEvent(new Event('change')); });
 await pg.waitForTimeout(800);
 const afterSort = await shown();
-ok('the URL order survives a sort-dropdown change', +afterSort[0].slice(4) >= 73, afterSort.slice(0, 4));
+ok('the URL order survives a sort-dropdown change', afterSort[0] === NEWEST, afterSort.slice(0, 4));
 
 // our pass only ever hides, so a live query change has to ask the library to
 // redo its own pass first or the grid shrinks monotonically and never recovers

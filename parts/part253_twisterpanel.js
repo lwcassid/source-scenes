@@ -156,7 +156,8 @@
       const col = cssFor(L.col);
       const stale = (S.turn !== 'none' && !hasMix && needsMix(S.turn))
         || (S.turn.indexOf('fader') === 0 && +S.turn.slice(5) >= nL)
-        || (S.turn.indexOf('macro') === 0 && hasMix && +S.turn.slice(5) >= T.nMacros());
+        || (S.turn.indexOf('macro') === 0 && hasMix && +S.turn.slice(5) >= T.nMacros())
+        || (/^(hue|band)\d$/.test(S.turn) && !(window.PAL && PAL.active()));
       g.globalAlpha = stale ? 0.35 : 1;
 
       /* THREE KINDS OF KNOB, one colour each — the knob's own LED colour,

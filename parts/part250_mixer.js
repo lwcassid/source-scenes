@@ -284,8 +284,21 @@
     macroDefs() { const P = this.MP(); return P ? (P.def._macros || P.def.macros || []) : []; },
     macroCount() { return this.macroDefs().length; },
     macroNames() { return this.macroDefs().map(d => d.label); },
-    macro(i, v) { const P = this.MP(), d = this.macroDefs()[i]; if (P && d) { if (!P.state.macro) P.state.macro = {}; P.state.macro[d.k] = clamp(v); } },
-    getMacro(i) { const P = this.MP(), d = this.macroDefs()[i]; return (P && d && P.state.macro) ? (P.state.macro[d.k] || 0) : 0; },
+    /* A macro may be BOUND TO THE PALETTE (Sep 27, PLAN-PALETTE 2b: one colour
+       system, not two): `{ k, label, def, pal: 'hue0' }` writes through
+       PAL.set('hue', 0, v) and reads PAL.get('hue0'), so a colour knob, the
+       panel and REMOTE all move the same slot. AUTO-MAP still lands it. */
+    macro(i, v) {
+      const P = this.MP(), d = this.macroDefs()[i]; if (!P || !d) return;
+      if (!P.state.macro) P.state.macro = {}; P.state.macro[d.k] = clamp(v);
+      const m = d.pal && window.PAL && /^(hue|band)(\d)$/.exec(d.pal);
+      if (m) PAL.set(m[1], +m[2], clamp(v));
+    },
+    getMacro(i) {
+      const P = this.MP(), d = this.macroDefs()[i]; if (!P || !d) return 0;
+      if (d.pal && window.PAL && PAL.active()) return PAL.get(d.pal);
+      return P.state.macro ? (P.state.macro[d.k] || 0) : 0;
+    },
     /* BLACKOUT: every fader glides to nothing in about 1.5 s and the wall is
        black — the 8:00 silence, the twelfth Witness. Press again and the
        faders come back to exactly where they were. A toggle, so one knob. */

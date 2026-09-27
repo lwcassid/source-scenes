@@ -103,6 +103,8 @@
                     solo: s.solo, black: !!s.black, keep: s.keep ? Array.from(s.keep) : null };
         }
       } catch (e) {}
+      // THE PALETTE (Sep 27): the open scene's, whole — applied only if it differs
+      try { if (window.PAL) o.pal = PAL.snap(); } catch (e) {}
       return o;
     },
     applySnap(o) {
@@ -114,6 +116,10 @@
         if (i >= 0 && typeof openFocus === 'function') openFocus(i);
         return;                               // the mixer is applied on the next snapshot, once it exists
       }
+      // the palette first: a plain scene can declare one with no mixer at all.
+      // PAL.set('load') is a no-op when nothing differs, so this costs nothing
+      // every 1.5 s (no ver bump, no rebuild, no storage write)
+      try { if (o.pal && window.PAL) { const st = PAL.active(); if (st && st.key === o.pal.key) PAL.set('load', o.pal); } } catch (e) {}
       const m = o.mix, P = window.MIX && MIX.P && MIX.P();
       if (!m || !P || P.def.id !== m.id) return;
       const s = P.state;
@@ -136,6 +142,11 @@
           const orig = MIX[fn]; if (typeof orig !== 'function') return;
           MIX[fn] = function (...a) { const r = orig.apply(MIX, a); self.send({ t: 'mix', fn, a }); return r; };
         });
+      }
+      // THE PALETTE: one entry point, one wrap — panel, knobs, RESET, COPY FROM
+      if (window.PAL && typeof PAL.set === 'function') {
+        const orig = PAL.set;
+        PAL.set = function (...a) { const r = orig.apply(PAL, a); if (r) self.send({ t: 'pal', a }); return r; };
       }
       if (window.POEMDECK) {
         ['go', 'back', 'abort', 'stop'].forEach(fn => {
@@ -162,6 +173,7 @@
           if (window.MIX && typeof MIX[o.fn] === 'function' && has) MIX[o.fn](...(o.a || []));
           return;
         }
+        if (o.t === 'pal') { if (window.PAL) PAL.set(...(o.a || [])); return; }
         if (o.t === 'deck') { if (window.POEMDECK && typeof POEMDECK[o.fn] === 'function') POEMDECK[o.fn](); return; }
         if (o.t === 'scene') {
           if (typeof focus === 'undefined' || typeof PIECES === 'undefined') return;
