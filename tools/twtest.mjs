@@ -134,7 +134,10 @@ const nm = await pg.evaluate(() => { TWISTPANEL.open(); const G = document.getEl
   const sels = [...G.querySelectorAll('div[style*="grid-template"] select')];
 
   // every binding that needs a mixer must be dimmed — no more, no fewer
-  const needs = f => f !== 'none' && (f.indexOf('fader') === 0 || f.indexOf('solo') === 0 || f === 'unsolo');
+  // (0.2: macros and BLACKOUT are mixer controls too — a movement's map copied
+  // into a scene with no mixer dims them like the faders)
+  const needs = f => f !== 'none' && (f.indexOf('fader') === 0 || f.indexOf('solo') === 0 || f === 'unsolo'
+                                      || f.indexOf('macro') === 0 || f === 'blackout');
   const expect = TWIST.slots.reduce((a2, S) => a2 + (needs(S.turn) ? 1 : 0) + (needs(S.push) ? 1 : 0), 0);
   const note = [...G.querySelectorAll('p')].some(p => p.textContent.indexOf('no mixer') >= 0);
   TWISTPANEL.close();
@@ -145,7 +148,9 @@ const nm = await pg.evaluate(() => { TWISTPANEL.open(); const G = document.getEl
 ok('every mixer control dimmed, exactly', !nm.hasMix && nm.expect > 0 && nm.dim === nm.expect, nm);
 ok('the panel says there is no mixer', nm.note, nm);
 ok('AUTO-MAP here maps the poem cues + SOUND OUT, no dead faders', cue.turns === 1 && cue.pushes.join() === 'go,back,abort,stop,none', cue);
-ok('poem cues stay live, faders go dim', nm.cueLeds.every(x => x === 39) && nm.faderLeds.every(x => x === 19), nm);
+// knobs 9-11 are GO/BACK/STOP on a movement's map and stay live anywhere;
+// knob 12 is BLACKOUT, a mixer control, so it goes dim here like the faders
+ok('poem cues stay live, faders and BLACKOUT go dim', nm.cueLeds.slice(0, 3).every(x => x === 39) && nm.cueLeds[3] === 19 && nm.faderLeds.every(x => x === 19), nm);
 
 console.log('the last position holds');
 await pg.goto(URL + '#scene=SRC-56', { waitUntil: 'load' });

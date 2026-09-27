@@ -225,6 +225,27 @@
           "out": "both"
         }
       ]
+    },
+    {
+      "name": "BIRTH OF A TEMPLE 0.2",
+      "note": "Edson — the night as decided with Gabi, Sep 26 2026. THREE ACTS of ~20 min, each a host with up to six layers on the Twister's faders and up to four MACROS on knobs 13/14/15/7; BLACKOUT on 12. I The Sky (F aeolian 54): The Point, Gold + The Circle + The Passage up + the launch clip + the temple still + Eclipse. II The Depths (A aeolian 50): The Passage down + The Names, Dividing + the QR + The Circle. III The Witnesses (F aeolian 68): Ascension + Returned + The Circle, until the spiral radar and the blip (SRC-76) land. Inside an act you mix; between acts you cut. 0.1 (SRC-62/63/64) stays as it was.",
+      "scenes": [
+        {
+          "id": "SRC-73",
+          "min": 20,
+          "out": "both"
+        },
+        {
+          "id": "SRC-74",
+          "min": 20,
+          "out": "both"
+        },
+        {
+          "id": "SRC-75",
+          "min": 20,
+          "out": "both"
+        }
+      ]
     }
   ]
 }

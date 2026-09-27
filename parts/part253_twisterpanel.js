@@ -33,7 +33,8 @@
     const h = TWIST.HUES.find(x => x.v === v);
     return h ? (CSS[h.k] || '#888') : '#888';
   };
-  const needsMix = fn => fn !== 'none' && (fn.indexOf('fader') === 0 || fn.indexOf('solo') === 0 || fn === 'unsolo');
+  const needsMix = fn => fn !== 'none' && (fn.indexOf('fader') === 0 || fn.indexOf('solo') === 0 || fn === 'unsolo'
+                                           || fn.indexOf('macro') === 0 || fn === 'blackout');
 
   /* ================= THE RAIL ================= */
   let built = false, statusEl = null, cv = null, btnRow = null, amBtn = null, mapBtn = null, connRow = null;
@@ -154,7 +155,8 @@
       const L = T.lightFor(i, S);
       const col = cssFor(L.col);
       const stale = (S.turn !== 'none' && !hasMix && needsMix(S.turn))
-        || (S.turn.indexOf('fader') === 0 && +S.turn.slice(5) >= nL);
+        || (S.turn.indexOf('fader') === 0 && +S.turn.slice(5) >= nL)
+        || (S.turn.indexOf('macro') === 0 && hasMix && +S.turn.slice(5) >= T.nMacros());
       g.globalAlpha = stale ? 0.35 : 1;
 
       /* THREE KINDS OF KNOB, one colour each — the knob's own LED colour,

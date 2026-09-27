@@ -42,11 +42,16 @@
   const BUDGET = 7;
   const MIXERS = [];
 
+  /* 0.2 (Sep 27): a host may PRICE its own layers (`cost`), declare MACROS —
+     the slow decided moves of an act, on knobs, so the theremin stays free —
+     and a layer is told when its fader wakes it and puts it to sleep. */
   function makeMixer(M) {
     MIXERS.push(M.id);
+    const cost = Object.assign({}, COST, M.cost || {});
+    const MAC = M.macros || [];
     reg({
       id: M.id, family: M.id, ver: 1, title: M.title, tech: M.tech,
-      audioIn: true, textIsContent: true,
+      audioIn: true, textIsContent: true, _macros: MAC,
       music: M.music, fx: { bloom: M.bloom || 0.42 },
       tags: ['TEMPLE SET', 'MOVEMENT ' + M.part, 'MIX, DO NOT CUT', 'THE SOURCE LAW'],
       desc: M.desc, interact: M.interact, sound: M.sound,
@@ -54,7 +59,11 @@
       init(P) {
         const s = { L: [], insts: [], fade: new Float32Array(M.layers.length),
                     want: new Float32Array(M.layers.length), live: [], spent: 0,
-                    inst: 1, solo: -1, pres: 0 };
+                    inst: 1, solo: -1, pres: 0,
+                    // 0.2: macros (one shared object every layer reads), wake
+                    // flags, and BLACKOUT's kept faders
+                    macro: {}, on: new Uint8Array(M.layers.length), black: false, keep: null, glide: 0 };
+        MAC.forEach(d => { s.macro[d.k] = (d.def !== undefined) ? d.def : 0; });
         M.layers.forEach((id, i) => {
           const def = (typeof PIECES !== 'undefined') ? PIECES.find(x => x.id === id) : null;
           // "THE POINT" and "THE PASSAGE" both abbreviate to "THE" if you just
@@ -65,11 +74,11 @@
           const full = (def ? def.title.toUpperCase() : id).replace(/^\s*BOT\s*·\s*/, '');
           const shortName = (full.indexOf(',') >= 0 ? full.split(',').pop() : full)
             .replace(/^\s*THE\s+/, '').trim();
-          s.L.push({ id, def, name: full, short: shortName, cost: COST[id] || 2 });
+          s.L.push({ id, def, name: full, short: shortName, cost: cost[id] || 2 });
           const sub = {
             def, canvas: P.canvas, g: P.g, w: P.w, h: P.h, state: {},
             seed: (P.seed + i * 7919) | 0, focused: true, visible: true, rand: null,
-            hosted: true, ping() {}
+            hosted: true, macro: s.macro, ping() {}
           };
           sub.rand = mulberry32(sub.seed);
           try { if (def) def.init(sub); } catch (e) { console.error('mixer init', id, e); }
@@ -85,10 +94,21 @@
         s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
 
         const order = [];
+        s.glide = Math.max(0, s.glide - dt);
+        const rate = s.glide > 0 ? 2.2 : 4.5;   // BLACKOUT glides (~1.5 s); a knob jump is a move, not a jolt
         for (let i = 0; i < s.L.length; i++) {
           const target = (s.solo >= 0) ? (i === s.solo ? 1 : 0) : s.want[i];
-          s.fade[i] += (target - s.fade[i]) * Math.min(1, dt * 4.5);   // a knob jump is a move, not a jolt
-          if (s.fade[i] > CULL) order.push(i);
+          s.fade[i] += (target - s.fade[i]) * Math.min(1, dt * rate);
+          const on = s.fade[i] > CULL;
+          /* WAKE / SLEEP. A layer is told when its fader arrives from nothing
+             and when it goes back to nothing. A clip starts from the top on
+             wake and parks on sleep; a generated layer has neither and
+             notices nothing. */
+          const def = s.L[i].def;
+          if (on && !s.on[i]) { try { if (def && def.wake) def.wake(s.insts[i]); } catch (e) {} }
+          else if (!on && s.on[i]) { try { if (def && def.sleep) def.sleep(s.insts[i]); } catch (e) {} }
+          s.on[i] = on ? 1 : 0;
+          if (on) order.push(i);
         }
         /* THE BUDGET. With one heavy and one cheap layer per movement this
            never bites — it is here so a third layer added later degrades the
@@ -120,8 +140,9 @@
           g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
           g.fillStyle = 'rgba(225,225,235,0.8)';
           const bars = s.L.map((L, i) => L.short + ' ' + Math.round(s.fade[i] * 100)).join('   ');
+          const macs = MAC.length ? '   ·   ' + MAC.map(d => d.label + ' ' + Math.round((s.macro[d.k] || 0) * 100)).join('  ') : '';
           // no INST here: SOUND OUT is the one level now (Edson, Sep 25)
-          g.fillText(M.part + ' · ' + bars + '   load ' + s.spent + '/' + BUDGET, 10, h - 10);
+          g.fillText(M.part + ' · ' + bars + macs + '   load ' + s.spent + '/' + BUDGET + (s.black ? '   · BLACKOUT' : ''), 10, h - 10);
         }
         if (typeof OWPOEM !== 'undefined') { OWPOEM.tick(); OWPOEM.draw(g, w, h); }
       },
@@ -247,13 +268,34 @@
     get(i) { const P = this.P(); return P ? P.state.want[i] : 0; },
     instrument(v) { const P = this.P(); if (P) P.state.inst = clamp(v); },
     solo(i) { const P = this.P(); if (P && i < P.state.L.length) P.state.solo = (P.state.solo === i) ? -1 : i; },
+    /* 0.2 — MACROS: the host's declared slow moves, by index. Outside a host
+       every one of these is a no-op, never an error. */
+    macroDefs() { const P = this.P(); return (P && P.def._macros) ? P.def._macros : []; },
+    macroCount() { return this.macroDefs().length; },
+    macroNames() { return this.macroDefs().map(d => d.label); },
+    macro(i, v) { const P = this.P(), d = this.macroDefs()[i]; if (P && d) P.state.macro[d.k] = clamp(v); },
+    getMacro(i) { const P = this.P(), d = this.macroDefs()[i]; return (P && d) ? (P.state.macro[d.k] || 0) : 0; },
+    /* BLACKOUT: every fader glides to nothing in about 1.5 s and the wall is
+       black — the 8:00 silence, the twelfth Witness. Press again and the
+       faders come back to exactly where they were. A toggle, so one knob. */
+    blackout() {
+      const P = this.P(); if (!P) return; const s = P.state;
+      if (!s.black) { s.keep = Array.from(s.want); s.keepSolo = s.solo; s.want.fill(0); s.solo = -1; s.black = true; }
+      else { if (s.keep) s.keep.forEach((v, i) => { s.want[i] = v; }); s.solo = (s.keepSolo === undefined ? -1 : s.keepSolo); s.black = false; }
+      s.glide = 1.6;
+    },
+    /* a layer's own event, by index (a clip restarts) */
+    fire(i) { const P = this.P(); if (!P) return; const L = P.state.L[i]; if (L && L.def && L.def.wake) { try { L.def.wake(P.state.insts[i]); } catch (e) {} } },
+    make: makeMixer,
     state() {
       const P = this.P(); if (!P) return null; const s = P.state;
       return { id: P.def.id, layers: s.L.map(l => l.short),
                fade: Array.from(s.fade).map(x => +x.toFixed(2)),
                want: Array.from(s.want).map(x => +x.toFixed(2)),
                live: s.live.slice(), load: s.spent + '/' + BUDGET,
-               inst: +s.inst.toFixed(2), solo: s.solo };
+               inst: +s.inst.toFixed(2), solo: s.solo,
+               macro: this.macroDefs().map(d => +((s.macro[d.k] || 0).toFixed(2))),
+               macroNames: this.macroNames(), black: !!s.black };
     }
   };
 
@@ -265,6 +307,7 @@
     const k = e.key;
     if (k >= '1' && k <= '9') { const i = +k - 1; if (i < MIX.count()) { e.preventDefault(); MIX.solo(i); } return; }
     if (k === '0') { e.preventDefault(); MIX.P().state.solo = -1; return; }
+    if (k === 'b' || k === 'B') { e.preventDefault(); MIX.blackout(); return; }
     /* − + step SOUND OUT, the rail's own volume, not a second hidden
        instrument level — Edson, Sep 25: they were the same thing twice, and
        a trim with no slider on screen is a volume drop nobody can explain. */

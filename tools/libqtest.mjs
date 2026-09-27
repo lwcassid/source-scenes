@@ -42,7 +42,10 @@ await t('tag=bokeh+webgl all', '#lib?tag=bokeh,webgl&match=all', r => r.length =
 await t('text=circle',         '#lib?text=circle',              r => r.includes('SRC-71'));
 await t('id=SRC-71,SRC-64',    '#lib?id=SRC-71,SRC-64',         r => r.length === 2);
 await t('sort=new&limit=3',    '#lib?src=56-&sort=new&limit=3', r => r.length === 3 && r[0].startsWith('SRC-7'));
-await t('src=56-71&sort=old',  '#lib?src=56-71&sort=old',       r => r.length > 10 && r[0] === 'SRC-56');
+// `old` is registration order reversed, and a family moves to the NEW end the
+// moment it gets a version (56.2 did on Sep 27) — so the first tile is
+// whichever family in range has gone longest without a round, not SRC-56
+await t('src=56-71&sort=old',  '#lib?src=56-71&sort=old',       r => r.length > 10 && r.every(id => { const n = +id.slice(4); return n >= 56 && n <= 71; }) && r[0] !== 'SRC-59');
 await t('src=71 single',       '#lib?src=71',                   r => r.length === 1 && r[0] === 'SRC-71');
 await t('no query, untouched', '',                              r => r.length > 60);
 

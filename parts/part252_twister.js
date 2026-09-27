@@ -67,10 +67,11 @@
     { k: 'yellow',  v: 60 }, { k: 'amber',  v: 72 }, { k: 'red',    v: 85 },
     { k: 'magenta', v: 100 }, { k: 'violet', v: 113 },
   ];
-  const DEFCOL = { fader: 72, out: 85, solo: 45, cue: 15 };      // amber · red · green · blue
+  const DEFCOL = { fader: 72, out: 85, solo: 45, cue: 15, macro: 113 };      // amber · red · green · blue · violet
   function family(fn) {
     if (fn === 'none') return null;
     if (fn.indexOf('fader') === 0) return 'fader';
+    if (fn.indexOf('macro') === 0) return 'macro';
     if (fn === 'vol') return 'out';
     if (fn.indexOf('solo') === 0 || fn === 'unsolo') return 'solo';
     return 'cue';
@@ -84,6 +85,14 @@
     fader3: { label: 'LAYER 4',        short: 'L4',  turn: true },
     fader4: { label: 'LAYER 5',        short: 'L5',  turn: true },
     fader5: { label: 'LAYER 6',        short: 'L6',  turn: true },
+    /* MACROS (0.2, Sep 27): a movement's slow decided moves — the flat disc
+       becoming a space, the stars turning from up to down, one cell dividing
+       — on knobs, so the theremin stays a performance instrument. Which four
+       is the host's to declare (MIX.macroNames()); outside a host, no-ops. */
+    macro0: { label: 'MACRO A',        short: 'MA',  turn: true },
+    macro1: { label: 'MACRO B',        short: 'MB',  turn: true },
+    macro2: { label: 'MACRO C',        short: 'MC',  turn: true },
+    macro3: { label: 'MACRO D',        short: 'MD',  turn: true },
     /* SOUND OUT, not INSTRUMENT VOL. Edson, Sep 25: "instrument volume and
        sound out seem to be the same thing … just always map the sound out to
        the last knob." It is the rail's own SOUND OUT slider. Knob 16 is where
@@ -102,6 +111,10 @@
     back:   { label: 'BACK',           short: 'BK',  push: true },
     abort:  { label: 'ABORT',          short: 'AB',  push: true },
     stop:   { label: 'STOP',           short: 'ST',  push: true },
+    /* BLACKOUT (0.2): every fader of the open movement glides to black in
+       ~1.5 s; press again and they come back where they were. The 8:00
+       silence and the twelfth Witness. A no-op outside a movement. */
+    blackout: { label: 'BLACKOUT',     short: 'BLK', push: true },
   };
   const TURNS = Object.keys(FN).filter(k => k === 'none' || FN[k].turn);
   const PUSHES = Object.keys(FN).filter(k => k === 'none' || FN[k].push);
@@ -116,9 +129,14 @@
      would be a dead knob there, so it is left off. */
   const VOLKNOB = 15;                 // knob 16, 0-based
   const volSlot = () => ({ turn: 'vol', push: 'none', cc: VOLKNOB, note: VOLKNOB, ch: 0, dev: null, led: VOLKNOB });
-  function factory(n, noMix) {
+  /* `nMac`: how many macros the open movement declares (0.2). They take
+     knobs 13, 14, 15 and then 7 — the bottom row is the same in every act,
+     so the hand learns one geography in the dark. */
+  const MACRO_KNOBS = [12, 13, 14, 6];
+  function factory(n, noMix, nMac) {
     const s = [];
     const k = Math.max(0, Math.min(6, n === undefined ? 6 : n));
+    const m = Math.max(0, Math.min(4, nMac === undefined ? 0 : nMac));
     // `led` is the FACTORY number and never moves, even if cc/note are
     // remapped on the device — see the note above the channel table.
     for (let i = 0; i < SLOTS; i++) s.push({ turn: 'none', push: 'none', cc: i, note: i, ch: 0, dev: null, led: i });
@@ -126,7 +144,12 @@
     if (!noMix) s[7].push = 'unsolo';
     s[VOLKNOB].turn = 'vol';
     s[8].push = 'go';    s[9].push = 'back';
-    s[10].push = 'abort'; s[11].push = 'stop';
+    /* In a movement BLACKOUT earns knob 12 and STOP moves to 11; ABORT stays
+       on the keyboard (Edson, Sep 27). A scene with no mixer keeps the four
+       poem cues exactly as before. */
+    if (noMix) { s[10].push = 'abort'; s[11].push = 'stop'; }
+    else { s[10].push = 'stop'; s[11].push = 'blackout'; }
+    for (let i = 0; i < m; i++) s[MACRO_KNOBS[i]].turn = 'macro' + i;
     return s;
   }
 
@@ -229,9 +252,9 @@
     autoMap() {
       const k = this.key(); if (!k) return;
       // no mixer: map what does exist here, the poem cues, not six dead faders
-      const mix = this.hasMix(), n = mix ? this.nLayers() : 0;
-      this.slots = this.maps[k] = factory(n, !mix); this.persist(); this._sent = {};
-      this.note = mix ? 'mapped ' + n + ' layer' + (n === 1 ? '' : 's') + ' + cues + sound out'
+      const mix = this.hasMix(), n = mix ? this.nLayers() : 0, nm = mix ? this.nMacros() : 0;
+      this.slots = this.maps[k] = factory(n, !mix, nm); this.persist(); this._sent = {};
+      this.note = mix ? 'mapped ' + n + ' layer' + (n === 1 ? '' : 's') + (nm ? ' + ' + nm + ' macro' + (nm === 1 ? '' : 's') : '') + ' + cues + blackout + sound out'
                       : 'mapped the poem cues — this scene has no mixer';
     },
     setFn(i, which, fn) { if (this.slots[i]) { this.slots[i][which] = fn; this.save(); } },
@@ -261,9 +284,15 @@
     hasMix() {
       try { return !!(window.MIX && MIX.P && MIX.P()); } catch (e) { return false; }
     },
+    /* how many macros the open movement declares; with no mixer, all four,
+       so the editor stays configurable (as nLayers does for faders) */
+    nMacros() {
+      try { return (window.MIX && MIX.P && MIX.P() && MIX.macroCount) ? MIX.macroCount() : 4; }
+      catch (e) { return 4; }
+    },
     turnOpts() {
-      const n = this.nLayers();
-      return TURNS.filter(k => k.indexOf('fader') !== 0 || +k.slice(5) < n);
+      const n = this.nLayers(), m = this.nMacros();
+      return TURNS.filter(k => (k.indexOf('fader') !== 0 || +k.slice(5) < n) && (k.indexOf('macro') !== 0 || +k.slice(5) < m));
     },
     pushOpts() {
       const n = this.nLayers();
@@ -417,6 +446,7 @@
     current(fn) {
       try {
         if (fn.indexOf('fader') === 0 && window.MIX) return MIX.get(+fn.slice(5)) || 0;
+        if (fn.indexOf('macro') === 0 && window.MIX && MIX.getMacro) return MIX.getMacro(+fn.slice(5)) || 0;
         if (fn === 'vol') { const v = document.getElementById('volSlider'); return v ? +v.value / 100 : 0; }
       } catch (e) {}
       return 0;
@@ -440,6 +470,9 @@
       }
       if (fn.indexOf('solo') === 0) { if (window.MIX) MIX.solo(+fn.slice(4)); return; }
       if (fn === 'unsolo') { const P = window.MIX && MIX.P(); if (P) P.state.solo = -1; return; }
+      // 0.2 — both are no-ops outside a movement, never errors
+      if (fn.indexOf('macro') === 0) { if (window.MIX && MIX.macro) MIX.macro(+fn.slice(5), val); return; }
+      if (fn === 'blackout') { if (window.MIX && MIX.blackout) MIX.blackout(); return; }
       if (!window.POEMDECK) return;
       if (fn === 'go') POEMDECK.go();
       else if (fn === 'back') POEMDECK.back();
@@ -583,6 +616,15 @@
         else if (st.solo === n) anim = BURN;                              // soloed
         else if (st.want[n] > 0.02 && st.live.indexOf(n) < 0) anim = IDLE; // budget stood it down
         else anim = st.fade[n] > 0.02 ? ON : IDLE;                        // up, or down
+      }
+      else if (S.turn.indexOf('macro') === 0) {
+        const n = +S.turn.slice(5);
+        const st = (window.MIX && MIX.state) ? MIX.state() : null;
+        anim = (!st || !st.macro || n >= st.macro.length) ? DIM : ON;   // no such macro here
+      }
+      else if (S.push === 'blackout') {
+        const st = (window.MIX && MIX.state) ? MIX.state() : null;
+        anim = !st ? DIM : (st.black ? BURN : ON);                        // burning while the wall is black
       }
       return { ring, col, anim };
     },
