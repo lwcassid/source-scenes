@@ -178,7 +178,19 @@
        display from the search box and the chips) and only then narrows.
        Calling applyLibrary() is not wrapping it; their listeners keep the
        reference they already had. */
+    /* A LIBRARY URL MEANS THE LIBRARY (Edson, Sep 27 04:00: "the sound of the
+       scene is playing even when the scene is not selected"). Core's own
+       hashchange handler only knows `#scene=`: a hash that names no scene
+       leaves whatever is open running — picture, voice, transport — behind a
+       wall the URL says you are looking at. So when the hash becomes a `#lib?`
+       query while a scene is open, close the scene first, the way the BACK
+       arrow does. Measured: SRC-74 kept sounding after `#lib?src=56-` until
+       this; after it the bus is silent and focus is -1. */
     window.addEventListener('hashchange', () => setTimeout(() => {
+      try {
+        if (location.hash.indexOf(PREFIX) === 0 && typeof focus !== 'undefined' && focus.idx >= 0
+            && typeof closeFocus === 'function') closeFocus();
+      } catch (e) {}
       try { if (typeof applyLibrary === 'function') applyLibrary(); } catch (e) {}
       apply();
     }, 0));
