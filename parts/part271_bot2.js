@@ -36,6 +36,20 @@
       { k: 'depth', label: 'DEPTH', def: 0 },      // the flat gold disc → a body in a space
       { k: 'dir',   label: 'DIRECTION', def: 1 }   // the Passage: 1 = up
     ],
+    /* THE PALETTE (partcore_palette.js, Sep 27): gold, copper and silver —
+       Edson's call for Act I. Three bands MEASURED off the Procreate metal
+       palette he linked (pAVoni/references/metal-gradients): each is the row
+       with a full metal arc, dark edge → highlight → dark edge. c0 is the
+       temple's own gold from the site. Every layer of the act reads these. */
+    palette: {
+      c: ['#d4af37', '#947733', '#d37b50', '#d4d4d4', '#4f4f4f'],
+      g: [
+        ['#b39b41','#dbc463','#ebe294','#f9f9c2','#f6efaf','#e8d67e','#dbbb53','#c0993e','#947733','#6d5432'],   // GOLD1
+        ['#b7603f','#d37b50','#df9566','#eec49b','#f7dfba','#f2c396','#e8a574','#d58354','#92452c','#6d2c1c'],   // COPPER1
+        ['#898989','#999999','#b0b0b0','#d4d4d4','#f4f4f4','#ebebeb','#dbdbdb','#cecece','#c2c2c2','#9e9e9e'] ], // SILVER1
+      names: { c0: 'TEMPLE GOLD', c1: 'DEEP GOLD', c2: 'COPPER', c3: 'SILVER', c4: 'DARK SILVER',
+               g0: 'GOLD', g1: 'COPPER', g2: 'SILVER' }
+    },
     bloom: 0.34,
     music: { bpm: 54, root: 41, mode: 'aeolian', chordBars: 8,
              chords: [[0, 7, 12, 19], [0, 7, 14, 19], [0, 8, 15, 20], [0, 7, 12, 17]],

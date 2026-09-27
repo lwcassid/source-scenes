@@ -52,6 +52,9 @@
     reg({
       id: M.id, family: M.id, ver: 1, title: M.title, tech: M.tech,
       audioIn: true, textIsContent: true, _macros: MAC,
+      // a host may declare a PALETTE (partcore_palette.js): one shared object
+      // every hosted layer reads, as `macro` is
+      palette: M.palette,
       music: M.music, fx: { bloom: M.bloom || 0.42 },
       tags: ['TEMPLE SET', 'MOVEMENT ' + M.part, 'MIX, DO NOT CUT', 'THE SOURCE LAW'],
       desc: M.desc, interact: M.interact, sound: M.sound,
@@ -64,6 +67,7 @@
                     // flags, and BLACKOUT's kept faders
                     macro: {}, on: new Uint8Array(M.layers.length), black: false, keep: null, glide: 0 };
         MAC.forEach(d => { s.macro[d.k] = (d.def !== undefined) ? d.def : 0; });
+        s.pal = (window.PAL && M.palette) ? PAL.of(P) : null;
         M.layers.forEach((id, i) => {
           const def = (typeof PIECES !== 'undefined') ? PIECES.find(x => x.id === id) : null;
           // "THE POINT" and "THE PASSAGE" both abbreviate to "THE" if you just
@@ -78,7 +82,7 @@
           const sub = {
             def, canvas: P.canvas, g: P.g, w: P.w, h: P.h, state: {},
             seed: (P.seed + i * 7919) | 0, focused: true, visible: true, rand: null,
-            hosted: true, macro: s.macro, ping() {}
+            hosted: true, macro: s.macro, palette: s.pal, ping() {}
           };
           sub.rand = mulberry32(sub.seed);
           try { if (def) def.init(sub); } catch (e) { console.error('mixer init', id, e); }
