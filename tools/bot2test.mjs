@@ -163,10 +163,20 @@ ok('SRC-28: no host, the Twister is dark, every new call is a no-op', !foreign.h
 const turns = await pg.evaluate(() => TWIST.turnOpts().filter(k => k.indexOf('macro') === 0).length);
 ok('the editor still offers all four macros where there is no host (configurable, like faders)', turns === 4, turns);
 
-console.log('THE MEDIA SCENES STAND ALONE · SRC-79 opens on its own');
+console.log('THE MEDIA SCENES STAND ALONE · SRC-79 opens on its own; SRC-77 plays when focused');
 await scene('SRC-79');
 const qr = await pg.evaluate(() => MEDIA.state('SRC-79'));
 ok('the QR still is ready standalone', qr && qr.ready, qr);
+await scene('SRC-77');
+await wait(1500);
+const clipF = await pg.evaluate(() => MEDIA.state('SRC-77'));
+ok('the clip plays when it is the focused scene', clipF && clipF.ready && !clipF.paused, clipF);
+
+console.log('THE LIBRARY WALL IS SILENT · a tile is a thumbnail, not a play button (Edson, Sep 27 04:00)');
+await open('lib?src=56-&sort=new');
+await wait(2500);
+const wall = await pg.evaluate(() => ({ clip: MEDIA.state('SRC-77'), focus: (typeof focus !== 'undefined') ? focus.idx : null }));
+ok('no scene open, the launch clip is parked', wall.focus < 0 && wall.clip && wall.clip.paused, wall);
 
 ok('no page errors', errs.length === 0, errs.slice(0, 3));
 await b.close();

@@ -60,6 +60,15 @@
   };
   const restart = M => { const e = M._el; if (!e || M.kind !== 'video') return; try { e.currentTime = 0; } catch (err) {} play(M); };
   const pause = M => { const e = M._el; if (!e || M.kind !== 'video') return; try { e.pause(); } catch (err) {} };
+  /* one element, many instances: play while anyone wants it, park when nobody does */
+  const want = (M, P, on, fromTop) => {
+    if (!M._want) M._want = new Set();
+    const had = M._want.size > 0, was = M._want.has(P);
+    if (on) M._want.add(P); else M._want.delete(P);
+    const has = M._want.size > 0;
+    if (on && !was) { try { element(M).loop = !P.hosted || !!M.loop; } catch (err) {} if (fromTop || !had) restart(M); else play(M); }
+    else if (!has && had) pause(M);
+  };
   const size = M => {
     const e = M._el; if (!e) return null;
     const w = M.kind === 'video' ? e.videoWidth : e.naturalWidth;
@@ -85,14 +94,22 @@
         sound: M.sound || (isVid && !M.muted ? 'The clip\'s own sound, through the layer\'s bus — the fader is the volume too.' : 'Silent.'),
 
         init(P) {
-          const e = element(M);
-          P.state = { t: 0, on: !P.hosted };
-          if (!P.hosted) { e.loop = true; restart(M); }   // in the library it just runs
+          element(M);                       // load now, so the clip is ready before its fader moves
+          P.state = { t: 0, on: false };
         },
-        // a hosted layer waking: the fader came up from nothing → from the top
-        wake(P) { P.state.on = true; if (!M.loop) { try { element(M).loop = false; } catch (err) {} } restart(M); },
-        sleep(P) { P.state.on = false; pause(M); },
-        step(P, dt) { P.state.t += dt; },
+        /* WHO IS ALLOWED TO PLAY. The library wall runs a small instance of
+           every scene for its thumbnail, and one element is shared by all
+           instances of this item — so "play on init" put the rocket's sound
+           under the whole library (Edson, 04:00). An instance may play only
+           if it is FOCUSED (opened on its own) or a HOSTED layer whose fader
+           is up; the element plays while any instance wants it, and parks
+           when none does. */
+        wake(P) { P.state.on = true; want(M, P, true, true); },
+        sleep(P) { P.state.on = false; want(M, P, false); },
+        step(P, dt) {
+          P.state.t += dt;
+          if (!P.hosted) want(M, P, !!P.focused, false);
+        },
 
         draw(P, g, w, h) {
           const s = P.state;
