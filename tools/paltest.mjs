@@ -96,6 +96,19 @@ const via = await pg.evaluate(async () => {
 });
 ok('a panel input goes through PAL.set and bumps ver', via.v1 === via.v0 + 1 && via.c0 === '#00ff00', via);
 await pg.evaluate(() => PAL.set('reset'));
+// THE WALL, not just the state: the Point alone, its centre pixel, before and
+// after g0 changes through the panel's own PRESET select
+const centre = () => pg.evaluate(() => { const c = document.getElementById('focusCanvas');
+  return Array.from(c.getContext('2d').getImageData(c.width >> 1, c.height >> 1, 1, 1).data.slice(0, 3)); });
+await pg.evaluate(() => { const n = MIX.count(); for (let k = 0; k < n; k++) MIX.set(k, k === 0 ? 1 : 0); MIX.macro(0, 0.8);
+  clearInterval(window.__h); window.__h = setInterval(() => { setChan('L', 0.5); setChan('R', 0.05); }, 100); });   // low heat: the band's dark end, not the white it runs into
+await pg.waitForTimeout(2500);
+const px0 = await centre();
+await pg.evaluate(() => { const sel = document.querySelector('#paletteGroup select'); sel.value = 'COPPER1'; sel.dispatchEvent(new Event('change')); });
+await pg.waitForTimeout(1200);
+const px1 = await centre();
+ok('the panel\'s PRESET on g0 recolours the Point on the wall (centre pixel)', px0.some((v, i) => Math.abs(v - px1[i]) > 6) && px1[2] !== undefined, { px0, px1 });
+await pg.evaluate(() => { clearInterval(window.__h); PAL.set('reset'); });
 
 if (SHOTS) {
   fs.mkdirSync('scratchshots', { recursive: true });

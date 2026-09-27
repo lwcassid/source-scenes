@@ -180,6 +180,18 @@ const pk = await pg.evaluate(() => {
   return { cur, turned: c2b !== c2, b1, presetStepped: g2b !== g2, inOpts, fam: TWIST.lightFor(0, { turn: 'hue0', push: 'none', led: 0 }).anim };
 });
 ok('palette knobs: HUE 3 rotates COPPER, BAND g1 brightens, PRESET steps the band touched last, all offered in MAP', pk.cur === 0.5 && pk.turned && pk.b1 === 0.9 && pk.presetStepped && pk.inOpts, pk);
+// and on the wall: the Point alone, BAND g0 up → its centre pixel brightens
+const cpx = () => pg.evaluate(() => { const c = document.getElementById('focusCanvas');
+  return Array.from(c.getContext('2d').getImageData(c.width >> 1, c.height >> 1, 1, 1).data.slice(0, 3)); });
+await pg.evaluate(() => { PAL.set('reset'); const n = MIX.count(); for (let k = 0; k < n; k++) MIX.set(k, k === 0 ? 1 : 0); MIX.macro(0, 0.8);
+  clearInterval(window.__h); window.__h = setInterval(() => { setChan('L', 0.5); setChan('R', 0.3); }, 100); });
+await pg.waitForTimeout(2500);
+const q0 = await cpx();
+await pg.evaluate(() => TWIST.fire('band0', 1));
+await pg.waitForTimeout(1200);
+const q1 = await cpx();
+await pg.evaluate(() => { clearInterval(window.__h); PAL.set('reset'); PAL.forget('SRC-73'); });
+ok('knob BAND g0 → the Point\'s centre pixel brightens on the wall', q1.reduce((a, v) => a + v, 0) > q0.reduce((a, v) => a + v, 0) + 6, { q0, q1 });
 const auto73 = await pg.evaluate(() => { TWIST.autoMap(); return TWIST.slots.some(S => /^(hue|band)\d$/.test(S.turn) || S.push === 'preset'); });
 ok('AUTO-MAP places no palette knob (the sixteen are spoken for)', !auto73, auto73);
 await pg.goto('about:blank');

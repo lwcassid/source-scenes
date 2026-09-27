@@ -146,7 +146,16 @@
       // THE PALETTE: one entry point, one wrap — panel, knobs, RESET, COPY FROM
       if (window.PAL && typeof PAL.set === 'function') {
         const orig = PAL.set;
-        PAL.set = function (...a) { const r = orig.apply(PAL, a); if (r) self.send({ t: 'pal', a }); return r; };
+        /* each write carries its scene's key, so one landing mid scene-change
+           is dropped instead of recolouring (and storing into) the wrong
+           family; PRESET-next depends on which band was touched last, so it
+           crosses as the whole palette it produced */
+        PAL.set = function (...a) {
+          const r = orig.apply(PAL, a);
+          if (r) { const st = PAL.active(), key = st ? st.key : null;
+            self.send(a[0] === 'preset' ? { t: 'pal', key, a: ['load', PAL.snap()] } : { t: 'pal', key, a }); }
+          return r;
+        };
       }
       if (window.POEMDECK) {
         ['go', 'back', 'abort', 'stop'].forEach(fn => {
@@ -173,7 +182,7 @@
           if (window.MIX && typeof MIX[o.fn] === 'function' && has) MIX[o.fn](...(o.a || []));
           return;
         }
-        if (o.t === 'pal') { if (window.PAL) PAL.set(...(o.a || [])); return; }
+        if (o.t === 'pal') { if (window.PAL) { const st = PAL.active(); if (st && (!o.key || st.key === o.key)) PAL.set(...(o.a || [])); } return; }
         if (o.t === 'deck') { if (window.POEMDECK && typeof POEMDECK[o.fn] === 'function') POEMDECK[o.fn](); return; }
         if (o.t === 'scene') {
           if (typeof focus === 'undefined' || typeof PIECES === 'undefined') return;
