@@ -17,3 +17,7 @@ package-lock.json
 .verify-stamp
 .claude/.cache/
 tools/__pycache__/
+
+# media the MEDIA layers play (part267) — binaries stay on the show laptop; the README names them
+assets/media/*
+!assets/media/README.md

@@ -204,6 +204,27 @@
           "min": 9
         }
       ]
+    },
+    {
+      "name": "BIRTH OF A TEMPLE",
+      "note": "Edson, Sep 28 2026. The night of Thu Oct 1 at Dustin Yellin's studio, when the Orbital Temple launches: three acts. Act 1 · Expectation and Launch (SRC-66, ISOTRP A · Light Eclipse). Act 2 · The Depths (SRC-68, ISOTRP C · Beam). Act 3 · The Collective Witnesses (SRC-64, the Ascension movement). This replaces the two earlier drafts, BIRTH OF A TEMPLE (0.1, SRC-62/63/64) and 0.2 (SRC-73/74/75). Those scenes are still in the library.",
+      "scenes": [
+        {
+          "id": "SRC-66",
+          "min": 20,
+          "out": "both"
+        },
+        {
+          "id": "SRC-68",
+          "min": 20,
+          "out": "both"
+        },
+        {
+          "id": "SRC-64",
+          "min": 20,
+          "out": "both"
+        }
+      ]
     }
   ]
 }

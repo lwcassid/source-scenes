@@ -304,6 +304,54 @@ cd "$(dirname "$0")/.."
   cat parts/part238_orbits3.js
   cat parts/part239_transmission3.js
   cat parts/part240_ascension3.js
+  cat parts/part241_owpoem.js
+  cat parts/part242_point.js
+  cat parts/part243_eclipse.js
+  cat parts/part244_passage.js
+  cat parts/part245_names.js
+  cat parts/part246_ascension.js
+  cat parts/part247_return.js
+  cat parts/part248_poemdeck.js
+  cat parts/part249_source.js
+  cat parts/part250_mixer.js
+  cat parts/partcore_panels.js
+  cat parts/partcore_sheet.js
+  cat parts/partcore_palette.js
+  cat parts/partcore_libq.js
+  cat parts/partcore_midirig.js
+  cat parts/part251_mixpanel.js
+  cat parts/part252_twister.js
+  cat parts/part253_twisterpanel.js
+  cat parts/part254_diag.js
+  cat parts/part255_lflower.js
+  cat parts/part256_lflower2.js
+  cat parts/part257_isotrp.js
+  cat parts/part258_ligam.js
+  cat parts/part259_ligam2.js
+  cat parts/part259_beam2.js
+  cat parts/part260_eclipse2.js
+  cat parts/part261_ligam3.js
+  cat parts/part262_eclipse3.js
+  cat parts/part263_wheel.js
+  cat parts/part266_favicon.js
+  cat parts/part265_birdsong.js
+  cat parts/part267_media.js
+  cat parts/part268_point2.js
+  cat parts/part269_passage2.js
+  cat parts/part270_names2.js
+  cat parts/part271_bot2.js
+  cat parts/partcore_remote.js
+  cat parts/partcore_remote.js
+  cat parts/part280_cablesphere.js
+  cat parts/part281_cablesphere2.js
+  cat parts/part282_point3.js
+  cat parts/part283_eclipse57v2.js
+  cat parts/part284_passage3.js
+  cat parts/part285_wheel2.js
+  cat parts/part287_cablesphere3.js
+  cat parts/part286_point4.js
+  cat parts/part288_eclipse4.js
+  cat parts/part289_actnames.js
   cat parts/part15_history.js
   cat parts/part5_tail.js
   printf '</script>\n</body>\n</html>\n'

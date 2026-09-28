@@ -1,0 +1,392 @@
+/* ---------- SRC-62/63/64 · BIRTH OF A TEMPLE, in three movements ----------
+   The show as THREE scenes, each holding two visuals as LAYERS on their own
+   faders. Edson, Sep 24: mixing beats cutting, but one key and one tempo for
+   a whole night is the wrong price to pay for it.
+
+   So the night is three movements. INSIDE a movement you mix — bring one
+   picture up under the other, let the old one go, or leave both and get a
+   third thing neither of them was. BETWEEN movements you cut, and the cut is
+   where the key and the tempo change, which is exactly where a listener
+   expects one. The two places the set hard-cuts are now the two places it
+   was always going to modulate.
+
+     I  · ORIGIN     F aeolian, 54  · THE POINT + ECLIPSE
+     II · ORBIT      A aeolian, 62  · THE PASSAGE + THE NAMES
+     III· ASCENSION  F aeolian, 50  · ASCENSION + THE POINT, RETURNED
+
+   It ends in the key it opened in, slower. The loop closes in the music as
+   well as in the picture.
+
+   ⭐ AND THE SPLIT PAYS FOR ITSELF IN FRAME TIME. Cost is draw calls, not
+   arithmetic: Eclipse, Passage and Ascension each stroke thousands of
+   separate paths (23-34 fps alone at 1920x1200); Point, Names and Returned
+   are cheap. Every movement here is EXACTLY ONE EXPENSIVE LAYER PLUS ONE
+   CHEAP ONE — cost 4 against a budget of 7. So both layers of a movement can
+   sit at full, together, indefinitely. Two heavies never meet.
+
+   IT IS A HOST, NOT A REWRITE. A scene instance is a plain object and PIECES
+   holds every def, so each movement builds sub-instances and calls the SAME
+   init/step/draw the six already have. They are untouched and still open on
+   their own. If the mixer is cut, the six are exactly as they were.
+
+   AUDIO FOLLOWS THE PICTURE. Each layer keeps its own audio(); its level
+   rides its own fader. A.out/A.revIn/A.delIn are swapped to that layer's
+   nodes around every construction and every tick, so voices, one-shots and
+   reverb sends all land on the right fader — pull a layer down and its tail
+   goes with it. A seventh, locked fader is THE INSTRUMENT: everything this
+   machine makes, under one level, so Edson can solo or step out entirely and
+   leave the room to Nima and Lance. */
+(() => {
+  const COST = { 'SRC-56': 1, 'SRC-57': 3, 'SRC-58': 3, 'SRC-59': 1, 'SRC-60': 3, 'SRC-61': 1 };
+  const CULL = 0.012;      // below this a layer does not step, draw, or sound
+  const BUDGET = 7;
+  const MIXERS = [];
+
+  /* 0.2 (Sep 27): a host may PRICE its own layers (`cost`), declare MACROS —
+     the slow decided moves of an act, on knobs, so the theremin stays free —
+     and a layer is told when its fader wakes it and puts it to sleep. */
+  function makeMixer(M) {
+    MIXERS.push(M.id);
+    const cost = Object.assign({}, COST, M.cost || {});
+    const MAC = M.macros || [];
+    /* SHOTS (Sep 27, 16:15): a clip that is a BUTTON, not a layer. Edson: "not
+       as a layer, but as a click on a button of the Twister." A shot is a
+       hosted scene like a layer, appended AFTER the faders in s.L, so every
+       index a fader, the Twister or REMOTE knows is unchanged. It has no
+       fader: MIX.shot(j) (Twister SHOT, the L key) plays it from the top over
+       everything, with its sound; it fades out by itself when the clip ends,
+       and a second press cuts it early. It is outside the budget and SOLO,
+       BLACKOUT kills it and never brings it back, and REMOTE relays the press
+       (through MIX.fire) but never the state, so a late joiner does not
+       restart the rocket halfway through. */
+    const SHOTS = M.shots || [];
+    reg({
+      id: M.id, family: M.id, ver: 1, title: M.title, tech: M.tech,
+      audioIn: true, textIsContent: true, _macros: MAC,
+      // a host may declare a PALETTE (partcore_palette.js): one shared object
+      // every hosted layer reads, as `macro` is
+      palette: M.palette,
+      music: M.music, fx: { bloom: M.bloom || 0.42 },
+      tags: ['TEMPLE SET', 'MOVEMENT ' + M.part, 'MIX, DO NOT CUT', 'THE SOURCE LAW'],
+      desc: M.desc, interact: M.interact, sound: M.sound,
+
+      init(P) {
+        const nL = M.layers.length, nT = nL + SHOTS.length;   // faders, then shots
+        const s = { L: [], insts: [], fade: new Float32Array(nT),
+                    want: new Float32Array(nL), live: [], spent: 0,
+                    inst: 1, solo: -1, pres: 0,
+                    // 0.2: macros (one shared object every layer reads), wake
+                    // flags, and BLACKOUT's kept faders
+                    macro: {}, on: new Uint8Array(nT), black: false, keep: null, glide: 0,
+                    nL, shotWant: new Float32Array(SHOTS.length), shotT: new Float32Array(SHOTS.length) };
+        MAC.forEach(d => { s.macro[d.k] = (d.def !== undefined) ? d.def : 0; });
+        s.pal = (window.PAL && M.palette) ? PAL.of(P) : null;
+        M.layers.concat(SHOTS.map(x => x.id)).forEach((id, i) => {
+          // a layer is a scene, or a MEDIA item kept out of the library (MEDIA.def)
+          const def = ((typeof PIECES !== 'undefined') ? PIECES.find(x => x.id === id) : null) || ((window.MEDIA && MEDIA.def) ? MEDIA.def(id) : null);
+          // "THE POINT" and "THE PASSAGE" both abbreviate to "THE" if you just
+          // take the first letters. Drop the article, and prefer what comes
+          // after a comma — "THE POINT, RETURNED" is RETURNED, not POINT.
+          // strip the BoT search prefix and the article before abbreviating, or
+          // every layer in every movement reads "BOT"
+          const full = (def ? def.title.toUpperCase() : id).replace(/^\s*BOT\s*·\s*/, '');
+          const shortName = (full.indexOf(',') >= 0 ? full.split(',').pop() : full)
+            .replace(/^\s*THE\s+/, '').trim();
+          const shot = i >= nL ? SHOTS[i - nL] : null;
+          s.L.push({ id, def, name: full, short: shot ? (shot.label || shortName) : shortName, cost: cost[id] || 2, shot: !!shot });
+          const sub = {
+            def, canvas: P.canvas, g: P.g, w: P.w, h: P.h, state: {},
+            seed: (P.seed + i * 7919) | 0, focused: true, visible: true, rand: null,
+            hosted: true, macro: s.macro, palette: s.pal, ping() {}
+          };
+          sub.rand = mulberry32(sub.seed);
+          try { if (def) def.init(sub); } catch (e) { console.error('mixer init', id, e); }
+          s.insts.push(sub);
+        });
+        s.want[0] = 1;                      // opening on black helps nobody
+        P.state = s;
+      },
+
+      step(P, dt, t, inp) {
+        const s = P.state;
+        const live = SOURCE_PRES();   // always 1 — the last position holds (part249_source.js)
+        s.pres += (live - s.pres) * Math.min(1, dt * 1.5);
+
+        const order = [];
+        s.glide = Math.max(0, s.glide - dt);
+        const rate = s.glide > 0 ? 2.2 : 4.5;   // BLACKOUT glides (~1.5 s); a knob jump is a move, not a jolt
+        for (let i = 0; i < s.L.length; i++) {
+          const j = i - s.nL;                                  // >= 0: a shot
+          if (j >= 0) {
+            // a shot ends itself: once it has been awake a moment and its
+            // clip says it is over, it lets go (the last frame fades out)
+            if (s.on[i]) s.shotT[j] += dt; else s.shotT[j] = 0;
+            const def = s.L[i].def;
+            if (s.shotWant[j] > 0 && s.shotT[j] > 0.5 && def && def.done) { try { if (def.done(s.insts[i])) s.shotWant[j] = 0; } catch (e) {} }
+          }
+          const target = (j >= 0) ? s.shotWant[j] : (s.solo >= 0) ? (i === s.solo ? 1 : 0) : s.want[i];
+          s.fade[i] += (target - s.fade[i]) * Math.min(1, dt * (j >= 0 ? 6 : rate));
+          const on = s.fade[i] > CULL;
+          /* WAKE / SLEEP. A layer is told when its fader arrives from nothing
+             and when it goes back to nothing. A clip starts from the top on
+             wake and parks on sleep; a generated layer has neither and
+             notices nothing. */
+          const def = s.L[i].def;
+          if (on && !s.on[i]) { try { if (def && def.wake) def.wake(s.insts[i]); } catch (e) {} }
+          else if (!on && s.on[i]) { try { if (def && def.sleep) def.sleep(s.insts[i]); } catch (e) {} }
+          s.on[i] = on ? 1 : 0;
+          if (on && j < 0) order.push(i);                     // shots are outside the budget
+        }
+        /* THE BUDGET. With one heavy and one cheap layer per movement this
+           never bites — it is here so a third layer added later degrades the
+           QUIETEST picture instead of the frame rate for the whole room. */
+        order.sort((a, b) => s.fade[b] - s.fade[a]);
+        const keep = []; let spent = 0;
+        for (const i of order) {
+          const c = s.L[i].cost;
+          if (spent + c <= BUDGET || !keep.length) { keep.push(i); spent += c; }
+        }
+        keep.sort((a, b) => a - b);          // draw in set order, not by level
+        for (let i = s.nL; i < s.L.length; i++) if (s.on[i]) keep.push(i);   // a shot is always drawn, and last
+        s.live = keep; s.spent = spent;
+        for (const i of keep) { try { s.L[i].def.step(s.insts[i], dt, t, inp); } catch (e) {} }
+      },
+
+      draw(P, g, w, h, t, inp) {
+        const s = P.state;
+        g.globalCompositeOperation = 'source-over';
+        g.fillStyle = '#000'; g.fillRect(0, 0, w, h);      // the ground, painted ONCE
+        for (const i of s.live) {
+          const a = clamp(s.fade[i]); if (a <= CULL) continue;
+          g.save(); g.globalAlpha = a;                      // the fader
+          try { s.L[i].def.draw(s.insts[i], g, w, h, t, inp); } catch (e) {}
+          g.restore();
+        }
+        g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+        if (typeof OWPERF === 'undefined' || !OWPERF()) {
+          const ms = Math.max(1, Math.sqrt(areaScale(P)));
+          g.font = `${Math.round(10 * ms)}px ui-monospace,monospace`;
+          g.fillStyle = 'rgba(225,225,235,0.8)';
+          const bars = s.L.slice(0, s.nL).map((L, i) => L.short + ' ' + Math.round(s.fade[i] * 100)).join('   ')
+                     + s.L.slice(s.nL).map((L, j) => s.on[s.nL + j] ? '   · ▶ ' + L.short : '').join('');
+          const macs = MAC.length ? '   ·   ' + MAC.map(d => d.label + ' ' + Math.round((s.macro[d.k] || 0) * 100)).join('  ') : '';
+          // no INST here: SOUND OUT is the one level now (Edson, Sep 25)
+          g.fillText(M.part + ' · ' + bars + macs + '   load ' + s.spent + '/' + BUDGET + (s.black ? '   · BLACKOUT' : ''), 10, h - 10);
+        }
+        if (typeof OWPOEM !== 'undefined') { OWPOEM.tick(); OWPOEM.draw(g, w, h); }
+      },
+
+      audio(A, P) {
+        const s = P.state;
+        const bus = A.ctx.createGain(); bus.gain.value = 1;   // THE INSTRUMENT
+        bus.connect(A.master || A.ctx.destination);
+        const nodes = s.L.map(() => null), voices = s.L.map(() => []);
+
+        /* Run anything a layer does with A pointing at THAT layer's nodes, so
+           its voices, its one-shots (A.tone/A.pluck2 go straight to A.out())
+           and its sends all land on its own fader. Always restored. */
+        const withLayer = (i, fn) => {
+          const n = nodes[i]; if (!n) return fn();
+          // 🔴 A.master AS WELL AS A.out. AE.tone/pluck2/bell/bassNote connect to
+          // `this.master` DIRECTLY — not to this.out() — so swapping out() alone
+          // left every one-shot bypassing the layer fader and, worse, the
+          // INSTRUMENT fader: pulling yourself out of the room would still have
+          // let plucks and bells through. Swap all four.
+          const o = A.out, r = A.revIn, d = A.delIn, m = A.master;
+          A.out = () => n.dry; A.revIn = n.rev; A.delIn = n.del; A.master = n.dry;
+          try { return fn(); } finally { A.out = o; A.revIn = r; A.delIn = d; A.master = m; }
+        };
+        const build = i => {
+          if (nodes[i]) return;
+          const dry = A.ctx.createGain(); dry.gain.value = 0; dry.connect(bus);
+          const rev = A.ctx.createGain(); rev.gain.value = 0;
+          const del = A.ctx.createGain(); del.gain.value = 0;
+          if (A.revIn) rev.connect(A.revIn);          // sends rejoin the global buses,
+          if (A.delIn) del.connect(A.delIn);          // but scaled by this fader
+          nodes[i] = { dry, rev, del, inst: null, lastV: -1 };
+          // Restore the ORIGINAL property, not a bound copy of it — leaving a
+          // bound function on A.voice would outlive this mixer and quietly
+          // change the shared audio API for every scene after it.
+          const origVoice = A.voice;
+          A.voice = function (...a) { const v = origVoice.apply(A, a); voices[i].push(v); return v; };
+          try { withLayer(i, () => { nodes[i].inst = s.L[i].def.audio(A, s.insts[i]); }); }
+          catch (e) { console.error('mixer audio', s.L[i].id, e); }
+          finally { A.voice = origVoice; }
+          // a voice group connects to A.out() at CREATION, before the swap could
+          // reach it — move it onto this layer's dry bus
+          voices[i].forEach(v => { try { v.group.disconnect(); v.group.connect(nodes[i].dry); } catch (e) {} });
+        };
+
+        return {
+          tick(inp, dt) {
+            for (let i = 0; i < s.L.length; i++) {
+              const on = s.live.indexOf(i) >= 0;
+              if (on && !nodes[i]) build(i);          // built when first needed, then kept
+              const n = nodes[i]; if (!n) continue;
+              const v = on ? clamp(s.fade[i]) * clamp(s.inst) : 0;
+              // only when it has actually moved. A still fader was scheduling
+              // 180 setTargetAtTime events a second for nothing, on the audio
+              // thread — invisible headless with --mute-audio, real on a laptop.
+              if (Math.abs(v - n.lastV) > 0.002) {
+                n.lastV = v;
+                A.set(n.dry.gain, v, 0.08); A.set(n.rev.gain, v, 0.08); A.set(n.del.gain, v, 0.08);
+              }
+              if (on && n.inst && n.inst.tick) { try { withLayer(i, () => n.inst.tick(inp, dt)); } catch (e) {} }
+            }
+            // MOut.expr sends a CC — every frame was 60 messages a second to
+            // Ableton for a value that barely changes
+            const iv = clamp(s.inst);
+            if (Math.abs(iv - (this._lastInst === undefined ? -1 : this._lastInst)) > 0.004) {
+              this._lastInst = iv;
+              if (typeof MOut !== 'undefined' && MOut.expr) MOut.expr('pad', iv);
+            }
+          },
+          stop() {
+            nodes.forEach(n => { if (n && n.inst && n.inst.stop) { try { n.inst.stop(); } catch (e) {} } });
+            setTimeout(() => { try { bus.disconnect(); } catch (e) {} }, 800);
+          }
+        };
+      }
+    });
+  }
+
+  const SRC = 'THE SOURCE LAW is unchanged and applies to every layer at once: both hands at the instrument is the smallest, slowest form of whatever is up; both hands wide is everything at once. ';
+  const FAD = 'The FADERS decide what is on the wall — the controller\'s knobs, or the number keys to solo one. A layer under 1% stops rendering and falls silent, so nothing costs anything while it is down. The INSTRUMENT fader is your whole output: pull it out and the room is the band.';
+
+  makeMixer({
+    id: 'SRC-62', part: 'I', title: 'BoT · I · Origin', tech: 'TWO LAYERS / F AEOLIAN 54',
+    layers: ['SRC-56', 'SRC-57'], bloom: 0.36,
+    music: { bpm: 54, root: 41, mode: 'aeolian', chordBars: 8,
+             chords: [[0, 7, 12, 19], [0, 7, 14, 19], [0, 8, 15, 20], [0, 7, 12, 17]],
+             chordNames: ['F5', 'Fsus2', 'D♭maj7/F', 'Fsus4'] },
+    desc: 'The first movement. One disc of light, and the body that decides what passes around it — THE POINT and ECLIPSE on two faders, mixed rather than cut. Hold both hands at the Source and whatever is up is a coal; open them and it becomes a sun with a woven crown. The slowest music of the night, eight bars to a chord, in the key the whole set will end in.',
+    interact: SRC + FAD,
+    sound: 'F aeolian, eight bars a chord — the slowest harmonic rhythm of the night, because this movement is a held state rather than a progression. Each layer keeps its own sound and its level rides its own fader.'
+  });
+
+  makeMixer({
+    id: 'SRC-63', part: 'II', title: 'BoT · II · Orbit', tech: 'TWO LAYERS / A AEOLIAN 62',
+    layers: ['SRC-58', 'SRC-59'], bloom: 0.5,
+    music: { bpm: 62, root: 45, mode: 'aeolian', chordBars: 4,
+             chords: [[0, 7, 14, 19, 24], [0, 8, 15, 19, 26], [0, 5, 12, 17, 21], [0, 7, 11, 14, 23]],
+             chordNames: ['Am(add9)', 'Fmaj7♯11/A', 'Dm9/A', 'Am(maj7)9'] },
+    desc: 'The second movement, and the key lifts. THE PASSAGE and THE NAMES on two faders — the field you are moving through, and the nineteen thousand on their golden-angle shell. Mix them and you are travelling through the names themselves. Faster than the first movement and brighter, four bars to a chord.',
+    interact: SRC + FAD,
+    sound: 'A aeolian, four bars a chord, the top voice walking E–D–C–B. A lift of a major third from the first movement, and the fastest tempo of the night.'
+  });
+
+  makeMixer({
+    id: 'SRC-64', part: 'III', title: 'BoT · III · Ascension', tech: 'TWO LAYERS / F AEOLIAN 50',
+    layers: ['SRC-60', 'SRC-61'], bloom: 0.42,
+    music: { bpm: 50, root: 41, mode: 'aeolian', chordBars: 4,
+             chords: [[0, 7, 12, 19, 24], [0, 8, 15, 20, 27], [0, 10, 14, 19, 26], [0, 7, 12, 19]],
+             chordNames: ['F5', 'D♭maj7♯11/F', 'E♭6/9/F', 'F5'] },
+    desc: 'The last movement, back in the key it opened in and slower than anything before it. ASCENSION and THE POINT, RETURNED — the shards that break free, and the disc that empties into a ring. Mix them and the thing leaving and the thing left behind are on the wall together. The set closes where it started: one point, and the loop shut.',
+    interact: SRC + FAD,
+    sound: 'F aeolian at 50 — the key of the first movement, slower. The bass ends on the chord it began on, so the night closes harmonically as well as visually.'
+  });
+
+  /* the faders — reachable from the controller, the keyboard and the console */
+  window.MIX = {
+    MIXERS,
+    P() { const f = (typeof focus !== 'undefined') ? focus.P : null;
+          return (f && MIXERS.indexOf(f.def.id) >= 0) ? f : null; },
+    // FADERS ONLY: the shots sit after them in s.L and are not faders
+    count() { const P = this.P(); return P ? P.state.nL : 0; },
+    names() { const P = this.P(); return P ? P.state.L.slice(0, P.state.nL).map(l => l.short) : []; },
+    set(i, v) { const P = this.P(); if (P && i >= 0 && i < P.state.nL) P.state.want[i] = clamp(v); },
+    get(i) { const P = this.P(); return P ? P.state.want[i] : 0; },
+    instrument(v) { const P = this.P(); if (P) P.state.inst = clamp(v); },
+    solo(i) { const P = this.P(); if (P && i < P.state.nL) P.state.solo = (P.state.solo === i) ? -1 : i; },
+    /* 0.2 — MACROS: the host's declared slow moves, by index. Outside a host
+       every one of these is a no-op, never an error. */
+    /* MP(): the piece that carries macros — a movement (its `_macros`, built
+       by makeMixer) OR any plain scene that declares `macros: [{k, label,
+       def}]` in its reg (SRC-80.2, Sep 27: "use some twister controls to
+       control colour"). A scene reads them from `P.state.macro[k]`, which it
+       seeds itself in init(). A scene that declares nothing is untouched. */
+    MP() { const f = (typeof focus !== 'undefined') ? focus.P : null;
+           return (f && f.def && (f.def._macros || (f.def.macros && f.def.macros.length))) ? f : null; },
+    macroDefs() { const P = this.MP(); return P ? (P.def._macros || P.def.macros || []) : []; },
+    macroCount() { return this.macroDefs().length; },
+    macroNames() { return this.macroDefs().map(d => d.label); },
+    /* A macro may be BOUND TO THE PALETTE (Sep 27, PLAN-PALETTE 2b: one colour
+       system, not two): `{ k, label, def, pal: 'hue0' }` writes through
+       PAL.set('hue', 0, v) and reads PAL.get('hue0'), so a colour knob, the
+       panel and REMOTE all move the same slot. AUTO-MAP still lands it. */
+    macro(i, v) {
+      const P = this.MP(), d = this.macroDefs()[i]; if (!P || !d) return;
+      if (!P.state.macro) P.state.macro = {}; P.state.macro[d.k] = clamp(v);
+      const m = d.pal && window.PAL && /^(hue|band)(\d)$/.exec(d.pal);
+      if (m) PAL.set(m[1], +m[2], clamp(v));
+    },
+    getMacro(i) {
+      const P = this.MP(), d = this.macroDefs()[i]; if (!P || !d) return 0;
+      if (d.pal && window.PAL && PAL.active()) return PAL.get(d.pal);
+      return P.state.macro ? (P.state.macro[d.k] || 0) : 0;
+    },
+    /* BLACKOUT: every fader glides to nothing in about 1.5 s and the wall is
+       black — the 8:00 silence, the twelfth Witness. Press again and the
+       faders come back to exactly where they were. A toggle, so one knob. */
+    blackout() {
+      const P = this.P(); if (!P) return; const s = P.state;
+      if (!s.black) { s.keep = Array.from(s.want); s.keepSolo = s.solo; s.want.fill(0); s.solo = -1; s.black = true; if (s.shotWant) s.shotWant.fill(0); }
+      else { if (s.keep) s.keep.forEach((v, i) => { s.want[i] = v; }); s.solo = (s.keepSolo === undefined ? -1 : s.keepSolo); s.black = false; }
+      s.glide = 1.6;
+    },
+    /* a layer's own event, by index (a clip restarts). Past the faders the
+       index is a SHOT, and fire toggles it: play from the top / cut. Shots go
+       through fire so REMOTE (which wraps fire) relays the press as it is. */
+    fire(i, v) {
+      const P = this.P(); if (!P) return; const s = P.state;
+      if (i >= s.nL && i < s.L.length) {
+        const j = i - s.nL;
+        // `v` is decided by the SENDER (MIX.shot), so a wall that missed a
+        // press or joined late obeys it instead of toggling its own state
+        const on = (v === undefined) ? !(s.shotWant[j] > 0) : v > 0;
+        if (!on) { s.shotWant[j] = 0; return; }
+        if (s.black) return;                                 // the wall is black on purpose
+        if (s.on[i]) { const L = s.L[i]; try { if (L.def && L.def.wake) L.def.wake(s.insts[i]); } catch (e) {} s.shotT[j] = 0; }
+        s.shotWant[j] = 1;                                   // waking from nothing starts it from the top
+        return;
+      }
+      const L = s.L[i]; if (L && L.def && L.def.wake) { try { L.def.wake(s.insts[i]); } catch (e) {} }
+    },
+    shotCount() { const P = this.P(); return P ? P.state.L.length - P.state.nL : 0; },
+    shotNames() { const P = this.P(); return P ? P.state.L.slice(P.state.nL).map(l => l.short) : []; },
+    shot(j) { const P = this.P(); if (!P || j < 0 || j >= this.shotCount()) return;
+              this.fire(P.state.nL + j, P.state.shotWant[j] > 0 ? 0 : 1); },
+    make: makeMixer,
+    state() {
+      const P = this.P(); if (!P) return null; const s = P.state;
+      return { id: P.def.id, layers: s.L.slice(0, s.nL).map(l => l.short),
+               fade: Array.from(s.fade).slice(0, s.nL).map(x => +x.toFixed(2)),
+               shots: s.L.slice(s.nL).map((l, j) => ({ name: l.short, want: s.shotWant[j], fade: +s.fade[s.nL + j].toFixed(2), on: !!s.on[s.nL + j] })),
+               want: Array.from(s.want).map(x => +x.toFixed(2)),
+               live: s.live.slice(), load: s.spent + '/' + BUDGET,
+               inst: +s.inst.toFixed(2), solo: s.solo,
+               macro: this.macroDefs().map(d => +((s.macro[d.k] || 0).toFixed(2))),
+               macroNames: this.macroNames(), black: !!s.black };
+    }
+  };
+
+  window.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!MIX.P()) return;
+    const k = e.key;
+    if (k >= '1' && k <= '9') { const i = +k - 1; if (i < MIX.count()) { e.preventDefault(); MIX.solo(i); } return; }
+    if (k === '0') { e.preventDefault(); MIX.P().state.solo = -1; return; }
+    if (k === 'b' || k === 'B') { e.preventDefault(); MIX.blackout(); return; }
+    if ((k === 'l' || k === 'L') && MIX.shotCount()) { e.preventDefault(); MIX.shot(0); return; }   // L = LAUNCH, the first shot
+    /* − + step SOUND OUT, the rail's own volume, not a second hidden
+       instrument level — Edson, Sep 25: they were the same thing twice, and
+       a trim with no slider on screen is a volume drop nobody can explain. */
+    const step = d => { const v = document.getElementById('volSlider'); if (!v) return;
+      v.value = String(Math.max(0, Math.min(100, +v.value + d))); v.dispatchEvent(new Event('input'));
+      const f = document.getElementById('fVol'); if (f) f.value = v.value; };
+    if (k === '-' || k === '_') { e.preventDefault(); step(-10); return; }
+    if (k === '+') { e.preventDefault(); step(10); return; }
+  });
+})();
