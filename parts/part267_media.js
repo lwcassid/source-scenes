@@ -76,13 +76,15 @@
     return (w > 0 && h > 0) ? { w, h } : null;
   };
 
+  const DEFS = {};
   window.MEDIA = {
+    def(id) { return DEFS[id] || null; },
     reg(M) {
       M.kind = M.kind || (/\.(mp4|webm|mov|m4v)$/i.test(M.src) ? 'video' : 'image');
       M.fit = M.fit || 'contain';
       ITEMS[M.id] = M;
       const isVid = M.kind === 'video';
-      reg({
+      const def = {
         id: M.id, family: M.family || M.id, ver: M.ver || 1, title: M.title,
         tech: isVid ? 'MEDIA / CLIP' : 'MEDIA / STILL',
         textIsContent: true,
@@ -156,7 +158,11 @@
           if (src) { try { src.connect(gn); gn.connect(A.out()); } catch (err) {} }
           return { tick() {}, stop() { setTimeout(() => { try { gn.disconnect(); } catch (err) {} }, 400); } };
         }
-      });
+      };
+      /* `library: false` (Sep 28, Edson: "delete 77, 78"): the item is a LAYER
+         or a SHOT a host can still reach (MEDIA.def), but not a scene — no
+         tile, no search hit, nothing to open on its own. */
+      if (M.library === false) DEFS[M.id] = def; else reg(def);
     },
     item(id) { return ITEMS[id] || null; },
     cue(id) { const M = ITEMS[id]; if (M) restart(M); },
@@ -170,13 +176,13 @@
 
   /* ---- the three the night needs (files in assets/media/, see its README) ---- */
   MEDIA.reg({
-    id: 'SRC-77', title: 'BoT · Launch Clip', src: 'assets/media/launch.mp4', kind: 'video', loop: false, fit: 'contain',
+    id: 'SRC-77', title: 'BoT · Launch Clip', src: 'assets/media/launch.mp4', kind: 'video', loop: false, fit: 'contain', library: false,
     tags: ['ACT 1'],
     desc: 'Transporter-18, Oct 1 2026, 2:18 PM New York: the launch and the separation, a few seconds, no countdown — shown like a reel, then gone. Alex cuts the real clip on the afternoon of the launch; until then it is Edson\'s own rocket clip (Sep 27). In Act 1 it is a SHOT, not a fader: one press on the Twister (knob 7) or L plays it from the top over everything, with its own sound, and it fades away by itself when it ends; press again to cut it early.',
     sound: 'The rocket. The clip\'s own audio through the layer\'s bus; the band holds one note under it.'
   });
   MEDIA.reg({
-    id: 'SRC-78', title: 'BoT · The Temple', src: 'assets/media/temple.jpg', kind: 'image', fit: 'contain', scale: 0.72,
+    id: 'SRC-78', title: 'BoT · The Temple', src: 'assets/media/temple.jpg', kind: 'image', fit: 'contain', scale: 0.72, library: false,
     tags: ['ACT 1'],
     desc: 'A photograph of the Orbital Temple, shown behind Edson while he talks about it. "A button, not a chapter": it appears, it illustrates, the talk goes on.',
     sound: 'Silent.'

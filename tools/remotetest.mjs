@@ -23,7 +23,7 @@ let st = await Rc.p.evaluate(() => ({ cfg: REMOTE.cfg, panel: !!document.getElem
 ok('no cfg, no panel, no socket', st.cfg === null && !st.panel, st);
 
 console.log('RECEIVER opens the set; SENDER opens Act I');
-await open(Rc.p, BASE + '/index.html?relay=' + RELAY + '&recv=' + ROOM + '#set=BIRTH+OF+A+TEMPLE+0.2');
+await open(Rc.p, BASE + '/index.html?relay=' + RELAY + '&recv=' + ROOM + '#set=BIRTH+OF+A+TEMPLE');
 await open(S.p, BASE + '/index.html?relay=' + RELAY + '&send=' + ROOM + '#scene=SRC-73');
 await wait(1500);
 let rs = await Rc.p.evaluate(() => REMOTE.state()), ss = await S.p.evaluate(() => REMOTE.state());
@@ -95,14 +95,14 @@ await wait(2500);
 await S.p.evaluate(() => { MIX.set(1, 0.45); MIX.set(2, 0.7); MIX.macro(0, 0.3); });
 await wait(400);
 const L2 = await mk();
-await open(L2.p, BASE + '/index.html?relay=' + RELAY + '&recv=' + ROOM + '#set=BIRTH+OF+A+TEMPLE+0.2');
+await open(L2.p, BASE + '/index.html?relay=' + RELAY + '&recv=' + ROOM + '#set=BIRTH+OF+A+TEMPLE');
 await wait(4500);
 let lj = await L2.p.evaluate(() => ({ id: focus.idx >= 0 ? PIECES[focus.idx].id : null, mix: MIX.state() }));
 ok('late joiner is on SRC-73 with the sender\'s faders and DEPTH', lj.id === 'SRC-73' && lj.mix && lj.mix.want[1] === 0.45 && lj.mix.want[2] === 0.7 && lj.mix.macro[0] === 0.3, lj);
 await S.p.evaluate(() => MIX.blackout());
 await wait(600);
 await L2.p.goto('about:blank');
-await open(L2.p, BASE + '/index.html#set=BIRTH+OF+A+TEMPLE+0.2');      // a RELOAD: the config is remembered
+await open(L2.p, BASE + '/index.html#set=BIRTH+OF+A+TEMPLE');      // a RELOAD: the config is remembered
 await wait(4500);
 lj = await L2.p.evaluate(() => ({ id: focus.idx >= 0 ? PIECES[focus.idx].id : null, mix: MIX.state() }));
 ok('after a reload mid-blackout: same scene, black, faders kept for the return', lj.id === 'SRC-73' && lj.mix && lj.mix.black, lj);

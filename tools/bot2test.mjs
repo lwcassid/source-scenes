@@ -1,4 +1,4 @@
-// bot2test.mjs — BIRTH OF A TEMPLE 0.2: the three hosts, the macros, BLACKOUT,
+// bot2test.mjs — BIRTH OF A TEMPLE (the set) and the 0.2 hosts, the macros, BLACKOUT,
 // the MEDIA layers, and the protection rule (nothing of ours changes a scene
 // that is not ours).
 //   node tools/bot2test.mjs [baseUrl] [--shots]
@@ -53,10 +53,16 @@ const fps = async (ms) => pg.evaluate(ms => new Promise(res => {
   requestAnimationFrame(tick);
 }), ms);
 
-console.log('THE SET: BIRTH OF A TEMPLE 0.2 is a shared set of three, in order');
-await open('set=BIRTH+OF+A+TEMPLE+0.2');
+// Sep 28 (Edson): the set is BIRTH OF A TEMPLE — Act 1 SRC-66, Act 2 SRC-68,
+// Act 3 SRC-64 — and the 0.1 and 0.2 sets are gone. The 0.2 hosts below are
+// still in the library and still tested.
+console.log('THE SET: BIRTH OF A TEMPLE is a shared set of three acts, in order');
+await open('set=BIRTH+OF+A+TEMPLE');
 const setIds = await pg.evaluate(() => (typeof QUEUE !== 'undefined' && QUEUE.shared) ? QUEUE.shared.slice() : null);
-ok('three acts, in order', setIds && setIds.join() === 'SRC-73,SRC-74,SRC-75', setIds);
+ok('three acts, in order: SRC-66, SRC-68, SRC-64', setIds && setIds.join() === 'SRC-66,SRC-68,SRC-64', setIds);
+const acts = await pg.evaluate(() => ({ titles: ['SRC-66', 'SRC-68', 'SRC-64'].map(f => { const v = PIECES.filter(p => (p.family || p.id) === f); return v[v.length - 1].title; }),
+  sets: SETLISTS.sets.map(x => x.name).filter(n => /BIRTH/.test(n)) }));
+ok('their names are the acts, and only one BIRTH set is left', acts.titles.join('|') === 'Act 1 · Expectation and Launch|Act 2 · The Depths|Act 3 · The Collective Witnesses' && acts.sets.join() === 'BIRTH OF A TEMPLE', acts);
 
 console.log('ACT I · SRC-73: five layers, two macros, THE LAUNCH is a shot on a button');
 await scene('SRC-73');
@@ -187,15 +193,12 @@ ok('SRC-28: no host, the Twister is dark, every new call is a no-op', !foreign.h
 const turns = await pg.evaluate(() => TWIST.turnOpts().filter(k => k.indexOf('macro') === 0).length);
 ok('the editor still offers all four macros where there is no host (configurable, like faders)', turns === 4, turns);
 
-console.log('THE MEDIA SCENES STAND ALONE · SRC-79 opens on its own; SRC-77 plays when focused');
+console.log('THE MEDIA · SRC-79 is a scene; SRC-77 and 78 are not (Sep 28, Edson: "delete 78, 77") but SRC-73 still has them');
 await scene('SRC-79');
 const qr = await pg.evaluate(() => MEDIA.state('SRC-79'));
 ok('the QR still is ready standalone', qr && qr.ready, qr);
-await scene('SRC-77');
-await pg.evaluate(() => { MEDIA.item('SRC-77')._el.muted = true; });   // headless: see above
-await wait(1500);
-const clipF = await pg.evaluate(() => MEDIA.state('SRC-77'));
-ok('the clip plays when it is the focused scene', clipF && clipF.ready && !clipF.paused, clipF);
+const gone = await pg.evaluate(() => ({ lib: ['SRC-77', 'SRC-78'].map(id => PIECES.some(p => p.id === id)), hostOnly: ['SRC-77', 'SRC-78'].map(id => !!MEDIA.def(id)) }));
+ok('77 and 78 have no tile and no scene, and the host can still reach them', gone.lib.every(x => !x) && gone.hostOnly.every(Boolean), gone);
 
 console.log('THE LIBRARY WALL IS SILENT · a tile is a thumbnail, not a play button (Edson, Sep 27 04:00)');
 await open('lib?src=56-&sort=new');

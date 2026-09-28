@@ -82,7 +82,8 @@
         MAC.forEach(d => { s.macro[d.k] = (d.def !== undefined) ? d.def : 0; });
         s.pal = (window.PAL && M.palette) ? PAL.of(P) : null;
         M.layers.concat(SHOTS.map(x => x.id)).forEach((id, i) => {
-          const def = (typeof PIECES !== 'undefined') ? PIECES.find(x => x.id === id) : null;
+          // a layer is a scene, or a MEDIA item kept out of the library (MEDIA.def)
+          const def = ((typeof PIECES !== 'undefined') ? PIECES.find(x => x.id === id) : null) || ((window.MEDIA && MEDIA.def) ? MEDIA.def(id) : null);
           // "THE POINT" and "THE PASSAGE" both abbreviate to "THE" if you just
           // take the first letters. Drop the article, and prefer what comes
           // after a comma — "THE POINT, RETURNED" is RETURNED, not POINT.
