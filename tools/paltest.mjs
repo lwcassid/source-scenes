@@ -83,18 +83,34 @@ await open('scene=SRC-73');
 await pg.waitForTimeout(500);
 const panel = await pg.evaluate(() => { const g = document.getElementById('paletteGroup'); return g ? { d: getComputedStyle(g).display, dots: g.querySelectorAll('.paldot').length } : null; });
 ok('the panel is shown with five dots', panel && panel.d !== 'none' && panel.dots === 5, panel);
-// click the first dot → the hidden picker gets its value; fire an input as the picker would
+// THE COLOUR SHEET (partcore_sheet.js): a dot opens it; the hex field and a
+// drag on the field both write through PAL.set; a drag that ends over the
+// stage does not close it; Esc closes the sheet and NOT the scene
 const via = await pg.evaluate(async () => {
-  const g = document.getElementById('paletteGroup');
   const v0 = PAL.state().ver;
-  const inp = g.querySelector('input[type=color]');
-  const orig = inp.showPicker; inp.showPicker = () => {};          // headless: no native dialog
-  g.querySelectorAll('.paldot')[0].click();
-  inp.value = '#00ff00'; inp.dispatchEvent(new Event('input'));
-  inp.showPicker = orig;
-  return { v0, v1: PAL.state().ver, c0: PAL.state().c[0] };
+  document.querySelectorAll('.paldot')[0].click();
+  await new Promise(r => setTimeout(r, 300));
+  const open = SHEET.isOpen('palColour');
+  const hex = document.querySelector('#palColour input[type=text]');
+  hex.value = '#00ff00'; hex.dispatchEvent(new Event('input'));
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return { open, v0, v1: PAL.state().ver, c0: PAL.state().c[0], native: !!document.querySelector('#paletteGroup input[type=color]') };
 });
-ok('a panel input goes through PAL.set and bumps ver', via.v1 === via.v0 + 1 && via.c0 === '#00ff00', via);
+ok('a dot opens the COLOUR sheet (no native picker left)', via.open && !via.native, via);
+ok('the hex field goes through PAL.set and bumps ver', via.v1 > via.v0 && via.c0 === '#00ff00', via);
+const box = await pg.evaluate(() => { const r = document.querySelector('#palColour canvas').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+const vd = await pg.evaluate(() => PAL.state().ver);
+await pg.mouse.move(box.x + box.w * 0.2, box.y + box.h * 0.2); await pg.mouse.down();
+await pg.mouse.move(box.x + box.w * 0.7, box.y + box.h * 0.5, { steps: 8 });
+await pg.mouse.move(1200, 500, { steps: 6 });            // off the sheet, over the stage
+await pg.mouse.up();
+await pg.waitForTimeout(200);
+const dr = await pg.evaluate(() => ({ open: SHEET.isOpen('palColour'), ver: PAL.state().ver }));
+ok('a drag on the field writes (coalesced) and ending it over the stage keeps the sheet open', dr.open && dr.ver > vd && dr.ver - vd <= 16, { vd, dr });
+await pg.keyboard.press('Escape');
+await pg.waitForTimeout(300);
+const esc = await pg.evaluate(() => ({ open: SHEET.isOpen(), scene: focus.idx >= 0 ? PIECES[focus.idx].id : null }));
+ok('Esc closes the sheet and leaves the scene open', !esc.open && esc.scene === 'SRC-73', esc);
 await pg.evaluate(() => PAL.set('reset'));
 // THE WALL, not just the state: the Point alone, its centre pixel, before and
 // after g0 changes through the panel's own PRESET select

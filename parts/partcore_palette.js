@@ -354,25 +354,137 @@ vec3 palC(int i){ return uPalC[i]; }
      COPY FROM ▾, COPY FOR REPO. Everything goes through PAL.set.          */
   if (!window.PANELS || !PANELS.register) return;
   let ui = null;
+  // the dot or swatch whose colour sheet is open wears the accent (SHEET: the trigger is ON)
+  { const cs = document.createElement('style');
+    cs.textContent = '.paldot.on{outline:2px solid var(--acc);outline-offset:2px} #paletteGroup .on:not(.paldot){outline:2px solid var(--acc);outline-offset:1px;position:relative;z-index:1}';
+    document.head.appendChild(cs); }
   const BTN = 'padding:3px 0;font-size:8px;letter-spacing:.14em;background:transparent;border:1px solid var(--line2,#333);color:var(--txt-dim,#999);box-shadow:none;cursor:pointer';
   const SEL = 'font-size:8px;letter-spacing:.1em;background:transparent;border:1px solid var(--line2,#333);color:var(--txt-dim,#999);padding:2px;max-width:100%';
 
-  function pick(value, onInput) {
-    const inp = ui.picker;
-    inp.value = value;
-    inp.oninput = () => onInput(inp.value);
-    inp.onchange = () => onInput(inp.value);
-    try { if (inp.showPicker) inp.showPicker(); else inp.click(); } catch (e) { inp.click(); }
+  /* ---------- THE COLOUR SHEET (partcore_sheet.js) ----------
+     Edson, Sep 28: the browser's own colour picker was "not ok" — an OS
+     dialog in another language, floating wherever the OS put it. This is
+     a SHEET, the standard every secondary panel follows: TITLE · CONTEXT
+     · ×, one line saying who on the wall reads this colour, a
+     saturation/value field and a hue strip (dragged live — the wall
+     follows), BEFORE (click to go back) · NOW · the hex, and the twelve
+     measured metals to take a colour from in one click.
+     Every write goes through PAL.set, coalesced to one per frame. */
+  const hsv2rgb = (h, s, v) => { h = ((h % 1) + 1) % 1; const i = Math.floor(h * 6), f = h * 6 - i, p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+    const r = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i % 6]; return r.map(x => x * 255); };
+  const rgb2hsv = ([r, g, b]) => { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0; if (d) h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) / 6 : mx === g ? ((b - r) / d + 2) / 6 : ((r - g) / d + 4) / 6;
+    return [h, mx ? d / mx : 0, mx]; };
+  const METALS = [['SILVER', 'SILVER1', 'SILVER2', 'SILVER3'], ['GOLD', 'GOLD1', 'GOLD2', 'GOLD3'],
+                  ['COPPER', 'COPPER1', 'COPPER2', 'COPPER3'], ['ROSE GOLD', 'ROSEGOLD1', 'ROSEGOLD2', 'ROSEGOLD3']];
+
+  /* slot: { kind: 'c', i } or { kind: 'sw', j, k } */
+  function colourSheet(slot, trigger) {
+    const st0 = active(); if (!st0 || !window.SHEET) return;
+    const nm = st0.cur.names || {};
+    const get = () => { const st = active(); if (!st) return '#000000'; return slot.kind === 'c' ? st.cur.c[slot.i] : st.cur.g[slot.j][slot.k]; };
+    const write = hex => slot.kind === 'c' ? PAL.set('c', slot.i, hex) : PAL.set('sw', slot.j, slot.k, hex);
+    const sid = slot.kind === 'c' ? 'c' + slot.i : 'g' + slot.j;
+    const ctxText = () => { const st = active(); return (st && st.key ? st.key + ' · ' : '') + (slot.kind === 'c' ? sid + ' · ' + (nm[sid] || '') : sid + ' · SWATCH ' + (slot.k + 1) + ' · ' + (nm[sid] || '')); };
+    const before = get();
+    let hsv = rgb2hsv(hex2rgb(before)), lastHex = before, pending = null, raf = 0, drag = null;
+    const flush = () => { raf = 0; if (pending) { const h = pending; pending = null; lastHex = h; write(h); } };
+    const take = hex => { pending = hex; if (!raf) raf = requestAnimationFrame(flush); };
+    const now = () => rgb2hex(hsv2rgb(hsv[0], hsv[1], hsv[2]));
+    let sv, hue, nowSw, hexIn, lede, paintFields;
+
+    SHEET.toggle({
+      id: 'palColour', title: 'Colour', size: 's', trigger, context: ctxText(),
+      build(body) {
+        lede = SHEET.lede(''); body.appendChild(lede);
+        // THE FIELD: saturation → right, value → up; then the hue strip
+        const W = 308;
+        sv = document.createElement('canvas'); sv.width = W; sv.height = 168;
+        sv.style.cssText = 'width:100%;height:168px;display:block;border-radius:6px;cursor:crosshair;touch-action:none';
+        hue = document.createElement('canvas'); hue.width = W; hue.height = 14;
+        hue.style.cssText = 'width:100%;height:14px;display:block;border-radius:7px;margin-top:8px;cursor:ew-resize;touch-action:none';
+        const at = (cv, e) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
+        const onMove = e => {
+          if (drag === 'sv') { const [x, y] = at(sv, e); hsv[1] = x; hsv[2] = 1 - y; }
+          else if (drag === 'hue') { hsv[0] = Math.min(0.9999, at(hue, e)[0]); }
+          else return;
+          paintFields(); take(now());
+        };
+        [[sv, 'sv'], [hue, 'hue']].forEach(([cv, k]) => {
+          cv.addEventListener('pointerdown', e => { drag = k; try { cv.setPointerCapture(e.pointerId); } catch (x) {} onMove(e); });
+          cv.addEventListener('pointermove', onMove);
+          cv.addEventListener('pointerup', () => { drag = null; });
+          cv.addEventListener('pointercancel', () => { drag = null; });
+        });
+        body.append(sv, hue);
+        // BEFORE · NOW · HEX
+        const sw = c => { const d = document.createElement('div'); d.style.cssText = 'height:26px;border-radius:6px;border:1px solid var(--line)'; d.style.background = c; return d; };
+        const bef = sw(before); bef.style.cursor = 'pointer'; bef.title = 'BEFORE — click to go back to ' + before;
+        bef.addEventListener('click', () => { hsv = rgb2hsv(hex2rgb(before)); paintFields(); take(before); });
+        nowSw = sw(before); nowSw.title = 'NOW';
+        hexIn = document.createElement('input'); hexIn.type = 'text'; hexIn.spellcheck = false; hexIn.maxLength = 7;
+        hexIn.style.cssText = 'font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:var(--btn-bg);color:var(--txt);border:1px solid var(--line);border-radius:var(--rs);padding:5px 8px;height:26px;box-sizing:border-box;width:100%;min-width:0';
+        hexIn.addEventListener('input', () => { const v = hexIn.value.trim(); if (/^#?[0-9a-f]{6}$/i.test(v)) { const h = '#' + v.replace('#', '').toLowerCase(); hsv = rgb2hsv(hex2rgb(h)); paintFields(true); take(h); } });
+        const lab = t => { const d = document.createElement('div'); d.style.cssText = 'font:8px var(--mono);letter-spacing:.14em;color:var(--txt-faint);margin-bottom:4px'; d.textContent = t; return d; };
+        const col = (t, el) => { const d = document.createElement('div'); d.append(lab(t), el); return d; };
+        const r = SHEET.row(col('BEFORE', bef), col('NOW', nowSw), col('HEX', hexIn)); r.style.marginTop = '12px';
+        body.appendChild(r);
+        // THE METALS: twelve measured rows, click to take a colour
+        const sec = SHEET.section('From the metals');
+        METALS.forEach(([name, ...rows]) => {
+          rows.forEach((key, n) => {
+            const line = document.createElement('div'); line.style.cssText = 'display:grid;grid-template-columns:62px repeat(10,1fr);gap:1px;align-items:center;margin-bottom:1px';
+            const l = document.createElement('div'); l.style.cssText = 'font:8px var(--mono);letter-spacing:.1em;color:var(--txt-faint);white-space:nowrap';
+            l.textContent = n === 0 ? name : ''; line.appendChild(l);
+            PRESETS[key].forEach(h => {
+              const c = document.createElement('div'); c.style.cssText = 'height:11px;cursor:pointer'; c.style.background = h; c.title = key + ' · ' + h;
+              c.addEventListener('click', () => { hsv = rgb2hsv(hex2rgb(h)); paintFields(); take(h); });
+              line.appendChild(c);
+            });
+            if (n === 2) line.style.marginBottom = '6px';
+            sec.appendChild(line);
+          });
+        });
+        body.appendChild(sec);
+
+        paintFields = keepHex => {
+          const g = sv.getContext('2d'), w = sv.width, h = sv.height;
+          const base = hsv2rgb(hsv[0], 1, 1);
+          const gx = g.createLinearGradient(0, 0, w, 0); gx.addColorStop(0, '#fff'); gx.addColorStop(1, rgb2hex(base));
+          g.fillStyle = gx; g.fillRect(0, 0, w, h);
+          const gy = g.createLinearGradient(0, 0, 0, h); gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(1, '#000');
+          g.fillStyle = gy; g.fillRect(0, 0, w, h);
+          const mx = hsv[1] * w, my = (1 - hsv[2]) * h;
+          g.lineWidth = 2; g.strokeStyle = hsv[2] > 0.55 ? 'rgba(0,0,0,.8)' : '#fff';
+          g.beginPath(); g.arc(mx, my, 7, 0, TAU); g.stroke();
+          const hg = hue.getContext('2d'), hw = hue.width, hh = hue.height;
+          for (let x = 0; x < hw; x++) { hg.fillStyle = rgb2hex(hsv2rgb(x / hw, 1, 1)); hg.fillRect(x, 0, 1, hh); }
+          const hx = hsv[0] * hw;
+          hg.fillStyle = '#fff'; hg.fillRect(hx - 2, 0, 4, hh); hg.fillStyle = 'rgba(0,0,0,.6)'; hg.fillRect(hx - 0.5, 0, 1, hh);
+          const n = now(); nowSw.style.background = n;
+          if (!keepHex && document.activeElement !== hexIn) hexIn.value = n.toUpperCase();
+        };
+        paintFields();
+      },
+      paint(body, sh) {
+        sh.context(ctxText());
+        // who reads it — the one line of lede
+        const st = active(); if (!st) { sh.close(); return; }
+        const R = readers(st)[sid] || [];
+        const t = R.length ? 'Read by ' + R.map(x => (x.who ? x.who + ' ' : '') + '(' + x.what.toLowerCase() + ')' + (x.live ? '' : ', fader down')).join(' · ') + '.'
+                           : 'Nothing in this scene reads this colour.';
+        if (lede.textContent !== t) lede.textContent = t;
+        // moved from elsewhere (a knob, REMOTE, RESET): follow it
+        const g = get();
+        if (!drag && !pending && g !== lastHex) { lastHex = g; hsv = rgb2hsv(hex2rgb(g)); paintFields(); }
+      },
+      close() { if (raf) { cancelAnimationFrame(raf); flush(); } }
+    });
   }
 
   function build(ctx) {
     ui = { dots: [], rows: [], seen: -1, key: null };
     const g = ctx.group;
-    const picker = document.createElement('input');
-    picker.type = 'color';
-    picker.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';
-    g.style.position = 'relative';
-    g.appendChild(picker); ui.picker = picker;
 
     const dots = document.createElement('div');
     dots.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:4px 0 10px';
@@ -381,7 +493,7 @@ vec3 palC(int i){ return uPalC[i]; }
       const cell = document.createElement('div'); cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;min-width:0';
       const d = document.createElement('div'); d.className = 'paldot';
       d.style.cssText = 'width:22px;height:22px;border-radius:50%;cursor:pointer;border:1px solid rgba(255,255,255,.18)';
-      d.addEventListener('click', () => { const st = active(); if (st) pick(rgb2hex(st.C[i]), v => PAL.set('c', i, v)); });
+      d.addEventListener('click', () => colourSheet({ kind: 'c', i }, d));
       // who reads this colour, on the wall right now
       const lab = document.createElement('div');
       lab.style.cssText = 'font:7px/1.25 ui-monospace,monospace;letter-spacing:.06em;color:var(--txt-dim,#999);text-align:center;margin-top:3px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
@@ -399,7 +511,7 @@ vec3 palC(int i){ return uPalC[i]; }
       const cells = [];
       for (let k = 0; k < NS; k++) {
         const c = document.createElement('div'); c.style.cssText = 'height:14px;cursor:pointer';
-        c.addEventListener('click', () => { const st = active(); if (st) pick(st.cur.g[j][k], v => PAL.set('sw', j, k, v)); });
+        c.addEventListener('click', () => colourSheet({ kind: 'sw', j, k }, c));
         sw.appendChild(c); cells.push(c);
       }
       wrap.appendChild(sw);
