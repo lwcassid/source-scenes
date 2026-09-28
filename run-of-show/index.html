@@ -76,6 +76,19 @@
   .arc{margin:18px 0 0;font-size:16px;color:var(--dim);max-width:720px}
   .arc b{color:var(--txt)}
 
+  /* who's on, per act */
+  .who{margin:16px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px;font-size:13.5px;color:var(--dim)}
+  .who div{border-top:1px solid var(--line2);padding-top:8px}
+  .who b{display:block;color:var(--txt);font-size:11px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:2px}
+  .ph{display:inline-block;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(255,209,102,.14);color:#ffd166;vertical-align:middle;margin-left:8px;position:relative;top:-3px}
+  /* the clip */
+  .clip{grid-column:1/-1;margin-top:12px;border-radius:14px;overflow:hidden;border:1px solid var(--line2);background:#000;position:relative;aspect-ratio:16/9;max-width:720px}
+  .clip video{width:100%;height:100%;display:block;object-fit:cover}
+  .clip .tag2{position:absolute;left:12px;top:10px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt);background:rgba(7,7,8,.7);padding:4px 8px;border-radius:999px}
+  /* for Fresco */
+  .ref{grid-column:2;margin-top:8px;font-size:13px;color:var(--dim);padding:8px 10px;border-left:2px solid var(--acc);background:var(--acc-faint);border-radius:0 8px 8px 0;max-width:720px}
+  .ref b{color:var(--acc);font-size:10px;letter-spacing:.2em;text-transform:uppercase;display:block;margin-bottom:2px}
+  .ref a{color:var(--txt);border-bottom:1px solid var(--line)}
   /* the beats */
   .beats{margin-top:22px;border-top:1px solid var(--line)}
   .beat{display:grid;grid-template-columns:96px 1fr;gap:4px 16px;padding:16px 0;border-bottom:1px solid var(--line2);align-items:start;position:relative}
@@ -126,10 +139,11 @@
     .beat{grid-template-columns:1fr;gap:2px 0}
     .beat .d{grid-column:1}
     .beat .t{padding-top:0}
+    .ref{grid-column:1}
   }
   @media print{
     :root{--bg:#fff;--panel:#fff;--line:rgba(0,0,0,.3);--line2:rgba(0,0,0,.12);--txt:#000;--dim:#333;--faint:#666;--acc:#b8431c}
-    header,footer,.still,.map a img{display:none}
+    header,footer,.still,.map a img,.clip{display:none}
     .hero{padding-top:0}
     .act{page-break-before:always;margin-top:0;display:block}
     .beat{page-break-inside:avoid;padding:8px 0}
@@ -150,8 +164,8 @@
 <section class="hero">
   <div class="kicker">Run of show · for the band</div>
   <h1>The<br>Night<em>.</em></h1>
-  <p class="venue"><b>Thu Oct 1, 2026 · Dustin Yellin Studio, 153 Pioneer St.</b> Nima · Lance · Edson on the AV theremin · Jeff from ~8:17. Three acts of 20 minutes. Times are targets: if a beat runs long, the next one gives the time back, never the end.</p>
-  <div class="clockline"><span>doors <b>7:30</b></span><span>show <b>8:00 → 9:00</b></span><span>DJ till 10:20</span></div>
+  <p class="venue"><b>Thu Oct 1, 2026 · The Celebration at Dustin Yellin Studio, 153 Pioneer St, Red Hook.</b> Nima on synth and piano · Lance on synths, strings, keys and guitar · Fresco on the kit · Jeff on flute, in and out · Edson on the AV theremin. Three acts of 20 minutes. Times are targets: if a beat runs long, the next one gives the time back, never the end. <a href="https://partiful.com/e/LHgmbQlh0hspkJwcaMuc" style="color:var(--acc)">The invite</a>.</p>
+  <div class="clockline"><span>doors <b>7:30</b></span><span>show <b>8:00 → 9:00</b></span><span>DJ till 10:20</span><span>doors close 10:30</span></div>
 </section>
 
 <nav class="map">
@@ -168,19 +182,21 @@
     <h2>Act 1 <em>· Expectation and Launch</em></h2>
     <div class="when">8:00 → 8:20 · 20 MIN</div>
     <div class="keybox">
-      <div class="kl">Key · tempo</div>
+      <div class="kl">Key · tempo <span class="ph">placeholder</span></div>
       <div class="kv">F aeolian <small>54 bpm</small></div>
-      <div class="kn">One key for the whole act. Slow. It starts in silence and ends in the stratosphere.</div>
+      <div class="kn">Edson's placeholder, not settled. One key for the act, slow: it starts in silence and ends in the stratosphere.</div>
     </div>
-    <p class="arc">Starts slow and holds a tension. Edson speaks in the middle, the clip lands at the end, then everything goes up, and <b>Jeff walks on in the middle of the peak.</b></p>
+    <div class="who"><div><b>Lance</b>bed, synths, strings. Very ambient.</div><div><b>Nima</b>synth, piano</div><div><b>Jeff</b>flute, in and out</div><div><b>Fresco</b>enters on the kit at the peak, ~8:17</div></div>
+    <p class="arc">Starts slow and holds a tension. Edson speaks in the middle, the clip lands at the end, then everything goes up, and <b>the kit walks on in the middle of the peak.</b></p>
     <div class="beats">
       <div class="beat key" data-s="20:00" data-e="20:01"><div class="t">8:00</div><div class="b">The silence <span class="tag big">cue</span></div><div class="d"><b>Follow Edson's hand down to zero.</b> Two or three seconds of nothing, lights drop at the same instant, then the first sound is the theremin alone. <i>If it looks like a fault, it failed: tighter sync, not a longer silence. Rehearse it three times.</i></div></div>
       <div class="beat" data-s="20:01" data-e="20:08"><div class="t">8:01 → 8:08</div><div class="b">Tension</div><div class="d">Slow, built on the theremin. Come in underneath it. On the wall a point opens into a disc, a ring, an eclipse.</div></div>
       <div class="beat" data-s="20:08" data-e="20:11"><div class="t">8:08 → 8:11</div><div class="b">Speech 1 <span class="tag down">music down</span></div><div class="d">Edson talks for up to three minutes. Come down under him, never stop dead. He ends on <i>“Today, at 2:18 in the afternoon, this happened.”</i></div></div>
       <div class="beat" data-s="20:11" data-e="20:14"><div class="t">8:11 → 8:14</div><div class="b">Build to the launch</div><div class="d">Rise again. Expectation.</div></div>
-      <div class="beat key" data-s="20:14" data-e="20:15"><div class="t">8:14 → 8:15</div><div class="b">🚀 Launch clip</div><div class="d"><b>One held note.</b> The rocket's own sound comes up over it. A few seconds, no countdown. Edson is silent.</div></div>
+      <div class="beat key" data-s="20:14" data-e="20:15"><div class="t">8:14 → 8:15</div><div class="b">🚀 Launch clip</div><div class="d"><b>One held note.</b> The rocket's own sound comes up over it. A few seconds, no countdown. Edson is silent.</div>
+        <div class="clip"><video src="launch.mp4" poster="img/launch.jpg" controls playsinline preload="none"></video><span class="tag2">Sample · the real clip is cut on the day</span></div></div>
       <div class="beat" data-s="20:15" data-e="20:17"><div class="t">8:15 → 8:17</div><div class="b">Stratosphere</div><div class="d"><b>Full hit. Super epic.</b> The Passage goes up through the stars.</div></div>
-      <div class="beat key" data-s="20:17" data-e="20:20"><div class="t">~8:17 → 8:20</div><div class="b">🎸 Jeff enters</div><div class="d">Jeff walks on mid-Stratosphere and makes it even bigger. <b>The act peaks here.</b> Stay up until the cut.</div></div>
+      <div class="beat key" data-s="20:17" data-e="20:20"><div class="t">~8:17 → 8:20</div><div class="b">🥁 Fresco enters</div><div class="d">The kit walks on mid-Stratosphere and makes it even bigger. <b>The act peaks here.</b> Stay up until the cut. <i>(Edson's sheet had Jeff here; Lance's note says the kit. Confirm.)</i></div></div>
     </div>
   </div>
 </section>
@@ -192,12 +208,13 @@
     <h2>Act 2 <em>· The Depths</em></h2>
     <div class="when">8:20 → 8:40 · 20 MIN</div>
     <div class="keybox">
-      <div class="kl">Key · tempo</div>
+      <div class="kl">Key · tempo <span class="ph">placeholder</span></div>
       <div class="kv">F phrygian <small>120 bpm</small></div>
       <div class="arrow">→</div>
       <div class="kv">A aeolian <small>50 bpm</small></div>
-      <div class="kn"><b>The change is at 8:27, the descent.</b> The band leads it: come down out of the chaos and land in A aeolian at 50. Everything after the sending stays there and rises.</div>
+      <div class="kn">Placeholders. What is settled is the shape: <b>a change at 8:27, the descent</b>, from the chaos into something slow and beautiful. The band leads it; the keys are yours to pick.</div>
     </div>
+    <div class="who"><div><b>Fresco</b>full kit</div><div><b>Lance</b>guitar</div><div><b>Nima</b>piano, synth</div><div><b>Jeff</b>flute, in and out</div></div>
     <p class="arc">An abrupt drop out of the celebration into the cave. First the chaos, then you walk it down into something concentrated, sophisticated and beautiful. That is where the name is asked for. After the sending, hold the feeling, then <b>from here on it's mostly up.</b></p>
     <div class="beats">
       <div class="beat key" data-s="20:20" data-e="20:20"><div class="t">8:20</div><div class="b">Abrupt cut <span class="tag big">cue</span></div><div class="d"><b>Stop.</b> Blackout. Then the beam comes up from black with the theremin alone.</div></div>
@@ -205,7 +222,8 @@
       <div class="beat" data-s="20:24" data-e="20:27"><div class="t">8:24 → 8:27</div><div class="b">The band enters the chaos</div><div class="d">Join the chaos with your instruments. Full. Edson steps out.</div></div>
       <div class="beat key" data-s="20:27" data-e="20:31"><div class="t">8:27 → 8:31</div><div class="b">The descent <span class="tag key">key change</span></div><div class="d"><b>Come down slowly, less and less</b>, until it is concentrated, sophisticated, beautiful. <b>F phrygian 120 → A aeolian 50.</b> You lead; the wall follows you down.</div></div>
       <div class="beat" data-s="20:31" data-e="20:33"><div class="t">8:31 → 8:33</div><div class="b">Speech 2 <span class="tag down">music down</span></div><div class="d">Low and tender under Edson, about two minutes. He asks the room to think of someone.</div></div>
-      <div class="beat key" data-s="20:33" data-e="20:38"><div class="t">8:33 → 8:38</div><div class="b">📱 The sending</div><div class="d"><b>The sending bed, at least five minutes.</b> Loving, deep memories. The room is sending names to the temple. Edson is silent. <i>This is the show.</i></div></div>
+      <div class="beat key" data-s="20:33" data-e="20:38"><div class="t">8:33 → 8:38</div><div class="b">📱 The sending</div><div class="d"><b>The sending bed, at least five minutes.</b> Loving, deep memories. The room is sending names to the temple. Edson is silent. <i>This is the show.</i></div>
+        <div class="ref"><b>For Fresco</b><a href="https://open.spotify.com/track/6omcpeBhvzHZbeYfgseMa0" target="_blank" rel="noopener">daoud · dijon</a> · rim clicks, air between hits, one motif that grows for five minutes and never gets busy</div></div>
       <div class="beat" data-s="20:38" data-e="20:39"><div class="t">8:38 → 8:39</div><div class="b">Stay in the feeling <span class="tag down">music down</span></div><div class="d">Joyful nostalgia. Edson, thirty seconds: phones away, eyes closed.</div></div>
       <div class="beat" data-s="20:39" data-e="20:40"><div class="t">8:39 → 8:40</div><div class="b">The rise begins</div><div class="d">Up, up. <b>No cut into Act 3.</b> It just keeps going.</div></div>
     </div>
@@ -219,30 +237,35 @@
     <h2>Act 3 <em>· The Collective Witnesses</em></h2>
     <div class="when">8:40 → 9:00 · 20 MIN</div>
     <div class="keybox">
-      <div class="kl">Key · tempo</div>
+      <div class="kl">Key · tempo <span class="ph">placeholder</span></div>
       <div class="kv">F aeolian <small>68 bpm</small></div>
-      <div class="kn">Back to F, faster than Act 1. No break from Act 2: the rise carries straight through, only the tempo lifts.</div>
+      <div class="kn">Placeholder. Settled: no break from Act 2, the rise carries straight through and the tempo lifts. This act is the jam.</div>
     </div>
+    <div class="who"><div><b>Lance</b>keys. This is the jam.</div><div><b>Nima</b>synth, piano</div><div><b>Fresco</b>kit</div><div><b>Jeff</b>flute, when the vibe says</div></div>
     <p class="arc">People are tired by now. Get them moving a little, then take them into a collective trance, then <b>end on something Hans Zimmer epic.</b></p>
     <div class="beats">
-      <div class="beat" data-s="20:40" data-e="20:44"><div class="t">8:40 → 8:44</div><div class="b">Upbeat, make them move</div><div class="d">Still rising out of Act 2, no break. <b>Tempo up.</b></div></div>
+      <div class="beat" data-s="20:40" data-e="20:44"><div class="t">8:40 → 8:44</div><div class="b">Upbeat, make them move</div><div class="d">Still rising out of Act 2, no break. <b>Tempo up.</b></div>
+        <div class="ref"><b>For Fresco</b><a href="https://open.spotify.com/track/7EdQ9Z80HAKiISr1MZABpZ" target="_blank" rel="noopener">Venna · Sicily' Box (Yussef Dayes)</a> · broken beat, ghost notes on the snare, hats carrying the swing, the groove opening up. Dancey, low key</div></div>
       <div class="beat" data-s="20:44" data-e="20:46"><div class="t">8:44 → 8:46</div><div class="b">Speech 3 <span class="tag down">music down</span></div><div class="d">About two minutes: what the Witnesses are.</div></div>
-      <div class="beat key" data-s="20:46" data-e="20:52"><div class="t">8:46 → 8:52</div><div class="b">🛰️ Where it is now · the poems</div><div class="d"><b>Hold, then lift.</b> The wall zooms from the studio up to the Earth and the temple's position right now. Then <b>play the bed under the poems</b>: they run on their own, in sync with the bar, first in their languages, then English.</div></div>
+      <div class="beat key" data-s="20:46" data-e="20:52"><div class="t">8:46 → 8:52</div><div class="b">🛰️ Where it is now · the poems</div><div class="d"><b>Hold, then lift.</b> The wall zooms from the studio up to the Earth and the temple's position right now. Then <b>play the bed under the poems</b>: they run on their own, in sync with the bar, first in their languages, then English.</div>
+        <div class="ref"><b>For Fresco</b><a href="https://open.spotify.com/track/1q4ZXBVohhj071kU6PkOW3" target="_blank" rel="noopener">Chet Faker · Over You</a> · a vintage break as a loop, no fills. Hold it back through the lift, let it enter on the lift</div></div>
       <div class="beat" data-s="20:52" data-e="20:55"><div class="t">8:52 → 8:55</div><div class="b">The intros, the thanks</div><div class="d"><b>Over the music, never stopping it. No solos.</b> Edson introduces Nima → Lance → Jeff, then a short list of thanks.</div></div>
-      <div class="beat key" data-s="20:55" data-e="21:00"><div class="t">8:55 → 9:00</div><div class="b">🎵 The last song <span class="tag big">composed</span></div><div class="d"><b>“Let's crush in this last one.”</b> Hans Zimmer epic. Composed, not improvised. <i>Still needs its name.</i></div></div>
+      <div class="beat key" data-s="20:55" data-e="21:00"><div class="t">8:55 → 9:00</div><div class="b">🎵 The last song <span class="tag big">composed</span></div><div class="d"><b>“Let's crush in this last one.”</b> Hans Zimmer epic. Composed, not improvised. <i>Still needs its name.</i></div>
+        <div class="ref"><b>For Fresco</b><a href="https://open.spotify.com/track/3wQucPL02xA7Q8iU2b5aXO" target="_blank" rel="noopener">daoud · loulou & the loulous</a> · the jungle gear, played live. Speed with control</div></div>
       <div class="beat" data-s="21:00" data-e="21:05"><div class="t">9:00</div><div class="b">Bows</div><div class="d">Edson leads the applause. Then the DJ until 10:20, no projection, just light on the works.</div></div>
     </div>
   </div>
 </section>
 
 <section class="rules">
-  <h3>The five things to remember</h3>
+  <h3>The six things to remember</h3>
   <ul>
     <li><b>8:00 is a cue.</b> Follow Edson's hand down to silence, together, then he plays first. Rehearse it three times.</li>
     <li><b>Every speech: music down, Edson talks, music back up.</b> It never stops dead.</li>
     <li><b>One key change on purpose: 8:27</b>, F phrygian 120 down to A aeolian 50. The band leads it.</li>
     <li><b>No cut between Act 2 and Act 3.</b> The rise carries straight through. No solos anywhere.</li>
     <li><b>The last song is composed</b>, not improvised. Know it cold.</li>
+    <li><b>The keys on this page are placeholders.</b> The shape of each act is the brief; the band picks the keys.</li>
   </ul>
 </section>
 
