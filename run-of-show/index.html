@@ -3,682 +3,283 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Run of Show · The Night</title>
-<meta name="description" content="Run of show for THE NIGHT — Dustin Yellin Studio, Thu Oct 1 2026. Prelude 7:30, show 8:00 → 9:00, three acts, the launch, the sending, the Witnesses.">
+<title>The Night · Run of Show</title>
+<meta name="description" content="The Night, Thu Oct 1 2026 at Dustin Yellin Studio. Three acts, the keys, the beats, for the band.">
+<meta name="theme-color" content="#070708">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6.5' fill='%23ff9a5e'/%3E%3C/svg%3E">
 <style>
-  /* ---- the same tokens as the wall (parts/part1_head.html), dark by default ---- */
   :root{
-    --bg:#070708; --panel:#111114; --panel2:#0c0c0f;
-    --line:rgba(255,255,255,.14); --line2:rgba(255,255,255,.08);
-    --txt:#f2f2ef; --txt-dim:#98988f; --txt-faint:#6b6a62;
-    --acc:#ff9a5e; --acc-dim:#b06a41; --acc-faint:rgba(255,154,94,.16);
-    --gold:#e9c46a; --gold-faint:rgba(233,196,106,.14);
-    --warn:#ffd166; --stop:#ff5c5c;
+    --bg:#070708; --panel:#111114; --line:rgba(255,255,255,.14); --line2:rgba(255,255,255,.08);
+    --txt:#f2f2ef; --dim:#a3a39a; --faint:#6b6a62;
+    --acc:#ff9a5e; --acc-faint:rgba(255,154,94,.16); --stop:#ff5c5c;
     --sans:-apple-system,'Inter','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
     --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
-    --r:14px; --rs:9px; --gutter:clamp(16px,4vw,48px);
-  }
-  :root[data-theme="light"]{
-    --bg:#f4f4f1; --panel:#ffffff; --panel2:#fafaf8;
-    --line:rgba(0,0,0,.17); --line2:rgba(0,0,0,.09);
-    --txt:#151513; --txt-dim:#6d6d65; --txt-faint:#96958c;
-    --acc:#d4542c; --acc-dim:#a8431f; --acc-faint:rgba(212,84,44,.1);
-    --gold:#9a7a1e; --gold-faint:rgba(154,122,30,.12);
-    --warn:#8a6a00; --stop:#c62828;
+    --g:16px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   html,body{background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
-  body{font-size:15px;line-height:1.55;overflow-x:hidden}
+  body{font-size:17px;line-height:1.5;overflow-x:hidden}
   ::selection{background:var(--acc);color:#000}
-  a{color:var(--acc);text-decoration:none;border-bottom:1px solid var(--acc-faint)}
-  a:hover{border-bottom-color:var(--acc)}
-  strong{font-weight:650;color:var(--txt)}
-  code{font-family:var(--mono);font-size:.86em;color:var(--txt-dim);background:var(--line2);padding:1px 5px;border-radius:5px}
+  a{color:inherit;text-decoration:none}
+  b{font-weight:650}
 
-  /* ---- header — one slim row, same as the wall ---- */
-  header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-    padding:9px var(--gutter);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40;
-    background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(14px);min-height:50px}
-  .brand h1{font-size:13px;letter-spacing:.3em;font-weight:800;text-transform:uppercase;white-space:nowrap}
-  .brand h1 span{color:var(--txt-faint);font-weight:400}
-  .hright{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .clock{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--txt-dim);display:flex;gap:10px;align-items:baseline}
-  .clock b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+  /* header: brand + clock, one row, always */
+  header{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px var(--g);background:rgba(7,7,8,.94);border-bottom:1px solid var(--line)}
+  .brand{font-size:11px;letter-spacing:.28em;font-weight:800;text-transform:uppercase;white-space:nowrap}
+  .brand span{color:var(--faint);font-weight:400}
+  .clock{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .clock b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:600}
   .clock .now{color:var(--acc)}
-  button{font-family:var(--sans);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-    background:rgba(255,255,255,.05);color:var(--txt);border:1px solid var(--line);border-radius:999px;
-    padding:5px 10px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
-  :root[data-theme="light"] button{background:rgba(0,0,0,.04)}
-  button:hover{background:var(--txt);color:var(--bg);border-color:var(--txt)}
 
-  /* ---- hero — the sky ---- */
-  .hero{position:relative;min-height:min(78vh,720px);display:flex;align-items:flex-end;overflow:hidden;border-bottom:1px solid var(--line)}
-  .hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .hero .in{position:relative;padding:calc(var(--gutter) + 40px) var(--gutter) var(--gutter);max-width:1180px;width:100%;margin:0 auto}
-  .kicker{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap}
-  .kicker span{color:var(--txt-faint)}
-  .hero h2{font-size:clamp(46px,9vw,124px);line-height:.92;letter-spacing:-.02em;font-weight:800;text-transform:uppercase}
-  .hero h2 em{font-style:normal;color:var(--txt-faint);font-weight:300;letter-spacing:.02em}
-  .meta{margin-top:26px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 28px;max-width:980px}
-  .meta div{border-top:1px solid var(--line);padding-top:10px}
-  .meta .lab{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--txt-faint);margin-bottom:5px}
-  .meta .val{font-size:14px;color:var(--txt)}
-  .meta .val b{color:var(--acc);font-weight:600}
-  .meta .val.mono{font-family:var(--mono);font-size:13px;letter-spacing:.04em}
-  .note{margin-top:18px;font-size:12.5px;color:var(--txt-dim);max-width:720px}
-  .note b{color:var(--txt);font-weight:600}
+  /* hero: one screen, the whole night */
+  .hero{padding:44px var(--g) 28px;max-width:1100px;margin:0 auto}
+  .kicker{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:10px}
+  .hero h1{font-size:clamp(52px,14vw,150px);line-height:.88;letter-spacing:-.03em;font-weight:800;text-transform:uppercase}
+  .hero h1 em{font-style:normal;color:var(--faint);font-weight:300;letter-spacing:0}
+  .venue{margin-top:18px;font-size:15px;color:var(--dim);max-width:640px}
+  .venue b{color:var(--txt)}
+  .clockline{margin-top:14px;font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap}
+  .clockline b{color:var(--acc);font-weight:600}
 
-  /* ---- sections ---- */
-  main{max-width:1180px;margin:0 auto;padding:0 var(--gutter) 80px}
-  section{padding:54px 0 12px;border-bottom:1px solid var(--line2);scroll-margin-top:64px}
-  .block{scroll-margin-top:64px}
-  section:last-of-type{border-bottom:0}
-  .h{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:22px}
-  .h h3{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);font-weight:700}
-  .h .sub{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--txt-faint)}
-  .lede{font-size:16px;color:var(--txt-dim);max-width:820px;margin-bottom:26px}
-  .lede b{color:var(--txt);font-weight:600}
-  details{margin-top:12px}
-  summary{cursor:pointer;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--txt-faint);list-style:none;display:inline-flex;gap:8px;align-items:center}
-  summary::before{content:'▸';color:var(--acc);transition:transform .15s}
-  details[open] summary::before{transform:rotate(90deg)}
-  details ol{margin:10px 0 0 18px;color:var(--txt-dim);font-size:13px}
-  details li{margin:4px 0}
+  /* the map: three acts, clock + key, tap to jump */
+  .map{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:1100px;margin:26px auto 0;padding:0 var(--g)}
+  .map a{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;position:relative;overflow:hidden;min-height:132px}
+  .map a::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,var(--panel) 40%,rgba(17,17,20,0) 78%);z-index:1}
+  .map a img{position:absolute;top:0;bottom:0;right:0;width:62%;height:100%;object-fit:cover;opacity:.9;z-index:0}
+  .map a>*:not(img){position:relative;z-index:2}
+  .map .n{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--acc)}
+  .map .t{font-size:17px;font-weight:800;text-transform:uppercase;line-height:1.1;margin:4px 0 10px;letter-spacing:-.01em}
+  .map .k{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--txt)}
+  .map .k small{display:block;color:var(--faint);font-size:11px;margin-top:2px}
+  .band{max-width:1100px;margin:18px auto 0;padding:0 var(--g);font-size:14px;color:var(--dim)}
+  .band b{color:var(--txt)}
 
-  /* ---- the shape: three acts ---- */
-  .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .act{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 20px 16px;position:relative;overflow:hidden}
-  .act::before{content:'';position:absolute;left:0;top:0;right:0;height:2px;background:linear-gradient(90deg,var(--acc),transparent)}
-  .act .n{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--txt-faint)}
-  .act h4{font-size:19px;line-height:1.15;font-weight:800;text-transform:uppercase;letter-spacing:-.005em;margin:6px 0 16px}
-  .act dl{display:grid;grid-template-columns:78px 1fr;gap:7px 12px;font-size:13px}
-  .act dt{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt-faint);padding-top:3px}
-  .act dd{color:var(--txt-dim)}
-  .act dd b{color:var(--txt);font-weight:600}
-  .act dd .clk{font-family:var(--mono);color:var(--txt);letter-spacing:.06em}
-  .scene{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;
-    color:var(--txt);background:var(--line2);border:1px solid var(--line2);border-radius:999px;padding:2px 9px 2px 7px;white-space:nowrap;border-bottom-width:1px}
-  .scene::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none}
-  .scene:hover{border-color:var(--acc)}
-  .scene.open::before{background:transparent;border:1px solid var(--warn)}
-  .warn{color:var(--warn)}
-  .stop{color:var(--stop)}
+  /* an act */
+  .act{margin:56px auto 0;max-width:1100px;padding:0 var(--g);scroll-margin-top:60px}
+  .still{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:16/10;background:#000;border:1px solid var(--line2)}
+  .still img{width:100%;height:100%;object-fit:cover;display:block}
+  .still .cap{position:absolute;left:0;right:0;bottom:0;padding:34px 18px 14px;background:linear-gradient(180deg,transparent,rgba(7,7,8,.9));display:flex;justify-content:space-between;gap:12px;align-items:flex-end}
+  .still .cap .n{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--acc)}
+  .still .cap .s{font-size:12px;color:var(--dim);text-align:right}
+  .act h2{font-size:clamp(34px,7vw,64px);line-height:.98;letter-spacing:-.02em;font-weight:800;text-transform:uppercase;margin:22px 0 6px}
+  .act h2 em{font-style:normal;color:var(--faint);font-weight:300}
+  .act .when{font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--dim)}
+  .keybox{margin:18px 0 0;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
+  .keybox .kl{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint);width:100%}
+  .keybox .kv{font-size:clamp(24px,5vw,40px);font-weight:800;letter-spacing:-.01em;line-height:1;text-transform:uppercase}
+  .keybox .kv small{font-size:.5em;font-weight:500;color:var(--dim);letter-spacing:.08em;margin-left:6px}
+  .keybox .arrow{color:var(--acc);font-size:clamp(20px,4vw,32px)}
+  .keybox .kn{width:100%;font-size:13px;color:var(--dim);margin-top:4px}
+  .keybox .kn b{color:var(--acc)}
+  .arc{margin:18px 0 0;font-size:16px;color:var(--dim);max-width:720px}
+  .arc b{color:var(--txt)}
 
-  /* ---- the timeline ---- */
-  .block{margin:0 0 46px}
-  .block .bh{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:8px}
-  .block .bh .clk{font-family:var(--mono);font-size:13px;letter-spacing:.12em;color:var(--acc)}
-  .block .bh h4{font-size:clamp(22px,3.4vw,34px);font-weight:800;text-transform:uppercase;letter-spacing:-.01em;line-height:1.05}
-  .block .bh h4 em{font-style:normal;color:var(--txt-faint);font-weight:300}
-  .block .energy{font-size:14.5px;color:var(--txt-dim);max-width:900px;margin:8px 0 22px}
-  .block .energy b{color:var(--txt);font-weight:600}
-  .beats{display:grid;grid-template-columns:104px 1fr;column-gap:22px}
-  .cols{display:grid;grid-template-columns:104px 150px repeat(3,1fr);gap:0 22px;grid-column:1/-1;
-    font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--txt-faint);padding:0 0 10px;border-bottom:1px solid var(--line)}
-  .beat{display:grid;grid-template-columns:104px 150px repeat(3,1fr);gap:4px 22px;grid-column:1/-1;
-    padding:16px 0;border-bottom:1px solid var(--line2);position:relative;align-items:start;font-size:13.5px;color:var(--txt-dim)}
-  .beat:last-child{border-bottom:0}
-  .beat .t{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--txt);white-space:nowrap;padding-left:18px;position:relative;font-variant-numeric:tabular-nums}
-  .beat .t::before{content:'';position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%;background:var(--txt-faint);box-shadow:0 0 0 3px var(--bg)}
-  .beat .t small{display:block;color:var(--txt-faint);font-size:10.5px;margin-top:2px;letter-spacing:.14em}
-  .beat .b{color:var(--txt);font-weight:650;font-size:14px;line-height:1.3}
-  .beat .b .ico{display:block;font-size:18px;line-height:1;margin-bottom:6px}
-  .beat .c b{color:var(--txt);font-weight:600}
-  .beat .c i{color:var(--txt-dim)}
-  .beat .c .lab{display:none}
-  .beat .mono{font-family:var(--mono);font-size:12.5px}
-  .beat.key .t::before{background:var(--acc);box-shadow:0 0 0 3px var(--bg),0 0 14px var(--acc)}
+  /* the beats */
+  .beats{margin-top:22px;border-top:1px solid var(--line)}
+  .beat{display:grid;grid-template-columns:96px 1fr;gap:4px 16px;padding:16px 0;border-bottom:1px solid var(--line2);align-items:start;position:relative}
+  .beat .t{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--dim);padding-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .beat .t small{display:block;font-size:10px;letter-spacing:.2em;color:var(--faint);margin-top:2px}
+  .beat .b{font-size:20px;font-weight:700;line-height:1.15;letter-spacing:-.01em}
+  .beat .b .tag{display:inline-block;vertical-align:middle;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:999px;margin-left:8px;position:relative;top:-2px}
+  .tag.down{background:var(--acc-faint);color:var(--acc)}
+  .tag.key{background:rgba(255,92,92,.16);color:var(--stop)}
+  .tag.big{background:var(--txt);color:var(--bg)}
+  .beat .d{grid-column:2;font-size:15.5px;color:var(--dim);max-width:720px}
+  .beat .d b{color:var(--txt)}
+  .beat .d i{color:var(--faint)}
   .beat.key .b{color:var(--acc)}
-  .beat.past{opacity:.5}
-  .beat.now{opacity:1;background:linear-gradient(90deg,var(--acc-faint),transparent 60%);margin:0 calc(-1*var(--gutter)/2);padding-left:calc(var(--gutter)/2);padding-right:calc(var(--gutter)/2)}
-  .beat.now .t::before{background:var(--acc);animation:pulse 1.2s ease-in-out infinite}
-  .beat.now .t::after{content:'NOW';position:absolute;left:18px;top:-14px;font-size:8.5px;letter-spacing:.3em;color:var(--acc)}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px var(--bg),0 0 0 0 var(--acc)}50%{box-shadow:0 0 0 3px var(--bg),0 0 0 8px transparent}}
-  .rail{grid-column:1;grid-row:2/-1;position:relative}
-  .rail::before{content:'';position:absolute;left:3px;top:0;bottom:0;width:1px;background:var(--line)}
+  .beat.past{opacity:.45}
+  .beat.now{opacity:1}
+  .beat.now::before{content:'';position:absolute;left:calc(-1*var(--g));top:0;bottom:0;width:3px;background:var(--acc)}
+  .beat.now .t{color:var(--acc)}
 
-  /* ---- lists ---- */
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:40px}
-  ul.plain,ol.plain{list-style:none;display:grid;gap:12px;max-width:820px}
-  ul.plain li,ol.plain li{position:relative;padding-left:26px;font-size:14px;color:var(--txt-dim)}
-  ul.plain li b,ol.plain li b{color:var(--txt);font-weight:600}
-  ul.cut li::before{content:'—';position:absolute;left:0;color:var(--stop)}
-  ul.rules li::before{content:'';position:absolute;left:2px;top:9px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
-  ul.rules li.hard::before{background:var(--stop);box-shadow:0 0 10px var(--stop)}
-  ol.open{counter-reset:o}
-  ol.open li{padding-left:36px;counter-increment:o}
-  ol.open li::before{content:counter(o);position:absolute;left:0;top:1px;font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.1em}
-  ol.open li.done::before{content:'✓';color:var(--acc)}
-  ol.open li.done{color:var(--txt-faint)}
-  ol.open li.done b{color:var(--txt-dim)}
-  ul.build li::before{content:'🔧';position:absolute;left:0;top:0;font-size:12px}
-  ul.build li.quote::before{content:'“';color:var(--acc);font-size:22px;top:-4px}
-  .ts{font-family:var(--mono);font-size:11px;color:var(--txt-faint);letter-spacing:.06em}
+  /* rules */
+  .rules{margin:60px auto 0;max-width:1100px;padding:0 var(--g)}
+  .rules h3{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:14px}
+  .rules ul{list-style:none;display:grid;gap:10px;max-width:720px}
+  .rules li{padding-left:22px;position:relative;font-size:16px;color:var(--dim)}
+  .rules li b{color:var(--txt)}
+  .rules li::before{content:'';position:absolute;left:0;top:10px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
 
-  footer{max-width:1180px;margin:0 auto;padding:30px var(--gutter) 60px;border-top:1px solid var(--line);
-    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--txt-faint)}
-  footer a{color:var(--txt-dim)}
+  footer{max-width:1100px;margin:60px auto 0;padding:24px var(--g) 60px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  footer a{color:var(--dim);border-bottom:1px solid var(--line)}
 
-  /* ---- phone ---- */
-  @media (max-width:900px){
-    .acts{grid-template-columns:1fr}
-    .two{grid-template-columns:1fr}
-    .cols{display:none}
-    .beats{grid-template-columns:1fr}
-    .rail{display:none}
-    .beat{grid-template-columns:1fr;gap:8px 0;padding:18px 0}
-    .beat .t{padding-left:0}
-    .beat .t::before{display:none}
-    .beat .b{font-size:16px}
-    .beat .c .lab{display:block;font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--txt-faint);margin-bottom:3px}
-    .beat.now{margin:0 -16px;padding-left:16px;padding-right:16px}
-    .beat.now .t::after{position:static;margin-left:10px}
-    .hero{min-height:60vh}
-    header{padding:8px 16px;gap:8px;flex-wrap:nowrap}
-    .brand h1{font-size:11px;letter-spacing:.22em}
-    .brand h1 span{display:none}
-    .hright{flex:1;min-width:0;justify-content:flex-end;flex-wrap:nowrap}
-    .clock{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-size:11px}
-    .clock b{margin-right:6px}
-    #clkLab,.hright button:not(#themeBtn){display:none}
+  /* wider than a phone: acts side by side at the top, stills beside the beats */
+  @media (min-width:900px){
+    .act{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;align-items:start}
+    .act .still{grid-column:1;position:sticky;top:76px}
+    .act .right{grid-column:2}
+    .act h2{margin-top:0}
+    .map a{min-height:170px}
+    .map .t{font-size:22px}
+    .map .k{font-size:14px}
   }
-  @media (prefers-reduced-motion:reduce){.beat.now .t::before{animation:none}}
+  @media (max-width:899px){
+    .act .right{display:contents}
+  }
+  @media (max-width:600px){
+    .map{grid-template-columns:1fr;gap:8px}
+    .map a{min-height:0;padding:14px 16px}
+    .map .t{margin-bottom:6px}
+    .beat{grid-template-columns:1fr;gap:2px 0}
+    .beat .d{grid-column:1}
+    .beat .t{padding-top:0}
+  }
   @media print{
-    :root{--bg:#fff;--panel:#fff;--panel2:#fff;--line:rgba(0,0,0,.25);--line2:rgba(0,0,0,.12);--txt:#000;--txt-dim:#333;--txt-faint:#666;--acc:#b8431c;--gold:#7a5f10;--warn:#7a5f10;--stop:#b00020}
-    header,.hero canvas,footer,#themeBtn{display:none}
-    .hero{min-height:0;border:0}
-    .hero .in{padding:0 0 20px}
-    .hero h2{font-size:42px}
-    section{page-break-inside:avoid;padding:24px 0 0}
+    :root{--bg:#fff;--panel:#fff;--line:rgba(0,0,0,.3);--line2:rgba(0,0,0,.12);--txt:#000;--dim:#333;--faint:#666;--acc:#b8431c}
+    header,footer,.still,.map a img{display:none}
+    .hero{padding-top:0}
+    .act{page-break-before:always;margin-top:0;display:block}
     .beat{page-break-inside:avoid;padding:8px 0}
     .beat.past{opacity:1}
-    a{border:0;color:inherit}
+    .tag.big{border:1px solid #000;background:#fff;color:#000}
   }
+  @media (prefers-reduced-motion:no-preference){.beat.now::before{animation:glow 1.4s ease-in-out infinite}}
+  @keyframes glow{0%,100%{opacity:1}50%{opacity:.35}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand"><h1>SOURCE SCENES <span>· RUN OF SHOW</span></h1></div>
-  <div class="hright">
-    <div class="clock" title="New York time"><span id="clkLab">NEW YORK</span><b id="clk">--:--</b><span id="clkNext"></span></div>
-    <button id="themeBtn" type="button" title="dark / light">Theme</button>
-    <button type="button" onclick="window.print()">Print</button>
-  </div>
+  <div class="brand">SOURCE SCENES <span>· THE NIGHT</span></div>
+  <div class="clock"><b id="clk">--:--</b> <span id="clkNext"></span></div>
 </header>
 
-<div class="hero">
-  <canvas id="sky" aria-hidden="true"></canvas>
-  <div class="in">
-    <div class="kicker">The Night <span>·</span> Thu Oct 1, 2026 <span>·</span> Dustin Yellin Studio <span>·</span> 153 Pioneer St</div>
-    <h2>Run of<br>Show <em>· the night</em></h2>
-    <div class="meta">
-      <div><div class="lab">Clock</div><div class="val mono">prelude <b>7:30</b> · show <b>8:00 → 9:00</b> · DJ until 10:20 · doors close 10:30</div></div>
-      <div><div class="lab">On stage</div><div class="val">Nima · Lance · Edson on the AV theremin from 8:00 · <b>Jeff enters mid-Stratosphere (~8:17)</b></div></div>
-      <div><div class="lab">Written</div><div class="val mono">Sun Sep 27, 19:30</div></div>
+<section class="hero">
+  <div class="kicker">Run of show · for the band</div>
+  <h1>The<br>Night<em>.</em></h1>
+  <p class="venue"><b>Thu Oct 1, 2026 · Dustin Yellin Studio, 153 Pioneer St.</b> Nima · Lance · Edson on the AV theremin · Jeff from ~8:17. Three acts of 20 minutes. Times are targets: if a beat runs long, the next one gives the time back, never the end.</p>
+  <div class="clockline"><span>doors <b>7:30</b></span><span>show <b>8:00 → 9:00</b></span><span>DJ till 10:20</span></div>
+</section>
+
+<nav class="map">
+  <a href="#act1"><img src="img/map1.jpg" alt=""><div class="n">ACT 1 · 8:00 → 8:20</div><div class="t">Expectation and Launch</div><div class="k">F aeolian · 54<small>tension → super epic</small></div></a>
+  <a href="#act2"><img src="img/map2.jpg" alt=""><div class="n">ACT 2 · 8:20 → 8:40</div><div class="t">The Depths</div><div class="k">F phrygian · 120 → A aeolian · 50<small>chaos → the sending → up</small></div></a>
+  <a href="#act3"><img src="img/map3.jpg" alt=""><div class="n">ACT 3 · 8:40 → 9:00</div><div class="t">The Collective Witnesses</div><div class="k">F aeolian · 68<small>move → trance → epic end</small></div></a>
+</nav>
+<p class="band"><b>Prelude, 7:30.</b> Nima alone: drone, ambient, low stakes, people arriving and talking. Lance joins around 7:45. Edson goes to the instrument just before 8.</p>
+
+<!-- ================= ACT 1 ================= -->
+<section class="act" id="act1">
+  <div class="still"><img src="img/act1.jpg" alt="Light Eclipse: a ring of light on the wall" loading="lazy"><div class="cap"><div class="n">ON THE WALL</div><div class="s">Light Eclipse, then The Sky · The Passage going up</div></div></div>
+  <div class="right">
+    <h2>Act 1 <em>· Expectation and Launch</em></h2>
+    <div class="when">8:00 → 8:20 · 20 MIN</div>
+    <div class="keybox">
+      <div class="kl">Key · tempo</div>
+      <div class="kv">F aeolian <small>54 bpm</small></div>
+      <div class="kn">One key for the whole act. Slow. It starts in silence and ends in the stratosphere.</div>
     </div>
-    <p class="note"><b>For us, not for sending:</b> the band already knows it. <b>Times are targets.</b> Each act is 20 minutes, and the minute ranges inside it add up to 20. If one beat runs long, the next one gives time back, not the end of the show.</p>
-    <details>
-      <summary>Sources, newest first</summary>
-      <ol>
-        <li>The remote call with the band (~3 PM), relayed to Gabi in the 18:43 recording, <code>SESSION-RUN-OF-SHOW-2026-09-27/TRANSCRIPT.md</code>.</li>
-        <li>The text sent to the band at 13:45, <code>SHOW-STRUCTURE-2026-09-27.md</code>.</li>
-        <li>The walkthrough with Gabi on Sep 26, <code>SESSION-GABI-NIGHT-SHOW-2026-09-26/REVIEW.md</code>.</li>
-      </ol>
-      <p class="note">This file replaces the cue sheet in <code>JAM-PACK-2026-09-27.md</code> §1. Its §4 speeches are still the words, <b>except Speech 4, the toast (cut), and Speech 3's light walk (cut).</b></p>
-    </details>
+    <p class="arc">Starts slow and holds a tension. Edson speaks in the middle, the clip lands at the end, then everything goes up, and <b>Jeff walks on in the middle of the peak.</b></p>
+    <div class="beats">
+      <div class="beat key" data-s="20:00" data-e="20:01"><div class="t">8:00</div><div class="b">The silence <span class="tag big">cue</span></div><div class="d"><b>Follow Edson's hand down to zero.</b> Two or three seconds of nothing, lights drop at the same instant, then the first sound is the theremin alone. <i>If it looks like a fault, it failed: tighter sync, not a longer silence. Rehearse it three times.</i></div></div>
+      <div class="beat" data-s="20:01" data-e="20:08"><div class="t">8:01 → 8:08</div><div class="b">Tension</div><div class="d">Slow, built on the theremin. Come in underneath it. On the wall a point opens into a disc, a ring, an eclipse.</div></div>
+      <div class="beat" data-s="20:08" data-e="20:11"><div class="t">8:08 → 8:11</div><div class="b">Speech 1 <span class="tag down">music down</span></div><div class="d">Edson talks for up to three minutes. Come down under him, never stop dead. He ends on <i>“Today, at 2:18 in the afternoon, this happened.”</i></div></div>
+      <div class="beat" data-s="20:11" data-e="20:14"><div class="t">8:11 → 8:14</div><div class="b">Build to the launch</div><div class="d">Rise again. Expectation.</div></div>
+      <div class="beat key" data-s="20:14" data-e="20:15"><div class="t">8:14 → 8:15</div><div class="b">🚀 Launch clip</div><div class="d"><b>One held note.</b> The rocket's own sound comes up over it. A few seconds, no countdown. Edson is silent.</div></div>
+      <div class="beat" data-s="20:15" data-e="20:17"><div class="t">8:15 → 8:17</div><div class="b">Stratosphere</div><div class="d"><b>Full hit. Super epic.</b> The Passage goes up through the stars.</div></div>
+      <div class="beat key" data-s="20:17" data-e="20:20"><div class="t">~8:17 → 8:20</div><div class="b">🎸 Jeff enters</div><div class="d">Jeff walks on mid-Stratosphere and makes it even bigger. <b>The act peaks here.</b> Stay up until the cut.</div></div>
+    </div>
   </div>
-</div>
+</section>
 
-<main>
-
-  <!-- ================= THE SHAPE ================= -->
-  <section id="shape">
-    <div class="h"><h3>The shape</h3><div class="sub">THREE ACTS · 20 MIN EACH</div></div>
-    <div class="acts">
-      <article class="act">
-        <div class="n">ACT 1</div>
-        <h4>Expectation and Launch</h4>
-        <dl>
-          <dt>Clock</dt><dd><span class="clk">8:00 → 8:20</span></dd>
-          <dt>Energy</dt><dd>tension → <b>super epic</b> (“it's space!”)</dd>
-          <dt>Milestone</dt><dd>the launch clip</dd>
-          <dt>Opens on</dt><dd>visual <b>and</b> sound: <a class="scene" data-id="SRC-66">SRC-66</a> ISOTRP A · Light Eclipse (the sphere), F aeolian 54</dd>
-          <dt>Then host</dt><dd><a class="scene" data-id="SRC-73">SRC-73</a> BoT 0.2 · I · The Sky (more layers), F aeolian 54</dd>
-          <dt>Edson speaks</dt><dd>≤3 min, mid-act</dd>
-        </dl>
-      </article>
-      <article class="act">
-        <div class="n">ACT 2</div>
-        <h4>The Depths</h4>
-        <dl>
-          <dt>Clock</dt><dd><span class="clk">8:20 → 8:40</span></dd>
-          <dt>Energy</dt><dd>chaos → deep introspection → <b>joyful nostalgia</b>, then up</dd>
-          <dt>Milestone</dt><dd>think of a name → send it</dd>
-          <dt>Opens on</dt><dd>visual <b>and</b> sound: <a class="scene" data-id="SRC-68">SRC-68</a> ISOTRP C · Beam (the fresta), 120 bpm F phrygian</dd>
-          <dt>Then host</dt><dd><a class="scene" data-id="SRC-74">SRC-74</a> BoT 0.2 · II · The Depths (more layers), A aeolian 50</dd>
-          <dt>Edson speaks</dt><dd>~2 min in + 30 sec out</dd>
-        </dl>
-      </article>
-      <article class="act">
-        <div class="n">ACT 3</div>
-        <h4>The Collective Witnesses</h4>
-        <dl>
-          <dt>Clock</dt><dd><span class="clk">8:40 → 9:00</span></dd>
-          <dt>Energy</dt><dd>upbeat → <b>collective trance</b> → epic end</dd>
-          <dt>Milestone</dt><dd>the Witnesses point · the poems · the intros · the last song</dd>
-          <dt>Opens on</dt><dd><span class="warn">⚠️ none yet</span> (Open, 5)</dd>
-          <dt>Then host</dt><dd><a class="scene" data-id="SRC-75">SRC-75</a> BoT 0.2 · III · The Witnesses (more layers), F aeolian 68</dd>
-          <dt>Edson speaks</dt><dd>~2 min, mid-act, then the intros</dd>
-        </dl>
-      </article>
+<!-- ================= ACT 2 ================= -->
+<section class="act" id="act2">
+  <div class="still"><img src="img/act2.jpg" alt="The Beam at full chaos" loading="lazy"><div class="cap"><div class="n">ON THE WALL</div><div class="s">The Beam, then The Depths · The Names dividing · the QR</div></div></div>
+  <div class="right">
+    <h2>Act 2 <em>· The Depths</em></h2>
+    <div class="when">8:20 → 8:40 · 20 MIN</div>
+    <div class="keybox">
+      <div class="kl">Key · tempo</div>
+      <div class="kv">F phrygian <small>120 bpm</small></div>
+      <div class="arrow">→</div>
+      <div class="kv">A aeolian <small>50 bpm</small></div>
+      <div class="kn"><b>The change is at 8:27, the descent.</b> The band leads it: come down out of the chaos and land in A aeolian at 50. Everything after the sending stays there and rises.</div>
     </div>
-    <p class="lede" style="margin-top:22px">Status of the visuals: SRC-66 and SRC-68 are nearly done. <b>They are the initial visual and sound of their act</b> (Edson, Sep 27 evening). Each act opens on its scene, then switches to its host for the rest of the layers. Each act still needs those other layers.</p>
-  </section>
-
-  <!-- ================= TIMELINE ================= -->
-  <section id="timeline">
-    <div class="h"><h3>The night, beat by beat</h3><div class="sub" id="tlSub">TARGETS · NEW YORK TIME</div></div>
-
-    <!-- PRELUDE -->
-    <div class="block" id="prelude">
-      <div class="bh"><span class="clk">7:30 → 8:00</span><h4>Prelude</h4></div>
-      <div class="beats">
-        <div class="cols"><span>Time</span><span>Beat</span><span>Music</span><span>Visuals</span><span>Edson · Light</span></div>
-        <div class="rail"></div>
-        <div class="beat" data-s="19:30" data-e="19:45">
-          <div class="t">7:30</div>
-          <div class="b">Doors</div>
-          <div class="c"><span class="lab">Music</span>Nima alone: drone, ambient, low stakes. People arrive and talk.</div>
-          <div class="c"><span class="lab">Visuals</span>none</div>
-          <div class="c"><span class="lab">Edson · Light</span>in the room · light up, bar open</div>
-        </div>
-        <div class="beat" data-s="19:45" data-e="20:00">
-          <div class="t">~7:45</div>
-          <div class="b">Lance joins</div>
-          <div class="c"><span class="lab">Music</span>Lance joins</div>
-          <div class="c"><span class="lab">Visuals</span>none</div>
-          <div class="c"><span class="lab">Edson · Light</span>goes to the instrument just before 8 · light up</div>
-        </div>
-      </div>
+    <p class="arc">An abrupt drop out of the celebration into the cave. First the chaos, then you walk it down into something concentrated, sophisticated and beautiful. That is where the name is asked for. After the sending, hold the feeling, then <b>from here on it's mostly up.</b></p>
+    <div class="beats">
+      <div class="beat key" data-s="20:20" data-e="20:20"><div class="t">8:20</div><div class="b">Abrupt cut <span class="tag big">cue</span></div><div class="d"><b>Stop.</b> Blackout. Then the beam comes up from black with the theremin alone.</div></div>
+      <div class="beat" data-s="20:20" data-e="20:24"><div class="t">8:20 → 8:24</div><div class="b">Edson alone, then the chaos</div><div class="d"><b>Wait.</b> The theremin plays alone for a while, one hand, steady and then chopped. Then Edson goes crazy and walks out into the room. Not yet: let him.</div></div>
+      <div class="beat" data-s="20:24" data-e="20:27"><div class="t">8:24 → 8:27</div><div class="b">The band enters the chaos</div><div class="d">Join the chaos with your instruments. Full. Edson steps out.</div></div>
+      <div class="beat key" data-s="20:27" data-e="20:31"><div class="t">8:27 → 8:31</div><div class="b">The descent <span class="tag key">key change</span></div><div class="d"><b>Come down slowly, less and less</b>, until it is concentrated, sophisticated, beautiful. <b>F phrygian 120 → A aeolian 50.</b> You lead; the wall follows you down.</div></div>
+      <div class="beat" data-s="20:31" data-e="20:33"><div class="t">8:31 → 8:33</div><div class="b">Speech 2 <span class="tag down">music down</span></div><div class="d">Low and tender under Edson, about two minutes. He asks the room to think of someone.</div></div>
+      <div class="beat key" data-s="20:33" data-e="20:38"><div class="t">8:33 → 8:38</div><div class="b">📱 The sending</div><div class="d"><b>The sending bed, at least five minutes.</b> Loving, deep memories. The room is sending names to the temple. Edson is silent. <i>This is the show.</i></div></div>
+      <div class="beat" data-s="20:38" data-e="20:39"><div class="t">8:38 → 8:39</div><div class="b">Stay in the feeling <span class="tag down">music down</span></div><div class="d">Joyful nostalgia. Edson, thirty seconds: phones away, eyes closed.</div></div>
+      <div class="beat" data-s="20:39" data-e="20:40"><div class="t">8:39 → 8:40</div><div class="b">The rise begins</div><div class="d">Up, up. <b>No cut into Act 3.</b> It just keeps going.</div></div>
     </div>
+  </div>
+</section>
 
-    <!-- ACT 1 -->
-    <div class="block" id="act1">
-      <div class="bh"><span class="clk">8:00 → 8:20</span><h4>Act 1 <em>· Expectation and Launch</em></h4></div>
-      <p class="energy"><b>Energy:</b> it starts slow and holds a tension. The speech sits in the middle and the clip at the end, then everything goes to the stratosphere.</p>
-      <div class="beats">
-        <div class="cols"><span>Time</span><span>Beat</span><span>Music</span><span>Visuals</span><span>Edson · performance</span></div>
-        <div class="rail"></div>
-        <div class="beat key" data-s="20:00" data-e="20:01">
-          <div class="t">8:00</div>
-          <div class="b">The silence</div>
-          <div class="c"><span class="lab">Music</span>Nima and Lance follow Edson's hand down to zero</div>
-          <div class="c"><span class="lab">Visuals</span>blackout (knob 12), then the first light of <a class="scene" data-id="SRC-66">SRC-66</a></div>
-          <div class="c"><span class="lab">Edson</span>Sits, raises the theremin hand, and pulls everything down. <b>2–3 sec of silence</b>, the lights drop at the same instant, then the first sound comes from the theremin. <i>If it looks like a fault, it failed. The fix is tighter sync, not a longer silence.</i></div>
-        </div>
-        <div class="beat" data-s="20:01" data-e="20:08">
-          <div class="t">8:01 → 8:08</div>
-          <div class="b">Tension</div>
-          <div class="c"><span class="lab">Music</span>slow, built on the theremin, the band comes in underneath</div>
-          <div class="c"><span class="lab">Visuals</span>SRC-66: a point opens into a disc, then a ring, then an eclipse. <b>“The first sphere is perfect.”</b> Then the host's layers come in <span class="warn">(⚠️ Open, 0)</span>.</div>
-          <div class="c"><span class="lab">Edson</span>Plays. No words.</div>
-        </div>
-        <div class="beat" data-s="20:08" data-e="20:11">
-          <div class="t">8:08 → 8:11</div>
-          <div class="b">Speech 1 <small style="display:block;font-weight:400;color:var(--txt-faint)">≤3 min</small></div>
-          <div class="c"><span class="lab">Music</span>comes down, never stops dead</div>
-          <div class="c"><span class="lab">Visuals</span>holds low</div>
-          <div class="c"><span class="lab">Edson</span>The why, tied to the roots. <b>The first rocket exploded.</b> Ends on <i>“Today, at 2:18 in the afternoon, this happened.”</i> (JAM-PACK §4)</div>
-        </div>
-        <div class="beat" data-s="20:11" data-e="20:14">
-          <div class="t">8:11 → 8:14</div>
-          <div class="b">Build to the launch</div>
-          <div class="c"><span class="lab">Music</span>rises again, expectation</div>
-          <div class="c"><span class="lab">Visuals</span>layers build</div>
-          <div class="c"><span class="lab">Edson</span>plays</div>
-        </div>
-        <div class="beat key" data-s="20:14" data-e="20:15">
-          <div class="t">8:14 → 8:15</div>
-          <div class="b"><span class="ico">🚀</span>Launch clip</div>
-          <div class="c"><span class="lab">Music</span>one held note, and the rocket's own sound comes up</div>
-          <div class="c"><span class="lab">Visuals</span><a class="scene" data-id="SRC-77">SRC-77</a>, fired as a shot (knob 7 push, or L), a few seconds, no countdown</div>
-          <div class="c"><span class="lab">Edson</span>silent</div>
-        </div>
-        <div class="beat" data-s="20:15" data-e="20:17">
-          <div class="t">8:15 → 8:17</div>
-          <div class="b">Stratosphere</div>
-          <div class="c"><span class="lab">Music</span><b>full hit, super epic</b></div>
-          <div class="c"><span class="lab">Visuals</span>The Passage going up through the stars</div>
-          <div class="c"><span class="lab">Edson</span>plays, big</div>
-        </div>
-        <div class="beat key" data-s="20:17" data-e="20:20">
-          <div class="t">~8:17 → 8:20</div>
-          <div class="b"><span class="ico">🎸</span>Jeff enters</div>
-          <div class="c"><span class="lab">Music</span><b>Jeff walks on in the middle of the Stratosphere and makes it even more epic.</b> The act peaks here.</div>
-          <div class="c"><span class="lab">Visuals</span>stays up</div>
-          <div class="c"><span class="lab">Edson</span>plays, big</div>
-        </div>
-      </div>
+<!-- ================= ACT 3 ================= -->
+<section class="act" id="act3">
+  <div class="still"><img src="img/act3.jpg" alt="Ascension: a starburst of shards" loading="lazy"><div class="cap"><div class="n">ON THE WALL</div><div class="s">The Witnesses · Ascension · where the temple is right now</div></div></div>
+  <div class="right">
+    <h2>Act 3 <em>· The Collective Witnesses</em></h2>
+    <div class="when">8:40 → 9:00 · 20 MIN</div>
+    <div class="keybox">
+      <div class="kl">Key · tempo</div>
+      <div class="kv">F aeolian <small>68 bpm</small></div>
+      <div class="kn">Back to F, faster than Act 1. No break from Act 2: the rise carries straight through, only the tempo lifts.</div>
     </div>
-
-    <!-- ACT 2 -->
-    <div class="block" id="act2">
-      <div class="bh"><span class="clk">8:20 → 8:40</span><h4>Act 2 <em>· The Depths</em></h4></div>
-      <p class="energy"><b>Energy:</b> an abrupt drop out of the celebration, into the cave and the unconscious. First the chaos, then the band walks it down into something concentrated, sophisticated and beautiful. That is where the name is asked for. After the sending the room stays in the feeling for a moment, then goes back up. <b>From here on it's mostly UP.</b></p>
-      <div class="beats">
-        <div class="cols"><span>Time</span><span>Beat</span><span>Music</span><span>Visuals</span><span>Edson · performance</span></div>
-        <div class="rail"></div>
-        <div class="beat key" data-s="20:20" data-e="20:20">
-          <div class="t">8:20</div>
-          <div class="b">Abrupt cut</div>
-          <div class="c"><span class="lab">Music</span>stops / drops</div>
-          <div class="c"><span class="lab">Visuals</span>blackout, then <a class="scene" data-id="SRC-68">SRC-68</a> from black</div>
-          <div class="c"><span class="lab">Edson</span>—</div>
-        </div>
-        <div class="beat" data-s="20:20" data-e="20:24">
-          <div class="t">8:20 → 8:24</div>
-          <div class="b">Edson alone, then the chaos</div>
-          <div class="c"><span class="lab">Music</span>the theremin alone at first, <b>before the band</b></div>
-          <div class="c"><span class="lab">Visuals</span>SRC-68: the beam, steady and then chopped. <b>One hand only, for a while.</b> Then the right hand goes past 50% (random elements) and past 70% (trails): <b>“then I go crazy.”</b></div>
-          <div class="c"><span class="lab">Edson</span><b>Don't stay planted at the instrument.</b> Move, turn around, walk out and back: <i>“you are part of these visuals.”</i></div>
-        </div>
-        <div class="beat" data-s="20:24" data-e="20:27">
-          <div class="t">8:24 → 8:27</div>
-          <div class="b">The band enters the chaos</div>
-          <div class="c"><span class="lab">Music</span>Nima and Lance join the chaos with their instruments</div>
-          <div class="c"><span class="lab">Visuals</span>SRC-68 at full chaos</div>
-          <div class="c"><span class="lab">Edson</span><b>then Edson steps out</b></div>
-        </div>
-        <div class="beat" data-s="20:27" data-e="20:31">
-          <div class="t">8:27 → 8:31</div>
-          <div class="b">The descent</div>
-          <div class="c"><span class="lab">Music</span>the band slowly comes down, less and less, until it is <b>concentrated, sophisticated, beautiful</b></div>
-          <div class="c"><span class="lab">Visuals</span><b>the visuals descend too</b>: switch from SRC-68 to the host, with The Passage turned down (<a class="scene" data-id="SRC-74">BoT 0.2 · II</a>, DIRECTION = down). <span class="warn">⚠️ <b>The key and tempo change here</b></span>, from SRC-68's 120 F phrygian to A aeolian 50. The band leads it.</div>
-          <div class="c"><span class="lab">Edson</span>The room has crossed the subconscious and the intrusive thoughts and arrived at beauty.</div>
-        </div>
-        <div class="beat" data-s="20:31" data-e="20:33">
-          <div class="t">8:31 → 8:33</div>
-          <div class="b">Speech 2 <small style="display:block;font-weight:400;color:var(--txt-faint)">~2 min</small></div>
-          <div class="c"><span class="lab">Music</span>holds low and tender</div>
-          <div class="c"><span class="lab">Visuals</span>holds</div>
-          <div class="c"><span class="lab">Edson</span>Accepted/denied, then <b>“think of someone”</b>: a name, someone they want to send to the Orbital Temple (JAM-PACK §4)</div>
-        </div>
-        <div class="beat key" data-s="20:33" data-e="20:38">
-          <div class="t">8:33 → 8:38</div>
-          <div class="b"><span class="ico">📱</span>QR · the sending</div>
-          <div class="c"><span class="lab">Music</span><b>the sending bed, ≥5 min</b>, prepares loving, deep memories</div>
-          <div class="c"><span class="lab">Visuals</span>QR code + orbitaltemple.art (<a class="scene" data-id="SRC-79">SRC-79</a>), then <b>the cell divides</b> (DIVIDE macro)</div>
-          <div class="c"><span class="lab">Edson</span>silent. The sending <i>is</i> the show.</div>
-        </div>
-        <div class="beat" data-s="20:38" data-e="20:39">
-          <div class="t">8:38 → 8:39</div>
-          <div class="b">Stay in the feeling</div>
-          <div class="c"><span class="lab">Music</span>joyful nostalgia</div>
-          <div class="c"><span class="lab">Visuals</span>holds</div>
-          <div class="c"><span class="lab">Edson</span><b>Speech 2b</b> (30 sec): phones away, eyes closed, the person ascending (JAM-PACK §4)</div>
-        </div>
-        <div class="beat" data-s="20:39" data-e="20:40">
-          <div class="t">8:39 → 8:40</div>
-          <div class="b">The rise begins</div>
-          <div class="c"><span class="lab">Music</span>up, up, <b>no cut into Act 3: it just keeps going</b></div>
-          <div class="c"><span class="lab">Visuals</span>starts going up</div>
-          <div class="c"><span class="lab">Edson</span>—</div>
-        </div>
-      </div>
+    <p class="arc">People are tired by now. Get them moving a little, then take them into a collective trance, then <b>end on something Hans Zimmer epic.</b></p>
+    <div class="beats">
+      <div class="beat" data-s="20:40" data-e="20:44"><div class="t">8:40 → 8:44</div><div class="b">Upbeat, make them move</div><div class="d">Still rising out of Act 2, no break. <b>Tempo up.</b></div></div>
+      <div class="beat" data-s="20:44" data-e="20:46"><div class="t">8:44 → 8:46</div><div class="b">Speech 3 <span class="tag down">music down</span></div><div class="d">About two minutes: what the Witnesses are.</div></div>
+      <div class="beat key" data-s="20:46" data-e="20:52"><div class="t">8:46 → 8:52</div><div class="b">🛰️ Where it is now · the poems</div><div class="d"><b>Hold, then lift.</b> The wall zooms from the studio up to the Earth and the temple's position right now. Then <b>play the bed under the poems</b>: they run on their own, in sync with the bar, first in their languages, then English.</div></div>
+      <div class="beat" data-s="20:52" data-e="20:55"><div class="t">8:52 → 8:55</div><div class="b">The intros, the thanks</div><div class="d"><b>Over the music, never stopping it. No solos.</b> Edson introduces Nima → Lance → Jeff, then a short list of thanks.</div></div>
+      <div class="beat key" data-s="20:55" data-e="21:00"><div class="t">8:55 → 9:00</div><div class="b">🎵 The last song <span class="tag big">composed</span></div><div class="d"><b>“Let's crush in this last one.”</b> Hans Zimmer epic. Composed, not improvised. <i>Still needs its name.</i></div></div>
+      <div class="beat" data-s="21:00" data-e="21:05"><div class="t">9:00</div><div class="b">Bows</div><div class="d">Edson leads the applause. Then the DJ until 10:20, no projection, just light on the works.</div></div>
     </div>
+  </div>
+</section>
 
-    <!-- ACT 3 -->
-    <div class="block" id="act3">
-      <div class="bh"><span class="clk">8:40 → 9:00</span><h4>Act 3 <em>· The Collective Witnesses</em></h4></div>
-      <p class="energy"><b>No cut from Act 2:</b> the rise carries straight through (Edson, Sep 27 evening). The visual changes, the music doesn't stop. <b>Energy:</b> people are tired by now. Get them moving a little, then take them into a collective trance, then <b>end on something Hans Zimmer epic.</b></p>
-      <div class="beats">
-        <div class="cols"><span>Time</span><span>Beat</span><span>Music</span><span>Visuals</span><span>Edson · performance</span></div>
-        <div class="rail"></div>
-        <div class="beat" data-s="20:40" data-e="20:44">
-          <div class="t">8:40 → 8:44</div>
-          <div class="b">Upbeat, make them move</div>
-          <div class="c"><span class="lab">Music</span>still rising from Act 2, no break, tempo up</div>
-          <div class="c"><span class="lab">Visuals</span>Act 3 layer <span class="warn">(Open, 5)</span>, in the Witnesses' metals</div>
-          <div class="c"><span class="lab">Edson</span>plays</div>
-        </div>
-        <div class="beat" data-s="20:44" data-e="20:46">
-          <div class="t">8:44 → 8:46</div>
-          <div class="b">Speech 3 <small style="display:block;font-weight:400;color:var(--txt-faint)">~2 min</small></div>
-          <div class="c"><span class="lab">Music</span>comes down</div>
-          <div class="c"><span class="lab">Visuals</span>holds</div>
-          <div class="c"><span class="lab">Edson</span>What the Witnesses are, and that they follow the temple across the sky (JAM-PACK §4)</div>
-        </div>
-        <div class="beat key" data-s="20:46" data-e="20:48">
-          <div class="t">8:46 → 8:48</div>
-          <div class="b"><span class="ico">🛰️</span>Where it is now</div>
-          <div class="c"><span class="lab">Music</span>holds, then lifts</div>
-          <div class="c"><span class="lab">Visuals</span><b>A map of the studio → zoom out, up and up → the Earth → the satellite in real time, where it is right now, with its line (the orbit track).</b> The Witnesses turn to point.</div>
-          <div class="c"><span class="lab">Edson</span>silent</div>
-        </div>
-        <div class="beat key" data-s="20:46" data-e="20:52">
-          <div class="t">8:46 → 8:52</div>
-          <div class="b"><span class="ico">🗣️</span>The poems</div>
-          <div class="c"><span class="lab">Music</span>the band plays the bed</div>
-          <div class="c"><span class="lab">Visuals</span>the poem deck <b>runs on its own</b> over the music, in the language bank and then the English bank, in sync with the bar. <b>No count, no hand-light walk.</b></div>
-          <div class="c"><span class="lab">Edson</span>—</div>
-        </div>
-        <div class="beat" data-s="20:52" data-e="20:54">
-          <div class="t">8:52 → 8:54</div>
-          <div class="b">“It's coming to an end” · the intros</div>
-          <div class="c"><span class="lab">Music</span><b>over the music, no solos</b></div>
-          <div class="c"><span class="lab">Visuals</span>stays up</div>
-          <div class="c"><span class="lab">Edson</span>Edson introduces each player in one line: <b>Nima → Lance → Jeff.</b> Nobody introduces Edson.</div>
-        </div>
-        <div class="beat" data-s="20:54" data-e="20:55">
-          <div class="t">8:54 → 8:55</div>
-          <div class="b">Quick thanks</div>
-          <div class="c"><span class="lab">Music</span><b>over the music, not stopping it</b></div>
-          <div class="c"><span class="lab">Visuals</span>—</div>
-          <div class="c"><span class="lab">Edson</span>a short list: the studio · Gabi · Kate · Nima · Lance · …</div>
-        </div>
-        <div class="beat key" data-s="20:55" data-e="21:00">
-          <div class="t">8:55 → 9:00</div>
-          <div class="b"><span class="ico">🎵</span>The last song</div>
-          <div class="c"><span class="lab">Music</span><b>“Let's crush in this last one.” Hans Zimmer epic.</b> Composed, not improvised.</div>
-          <div class="c"><span class="lab">Visuals</span>full</div>
-          <div class="c"><span class="lab">Edson</span>plays</div>
-        </div>
-        <div class="beat" data-s="21:00" data-e="21:01">
-          <div class="t">9:00</div>
-          <div class="b">Claps, bows</div>
-          <div class="c"><span class="lab">Music</span>—</div>
-          <div class="c"><span class="lab">Visuals</span>off</div>
-          <div class="c"><span class="lab">Edson</span>leads the applause</div>
-        </div>
-        <div class="beat" data-s="21:01" data-e="22:20">
-          <div class="t">9:00 → 10:20</div>
-          <div class="b">DJ</div>
-          <div class="c"><span class="lab">Music</span>DJ</div>
-          <div class="c"><span class="lab">Visuals</span><b>no projection</b>, just light on the works</div>
-          <div class="c"><span class="lab">Edson</span>works the room alone, three minutes a conversation</div>
-        </div>
-        <div class="beat" data-s="22:20" data-e="22:30">
-          <div class="t">10:30</div>
-          <div class="b">Doors close</div>
-          <div class="c"></div><div class="c"></div><div class="c"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= CUT · RULES ================= -->
-  <section id="cut">
-    <div class="two">
-      <div>
-        <div class="h"><h3>Cut on purpose</h3><div class="sub">DON'T BRING THEM BACK</div></div>
-        <ul class="plain cut">
-          <li><b>The twelfth Witness's silence and the toast <i>“to us, the witnesses.”</i></b> (Edson, Sep 27 evening, in the run-of-show Q&amp;A.) The ending now runs poems → intros → thanks → the last song.</li>
-          <li><b>Counted or hand-lit poems.</b> The deck runs on its own.</li>
-          <li><b>The solos</b>, the players' and Edson's AV theremin solo (Edson, Sep 27 evening). Edson just introduces the band.</li>
-          <li><b>A hard cut between Act 2 and Act 3.</b> It keeps going.</li>
-          <li><b>The carrier separation as its own clip.</b> The launch clip is the only clip.</li>
-          <li>Everything from the six-scene version (<code>NIGHT-EXPERIENCE-DESIGN-2026-09-26.md</code>): the times, the order, the deploy clip, names read off the wall. That file is now only a source for speech wording.</li>
-        </ul>
-      </div>
-      <div>
-        <div class="h"><h3>Rules for the night</h3><div class="sub">FOUR</div></div>
-        <ul class="plain rules">
-          <li class="hard"><b class="stop">Never say “in orbit”, “deployed” or “transmitting.”</b> On Oct 1 the temple is still inside the carrier. The “where it is now” view shows <b>the carrier's predicted position.</b> “They point to where it is” is true.</li>
-          <li><b>Every speech: the music comes down, Edson talks, the music goes back up.</b> It never stops dead.</li>
-          <li><b>Use one verified number of names, or none.</b></li>
-          <li><b>The poem texts are public, but the performance is a surprise.</b></li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= OPEN ================= -->
-  <section id="open">
-    <div class="h"><h3>Open</h3><div class="sub">FROM READING THE RECORDING AGAINST THE FILES</div></div>
-    <ol class="plain open" start="0">
-      <li class="done"><b>SRC-66 and SRC-68 are each act's initial visual and sound</b> (Edson, Sep 27 evening). The act opens on the scene, then switches to its host. Act 2's key and tempo change is marked at the descent (8:27).</li>
-      <li class="done"><b>Act 2 → Act 3: no cut, it just keeps going</b> (Edson, Sep 27 evening).</li>
-      <li class="done"><b>“Us 4” = Nima · Lance · Jeff · Edson.</b> Jeff enters mid-Stratosphere (~8:17). <b>No solos.</b> Edson introduces the three. Still unconfirmed: does Jeff stay on through Acts 2 and 3? (Assumed yes.)</li>
-      <li><b>The last song:</b> it still needs a name. “Hans Zimmer epic” is a direction.</li>
-      <li><b>The DJ:</b> still unnamed. Gabi said no.</li>
-      <li><b>Act 3 has no first layer.</b> Acts 1 and 2 have SRC-66 and SRC-68. The spiral radar (SRC-76) isn't built. Right now BoT 0.2 · III hosts Ascension, Returned and The Circle.</li>
-      <li><b>“Where it is now” isn't built</b> and it gates the Witnesses pointing. Target: before the Wed 30 install. <b>The zoom starts at Dustin Yellin Studio, 153 Pioneer St.</b> The recording says <i>“Pioneer Works”</i>, which is 159 Pioneer St, a different building.</li>
-      <li><b>The real launch clip:</b> who cuts it between 2:18 and 8 PM, and who loads it as SRC-77 (Alex edits 4–8 PM). The plan if the launch slips to Oct 2: the night moves with it.</li>
-      <li><b>The 8:00 silence cue</b> is in this sheet but was <b>not in the text sent to the band.</b> Tell Nima and Lance, and rehearse it three times.</li>
-      <li><b>The poem deck runs on its own, so who starts it?</b> It needs one button at ~8:46, pushed by Gabi, Lance or a Twister pad, because Edson is talking.</li>
-    </ol>
-  </section>
-
-  <!-- ================= BUILD NOTES ================= -->
-  <section id="build">
-    <div class="h"><h3>Build notes from the recording</h3><div class="sub">NOT BEATS, TASKS</div></div>
-    <ul class="plain build">
-      <li><b>SRC-68 (the Beam / fresta):</b> if the right hand stays out to the right, <b>the chaos stops by itself after a while. It must keep going until Edson ends it.</b> <span class="ts">[0:06:12]</span> Also <i>“do less, give it half”</i> <span class="ts">[0:06:47]</span>. This probably means half the density of the chaos. Check with Edson before changing it.</li>
-      <li class="quote">The opening is praised: <i>“The first sphere is perfect… The fresta, perfect, beautiful. The start is very chic”</i> <span class="ts">[0:05:43]</span>. Don't redesign SRC-66 or SRC-68. Add layers.</li>
-      <li>Rehearse Act 2 with the projector on tonight: the solo → chaos → descent → name <span class="ts">[0:07:47]</span>.</li>
-    </ul>
-  </section>
-
-</main>
+<section class="rules">
+  <h3>The five things to remember</h3>
+  <ul>
+    <li><b>8:00 is a cue.</b> Follow Edson's hand down to silence, together, then he plays first. Rehearse it three times.</li>
+    <li><b>Every speech: music down, Edson talks, music back up.</b> It never stops dead.</li>
+    <li><b>One key change on purpose: 8:27</b>, F phrygian 120 down to A aeolian 50. The band leads it.</li>
+    <li><b>No cut between Act 2 and Act 3.</b> The rise carries straight through. No solos anywhere.</li>
+    <li><b>The last song is composed</b>, not improvised. Know it cold.</li>
+  </ul>
+</section>
 
 <footer>
-  <div>RUN OF SHOW · THE NIGHT · Thu Oct 1, 2026 · written Sun Sep 27, 19:30 · edit <code>run-of-show/index.html</code> in the repo</div>
-  <div><a href="../">the wall</a> · <a id="scenesLink" href="#">the scenes on the preview</a> · <a href="https://orbitaltemple.art/">orbitaltemple.art</a></div>
+  <div>THE NIGHT · Thu Oct 1, 2026 · from Edson's run of show, Sep 27</div>
+  <div><a href="../">the wall</a> · <a href="https://orbitaltemple.art/">orbitaltemple.art</a></div>
 </footer>
 
 <script>
 (() => {
-  /* WHERE THE SCENE IDS LINK. Edson's scenes live on PR #58's deploy preview
-     until it merges; then this becomes the live site. One constant. */
-  const SITE = 'https://deploy-preview-58--source-interaction-library.netlify.app/';
-  document.querySelectorAll('a.scene').forEach(a => {
-    a.href = SITE + '#scene=' + a.dataset.id; a.target = '_blank'; a.rel = 'noopener';
-    a.title = 'open ' + a.dataset.id + ' on the preview';
-  });
-  const sl = document.getElementById('scenesLink');
-  if (sl) sl.href = SITE + '#lib?src=56-&sort=new';
-
-  /* theme: follows the system unless a person picks; remembered per browser */
-  const root = document.documentElement;
-  const KEY = 'rosTheme';
-  let saved = null; try { saved = localStorage.getItem(KEY); } catch (e) {}
-  const sys = () => matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  const apply = t => { if (t === 'light') root.setAttribute('data-theme', 'light'); else root.removeAttribute('data-theme'); };
-  apply(saved || sys());
-  document.getElementById('themeBtn').addEventListener('click', () => {
-    const t = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    apply(t); try { localStorage.setItem(KEY, t); } catch (e) {}
-  });
-
-  /* THE CLOCK. New York time in the header, and on the night itself the beat
-     that is happening now lights up and the ones before it dim. `?t=20:31`
-     rehearses any moment; `?t=live` forces the highlight on any day. */
+  /* New York clock. On Oct 1 the beat happening now is marked and what is
+     past dims. `?t=20:31` rehearses a moment on any day; `?t=live` forces it. */
   const q = new URLSearchParams(location.search);
   const beats = [...document.querySelectorAll('.beat[data-s]')];
   const mins = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
-  const nyParts = () => {
-    const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false,
-      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const o = {}; f.formatToParts(new Date()).forEach(p => { o[p.type] = p.value; });
-    return o;
-  };
-  const clk = document.getElementById('clk'), nxt = document.getElementById('clkNext'), sub = document.getElementById('tlSub');
+  const ny = () => { const o = {}; new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date()).forEach(p => { o[p.type] = p.value; }); return o; };
+  const clk = document.getElementById('clk'), nxt = document.getElementById('clkNext');
   function tick() {
-    const p = nyParts();
-    const hh = p.hour === '24' ? '00' : p.hour;
-    clk.textContent = hh + ':' + p.minute + ':' + p.second;
-    const isNight = (p.year + '-' + p.month + '-' + p.day) === '2026-10-01';
+    const p = ny(); const hh = p.hour === '24' ? '00' : p.hour;
+    clk.textContent = hh + ':' + p.minute;
+    const night = (p.year + '-' + p.month + '-' + p.day) === '2026-10-01';
     let now = null;
-    if (q.get('t') === 'live') now = mins(hh + ':' + p.minute);
+    if (q.get('t') === 'live' || (night && !q.get('t'))) now = mins(hh + ':' + p.minute);
     else if (q.get('t')) now = mins(q.get('t'));
-    else if (isNight) now = mins(hh + ':' + p.minute);
-    if (now === null) { nxt.textContent = ''; return; }
+    if (now === null) { nxt.textContent = 'NEW YORK'; return; }
     let cur = null, next = null;
     beats.forEach(b => {
       const s = mins(b.dataset.s), e = mins(b.dataset.e);
       const on = now >= s && (now < e || (s === e && now === s));
-      const past = now >= e && !(s === e && now === s);
-      b.classList.toggle('now', on); b.classList.toggle('past', past && !on);
-      if (on && !cur) cur = b;
-      if (!next && s > now) next = b;
+      b.classList.toggle('now', on); b.classList.toggle('past', now >= e && !on);
+      if (on && !cur) cur = b; if (!next && s > now) next = b;
     });
-    if (cur) {
-      const t = cur.querySelector('.b'); nxt.innerHTML = '<span class="now">' + (t ? t.textContent.trim().split('\n')[0] : '') + '</span>';
-      if (next) nxt.innerHTML += ' · next ' + next.querySelector('.t').firstChild.textContent.trim();
-      if (sub) sub.textContent = (q.get('t') && q.get('t') !== 'live' ? 'REHEARSING ' + q.get('t') : 'LIVE') + ' · NEW YORK TIME';
-    } else nxt.textContent = next ? 'next ' + next.querySelector('.t').firstChild.textContent.trim() : '';
+    nxt.innerHTML = cur ? '<span class="now">' + cur.querySelector('.b').firstChild.textContent.trim() + '</span>' + (next ? ' · then ' + next.querySelector('.t').firstChild.textContent.trim() : '')
+                        : (next ? 'next ' + next.querySelector('.t').firstChild.textContent.trim() : 'NEW YORK');
   }
-  tick(); setInterval(tick, 1000);
-
-  /* THE SKY. Stars, one shared orbit, one small gold point going round — the
-     carrier, still climbing. Cheap: a few hundred points, one path, 30 fps. */
-  const cv = document.getElementById('sky'), g = cv.getContext('2d');
-  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let W = 0, H = 0, stars = [], dpr = 1;
-  function size() {
-    dpr = Math.min(2, devicePixelRatio || 1);
-    W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    stars = Array.from({ length: Math.round(W * H / 3800) }, () => ({ x: rnd() * W, y: rnd() * H, r: rnd() * 1.1 + .2, a: rnd() * .6 + .15, ph: rnd() * 6.28 }));
-  }
-  function frame(t) {
-    const light = root.getAttribute('data-theme') === 'light';
-    g.clearRect(0, 0, W, H);
-    const cx = W * .70, cy = H * .30, rx = Math.min(W, H) * .62, ry = rx * .28, tilt = -.22;
-    // stars
-    for (const s of stars) {
-      const tw = still ? 1 : (.75 + .25 * Math.sin(t * .0012 + s.ph));
-      g.globalAlpha = s.a * tw * (light ? .55 : 1);
-      g.fillStyle = light ? '#151513' : '#f2f2ef';
-      g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.283); g.fill();
-    }
-    // the orbit track
-    g.save(); g.translate(cx, cy); g.rotate(tilt);
-    g.globalAlpha = light ? .35 : .5; g.strokeStyle = light ? '#d4542c' : '#ff9a5e'; g.lineWidth = 1;
-    g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, 6.283); g.stroke();
-    // the earth, a dark disc with a lit edge
-    const er = ry * .62;
-    const grd = g.createRadialGradient(-er * .35, -er * .35, er * .1, 0, 0, er);
-    grd.addColorStop(0, light ? 'rgba(212,84,44,.18)' : 'rgba(255,154,94,.22)'); grd.addColorStop(1, light ? 'rgba(244,244,241,1)' : 'rgba(7,7,8,1)');
-    g.globalAlpha = 1; g.fillStyle = grd; g.beginPath(); g.arc(0, 0, er, 0, 6.283); g.fill();
-    g.globalAlpha = light ? .5 : .7; g.strokeStyle = light ? '#6d6d65' : '#98988f'; g.lineWidth = .8; g.stroke();
-    // the carrier: one gold point with a short trail of where it has been
-    const ang = still ? 1.1 : (t * .00025) % 6.283;
-    for (let i = 14; i >= 0; i--) {
-      const a = ang - i * .045, x = Math.cos(a) * rx, y = Math.sin(a) * ry;
-      g.globalAlpha = (1 - i / 15) * (light ? .7 : .9);
-      g.fillStyle = light ? '#9a7a1e' : '#e9c46a';
-      g.beginPath(); g.arc(x, y, i ? 1.2 : 3.2, 0, 6.283); g.fill();
-    }
-    g.restore();
-    if (!still) requestAnimationFrame(frame);
-  }
-  size(); addEventListener('resize', () => { size(); if (still) frame(0); });
-  if (still) frame(0); else requestAnimationFrame(frame);
+  tick(); setInterval(tick, 15000);
 })();
 </script>
 </body>
