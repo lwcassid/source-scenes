@@ -139,7 +139,7 @@ const nm = await pg.evaluate(() => { TWISTPANEL.open(); const G = document.getEl
   const needs = f => f !== 'none' && (f.indexOf('fader') === 0 || f.indexOf('solo') === 0 || f === 'unsolo'
                                       || f.indexOf('macro') === 0 || f === 'blackout');
   const expect = TWIST.slots.reduce((a2, S) => a2 + (needs(S.turn) ? 1 : 0) + (needs(S.push) ? 1 : 0), 0);
-  const note = [...G.querySelectorAll('p')].some(p => p.textContent.indexOf('no mixer') >= 0);
+  const note = [...G.querySelectorAll('p, .sheet-status')].some(p => p.textContent.indexOf('no mixer') >= 0);
   TWISTPANEL.close();
   return { hasMix: TWIST.hasMix(), expect, dim: sels.filter(s => s.style.opacity === '0.35').length,
            note,

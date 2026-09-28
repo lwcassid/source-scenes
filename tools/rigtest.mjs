@@ -119,7 +119,7 @@ console.log('Escape closes the MAP window and ONLY the MAP window');
 const esc = await pg.evaluate(async () => { TWISTPANEL.open();
   (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   await new Promise(r => setTimeout(r, 300));
-  return { open: document.getElementById('twMap').style.display !== 'none', idx: focus.idx, key: MIDIRIG.sceneKey() }; });
+  return { open: !!document.getElementById('twMap'), idx: focus.idx, key: MIDIRIG.sceneKey() }; });
 ok('window closed, scene still open', !esc.open && esc.idx >= 0 && esc.key === 'SRC-64', esc);
 const esc2 = await pg.evaluate(async () => {
   (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -213,11 +213,11 @@ ok('TEST at the home ends dark, not on the last blue frame', darkBut16(lit.endRi
 
 console.log('the MAP window closes on a click outside it');
 const outside = await pg.evaluate(async () => { TWISTPANEL.open();
-  const inside = document.querySelector('#twMap h4');
+  const inside = document.querySelector('#twMap .sheet-title');
   inside.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-  const stillOpen = document.getElementById('twMap').style.display !== 'none';
+  const stillOpen = !!document.getElementById('twMap');
   document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-  return { stillOpen, closed: document.getElementById('twMap').style.display === 'none' }; });
+  return { stillOpen, closed: !document.getElementById('twMap') }; });
 ok('a click inside keeps it, a click outside closes it', outside.stillOpen && outside.closed, outside);
 
 console.log('taking it off the desk makes it deaf everywhere');

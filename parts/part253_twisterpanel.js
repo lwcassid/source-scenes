@@ -68,7 +68,7 @@
     const AUX = 'padding:4px 0;font-size:8.5px;letter-spacing:.16em;background:transparent;'
       + 'border:1px solid var(--line2);color:var(--txt-dim);box-shadow:none';
     amBtn = btn('AUTO-MAP', 'Lay out this scene: its layers, the solos and the poem cues', () => TWIST.autoMap(), AUX);
-    mapBtn = btn('MAP', 'Everything else: what each knob does, its light, TEST', () => openPop(!(pop && pop.style.display !== 'none')), AUX);
+    mapBtn = btn('MAP', 'Everything else: what each knob does, its light, TEST', () => openPop(!isOpen()), AUX);
     btnRow.append(amBtn, mapBtn);
     g.appendChild(btnRow);
 
@@ -222,7 +222,7 @@
     show(amBtn, !!key);          // at the home there is no scene to lay out
     draw();
 
-    if (pop && pop.style.display !== 'none') paintPop(T, live, key, mapped);
+    if (isOpen() && pop) paintPop(T, live, key, mapped);
   }
 
   /* ================= THE MAP WINDOW ================= */
@@ -290,27 +290,16 @@
     return sel;
   }
 
-  function buildPop() {
-    if (pop) return;
+  /* THE MAP WINDOW IS A SHEET (partcore_sheet.js, Sep 28): the standard for
+     every secondary panel — the same place, the same header (TITLE · CONTEXT
+     · ×), Esc and a click outside close it. `pop` is the sheet's body while
+     it is open and null otherwise; everything is rebuilt on each open. */
+  let sheet = null;
+  const isOpen = () => !!(window.SHEET && SHEET.isOpen('twMap'));
+  function buildPop(body) {
     const T = window.TWIST;
-    pop = document.createElement('div');
-    pop.id = 'twMap';
-    pop.style.cssText = 'display:none;position:fixed;top:54px;left:calc(var(--rail) + 14px);z-index:160;'
-      + 'width:min(580px,calc(100vw - var(--rail) - 28px));max-height:86vh;overflow-y:auto;'
-      + 'background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;'
-      + 'box-shadow:0 18px 50px rgba(0,0,0,.3)';
-
-    const head = document.createElement('div');
-    head.style.cssText = 'display:flex;align-items:baseline;gap:10px;margin:0 0 6px';
-    const t = h4('Midi Fighter Twister'); t.style.margin = '0';
-    whereEl = document.createElement('span');
-    whereEl.style.cssText = 'flex:1;font:9px var(--mono);letter-spacing:.14em;color:var(--txt-faint)';
-    const x = document.createElement('button');
-    x.textContent = '×'; x.title = 'close (Esc)';
-    x.style.cssText = 'padding:0 8px;font-size:13px;line-height:1.4';
-    x.addEventListener('click', () => openPop(false));
-    head.append(t, whereEl, x);
-    pop.appendChild(head);
+    pop = body; cells = []; copySels = [];
+    whereEl = { set textContent(v) { if (sheet) sheet.context(v); }, get textContent() { return sheet ? sheet.el.querySelector('.sheet-ctx').textContent : ''; } };
 
     connBox = document.createElement('div');
     connBox.append(para('MIDI permission is per page load — a reload always needs it again.'),
@@ -366,9 +355,7 @@
     mapBox.appendChild(helpEl);
     pop.appendChild(mapBox);
 
-    devBox = document.createElement('div');
-    devBox.style.cssText = 'border-top:1px solid var(--line);margin-top:12px;padding-top:10px';
-    devBox.appendChild(h4('The device'));
+    devBox = SHEET.section('The device');
     lightBtn = btn('LIGHTS: ON', 'Stop sending to the controller\'s lights, or start again', () => {
       TWIST.lights = !TWIST.lights;
       if (!TWIST.lights) TWIST.allOff(); else TWIST._sent = {};
@@ -381,37 +368,24 @@
       // it should only say that")
       btn('DISCONNECT', 'Disconnect the Twister: deaf and dark in every scene until you ADD it again. Its maps are kept.',
         () => { openPop(false); MIDIRIG.remove('twister'); })));
-    noteEl = para('', true);
-    noteEl.style.whiteSpace = 'pre-line';
-    noteEl.style.fontFamily = 'var(--mono)';
+    noteEl = SHEET.status();                       // the machine talking
     devBox.appendChild(noteEl);
     pop.appendChild(devBox);
 
-    document.body.appendChild(pop);
-
-    /* It closes the way the SOURCE MAP popover does: Esc, or a click
-       elsewhere. Esc is taken in the CAPTURE phase and stopped, because in a
-       scene Escape also means CLOSE THE SCENE (two handlers in core) — one
-       keystroke must close the window, not the window and the scene. Only
-       while the window is open; otherwise Escape is theirs, untouched. */
-    window.addEventListener('keydown', e => {
-      if (e.key !== 'Escape' || pop.style.display === 'none') return;
-      e.stopImmediatePropagation(); e.stopPropagation(); e.preventDefault();
-      openPop(false);
-    }, true);
-    document.addEventListener('pointerdown', e => {
-      if (pop.style.display === 'none') return;
-      if (pop.contains(e.target) || (mapBtn && mapBtn.contains(e.target)) || (cv && cv.contains(e.target))) return;
-      openPop(false);
-    });
   }
 
   function openPop(on) {
-    if (on) buildPop();
-    if (!pop) return;
-    pop.style.display = on ? '' : 'none';
-    if (mapBtn) mapBtn.classList.toggle('on', !!on);
-    if (on) { lastN = -1; lastCopy = null; paint(); }
+    if (!window.SHEET) return;
+    if (!on) { SHEET.close('twMap'); return; }
+    if (isOpen()) return;
+    lastN = -1; lastCopy = null; lastKey = null;
+    sheet = SHEET.open({
+      id: 'twMap', title: 'Midi Fighter Twister', size: 'm', trigger: mapBtn,
+      keep: t => !!(cv && cv.contains(t)),        // clicking the rail's knob picture keeps it open
+      build: body => buildPop(body),
+      close: () => { pop = null; sheet = null; }
+    });
+    paint();
   }
 
   function paintPop(T, live, key, mapped) {
