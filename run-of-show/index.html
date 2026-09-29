@@ -110,6 +110,18 @@
   .ref.playing .bar{display:block}
   .ref .bar i{display:block;height:100%;width:0;background:#bfe8a3}
   .ref.playing .play{color:var(--txt);border-bottom-color:var(--txt)}
+  /* the poems, folded */
+  .poems{grid-column:2;max-width:720px;margin-top:10px;font-size:13px;color:var(--dim);border:1px solid var(--line2);border-radius:8px;padding:8px 10px}
+  .poems summary{cursor:pointer;color:var(--txt);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;list-style:none}
+  .poems summary::before{content:'▸ ';color:var(--acc)}
+  .poems[open] summary::before{content:'▾ '}
+  .poems p{margin:8px 0 6px;font-size:12px;color:var(--faint)}
+  .poems ol{list-style:none;display:grid;gap:6px}
+  .poems li{display:grid;grid-template-columns:22px 1fr auto;gap:0 8px;align-items:baseline;line-height:1.4}
+  .poems .pn{font-family:var(--mono);font-size:10px;color:var(--acc)}
+  .poems .pl i{color:var(--faint)}
+  .poems .pg{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--faint);text-transform:uppercase}
+  @media (max-width:600px){ .poems li{grid-template-columns:22px 1fr} .poems .pg{grid-column:2} }
   .ref iframe{display:block;width:100%;height:80px;border:0;border-radius:10px;margin-top:8px;background:#000}
   /* the set, the wall */
   .cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
@@ -242,6 +254,7 @@
     .beat .d{grid-column:1}
     .beat .t{padding-top:0}
     .ref{grid-column:1}
+    .poems{grid-column:1}
     .piece .m{margin-left:0;width:100%}
     .prow{grid-template-columns:30px 1fr}
     .prow .pt{grid-column:2;text-align:left}
@@ -379,10 +392,11 @@
         <div class="ref" data-track="7EdQ9Z80HAKiISr1MZABpZ"><b>Vibe <small>· for Fresco</small></b><a href="https://open.spotify.com/track/7EdQ9Z80HAKiISr1MZABpZ" target="_blank" rel="noopener">Venna · Sicily' Box (Yussef Dayes)</a> · broken beat, ghost notes on the snare, hats carrying the swing, the groove opening up <button class="play" type="button">▶ listen</button></div></div>
     </div>
   
-    <div class="ph2"><span class="n">PIECE 8</span><span class="k">A minor<small>68</small></span><span class="m">8:44 → 8:52 · 8 MIN</span></div>
+    <div class="ph2"><span class="n">PIECE 8</span><span class="k">A minor<small>50 · half-time, the loop rides at double</small></span><span class="m">8:44 → 8:52 · 8 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:44" data-e="20:46"><div class="t">8:44 → 8:46</div><div class="b">Speech 3 <span class="tag down">music down</span></div><div class="d">About two minutes: what the Witnesses are. Settle into A minor under him.</div></div>
       <div class="beat key" data-s="20:46" data-e="20:52"><div class="t">8:46 → 8:52</div><div class="b">🛰️ Where it is now · the poems</div><div class="d"><b>Hold, then lift.</b> The wall zooms from the studio up to the Earth and the temple's position right now. Then <b>play the bed under the poems</b>: they run on their own, in sync with the bar, first in their languages, then English.</div>
+        <details class="poems"><summary>The twelve poems, what you are playing under</summary><p>Each runs in its own language first, then in English, on the bar. Edson sets the spoken order on the wall. The twelfth is silence.</p><ol><li><span class="pn">1</span><span class="pl">who can be accepted, who shall be denied, I'm god, as I witness the heavens I've created and destroyed</span><span class="pg">Japanese</span></li><li><span class="pn">2</span><span class="pl">trembling before reaching the ocean, a river looks back on her journey, oblivious to the pleasure of becoming</span><span class="pg">French</span></li><li><span class="pn">3</span><span class="pl">there is a sword glowing with flames, blocking the path to the third heaven — they say.</span><span class="pg">Arabic</span></li><li><span class="pn">4</span><span class="pl">although bottomless, the sacred space is never empty</span><span class="pg">Japanese</span></li><li><span class="pn">5</span><span class="pl">standing half Oxum, half mirror, a woman showing no fear of being naked opens her eyes looking exactly into mine, and without moving anything but her arm, takes a rose crystal egg from the place in her body that bleeds</span><span class="pg">Yoruba</span></li><li><span class="pn">6</span><span class="pl">Das coisas que me ligam à terra, meu filho e essa dor nas costas <i>· among the things that ground me to the earth, my son and this pain in my back</i></span><span class="pg">Portuguese</span></li><li><span class="pn">7</span><span class="pl">what pays for grace? No need to pay they say. behave.</span><span class="pg">German</span></li><li><span class="pn">8</span><span class="pl">in search for just the right amount of freedom</span><span class="pg">Italian</span></li><li><span class="pn">9</span><span class="pl">Designed to reach the third heaven, now, mostly used for fun</span><span class="pg">Chinese</span></li><li><span class="pn">10</span><span class="pl">nevertheless not thy will, but mine be done</span><span class="pg">Russian</span></li><li><span class="pn">11</span><span class="pl">I again make an alliance with mystery</span><span class="pg">Spanish</span></li><li><span class="pn">12</span><span class="pl"><i>silence: blackout</i></span><span class="pg">—</span></li></ol></details>
         <div class="ref sketch" data-src="audio/act3-idea1-am-hiphop.m4a" data-dur="1:39"><b>Sketch <small>· from Lance</small></b><span class="st">Idea 1 · Am hip hop</span> · the bed under the poems, a loop that holds <button class="play" type="button">▶ 1:39</button><div class="bar"><i></i></div></div>
         <div class="ref" data-track="1q4ZXBVohhj071kU6PkOW3"><b>Vibe <small>· for Fresco</small></b><a href="https://open.spotify.com/track/1q4ZXBVohhj071kU6PkOW3" target="_blank" rel="noopener">Chet Faker · Over You</a> · a vintage break as a loop, no fills. Hold it back through the lift, let it enter on the lift <button class="play" type="button">▶ listen</button></div></div>
     </div>
@@ -413,7 +427,7 @@
   <h3>Rehearsals</h3>
   <ul>
     <li><b>Tue Sep 29, 6:00 → 9:00 PM, online (Meet).</b> Get through the run of show twice.</li>
-    <li><b>Wed Sep 30, at the studio.</b> Sound check, then a full pass of the night. Run the 8:00 silence three times.</li>
+    <li><b>Wed Sep 30, at the studio.</b> Sound check, then a full pass of the night. Before you leave, six things done on the real rig: the 8:00 silence three times · the launch clip cue at 8:14 with the held note · the 8:27 descent, E down to A, on the wall · the no-cut into Act 3 at 8:39 · Last Dance twice, in C · a name sent on a phone during the sending and seen on the wall.</li>
     <li><b>Thu Oct 1, call time 6:30 PM</b> <i>(proposed)</i>. Line check with the doors closed, done before 7:30, when Nima opens the prelude.</li>
   </ul>
 </section>
@@ -421,13 +435,13 @@
 <section class="rules">
   <h3>Still open, to decide together</h3>
   <ul>
-    <li><b>The pieces and their keys</b> are a proposal from Lance's note (white keys for Nima). Say yes, or move one.</li>
+    <li><b>The pieces and their keys</b> are Lance's proposal (white keys for Nima), and since Sep 29 the wall plays the three acts in them: A minor, E phrygian, A minor. Say yes, or move one.</li>
     <li><b>Call time on Oct 1.</b> 6:30 PM proposed; does it work for everyone?</li>
   </ul>
 </section>
 
 <footer>
-  <div>BIRTH OF A TEMPLE · Thu Oct 1, 2026 · from Edson's run of show, Sep 27, and Lance's notes · updated Sep 29</div>
+  <div>BIRTH OF A TEMPLE · Thu Oct 1, 2026 · from Edson's run of show, Sep 27, and Lance's notes · updated Sep 29, evening</div>
   <div><a href="../">the wall</a> · <a href="https://orbitaltemple.art/">orbitaltemple.art</a></div>
 </footer>
 
