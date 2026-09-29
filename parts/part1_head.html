@@ -35,6 +35,14 @@
   html,body{background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
   /* deep-link boot: the wall holds its breath until the linked scene is up */
   html.deeplink header,html.deeplink main,html.deeplink footer,html.deeplink #favBanner{visibility:hidden}
+  /* ?embed — the STAGE ALONE, for a scene framed inside another page (the
+     run of show): no header, no rails, no bars, no console, no tabs. Opt-in
+     by URL; nothing else on the wall changes. Pairs with the ghost hands the
+     tail turns on for it, so the scene plays itself in the frame. */
+  html.embed header,html.embed main,html.embed footer,html.embed #favBanner,html.embed #sidebar,
+  html.embed .obar,html.embed .oconsole,html.embed #panelTab,html.embed #dbg,html.embed #stageFS,html.embed .edgeNav{display:none!important}
+  html.embed #overlay{grid-template-columns:1fr}
+  html.embed #overlay .ostage{grid-column:1/-1;grid-row:1/4;background:#000;height:auto!important;flex:1 1 auto!important}
   ::selection{background:var(--acc);color:#000}
 
   /* ---------- header — one slim row ---------- */
