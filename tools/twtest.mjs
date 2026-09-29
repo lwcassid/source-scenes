@@ -9,7 +9,7 @@ const errs = []; pg.on('pageerror', e => errs.push(String(e)));
 let fails = 0;
 const ok = (name, cond, got) => { console.log((cond ? '  ok   ' : '  FAIL ') + name + (cond ? '' : '  got: ' + JSON.stringify(got))); if (!cond) fails++; };
 
-await pg.goto(URL + '#scene=SRC-64', { waitUntil: 'load' });
+await pg.goto(URL + '#scene=SRC-64.2'   /* the 2-layer Ascension host; the family's latest (64.4) is Act 3 with four, Sep 29 */, { waitUntil: 'load' });
 await pg.waitForTimeout(3200);
 
 /* The Twister is a DRIVER on the desk (parts/partcore_midirig.js), and each
