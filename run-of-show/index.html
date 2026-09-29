@@ -103,6 +103,13 @@
   .ref .play:hover,.ref .play:active{color:var(--txt);border-bottom-color:var(--txt)}
   .ref b small{font-weight:400;letter-spacing:.14em;color:var(--faint)}
   .ref .vibe{display:block;margin-top:3px;font-size:11px;color:var(--faint);font-style:italic}
+  /* Lance's voice memos: a sketch per piece, same weight as a ref */
+  .ref.sketch{border-left-color:#bfe8a3;background:rgba(191,232,163,.08)}
+  .ref.sketch b{color:#bfe8a3}
+  .ref .bar{height:2px;background:var(--line);margin-top:8px;border-radius:2px;overflow:hidden;display:none}
+  .ref.playing .bar{display:block}
+  .ref .bar i{display:block;height:100%;width:0;background:#bfe8a3}
+  .ref.playing .play{color:var(--txt);border-bottom-color:var(--txt)}
   .ref iframe{display:block;width:100%;height:80px;border:0;border-radius:10px;margin-top:8px;background:#000}
   /* the set, the wall */
   .cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
@@ -263,7 +270,7 @@
 <section class="top">
   <h1>Birth of a Temple <em>· the Celebration · run of show</em></h1>
   <div class="line"><span>Thu Oct 1</span><span>Dustin Yellin Studio, 153 Pioneer St</span><span>doors <b>7:30</b></span><span>show <b>8:00 → 9:00</b></span><span>DJ till 10:20</span></div>
-  <p class="lineup"><b>Nima</b> synth, piano · <b>Lance</b> synths, strings, keys, guitar · <b>Fresco</b> kit · <b>Jeff</b> flute, in and out · <b>Edson</b> AV theremin.<br>Pieces of 5 to 10 minutes, each in its own key, all white keys. Times are targets. Left is the wall, live and muted; right is the music. The tracks tagged <b>vibe</b> are references for the feel only, not something to copy.</p>
+  <p class="lineup"><b>Nima</b> synth, piano · <b>Lance</b> synths, strings, keys, guitar · <b>Fresco</b> kit · <b>Jeff</b> flute, in and out · <b>Edson</b> AV theremin.<br>Pieces of 5 to 10 minutes, each in its own key, all white keys. Times are targets. Left is the wall, live and muted; right is the music. The tracks tagged <b>vibe</b> and Lance's voice-memo <b>sketches</b> are for the feel only, not something to copy.</p>
   <div class="cta"><a class="set" href="#">▶ The set on the wall</a><a href="../">The wall</a><a href="https://partiful.com/e/LHgmbQlh0hspkJwcaMuc">Invite</a></div>
 </section>
 
@@ -307,7 +314,8 @@
     <div class="ph2"><span class="n">PIECE 2</span><span class="k">A minor → C major<small>54, doubling</small></span><span class="m">8:08 → 8:15 · 7 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:08" data-e="20:11"><div class="t">8:08 → 8:11</div><div class="b">Speech 1 <span class="tag down">music down</span></div><div class="d">Edson talks for up to three minutes. Come down under him in A minor, never stop dead. He ends on <i>“Today, at 2:18 in the afternoon, this happened.”</i></div></div>
-      <div class="beat" data-s="20:11" data-e="20:14"><div class="t">8:11 → 8:14</div><div class="b">Build to the launch</div><div class="d">Rise again. Let the chords lean toward C. Expectation.</div></div>
+      <div class="beat" data-s="20:11" data-e="20:14"><div class="t">8:11 → 8:14</div><div class="b">Build to the launch</div><div class="d">Rise again. Let the chords lean toward C. Expectation.</div>
+        <div class="ref sketch" data-src="audio/act1-launch-synth-arp.m4a" data-dur="1:11"><b>Sketch <small>· from Lance</small></b><span class="st">Launch synth arp</span> · the arp that climbs into the clip <button class="play" type="button">▶ 1:11</button><div class="bar"><i></i></div></div></div>
       <div class="beat key" data-s="20:14" data-e="20:15"><div class="t">8:14 → 8:15</div><div class="b">🚀 Launch clip</div><div class="d"><b>One held note.</b> The rocket's own sound comes up over it. A few seconds, no countdown. Edson is silent.</div></div>
     </div>
   
@@ -332,18 +340,21 @@
     <div class="beats">
       <div class="beat key" data-s="20:20" data-e="20:20"><div class="t">8:20</div><div class="b">Abrupt cut <span class="tag big">cue</span></div><div class="d"><b>Stop.</b> Blackout. Then the beam comes up from black with the theremin alone.</div></div>
       <div class="beat" data-s="20:20" data-e="20:24"><div class="t">8:20 → 8:24</div><div class="b">Edson alone, then the chaos</div><div class="d"><b>Wait.</b> The theremin plays alone for a while, one hand, steady and then chopped. Then Edson goes crazy and walks out into the room. Not yet: let him.</div></div>
-      <div class="beat" data-s="20:24" data-e="20:27"><div class="t">8:24 → 8:27</div><div class="b">The band enters the chaos</div><div class="d">Join the chaos with your instruments, in E phrygian: white keys with E as home. Full. Edson steps out.</div></div>
+      <div class="beat" data-s="20:24" data-e="20:27"><div class="t">8:24 → 8:27</div><div class="b">The band enters the chaos</div><div class="d">Join the chaos with your instruments, in E phrygian: white keys with E as home. Full. Edson steps out.</div>
+        <div class="ref sketch" data-src="audio/act2-chaos.m4a" data-dur="11:34"><b>Sketch <small>· from Lance</small></b><span class="st">Chaos</span> · sketched in C minor; on the night the home is E, keep the feel <button class="play" type="button">▶ 11:34</button><div class="bar"><i></i></div></div></div>
     </div>
   
     <div class="ph2"><span class="n">PIECE 5</span><span class="k">A minor<small>50</small></span><span class="m">8:27 → 8:33 · 6 MIN</span></div>
     <div class="beats">
-      <div class="beat key" data-s="20:27" data-e="20:31"><div class="t">8:27 → 8:31</div><div class="b">The descent <span class="tag key">key change</span></div><div class="d"><b>Come down slowly, less and less</b>, until it is concentrated, sophisticated, beautiful. <b>E phrygian 120 → A minor 50.</b> Same seven notes, the centre moves from E to A. You lead; the wall follows you down.</div></div>
+      <div class="beat key" data-s="20:27" data-e="20:31"><div class="t">8:27 → 8:31</div><div class="b">The descent <span class="tag key">key change</span></div><div class="d"><b>Come down slowly, less and less</b>, until it is concentrated, sophisticated, beautiful. <b>E phrygian 120 → A minor 50.</b> Same seven notes, the centre moves from E to A. You lead; the wall follows you down.</div>
+        <div class="ref sketch" data-src="audio/act2-idea1-acoustic.m4a" data-dur="1:54"><b>Sketch <small>· from Lance</small></b><span class="st">Idea 1 · acoustic</span> · the way down, less and less <button class="play" type="button">▶ 1:54</button><div class="bar"><i></i></div></div></div>
       <div class="beat" data-s="20:31" data-e="20:33"><div class="t">8:31 → 8:33</div><div class="b">Speech 2 <span class="tag down">music down</span></div><div class="d">Low and tender under Edson, about two minutes. He asks the room to think of someone.</div></div>
     </div>
   
     <div class="ph2"><span class="n">PIECE 6</span><span class="k">A minor, leaning to C<small>50</small></span><span class="m">8:33 → 8:39 · 6 MIN</span></div>
     <div class="beats">
       <div class="beat key" data-s="20:33" data-e="20:38"><div class="t">8:33 → 8:38</div><div class="b">📱 The sending</div><div class="d"><b>The sending bed, at least five minutes.</b> Loving, deep memories, Fmaj7 and C under everything. The room is sending names to the temple; on the wall the QR, then the cell divides. Edson is silent. <i>This is the show.</i></div>
+        <div class="ref sketch" data-src="audio/act2-idea2-piano-c.m4a" data-dur="1:29"><b>Sketch <small>· from Lance</small></b><span class="st">Idea 2 · piano in C</span> · the sending bed, resting on C <button class="play" type="button">▶ 1:29</button><div class="bar"><i></i></div></div>
         <div class="ref band" data-track="2qMLbeUM1IunPifKpvzqDx"><b>Vibe <small>· for Lance &amp; Nima</small></b><a href="https://open.spotify.com/track/2qMLbeUM1IunPifKpvzqDx" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · Enough</a> · orchestral swells that arrive like rain; space to reflect <button class="play" type="button">▶ listen</button></div>
         <div class="ref" data-track="6omcpeBhvzHZbeYfgseMa0"><b>Vibe <small>· for Fresco</small></b><a href="https://open.spotify.com/track/6omcpeBhvzHZbeYfgseMa0" target="_blank" rel="noopener">daoud · dijon</a> · rim clicks, air between hits, one motif that grows for five minutes and never gets busy <button class="play" type="button">▶ listen</button></div></div>
       <div class="beat" data-s="20:38" data-e="20:39"><div class="t">8:38 → 8:39</div><div class="b">Stay in the feeling <span class="tag down">music down</span></div><div class="d">Joyful nostalgia. Rest on C. Edson, thirty seconds: phones away, eyes closed.</div></div>
@@ -491,6 +502,23 @@
                         : (next ? 'next ' + next.querySelector('.t').firstChild.textContent.trim() : 'NEW YORK');
   }
   tick(); setInterval(tick, 15000);
+
+  /* Lance's sketches: one shared player, one sketch at a time, nothing
+     loads until someone taps. The button is the time; the bar is the place. */
+  const au = new Audio(); let cur = null;
+  const fmt = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+  const paint = () => { if (!cur) return; const b = cur.querySelector('.play'), i = cur.querySelector('.bar i');
+    b.textContent = (au.paused ? '▶ ' : '❚❚ ') + fmt(au.currentTime) + ' / ' + (au.duration ? fmt(au.duration) : cur.dataset.dur);
+    i.style.width = (au.duration ? au.currentTime / au.duration * 100 : 0) + '%'; };
+  const rest = r => { r.classList.remove('playing'); r.querySelector('.play').textContent = '▶ ' + r.dataset.dur; r.querySelector('.bar i').style.width = 0; };
+  au.addEventListener('timeupdate', paint); au.addEventListener('play', paint); au.addEventListener('pause', paint);
+  au.addEventListener('ended', () => { if (cur) rest(cur); cur = null; });
+  document.querySelectorAll('.ref.sketch .play').forEach(btn => btn.addEventListener('click', () => {
+    const r = btn.closest('.ref');
+    if (cur === r) { if (au.paused) au.play(); else au.pause(); return; }
+    if (cur) rest(cur);
+    cur = r; r.classList.add('playing'); au.src = r.dataset.src; au.play();
+  }));
 
   /* Spotify, in place: nothing loads until someone taps LISTEN, then the
      compact embed replaces the link. A 30 s preview without login, the
