@@ -99,8 +99,10 @@
   .ref{grid-column:2;margin-top:8px;font-size:13px;color:var(--dim);padding:8px 10px;border-left:2px solid var(--acc);background:var(--acc-faint);border-radius:0 8px 8px 0;max-width:720px}
   .ref b{color:var(--acc);font-size:10px;letter-spacing:.2em;text-transform:uppercase;display:block;margin-bottom:2px}
   .ref a{color:var(--txt);border-bottom:1px solid var(--line)}
-  .ref .play{display:inline-block;margin:6px 0 0;font:inherit;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--bg);background:var(--acc);border:0;border-radius:999px;padding:6px 11px;cursor:pointer}
-  .ref .play:active{opacity:.8}
+  .ref .play{font:inherit;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--faint);background:none;border:0;border-bottom:1px dotted var(--faint);padding:0;margin-left:4px;cursor:pointer;white-space:nowrap}
+  .ref .play:hover,.ref .play:active{color:var(--txt);border-bottom-color:var(--txt)}
+  .ref b small{font-weight:400;letter-spacing:.14em;color:var(--faint)}
+  .ref .vibe{display:block;margin-top:3px;font-size:11px;color:var(--faint);font-style:italic}
   .ref iframe{display:block;width:100%;height:80px;border:0;border-radius:10px;margin-top:8px;background:#000}
   /* the set, the wall */
   .cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
@@ -158,6 +160,9 @@
   .moment .vis .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 8px 8px;background:linear-gradient(180deg,transparent,rgba(7,7,8,.75));z-index:2;pointer-events:none}
   .moment .vis .cap .chips{pointer-events:auto}
   .moment .vis.novis{aspect-ratio:auto;background:transparent;border:0;display:none}
+  .moment .vis.dark{display:flex;align-items:center;justify-content:center;background:#000;border-color:var(--line2)}
+  .moment .vis.dark span{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--faint)}
+  @media (max-width:899px){ .moment .vis.dark{aspect-ratio:16/5} }
   .moment .txt{min-width:0}
   .ph2{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
   .ph2 .n{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--acc)}
@@ -258,13 +263,29 @@
 <section class="top">
   <h1>Birth of a Temple <em>· the Celebration · run of show</em></h1>
   <div class="line"><span>Thu Oct 1</span><span>Dustin Yellin Studio, 153 Pioneer St</span><span>doors <b>7:30</b></span><span>show <b>8:00 → 9:00</b></span><span>DJ till 10:20</span></div>
-  <p class="lineup"><b>Nima</b> synth, piano · <b>Lance</b> synths, strings, keys, guitar · <b>Fresco</b> kit · <b>Jeff</b> flute, in and out · <b>Edson</b> AV theremin.<br>Pieces of 5 to 10 minutes, each in its own key, all white keys. Times are targets. Left is the wall, live and muted; right is the music.</p>
+  <p class="lineup"><b>Nima</b> synth, piano · <b>Lance</b> synths, strings, keys, guitar · <b>Fresco</b> kit · <b>Jeff</b> flute, in and out · <b>Edson</b> AV theremin.<br>Pieces of 5 to 10 minutes, each in its own key, all white keys. Times are targets. Left is the wall, live and muted; right is the music. The tracks tagged <b>vibe</b> are references for the feel only, not something to copy.</p>
   <div class="cta"><a class="set" href="#">▶ The set on the wall</a><a href="../">The wall</a><a href="https://partiful.com/e/LHgmbQlh0hspkJwcaMuc">Invite</a></div>
 </section>
 
 
-<section class="actband" id="prelude"><h2>Prelude</h2><div class="when">7:30 → 8:00 · THE WALL IS DARK</div><p class="on"><b>Nima alone:</b> drone, ambient, low stakes, people arriving and talking. Any key; the room is talking. <b>Lance</b> joins around 7:45. <b>Edson</b> goes to the instrument just before 8.</p></section>
-<section class="moment solo" id="p0"><div class="txt"><div class="ref band" data-track="0RLkIJSQ2gMSZNhesO44Cx"><b>For Lance &amp; Nima</b><a href="https://open.spotify.com/track/0RLkIJSQ2gMSZNhesO44Cx" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · Pause</a> · the prelude in one track: a drone, layers arriving and leaving, nothing asked of anyone <button class="play" type="button">▶ play here</button></div></div></section>
+<section class="actband" id="prelude"><h2>Prelude</h2><div class="when">7:30 → 8:00 · 1 PIECE · ANY KEY</div><p class="on"><b>Nima</b> alone: drone, ambient, low stakes, people arriving and talking. <b>Lance</b> joins around 7:45. <b>Edson</b> goes to the instrument just before 8. The wall stays dark.</p></section>
+
+<section class="moment act" id="p0">
+  <div class="side">
+    <div class="vis dark"><span>THE WALL IS DARK</span></div>
+    <p class="note"><b>Edson:</b> Nothing on the wall until the silence at 8:00. Light on the works only, the room talking, no projection. The first picture is the point after the blackout.</p>
+  </div>
+  <div class="txt">
+
+    <div class="ph2"><span class="n">PIECE 0</span><span class="k">Any key<small>the room is talking</small></span><span class="m">7:30 → 8:00 · 30 MIN</span></div>
+    <div class="beats">
+      <div class="beat" data-s="19:30" data-e="19:45"><div class="t">7:30 → 7:45</div><div class="b">Doors · Nima alone</div><div class="d">A drone, ambient, nothing asked of anyone. Low enough to talk over. Any key.</div>
+        <div class="ref band" data-track="0RLkIJSQ2gMSZNhesO44Cx"><b>Vibe <small>· for Lance &amp; Nima</small></b><a href="https://open.spotify.com/track/0RLkIJSQ2gMSZNhesO44Cx" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · Pause</a> · a drone, layers arriving and leaving <button class="play" type="button">▶ listen</button></div></div>
+      <div class="beat" data-s="19:45" data-e="19:58"><div class="t">~7:45 → 7:58</div><div class="b">Lance joins</div><div class="d">Strings and a bed under the drone. Still low stakes; the room is filling.</div></div>
+      <div class="beat" data-s="19:58" data-e="20:00"><div class="t">7:58 → 8:00</div><div class="b">Edson to the instrument</div><div class="d">Whatever you are in, start leaning toward <b>A minor</b>: the silence at 8:00 lands there.</div></div>
+    </div>
+    </div>
+</section>
 
 <section class="actband" id="act1"><h2>Act 1 <em>· Expectation and Launch</em></h2><div class="when">8:00 → 8:20 · 3 PIECES · Am → C</div><p class="on"><b>Lance</b> bed, synths, strings, very ambient · <b>Nima</b> synth, piano · <b>Jeff</b> flute, in and out · <b>Fresco</b> enters on the kit at the peak, ~8:17. Slow and tense, Edson speaks in the middle, the clip lands at the end, then everything goes up.</p></section>
 
@@ -280,7 +301,7 @@
     <div class="beats">
       <div class="beat key" data-s="20:00" data-e="20:01"><div class="t">8:00</div><div class="b">The silence <span class="tag big">cue</span></div><div class="d"><b>Follow Edson's hand down to zero.</b> Two or three seconds of nothing, lights drop at the same instant, then the first sound is the theremin alone. <i>If it looks like a fault, it failed: tighter sync, not a longer silence.</i></div></div>
       <div class="beat" data-s="20:01" data-e="20:08"><div class="t">8:01 → 8:08</div><div class="b">Tension</div><div class="d">Slow, built on the theremin. Come in underneath it, one layer at a time. On the wall a point opens into a disc, a ring, an eclipse.</div>
-        <div class="ref band" data-track="4LYwnQN8yP032iEZLHpN6g"><b>For Lance &amp; Nima</b><a href="https://open.spotify.com/track/4LYwnQN8yP032iEZLHpN6g" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · I Saw You</a> · builds steadily, layer by layer, and never announces itself <button class="play" type="button">▶ play here</button></div></div>
+        <div class="ref band" data-track="4LYwnQN8yP032iEZLHpN6g"><b>Vibe <small>· for Lance &amp; Nima</small></b><a href="https://open.spotify.com/track/4LYwnQN8yP032iEZLHpN6g" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · I Saw You</a> · builds steadily, layer by layer, and never announces itself <button class="play" type="button">▶ listen</button></div></div>
     </div>
   
     <div class="ph2"><span class="n">PIECE 2</span><span class="k">A minor → C major<small>54, doubling</small></span><span class="m">8:08 → 8:15 · 7 MIN</span></div>
@@ -323,8 +344,8 @@
     <div class="ph2"><span class="n">PIECE 6</span><span class="k">A minor, leaning to C<small>50</small></span><span class="m">8:33 → 8:39 · 6 MIN</span></div>
     <div class="beats">
       <div class="beat key" data-s="20:33" data-e="20:38"><div class="t">8:33 → 8:38</div><div class="b">📱 The sending</div><div class="d"><b>The sending bed, at least five minutes.</b> Loving, deep memories, Fmaj7 and C under everything. The room is sending names to the temple; on the wall the QR, then the cell divides. Edson is silent. <i>This is the show.</i></div>
-        <div class="ref band" data-track="2qMLbeUM1IunPifKpvzqDx"><b>For Lance &amp; Nima</b><a href="https://open.spotify.com/track/2qMLbeUM1IunPifKpvzqDx" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · Enough</a> · orchestral swells that arrive like rain; space to reflect <button class="play" type="button">▶ play here</button></div>
-        <div class="ref" data-track="6omcpeBhvzHZbeYfgseMa0"><b>For Fresco</b><a href="https://open.spotify.com/track/6omcpeBhvzHZbeYfgseMa0" target="_blank" rel="noopener">daoud · dijon</a> · rim clicks, air between hits, one motif that grows for five minutes and never gets busy <button class="play" type="button">▶ play here</button></div></div>
+        <div class="ref band" data-track="2qMLbeUM1IunPifKpvzqDx"><b>Vibe <small>· for Lance &amp; Nima</small></b><a href="https://open.spotify.com/track/2qMLbeUM1IunPifKpvzqDx" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · Enough</a> · orchestral swells that arrive like rain; space to reflect <button class="play" type="button">▶ listen</button></div>
+        <div class="ref" data-track="6omcpeBhvzHZbeYfgseMa0"><b>Vibe <small>· for Fresco</small></b><a href="https://open.spotify.com/track/6omcpeBhvzHZbeYfgseMa0" target="_blank" rel="noopener">daoud · dijon</a> · rim clicks, air between hits, one motif that grows for five minutes and never gets busy <button class="play" type="button">▶ listen</button></div></div>
       <div class="beat" data-s="20:38" data-e="20:39"><div class="t">8:38 → 8:39</div><div class="b">Stay in the feeling <span class="tag down">music down</span></div><div class="d">Joyful nostalgia. Rest on C. Edson, thirty seconds: phones away, eyes closed.</div></div>
     </div>
     </div>
@@ -343,21 +364,21 @@
     <div class="beats">
       <div class="beat" data-s="20:39" data-e="20:40"><div class="t">8:39 → 8:40</div><div class="b">The rise begins</div><div class="d">Up, up, into G: the dominant of C, bright. <b>No cut into Act 3.</b> It just keeps going.</div></div>
       <div class="beat" data-s="20:40" data-e="20:44"><div class="t">8:40 → 8:44</div><div class="b">Upbeat, make them move</div><div class="d">Still rising, no break. <b>Tempo up.</b></div>
-        <div class="ref" data-track="7EdQ9Z80HAKiISr1MZABpZ"><b>For Fresco</b><a href="https://open.spotify.com/track/7EdQ9Z80HAKiISr1MZABpZ" target="_blank" rel="noopener">Venna · Sicily' Box (Yussef Dayes)</a> · broken beat, ghost notes on the snare, hats carrying the swing, the groove opening up <button class="play" type="button">▶ play here</button></div></div>
+        <div class="ref" data-track="7EdQ9Z80HAKiISr1MZABpZ"><b>Vibe <small>· for Fresco</small></b><a href="https://open.spotify.com/track/7EdQ9Z80HAKiISr1MZABpZ" target="_blank" rel="noopener">Venna · Sicily' Box (Yussef Dayes)</a> · broken beat, ghost notes on the snare, hats carrying the swing, the groove opening up <button class="play" type="button">▶ listen</button></div></div>
     </div>
   
     <div class="ph2"><span class="n">PIECE 8</span><span class="k">A minor<small>68</small></span><span class="m">8:44 → 8:52 · 8 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:44" data-e="20:46"><div class="t">8:44 → 8:46</div><div class="b">Speech 3 <span class="tag down">music down</span></div><div class="d">About two minutes: what the Witnesses are. Settle into A minor under him.</div></div>
       <div class="beat key" data-s="20:46" data-e="20:52"><div class="t">8:46 → 8:52</div><div class="b">🛰️ Where it is now · the poems</div><div class="d"><b>Hold, then lift.</b> The wall zooms from the studio up to the Earth and the temple's position right now. Then <b>play the bed under the poems</b>: they run on their own, in sync with the bar, first in their languages, then English.</div>
-        <div class="ref" data-track="1q4ZXBVohhj071kU6PkOW3"><b>For Fresco</b><a href="https://open.spotify.com/track/1q4ZXBVohhj071kU6PkOW3" target="_blank" rel="noopener">Chet Faker · Over You</a> · a vintage break as a loop, no fills. Hold it back through the lift, let it enter on the lift <button class="play" type="button">▶ play here</button></div></div>
+        <div class="ref" data-track="1q4ZXBVohhj071kU6PkOW3"><b>Vibe <small>· for Fresco</small></b><a href="https://open.spotify.com/track/1q4ZXBVohhj071kU6PkOW3" target="_blank" rel="noopener">Chet Faker · Over You</a> · a vintage break as a loop, no fills. Hold it back through the lift, let it enter on the lift <button class="play" type="button">▶ listen</button></div></div>
     </div>
   
     <div class="ph2"><span class="n">PIECE 9</span><span class="k">C major<small>composed</small></span><span class="m">8:52 → 9:00 · 8 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:52" data-e="20:55"><div class="t">8:52 → 8:55</div><div class="b">The intros, the thanks</div><div class="d"><b>Over the music, never stopping it. No solos.</b> Edson introduces Nima → Lance → Fresco → Jeff, then a short list of thanks. Let the bed turn to C underneath.</div></div>
       <div class="beat key" data-s="20:55" data-e="21:00"><div class="t">8:55 → 9:00</div><div class="b">🎵 Last Dance in the Temple <span class="tag big">composed</span></div><div class="d"><b>“Let's crush in this last one.”</b> The rave in the temple of Zion in <i>The Matrix Reloaded</i>: everyone knows what is coming, so they dance as hard as they can, together. Hans Zimmer epic, in C major, the relative major of everything before it. Composed, not improvised. Lance leads it.</div>
-        <div class="ref" data-track="3wQucPL02xA7Q8iU2b5aXO"><b>For Fresco</b><a href="https://open.spotify.com/track/3wQucPL02xA7Q8iU2b5aXO" target="_blank" rel="noopener">daoud · loulou &amp; the loulous</a> · the jungle gear, played live. Speed with control <button class="play" type="button">▶ play here</button></div></div>
+        <div class="ref" data-track="3wQucPL02xA7Q8iU2b5aXO"><b>Vibe <small>· for Fresco</small></b><a href="https://open.spotify.com/track/3wQucPL02xA7Q8iU2b5aXO" target="_blank" rel="noopener">daoud · loulou &amp; the loulous</a> · the jungle gear, played live. Speed with control <button class="play" type="button">▶ listen</button></div></div>
       <div class="beat" data-s="21:00" data-e="21:05"><div class="t">9:00</div><div class="b">Bows</div><div class="d">Edson leads the applause. Then the DJ until 10:20, no projection, just light on the works.</div></div>
     </div>
     </div>
@@ -471,8 +492,8 @@
   }
   tick(); setInterval(tick, 15000);
 
-  /* Spotify, in place: nothing loads until someone taps PLAY HERE, then the
-     compact embed replaces the button. A 30 s preview without login, the
+  /* Spotify, in place: nothing loads until someone taps LISTEN, then the
+     compact embed replaces the link. A 30 s preview without login, the
      whole track with the Spotify app or a logged-in browser. */
   document.querySelectorAll('.ref .play').forEach(btn => btn.addEventListener('click', () => {
     const ref = btn.closest('.ref'), id = ref && ref.dataset.track; if (!id) return;
