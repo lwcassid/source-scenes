@@ -167,10 +167,18 @@
   .moment .beats{margin-top:0;border-top:0}
   @media (min-width:900px){
     .moment{grid-template-columns:1fr 1fr;align-items:start}
-    .moment .vis{position:sticky;top:70px}
     .moment.solo{grid-template-columns:1fr}
   }
   @media (max-width:899px){ .ph2 .m{margin-left:0;width:100%} }
+  .moment .side{min-width:0}
+  .moment .note{font-size:13px;color:var(--dim);margin:10px 2px 0;line-height:1.5}
+  .moment .note b{color:var(--txt);font-weight:600}
+  .clip2{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line2);background:#000;aspect-ratio:16/9;margin-top:10px}
+  .clip2 video{width:100%;height:100%;display:block;object-fit:cover}
+  .clip2 .tag2{position:absolute;left:10px;top:10px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt);background:rgba(7,7,8,.7);padding:4px 8px;border-radius:999px}
+  .moment .txt .ph2{margin-top:26px}
+  .moment .txt .ph2:first-child{margin-top:0}
+  @media (min-width:900px){ .moment .side{position:sticky;top:70px} }
   /* the beats */
   .beats{margin-top:22px;border-top:1px solid var(--line)}
   .beat{display:grid;grid-template-columns:96px 1fr;gap:4px 16px;padding:16px 0;border-bottom:1px solid var(--line2);align-items:start;position:relative}
@@ -251,7 +259,7 @@
   <h1>Birth of a Temple <em>· the Celebration · run of show</em></h1>
   <div class="line"><span>Thu Oct 1</span><span>Dustin Yellin Studio, 153 Pioneer St</span><span>doors <b>7:30</b></span><span>show <b>8:00 → 9:00</b></span><span>DJ till 10:20</span></div>
   <p class="lineup"><b>Nima</b> synth, piano · <b>Lance</b> synths, strings, keys, guitar · <b>Fresco</b> kit · <b>Jeff</b> flute, in and out · <b>Edson</b> AV theremin.<br>Pieces of 5 to 10 minutes, each in its own key, all white keys. Times are targets. Left is the wall, live and muted; right is the music.</p>
-  <div class="cta"><a class="set" href="#">▶ The set on the wall</a><a class="lib" href="#">Edson's scenes</a><a href="../">The wall</a><a href="https://partiful.com/e/LHgmbQlh0hspkJwcaMuc">Invite</a></div>
+  <div class="cta"><a class="set" href="#">▶ The set on the wall</a><a href="../">The wall</a><a href="https://partiful.com/e/LHgmbQlh0hspkJwcaMuc">Invite</a></div>
 </section>
 
 
@@ -260,69 +268,58 @@
 
 <section class="actband" id="act1"><h2>Act 1 <em>· Expectation and Launch</em></h2><div class="when">8:00 → 8:20 · 3 PIECES · Am → C</div><p class="on"><b>Lance</b> bed, synths, strings, very ambient · <b>Nima</b> synth, piano · <b>Jeff</b> flute, in and out · <b>Fresco</b> enters on the kit at the peak, ~8:17. Slow and tense, Edson speaks in the middle, the clip lands at the end, then everything goes up.</p></section>
 
-<section class="moment" id="p1">
-  <div class="vis" data-live="SRC-66"><img src="img/act1.jpg" alt="Light Eclipse: a ring of light" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-66">Light Eclipse</a><a class="scene" data-id="SRC-73">The Sky</a></div></div></div>
+<section class="moment act" id="act1-wall">
+  <div class="side">
+    <div class="vis" data-live="SRC-66"><img src="img/act1.jpg" alt="Act 1 · Light Eclipse" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div></div>
+    <div class="clip2"><video src="launch.mp4" poster="img/launch.jpg" controls playsinline preload="none"></video><span class="tag2">8:14 · the launch · sample</span></div>
+    <p class="note"><b>Edson:</b> The Light Eclipse with a real heartbeat. Every kick hits it at once, the light jumping larger and brighter, sharpening, the eclipse's dark core contracting as the light floods in, and then it sinks back slowly, over about a second, until the next one. The fuller the music, the larger it rests.</p>
+  </div>
   <div class="txt">
+
     <div class="ph2"><span class="n">PIECE 1</span><span class="k">A minor<small>54 · a drone</small></span><span class="m">8:00 → 8:08 · 8 MIN</span></div>
     <div class="beats">
       <div class="beat key" data-s="20:00" data-e="20:01"><div class="t">8:00</div><div class="b">The silence <span class="tag big">cue</span></div><div class="d"><b>Follow Edson's hand down to zero.</b> Two or three seconds of nothing, lights drop at the same instant, then the first sound is the theremin alone. <i>If it looks like a fault, it failed: tighter sync, not a longer silence.</i></div></div>
       <div class="beat" data-s="20:01" data-e="20:08"><div class="t">8:01 → 8:08</div><div class="b">Tension</div><div class="d">Slow, built on the theremin. Come in underneath it, one layer at a time. On the wall a point opens into a disc, a ring, an eclipse.</div>
         <div class="ref band" data-track="4LYwnQN8yP032iEZLHpN6g"><b>For Lance &amp; Nima</b><a href="https://open.spotify.com/track/4LYwnQN8yP032iEZLHpN6g" target="_blank" rel="noopener">Fred again.. &amp; Brian Eno · I Saw You</a> · builds steadily, layer by layer, and never announces itself <button class="play" type="button">▶ play here</button></div></div>
     </div>
-  </div>
-</section>
-
-<section class="moment" id="p2">
-  <div class="vis"><video src="launch.mp4" poster="img/launch.jpg" controls playsinline preload="none"></video><span class="tag2">Sample · the real clip is cut on the day</span><div class="cap"><div class="chips"><a class="scene" data-id="SRC-77">Launch clip</a><a class="scene" data-id="SRC-73">The Sky</a></div></div></div>
-  <div class="txt">
+  
     <div class="ph2"><span class="n">PIECE 2</span><span class="k">A minor → C major<small>54, doubling</small></span><span class="m">8:08 → 8:15 · 7 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:08" data-e="20:11"><div class="t">8:08 → 8:11</div><div class="b">Speech 1 <span class="tag down">music down</span></div><div class="d">Edson talks for up to three minutes. Come down under him in A minor, never stop dead. He ends on <i>“Today, at 2:18 in the afternoon, this happened.”</i></div></div>
       <div class="beat" data-s="20:11" data-e="20:14"><div class="t">8:11 → 8:14</div><div class="b">Build to the launch</div><div class="d">Rise again. Let the chords lean toward C. Expectation.</div></div>
       <div class="beat key" data-s="20:14" data-e="20:15"><div class="t">8:14 → 8:15</div><div class="b">🚀 Launch clip</div><div class="d"><b>One held note.</b> The rocket's own sound comes up over it. A few seconds, no countdown. Edson is silent.</div></div>
     </div>
-  </div>
-</section>
-
-<section class="moment" id="p3">
-  <div class="vis" data-live="SRC-58"><img src="img/p2.jpg" alt="The Passage going up" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-58">The Passage</a><a class="scene" data-id="SRC-73">The Sky</a></div></div></div>
-  <div class="txt">
+  
     <div class="ph2"><span class="n">PIECE 3</span><span class="k">C major<small>double time, ~108 feel</small></span><span class="m">8:15 → 8:20 · 5 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:15" data-e="20:17"><div class="t">8:15 → 8:17</div><div class="b">Stratosphere</div><div class="d"><b>Full hit. Super epic.</b> Same white keys, the relative major: nobody moves their hands, the room lifts. The Passage goes up through the stars.</div></div>
       <div class="beat key" data-s="20:17" data-e="20:20"><div class="t">~8:17 → 8:20</div><div class="b">🥁 Fresco enters</div><div class="d">The kit walks on mid-Stratosphere and makes it even bigger. <b>The act peaks here.</b> Stay up until the cut.</div></div>
     </div>
-  </div>
+    </div>
 </section>
 
 <section class="actband" id="act2"><h2>Act 2 <em>· The Depths</em></h2><div class="when">8:20 → 8:40 · 3 PIECES · E PHRYGIAN → Am</div><p class="on"><b>Fresco</b> full kit · <b>Lance</b> guitar · <b>Nima</b> piano, synth · <b>Jeff</b> flute, in and out. An abrupt drop into the cave: first the chaos, then you walk it down into something concentrated and beautiful, and that is where the name is asked for.</p></section>
 
-<section class="moment" id="p4">
-  <div class="vis" data-live="SRC-68"><img src="img/act2.jpg" alt="The Beam at full chaos" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-68">The Beam</a></div></div></div>
+<section class="moment act" id="act2-wall">
+  <div class="side">
+    <div class="vis" data-live="SRC-68"><img src="img/act2.jpg" alt="Act 2 · the Beam" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div></div>
+    <p class="note"><b>Edson:</b> The beam, and Edson's right hand becomes a key that opens the other studies one by one. Up to half its reach it only chops the beam, steady to strobe. Past half, random flashes start to fall around the beam: first one a bar and small, then dense and large. Past seventy percent the whole picture starts to leave echoes.</p>
+  </div>
   <div class="txt">
+
     <div class="ph2"><span class="n">PIECE 4</span><span class="k">E phrygian<small>120</small></span><span class="m">8:20 → 8:27 · 7 MIN</span></div>
     <div class="beats">
       <div class="beat key" data-s="20:20" data-e="20:20"><div class="t">8:20</div><div class="b">Abrupt cut <span class="tag big">cue</span></div><div class="d"><b>Stop.</b> Blackout. Then the beam comes up from black with the theremin alone.</div></div>
       <div class="beat" data-s="20:20" data-e="20:24"><div class="t">8:20 → 8:24</div><div class="b">Edson alone, then the chaos</div><div class="d"><b>Wait.</b> The theremin plays alone for a while, one hand, steady and then chopped. Then Edson goes crazy and walks out into the room. Not yet: let him.</div></div>
       <div class="beat" data-s="20:24" data-e="20:27"><div class="t">8:24 → 8:27</div><div class="b">The band enters the chaos</div><div class="d">Join the chaos with your instruments, in E phrygian: white keys with E as home. Full. Edson steps out.</div></div>
     </div>
-  </div>
-</section>
-
-<section class="moment" id="p5">
-  <div class="vis" data-live="SRC-74"><img src="img/p5.jpg" alt="The Depths: the stars falling past" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-74">The Depths</a><a class="scene" data-id="SRC-58">The Passage, down</a></div></div></div>
-  <div class="txt">
+  
     <div class="ph2"><span class="n">PIECE 5</span><span class="k">A minor<small>50</small></span><span class="m">8:27 → 8:33 · 6 MIN</span></div>
     <div class="beats">
       <div class="beat key" data-s="20:27" data-e="20:31"><div class="t">8:27 → 8:31</div><div class="b">The descent <span class="tag key">key change</span></div><div class="d"><b>Come down slowly, less and less</b>, until it is concentrated, sophisticated, beautiful. <b>E phrygian 120 → A minor 50.</b> Same seven notes, the centre moves from E to A. You lead; the wall follows you down.</div></div>
       <div class="beat" data-s="20:31" data-e="20:33"><div class="t">8:31 → 8:33</div><div class="b">Speech 2 <span class="tag down">music down</span></div><div class="d">Low and tender under Edson, about two minutes. He asks the room to think of someone.</div></div>
     </div>
-  </div>
-</section>
-
-<section class="moment" id="p6">
-  <div class="vis" data-live="SRC-59"><img src="img/p6.jpg" alt="The Names, dividing" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-59">The Names</a><a class="scene" data-id="SRC-79">The QR</a></div></div></div>
-  <div class="txt">
+  
     <div class="ph2"><span class="n">PIECE 6</span><span class="k">A minor, leaning to C<small>50</small></span><span class="m">8:33 → 8:39 · 6 MIN</span></div>
     <div class="beats">
       <div class="beat key" data-s="20:33" data-e="20:38"><div class="t">8:33 → 8:38</div><div class="b">📱 The sending</div><div class="d"><b>The sending bed, at least five minutes.</b> Loving, deep memories, Fmaj7 and C under everything. The room is sending names to the temple; on the wall the QR, then the cell divides. Edson is silent. <i>This is the show.</i></div>
@@ -330,38 +327,32 @@
         <div class="ref" data-track="6omcpeBhvzHZbeYfgseMa0"><b>For Fresco</b><a href="https://open.spotify.com/track/6omcpeBhvzHZbeYfgseMa0" target="_blank" rel="noopener">daoud · dijon</a> · rim clicks, air between hits, one motif that grows for five minutes and never gets busy <button class="play" type="button">▶ play here</button></div></div>
       <div class="beat" data-s="20:38" data-e="20:39"><div class="t">8:38 → 8:39</div><div class="b">Stay in the feeling <span class="tag down">music down</span></div><div class="d">Joyful nostalgia. Rest on C. Edson, thirty seconds: phones away, eyes closed.</div></div>
     </div>
-  </div>
+    </div>
 </section>
 
 <section class="actband" id="act3"><h2>Act 3 <em>· The Collective Witnesses</em></h2><div class="when">8:40 → 9:00 · 3 PIECES · G → Am → C · NO CUT: THE RISE STARTS AT 8:39</div><p class="on"><b>Lance</b> keys, this is the jam · <b>Nima</b> synth, piano · <b>Fresco</b> kit · <b>Jeff</b> flute, when the vibe says. People are tired by now: get them moving a little, then into a collective trance, then end on something Hans Zimmer epic.</p></section>
 
-<section class="moment" id="p7">
-  <div class="vis" data-live="SRC-71"><img src="img/p7.jpg" alt="The Circle" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-71">The Circle</a><a class="scene" data-id="SRC-75">The Witnesses</a></div></div></div>
+<section class="moment act" id="act3-wall">
+  <div class="side">
+    <div class="vis" data-live="SRC-64"><img src="img/act3.jpg" alt="Act 3 · Ascension" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div></div>
+    <p class="note"><b>Edson:</b> Back in the key it opened in and slower than anything before it. ASCENSION and THE POINT, RETURNED: the shards that break free, and the disc that empties into a ring. Mixed, the thing leaving and the thing left behind are on the wall together. The set closes where it started: one point, and the loop shut.</p>
+  </div>
   <div class="txt">
+
     <div class="ph2"><span class="n">PIECE 7</span><span class="k">G major<small>~86 feel, tempo up</small></span><span class="m">8:39 → 8:44 · 5 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:39" data-e="20:40"><div class="t">8:39 → 8:40</div><div class="b">The rise begins</div><div class="d">Up, up, into G: the dominant of C, bright. <b>No cut into Act 3.</b> It just keeps going.</div></div>
       <div class="beat" data-s="20:40" data-e="20:44"><div class="t">8:40 → 8:44</div><div class="b">Upbeat, make them move</div><div class="d">Still rising, no break. <b>Tempo up.</b></div>
         <div class="ref" data-track="7EdQ9Z80HAKiISr1MZABpZ"><b>For Fresco</b><a href="https://open.spotify.com/track/7EdQ9Z80HAKiISr1MZABpZ" target="_blank" rel="noopener">Venna · Sicily' Box (Yussef Dayes)</a> · broken beat, ghost notes on the snare, hats carrying the swing, the groove opening up <button class="play" type="button">▶ play here</button></div></div>
     </div>
-  </div>
-</section>
-
-<section class="moment" id="p8">
-  <div class="vis" data-live="SRC-75"><img src="img/map3.jpg" alt="The Witnesses" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-75">The Witnesses</a><a class="scene" data-id="SRC-60">Ascension</a></div></div></div>
-  <div class="txt">
+  
     <div class="ph2"><span class="n">PIECE 8</span><span class="k">A minor<small>68</small></span><span class="m">8:44 → 8:52 · 8 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:44" data-e="20:46"><div class="t">8:44 → 8:46</div><div class="b">Speech 3 <span class="tag down">music down</span></div><div class="d">About two minutes: what the Witnesses are. Settle into A minor under him.</div></div>
       <div class="beat key" data-s="20:46" data-e="20:52"><div class="t">8:46 → 8:52</div><div class="b">🛰️ Where it is now · the poems</div><div class="d"><b>Hold, then lift.</b> The wall zooms from the studio up to the Earth and the temple's position right now. Then <b>play the bed under the poems</b>: they run on their own, in sync with the bar, first in their languages, then English.</div>
         <div class="ref" data-track="1q4ZXBVohhj071kU6PkOW3"><b>For Fresco</b><a href="https://open.spotify.com/track/1q4ZXBVohhj071kU6PkOW3" target="_blank" rel="noopener">Chet Faker · Over You</a> · a vintage break as a loop, no fills. Hold it back through the lift, let it enter on the lift <button class="play" type="button">▶ play here</button></div></div>
     </div>
-  </div>
-</section>
-
-<section class="moment" id="p9">
-  <div class="vis" data-live="SRC-60"><img src="img/act3.jpg" alt="Ascension: a starburst of shards" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><div class="chips"><a class="scene" data-id="SRC-60">Ascension</a><a class="scene" data-id="SRC-61">Returned</a></div></div></div>
-  <div class="txt">
+  
     <div class="ph2"><span class="n">PIECE 9</span><span class="k">C major<small>composed</small></span><span class="m">8:52 → 9:00 · 8 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="20:52" data-e="20:55"><div class="t">8:52 → 8:55</div><div class="b">The intros, the thanks</div><div class="d"><b>Over the music, never stopping it. No solos.</b> Edson introduces Nima → Lance → Fresco → Jeff, then a short list of thanks. Let the bed turn to C underneath.</div></div>
@@ -369,7 +360,7 @@
         <div class="ref" data-track="3wQucPL02xA7Q8iU2b5aXO"><b>For Fresco</b><a href="https://open.spotify.com/track/3wQucPL02xA7Q8iU2b5aXO" target="_blank" rel="noopener">daoud · loulou &amp; the loulous</a> · the jungle gear, played live. Speed with control <button class="play" type="button">▶ play here</button></div></div>
       <div class="beat" data-s="21:00" data-e="21:05"><div class="t">9:00</div><div class="b">Bows</div><div class="d">Edson leads the applause. Then the DJ until 10:20, no projection, just light on the works.</div></div>
     </div>
-  </div>
+    </div>
 </section>
 
 <section class="rules">
