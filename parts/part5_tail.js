@@ -1582,6 +1582,21 @@ document.getElementById('volSlider').addEventListener('input', e => {
     if (window.ELECTRON_ROLE === 'control' && window.electronAPI) window.electronAPI.sendShowControl('ghosts', sceneGhosts);
   });
   paintGhostBtns();
+  /* ?embed — the stage alone (part1_head hides the chrome) with ghost hands
+     ON, so a scene framed inside another page plays itself. A touch on the
+     stage still takes the hands over, and they drift back to the ghosts
+     when it lets go. Opt-in by URL; the wall itself is untouched. */
+  if (/[?&]embed\b/i.test(location.search)) {
+    document.documentElement.classList.add('embed');
+    // fs + perf: the stage takes every pixel and a scene's own HUD line
+    // stays off it, exactly as in real fullscreen with the panels off
+    overlay.classList.add('fs', 'perf');
+    sceneGhosts = true; paintGhostBtns();
+    // SILENT unless `&sound` is asked for: a page can frame several scenes
+    // at once and only one should ever be heard. With AE.on false no
+    // AudioContext is built at all, which is also the lighter frame.
+    if (!/[?&]sound\b/i.test(location.search)) AE.on = false;
+  }
   document.getElementById('fVol').addEventListener('input', e => {
     const v = document.getElementById('volSlider');
     v.value = e.target.value;
