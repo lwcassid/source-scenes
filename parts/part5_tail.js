@@ -1592,6 +1592,10 @@ document.getElementById('volSlider').addEventListener('input', e => {
     // stays off it, exactly as in real fullscreen with the panels off
     overlay.classList.add('fs', 'perf');
     sceneGhosts = true; paintGhostBtns();
+    // SILENT unless `&sound` is asked for: a page can frame several scenes
+    // at once and only one should ever be heard. With AE.on false no
+    // AudioContext is built at all, which is also the lighter frame.
+    if (!/[?&]sound\b/i.test(location.search)) AE.on = false;
   }
   document.getElementById('fVol').addEventListener('input', e => {
     const v = document.getElementById('volSlider');
