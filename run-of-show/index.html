@@ -191,9 +191,6 @@
   .moment .side{min-width:0}
   .moment .note{font-size:13px;color:var(--dim);margin:10px 2px 0;line-height:1.5}
   .moment .note b{color:var(--txt);font-weight:600}
-  .clip2{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line2);background:#000;aspect-ratio:16/9;margin-top:10px}
-  .clip2 video{width:100%;height:100%;display:block;object-fit:cover}
-  .clip2 .tag2{position:absolute;left:10px;top:10px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt);background:rgba(7,7,8,.7);padding:4px 8px;border-radius:999px}
   .moment .txt .ph2{margin-top:26px}
   .moment .txt .ph2:first-child{margin-top:0}
   @media (min-width:900px){ .moment .side{position:sticky;top:70px} }
@@ -247,6 +244,22 @@
   .listen .lslot iframe{display:block;width:100%;height:80px;border:0;border-radius:10px;background:#000}
   .poems{margin-top:8px}
   @media (max-width:600px){ .piece .beat{grid-template-columns:1fr} }
+
+  /* THE WALL PINS. The act's picture stays under the header while its music
+     scrolls beneath it; the caption names the beat you are reading, and the
+     picture swaps to the launch clip at 8:14. Desktop keeps the sticky side
+     column; on the phone the picture is short so the music has the room. */
+  :root{--hdr:40px}
+  .moment .side{position:sticky;top:var(--hdr);z-index:20;background:var(--bg);padding:8px 0}
+  @media (min-width:900px){ .moment .side{top:calc(var(--hdr) + 20px);padding:0} }
+  @media (max-width:899px){ .moment .vis{aspect-ratio:16/7} .moment .vis.dark{aspect-ratio:16/5} }
+  .moment .vis .clip{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2}
+  .moment .vis.launch .clip{display:block}
+  .moment .vis .cap{display:flex;gap:10px;align-items:baseline;padding:22px 12px 9px;pointer-events:none}
+  .moment .vis .cap .on{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);white-space:nowrap}
+  .moment .vis .cap .what{font-size:13px;font-weight:700;color:var(--txt);letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .moment .vis.dark .cap{position:absolute;left:0;right:0;bottom:0;background:none}
+  .moment .txt .note{margin-top:18px;padding-top:12px;border-top:1px solid var(--line2)}
   /* rules */
   .rules{margin:60px auto 0;max-width:1100px;padding:0 var(--g)}
   .rules h3{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:14px}
@@ -288,6 +301,7 @@
   @media print{
     :root{--bg:#fff;--panel:#fff;--line:rgba(0,0,0,.3);--line2:rgba(0,0,0,.12);--txt:#000;--dim:#333;--faint:#666;--acc:#b8431c}
     header,footer,.moment .vis,.cta,.listen{display:none}
+    .moment .side{position:static}
     .moment{display:block}
     .hero{padding-top:0}
     .act{page-break-before:always;margin-top:0;display:block}
@@ -313,39 +327,37 @@
 </section>
 
 
-<section class="actband" id="prelude"><h2>Prelude</h2><div class="when">7:30 → 8:00 · 1 PIECE · ANY KEY</div><p class="on"><b>Nima</b> alone, then <b>Lance</b> around 7:45. Low stakes, people arriving. The wall stays dark.</p></section>
+<section class="actband" id="prelude"><h2>Prelude</h2><div class="when">7:30 → 7:58 · 1 PIECE · ANY KEY</div><p class="on"><b>Nima</b> alone, then <b>Lance</b> around 7:45. Low stakes, people arriving. The wall stays dark until Act 1.</p></section>
 
 <section class="moment act" id="p0">
   <div class="side">
-    <div class="vis dark"><span>THE WALL IS DARK</span></div>
-    <p class="note"><b>Edson:</b> Nothing on the wall until the silence at 8:00. Light on the works only, the room talking, no projection. The first picture is the point after the blackout.</p>
+    <div class="vis dark"><span>THE WALL IS DARK</span><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
   </div>
   <div class="txt">
     <div class="piece">
-    <div class="ph2"><span class="n">PIECE 0</span><span class="k">Any key<small>the room is talking</small></span><span class="m">7:30 → 8:00 · 30 MIN</span></div>
+    <div class="ph2"><span class="n">PIECE 0</span><span class="k">Any key<small>the room is talking</small></span><span class="m">7:30 → 7:58 · 28 MIN</span></div>
     <div class="beats">
       <div class="beat" data-s="19:30" data-e="19:45"><div class="t">7:30 → 7:45</div><div class="b">Doors · Nima alone</div><div class="d">A drone, low enough to talk over. Any key.</div></div>
       <div class="beat" data-s="19:45" data-e="19:58"><div class="t">~7:45</div><div class="b">Lance joins</div><div class="d">Strings and a bed under the drone. Still low stakes.</div></div>
-      <div class="beat" data-s="19:58" data-e="20:00"><div class="t">7:58</div><div class="b">Edson to the instrument</div><div class="d">Lean toward <b>A minor</b>: the silence at 8:00 lands there.</div></div>
     </div>
     <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="0RLkIJSQ2gMSZNhesO44Cx" data-note="a drone, layers arriving and leaving"><i>♫</i><b>Vibe · Lance &amp; Nima</b>Fred again.. &amp; Brian Eno · Pause</button><div class="lnote"></div><div class="lslot"></div></div>
     </div>
+    <p class="note"><b>Edson:</b> Nothing on the wall until the silence at 8:00. Light on the works only, the room talking, no projection. The first picture is the point after the blackout.</p>
 
     </div>
 </section>
 
-<section class="actband" id="act1"><h2>Act 1 <em>· Expectation and Launch</em></h2><div class="when">8:00 → 8:20 · 3 PIECES · Am → C</div><p class="on"><b>Lance</b> bed, synths, strings · <b>Nima</b> synth, piano · <b>Jeff</b> flute · <b>Fresco</b> enters at the peak, ~8:17. Slow and tense, then everything goes up.</p></section>
+<section class="actband" id="act1"><h2>Act 1 <em>· Expectation and Launch</em></h2><div class="when">7:58 → 8:20 · 3 PIECES · Am → C</div><p class="on"><b>Lance</b> bed, synths, strings · <b>Nima</b> synth, piano · <b>Jeff</b> flute · <b>Fresco</b> enters at the peak, ~8:17. Slow and tense, then everything goes up.</p></section>
 
 <section class="moment act" id="act1-wall">
   <div class="side">
-    <div class="vis" data-live="SRC-66"><img src="img/act1.jpg" alt="Act 1 · Light Eclipse" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div></div>
-    <div class="clip2"><video src="launch.mp4" poster="img/launch.jpg" controls playsinline preload="none"></video><span class="tag2">8:14 · the launch · sample</span></div>
-    <p class="note"><b>Edson:</b> The Light Eclipse with a real heartbeat. Every kick hits it at once, the light jumping larger and brighter, sharpening, the eclipse's dark core contracting as the light floods in, and then it sinks back slowly, over about a second, until the next one. The fuller the music, the larger it rests.</p>
+    <div class="vis" data-live="SRC-66"><img src="img/act1.jpg" alt="Act 1 · Light Eclipse" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><video class="clip" src="launch.mp4" poster="img/launch.jpg" muted loop playsinline preload="metadata"></video><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
   </div>
   <div class="txt">
     <div class="piece">
-    <div class="ph2"><span class="n">PIECE 1</span><span class="k">A minor<small>54 · a drone</small></span><span class="m">8:00 → 8:08 · 8 MIN</span></div>
+    <div class="ph2"><span class="n">PIECE 1</span><span class="k">A minor<small>54 · a drone</small></span><span class="m">7:58 → 8:08 · 10 MIN</span></div>
     <div class="beats">
+      <div class="beat" data-s="19:58" data-e="20:00"><div class="t">7:58</div><div class="b">Edson to the instrument</div><div class="d">Whatever you are in, lean toward <b>A minor</b>: the silence lands there.</div></div>
       <div class="beat key" data-s="20:00" data-e="20:01"><div class="t">8:00</div><div class="b">The silence <span class="tag big">cue</span></div><div class="d"><b>Follow Edson's hand down to zero.</b> Two or three seconds of nothing, lights drop, then the theremin alone.</div></div>
       <div class="beat" data-s="20:01" data-e="20:08"><div class="t">8:01 → 8:08</div><div class="b">Tension</div><div class="d">Slow, on the theremin. Come in underneath it, one layer at a time.</div></div>
     </div>
@@ -357,7 +369,7 @@
     <div class="beats">
       <div class="beat" data-s="20:08" data-e="20:11"><div class="t">8:08</div><div class="b">Speech 1 <span class="tag down">music down</span></div><div class="d">Up to three minutes under Edson, in A minor. Never stop dead.</div></div>
       <div class="beat" data-s="20:11" data-e="20:14"><div class="t">8:11</div><div class="b">Build to the launch</div><div class="d">Rise again. Lean the chords toward C.</div></div>
-      <div class="beat key" data-s="20:14" data-e="20:15"><div class="t">8:14</div><div class="b">🚀 Launch clip</div><div class="d"><b>One held note.</b> The rocket's own sound comes up over it. Edson is silent.</div></div>
+      <div class="beat key" data-s="20:14" data-e="20:15" data-vis="launch"><div class="t">8:14</div><div class="b">🚀 Launch clip</div><div class="d"><b>One held note.</b> The rocket's own sound comes up over it. Edson is silent.</div></div>
     </div>
     <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act1-launch-synth-arp.m4a" data-dur="1:11" data-note=""><i>▶</i><b>Sketch</b>Launch synth arp<small>1:11</small></button><div class="lnote"></div><div class="lslot"></div></div>
     </div>
@@ -370,6 +382,7 @@
     </div>
     
     </div>
+    <p class="note"><b>Edson:</b> The Light Eclipse with a real heartbeat. Every kick hits it at once, the light jumping larger and brighter, sharpening, the eclipse's dark core contracting as the light floods in, and then it sinks back slowly, over about a second, until the next one. The fuller the music, the larger it rests.</p>
 
     </div>
 </section>
@@ -378,8 +391,7 @@
 
 <section class="moment act" id="act2-wall">
   <div class="side">
-    <div class="vis" data-live="SRC-68"><img src="img/act2.jpg" alt="Act 2 · the Beam" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div></div>
-    <p class="note"><b>Edson:</b> The beam, and Edson's right hand becomes a key that opens the other studies one by one. Up to half its reach it only chops the beam, steady to strobe. Past half, random flashes start to fall around the beam: first one a bar and small, then dense and large. Past seventy percent the whole picture starts to leave echoes.</p>
+    <div class="vis" data-live="SRC-68"><img src="img/act2.jpg" alt="Act 2 · the Beam" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
   </div>
   <div class="txt">
     <div class="piece">
@@ -409,6 +421,7 @@
     </div>
     <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act2-idea2-piano-c.m4a" data-dur="1:29" data-note=""><i>▶</i><b>Sketch</b>Idea 2 · piano in C<small>1:29</small></button><button class="li vb" type="button" data-track="2qMLbeUM1IunPifKpvzqDx" data-note="swells that arrive like rain"><i>♫</i><b>Vibe · Lance &amp; Nima</b>Fred again.. &amp; Brian Eno · Enough</button><button class="li vb" type="button" data-track="6omcpeBhvzHZbeYfgseMa0" data-note="rim clicks, air between hits, one motif that grows"><i>♫</i><b>Vibe · Fresco</b>daoud · dijon</button><div class="lnote"></div><div class="lslot"></div></div>
     </div>
+    <p class="note"><b>Edson:</b> The beam, and Edson's right hand becomes a key that opens the other studies one by one. Up to half its reach it only chops the beam, steady to strobe. Past half, random flashes start to fall around the beam: first one a bar and small, then dense and large. Past seventy percent the whole picture starts to leave echoes.</p>
 
     </div>
 </section>
@@ -417,8 +430,7 @@
 
 <section class="moment act" id="act3-wall">
   <div class="side">
-    <div class="vis" data-live="SRC-64"><img src="img/act3.jpg" alt="Act 3 · Ascension" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div></div>
-    <p class="note"><b>Edson:</b> Back in the key it opened in and slower than anything before it. ASCENSION and THE POINT, RETURNED: the shards that break free, and the disc that empties into a ring. Mixed, the thing leaving and the thing left behind are on the wall together. The set closes where it started: one point, and the loop shut.</p>
+    <div class="vis" data-live="SRC-64"><img src="img/act3.jpg" alt="Act 3 · Ascension" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
   </div>
   <div class="txt">
     <div class="piece">
@@ -448,6 +460,7 @@
     </div>
     <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="3wQucPL02xA7Q8iU2b5aXO" data-note="jungle gear played live, speed with control"><i>♫</i><b>Vibe · Fresco</b>daoud · loulou &amp; the loulous</button><div class="lnote"></div><div class="lslot"></div></div>
     </div>
+    <p class="note"><b>Edson:</b> Back in the key it opened in and slower than anything before it. ASCENSION and THE POINT, RETURNED: the shards that break free, and the disc that empties into a ring. Mixed, the thing leaving and the thing left behind are on the wall together. The set closes where it started: one point, and the loop shut.</p>
 
     </div>
 </section>
@@ -559,6 +572,29 @@
                         : (next ? 'next ' + next.querySelector('.t').firstChild.textContent.trim() : 'NEW YORK');
   }
   tick(); setInterval(tick, 15000);
+
+
+  /* WHICH BEAT IS UNDER THE WALL. The pinned picture captions the first beat
+     whose top has passed the bottom of the picture; a beat with data-vis
+     swaps the picture (the launch clip at 8:14). */
+  const hdr = document.querySelector('header');
+  const setHdr = () => document.documentElement.style.setProperty('--hdr', hdr.offsetHeight + 'px');
+  setHdr(); addEventListener('resize', setHdr);
+  const acts = [...document.querySelectorAll('.moment.act')].map(m => ({ m, vis: m.querySelector('.vis'), what: m.querySelector('.cap .what'), beats: [...m.querySelectorAll('.beat')], cur: null }));
+  function wall() {
+    acts.forEach(a => {
+      const line = a.vis.getBoundingClientRect().bottom + 24;
+      let b = a.beats[0];
+      for (const x of a.beats) { if (x.getBoundingClientRect().top < line) b = x; else break; }
+      if (b === a.cur) return; a.cur = b;
+      a.what.textContent = b.querySelector('.t').firstChild.textContent.trim() + ' · ' + b.querySelector('.b').firstChild.textContent.trim();
+      const launch = b.dataset.vis === 'launch', v = a.vis.querySelector('.clip');
+      a.vis.classList.toggle('launch', launch);
+      if (v) { if (launch) v.play().catch(() => {}); else v.pause(); }
+    });
+  }
+  let raf = 0; addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; wall(); }); }, { passive: true });
+  wall(); setTimeout(wall, 500);
 
   /* LISTEN rows. A sketch pill plays Lance's memo in place (one shared
      player, one at a time, the pill fills as it plays). A vibe pill drops
