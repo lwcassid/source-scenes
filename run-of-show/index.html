@@ -4,237 +4,120 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Birth of a Temple · Run of Show</title>
-<meta name="description" content="Birth of a Temple, The Celebration: Thu Oct 1 2026 at Dustin Yellin Studio. The acts, the pieces, the keys and the beats, for the band.">
+<meta name="description" content="Birth of a Temple, The Celebration: Thu Oct 1 2026 at Dustin Yellin Studio. Six songs: who plays what, the key, the wall, the cues.">
 <meta name="theme-color" content="#070708">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6.5' fill='%23ff9a5e'/%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#070708; --panel:#111114; --line:rgba(255,255,255,.14); --line2:rgba(255,255,255,.08);
     --txt:#f2f2ef; --dim:#a3a39a; --faint:#6b6a62;
-    --acc:#ff9a5e; --acc-faint:rgba(255,154,94,.16); --stop:#ff5c5c;
+    --acc:#ff9a5e; --acc-faint:rgba(255,154,94,.14); --stop:#ff5c5c; --go:#bfe8a3;
     --sans:-apple-system,'Inter','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
     --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
-    --g:16px;
+    --g:16px; --hdr:40px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   html,body{background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-font-smoothing:antialiased}
-  body{font-size:17px;line-height:1.5;overflow-x:hidden}
+  body{font-size:16px;line-height:1.45;overflow-x:hidden}
   ::selection{background:var(--acc);color:#000}
   a{color:inherit;text-decoration:none}
   b{font-weight:650}
 
-  /* header: brand + clock, one row, always */
-  header{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:10px var(--g);background:rgba(7,7,8,.94);border-bottom:1px solid var(--line)}
+  header{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px var(--g);background:rgba(7,7,8,.96);border-bottom:1px solid var(--line)}
   .brand{font-size:11px;letter-spacing:.28em;font-weight:800;text-transform:uppercase;white-space:nowrap}
   .brand span{color:var(--faint);font-weight:400}
   .clock{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .clock b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:600}
   .clock .now{color:var(--acc)}
 
-  /* the top: one compact block, no title */
-  .top{max-width:1100px;margin:0 auto;padding:22px var(--g) 6px}
+  .top{max-width:1100px;margin:0 auto;padding:22px var(--g) 0}
   .top h1{font-size:clamp(22px,5.4vw,34px);line-height:1.05;letter-spacing:-.015em;font-weight:800;text-transform:uppercase}
   .top h1 em{font-style:normal;color:var(--faint);font-weight:300}
   .top .line{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--dim);margin-top:8px;display:flex;gap:12px;flex-wrap:wrap}
   .top .line b{color:var(--acc);font-weight:600}
-  .top .lineup{font-size:13.5px;color:var(--dim);margin-top:8px;max-width:820px;line-height:1.5}
+  .top .lineup{font-size:13.5px;color:var(--dim);margin-top:8px;max-width:820px}
   .top .lineup b{color:var(--txt);font-weight:600}
-  .top .cta{margin-top:12px;gap:6px}
-  .top .cta a{padding:7px 11px;font-size:9.5px}
-  /* hero: one screen, the whole night */
-  .hero{padding:44px var(--g) 28px;max-width:1100px;margin:0 auto}
-  .kicker{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:10px}
-  .hero h1{font-size:clamp(52px,14vw,150px);line-height:.88;letter-spacing:-.03em;font-weight:800;text-transform:uppercase}
-  .hero h1 em{font-style:normal;color:var(--faint);font-weight:300;letter-spacing:0}
-  .venue{margin-top:18px;font-size:15px;color:var(--dim);max-width:640px}
-  .venue b{color:var(--txt)}
-  .clockline{margin-top:14px;font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap}
-  .clockline b{color:var(--acc);font-weight:600}
+  .cta{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .cta a{display:inline-flex;align-items:center;gap:8px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;padding:7px 11px;border-radius:999px;border:1px solid var(--line);color:var(--txt)}
 
-  /* the map: three acts, clock + key, tap to jump */
-  .map{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:1100px;margin:26px auto 0;padding:0 var(--g)}
-  .map a{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;position:relative;overflow:hidden;min-height:132px}
-  .map a::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,var(--panel) 40%,rgba(17,17,20,0) 78%);z-index:1}
-  .map a img{position:absolute;top:0;bottom:0;right:0;width:62%;height:100%;object-fit:cover;opacity:.9;z-index:0}
-  .map a>*:not(img){position:relative;z-index:2}
-  .map .n{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--acc)}
-  .map .t{font-size:17px;font-weight:800;text-transform:uppercase;line-height:1.1;margin:4px 0 10px;letter-spacing:-.01em}
-  .map .k{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--txt)}
-  .map .k small{display:block;color:var(--faint);font-size:11px;margin-top:2px}
-  .band{max-width:1100px;margin:18px auto 0;padding:0 var(--g);font-size:14px;color:var(--dim)}
-  .band b{color:var(--txt)}
+  /* the strip: the whole night in one line, tap to jump */
+  .strip{max-width:1100px;margin:16px auto 0;padding:0 var(--g);display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .strip::-webkit-scrollbar{display:none}
+  .strip a{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:7px 11px 7px 8px;border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--dim);background:var(--panel)}
+  .strip a i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--acc);font-weight:700}
+  .strip a b{color:var(--txt);font-weight:800}
+  .strip a.now{border-color:var(--acc)}
 
-  /* an act */
-  .act{margin:56px auto 0;max-width:1100px;padding:0 var(--g);scroll-margin-top:60px}
-  .still{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:16/10;background:#000;border:1px solid var(--line2)}
-  .still img{width:100%;height:100%;object-fit:cover;display:block}
-  .still .cap{position:absolute;left:0;right:0;bottom:0;padding:34px 18px 14px;background:linear-gradient(180deg,transparent,rgba(7,7,8,.9));display:flex;justify-content:space-between;gap:12px;align-items:flex-end}
-  .still .cap .n{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--acc)}
-  .still .cap .s{font-size:12px;color:var(--dim);text-align:right}
-  .act h2{font-size:clamp(34px,7vw,64px);line-height:.98;letter-spacing:-.02em;font-weight:800;text-transform:uppercase;margin:22px 0 6px}
-  .act h2 em{font-style:normal;color:var(--faint);font-weight:300}
-  .act .when{font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--dim)}
-  .keybox{margin:18px 0 0;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
-  .keybox .kl{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint);width:100%}
-  .keybox .kv{font-size:clamp(24px,5vw,40px);font-weight:800;letter-spacing:-.01em;line-height:1;text-transform:uppercase}
-  .keybox .kv small{font-size:.5em;font-weight:500;color:var(--dim);letter-spacing:.08em;margin-left:6px}
-  .keybox .arrow{color:var(--acc);font-size:clamp(20px,4vw,32px)}
-  .keybox .kn{width:100%;font-size:13px;color:var(--dim);margin-top:4px}
-  .keybox .kn b{color:var(--acc)}
-  .arc{margin:18px 0 0;font-size:16px;color:var(--dim);max-width:720px}
-  .arc b{color:var(--txt)}
+  /* act dividers: thin */
+  .actband{max-width:1100px;margin:34px auto 0;padding:14px var(--g) 0;border-top:2px solid var(--acc);scroll-margin-top:calc(var(--hdr) + 8px)}
+  .actband h2{font-size:clamp(20px,4vw,28px);line-height:1;letter-spacing:-.01em;font-weight:800;text-transform:uppercase}
+  .actband h2 em{font-style:normal;color:var(--faint);font-weight:300;font-size:.7em;letter-spacing:.02em}
+  .actband .on{font-size:13px;color:var(--dim);margin-top:5px}
 
-  /* who's on, per act */
-  .who{margin:16px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px;font-size:13.5px;color:var(--dim)}
-  .who div{border-top:1px solid var(--line2);padding-top:8px}
-  .who b{display:block;color:var(--txt);font-size:11px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:2px}
-  .ph{display:inline-block;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(255,209,102,.14);color:#ffd166;vertical-align:middle;margin-left:8px;position:relative;top:-3px}
-  /* the clip */
-  .clip{grid-column:1/-1;margin-top:12px;border-radius:14px;overflow:hidden;border:1px solid var(--line2);background:#000;position:relative;aspect-ratio:16/9;max-width:720px}
-  .clip video{width:100%;height:100%;display:block;object-fit:cover}
-  .clip .tag2{position:absolute;left:12px;top:10px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt);background:rgba(7,7,8,.7);padding:4px 8px;border-radius:999px}
-  /* for Fresco */
-  .ref{grid-column:2;margin-top:8px;font-size:13px;color:var(--dim);padding:8px 10px;border-left:2px solid var(--acc);background:var(--acc-faint);border-radius:0 8px 8px 0;max-width:720px}
-  .ref b{color:var(--acc);font-size:10px;letter-spacing:.2em;text-transform:uppercase;display:block;margin-bottom:2px}
-  .ref a{color:var(--txt);border-bottom:1px solid var(--line)}
-  .ref .play{font:inherit;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--faint);background:none;border:0;border-bottom:1px dotted var(--faint);padding:0;margin-left:4px;cursor:pointer;white-space:nowrap}
-  .ref .play:hover,.ref .play:active{color:var(--txt);border-bottom-color:var(--txt)}
-  .ref b small{font-weight:400;letter-spacing:.14em;color:var(--faint)}
-  .ref .vibe{display:block;margin-top:3px;font-size:11px;color:var(--faint);font-style:italic}
-  /* Lance's voice memos: a sketch per piece, same weight as a ref */
-  .ref.sketch{border-left-color:#bfe8a3;background:rgba(191,232,163,.08)}
-  .ref.sketch b{color:#bfe8a3}
-  .ref .bar{height:2px;background:var(--line);margin-top:8px;border-radius:2px;overflow:hidden;display:none}
-  .ref.playing .bar{display:block}
-  .ref .bar i{display:block;height:100%;width:0;background:#bfe8a3}
-  .ref.playing .play{color:var(--txt);border-bottom-color:var(--txt)}
-  /* the poems, folded */
-  .poems{grid-column:2;max-width:720px;margin-top:10px;font-size:13px;color:var(--dim);border:1px solid var(--line2);border-radius:8px;padding:8px 10px}
-  .poems summary{cursor:pointer;color:var(--txt);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;list-style:none}
-  .poems summary::before{content:'▸ ';color:var(--acc)}
-  .poems[open] summary::before{content:'▾ '}
-  .poems p{margin:8px 0 6px;font-size:12px;color:var(--faint)}
-  .poems ol{list-style:none;display:grid;gap:6px}
-  .poems li{display:grid;grid-template-columns:22px 1fr auto;gap:0 8px;align-items:baseline;line-height:1.4}
-  .poems .pn{font-family:var(--mono);font-size:10px;color:var(--acc)}
-  .poems .pl i{color:var(--faint)}
-  .poems .pg{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--faint);text-transform:uppercase}
-  @media (max-width:600px){ .poems li{grid-template-columns:22px 1fr} .poems .pg{grid-column:2} }
-  .ref iframe{display:block;width:100%;height:80px;border:0;border-radius:10px;margin-top:8px;background:#000}
-  /* the set, the wall */
-  .cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
-  .cta a{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;padding:10px 14px;border-radius:999px;border:1px solid var(--line);color:var(--txt)}
-  .cta a.primary{background:var(--acc);border-color:var(--acc);color:var(--bg)}
-  .foot{font-size:12px;color:var(--faint);margin-top:10px}
-  /* pieces: the 5-10 minute songs and jams inside an act */
-  .pieces{margin:18px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
-  .pieces .pl{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint);padding:12px 16px 0}
-  .pieces .pl .ph{margin-left:8px}
-  .prow{display:grid;grid-template-columns:34px 1fr auto;gap:2px 12px;padding:12px 16px;border-top:1px solid var(--line2);align-items:baseline}
-  .prow:first-of-type{border-top:0}
-  .prow .pn{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.1em}
-  .prow .pk{font-size:clamp(19px,4.4vw,26px);font-weight:800;letter-spacing:-.01em;line-height:1.05;text-transform:uppercase}
-  .prow .pk small{font-size:.55em;font-weight:500;color:var(--dim);letter-spacing:.06em;margin-left:6px;text-transform:none}
-  .prow .pt{font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:.06em;white-space:nowrap;text-align:right}
-  .prow .pd{grid-column:2/4;font-size:13px;color:var(--dim)}
-  .pieces .pn2{font-size:12.5px;color:var(--dim);padding:10px 16px 14px;border-top:1px solid var(--line2)}
-  .pieces .pn2 b{color:var(--txt)}
-  /* the still: play it live, open it */
-  .still .live{position:absolute;left:14px;top:12px;font:inherit;font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:var(--bg);background:var(--acc);border:0;border-radius:999px;padding:8px 12px;cursor:pointer;z-index:2}
-  .still iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
-  .still .cap{z-index:1}
-  .still .cap .s{text-align:right}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
-  .chips a{font-size:9.5px;letter-spacing:.06em;color:var(--txt);background:rgba(7,7,8,.6);border:1px solid var(--line);border-radius:999px;padding:2px 7px;white-space:nowrap}
-  .chips a:hover{border-color:var(--acc)}
-  .ref.band{border-left-color:#8ab4ff;background:rgba(138,180,255,.1)}
-  .ref.band b{color:#8ab4ff}
-
-  /* the act band: one line of who's on */
-  .actband{max-width:1100px;margin:54px auto 0;padding:18px var(--g) 0;border-top:2px solid var(--acc);scroll-margin-top:60px}
-  .actband h2{font-size:clamp(26px,5.4vw,44px);line-height:1;letter-spacing:-.02em;font-weight:800;text-transform:uppercase}
-  .actband h2 em{font-style:normal;color:var(--faint);font-weight:300}
-  .actband .when{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--acc);margin-top:6px}
-  .actband .on{font-size:14px;color:var(--dim);margin-top:8px;max-width:820px}
-  .actband .on b{color:var(--txt);font-weight:600}
-  /* a moment: the wall on the left, the music on the right */
-  .moment{max-width:1100px;margin:26px auto 0;padding:0 var(--g);display:grid;grid-template-columns:1fr;gap:14px 40px;scroll-margin-top:60px}
-  .moment .vis{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/10;background:#000;border:1px solid var(--line2)}
-  .moment .vis img,.moment .vis video{width:100%;height:100%;object-fit:cover;display:block}
-  .moment .vis iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
-  .moment .vis .ctl{position:absolute;right:8px;top:8px;display:flex;gap:6px;z-index:3}
-  .moment .vis .ctl button,.moment .vis .ctl a{font:inherit;font-size:13px;line-height:1;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--txt);background:rgba(7,7,8,.55);border:1px solid rgba(255,255,255,.18);border-radius:50%;cursor:pointer;padding:0}
-  .moment .vis .ctl button:active{background:var(--acc);color:var(--bg)}
-  .moment .vis img{transition:opacity .6s}
-  .moment .vis.on img{opacity:0}
-  .moment .vis .tag2{position:absolute;right:12px;top:12px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt);background:rgba(7,7,8,.7);padding:4px 8px;border-radius:999px;z-index:2}
-  .moment .vis .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 8px 8px;background:linear-gradient(180deg,transparent,rgba(7,7,8,.75));z-index:2;pointer-events:none}
-  .moment .vis .cap .chips{pointer-events:auto}
-  .moment .vis.novis{aspect-ratio:auto;background:transparent;border:0;display:none}
-  .moment .vis.dark{display:flex;align-items:center;justify-content:center;background:#000;border-color:var(--line2)}
-  .moment .vis.dark span{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--faint)}
-  @media (max-width:899px){ .moment .vis.dark{aspect-ratio:16/5} }
-  .moment .txt{min-width:0}
-  .ph2{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
-  .ph2 .n{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--acc)}
-  .ph2 .k{font-size:clamp(22px,5vw,32px);font-weight:800;text-transform:uppercase;letter-spacing:-.01em;line-height:1}
-  .ph2 .k small{font-weight:500;color:var(--dim);font-size:13px;text-transform:none;letter-spacing:.02em;margin-left:8px}
-  .ph2 .m{font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:.08em;margin-left:auto;white-space:nowrap}
-  .moment .beats{margin-top:0;border-top:0}
-  @media (min-width:900px){
-    .moment{grid-template-columns:1fr 1fr;align-items:start}
-    .moment.solo{grid-template-columns:1fr}
-  }
-  @media (max-width:899px){ .ph2 .m{margin-left:0;width:100%} }
-  .moment .side{min-width:0}
-  .moment .note{font-size:13px;color:var(--dim);margin:10px 2px 0;line-height:1.5}
-  .moment .note b{color:var(--txt);font-weight:600}
-  .moment .txt .ph2{margin-top:26px}
-  .moment .txt .ph2:first-child{margin-top:0}
-  @media (min-width:900px){ .moment .side{position:sticky;top:70px} }
+  /* A SONG: the unit. Header = number, name, key. Left = the wall. Right = who, the beats, listen. Bottom = the transition. */
+  .song{max-width:1100px;margin:14px auto 0;border:1px solid var(--line);border-radius:18px;background:var(--panel);overflow:hidden;scroll-margin-top:calc(var(--hdr) + 8px)}
+  .song .head{display:flex;align-items:baseline;gap:12px;padding:14px 18px 10px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+  .song .num{font-size:34px;font-weight:800;line-height:1;color:var(--acc);font-variant-numeric:tabular-nums}
+  .song .name{font-size:clamp(20px,4.5vw,26px);font-weight:800;text-transform:uppercase;letter-spacing:-.01em;line-height:1}
+  .song .meta{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--dim);flex-basis:100%;order:3}
+  .song .key{margin-left:auto;font-size:clamp(24px,5vw,34px);font-weight:800;line-height:1;letter-spacing:-.01em;text-align:right}
+  .song .key small{display:block;font-size:11px;font-weight:500;color:var(--dim);letter-spacing:.02em;margin-top:4px;text-transform:none}
+  .song .body{display:grid;grid-template-columns:1fr;gap:0}
+  .song .side{padding:12px 12px 0}
+  .song .main{padding:6px 18px 14px;min-width:0}
+  .song .vis{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:16/7;background:#000;border:1px solid var(--line2)}
+  .song .vis img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .6s}
+  .song .vis.on img{opacity:0}
+  .song .vis iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+  .song .vis .clip{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2}
+  .song .vis.launch .clip{display:block}
+  .song .vis .ctl{position:absolute;right:8px;top:8px;display:flex;gap:6px;z-index:3}
+  .song .vis .ctl button,.song .vis .ctl a{font:inherit;font-size:13px;line-height:1;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--txt);background:rgba(7,7,8,.55);border:1px solid rgba(255,255,255,.18);border-radius:50%;cursor:pointer;padding:0}
+  .song .vis .cap{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;align-items:baseline;padding:22px 12px 9px;background:linear-gradient(180deg,transparent,rgba(7,7,8,.8));z-index:2;pointer-events:none}
+  .song .vis .cap .on{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);white-space:nowrap}
+  .song .vis .cap .what{font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .song .vis.dark{display:flex;align-items:center;justify-content:center;aspect-ratio:16/5}
+  .song .vis.dark>span{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--faint)}
+  .song .vis.dark .cap{background:none}
+  .song .wall{font-size:12.5px;color:var(--dim);margin:8px 4px 6px;line-height:1.45}
+  .song .wall::before{content:'THE WALL · ';font-size:9px;letter-spacing:.22em;color:var(--acc);font-weight:700}
+  /* who: five names, always in the same order and place */
+  .who{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0 6px}
+  .who .p{border-top:2px solid var(--line);padding-top:6px;min-width:0}
+  .who .p b{display:block;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt)}
+  .who .p span{display:block;font-size:12.5px;color:var(--dim);line-height:1.3;margin-top:2px}
+  .who .p.out{opacity:.38}
   /* the beats */
-  .beats{margin-top:22px;border-top:1px solid var(--line)}
-  .beat{display:grid;grid-template-columns:96px 1fr;gap:4px 16px;padding:16px 0;border-bottom:1px solid var(--line2);align-items:start;position:relative}
-  .beat .t{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--dim);padding-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .beat .t small{display:block;font-size:10px;letter-spacing:.2em;color:var(--faint);margin-top:2px}
-  .beat .b{font-size:20px;font-weight:700;line-height:1.15;letter-spacing:-.01em}
-  .beat .b .tag{display:inline-block;vertical-align:middle;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:999px;margin-left:8px;position:relative;top:-2px}
-  .tag.down{background:var(--acc-faint);color:var(--acc)}
-  .tag.key{background:rgba(255,92,92,.16);color:var(--stop)}
+  .beats{margin-top:6px}
+  .beat{display:grid;grid-template-columns:64px 1fr;gap:2px 12px;padding:9px 0;border-top:1px solid var(--line2);position:relative}
+  .beat .t{font-family:var(--mono);font-size:12px;color:var(--dim);padding-top:3px;white-space:nowrap}
+  .beat .b{font-size:16.5px;font-weight:700;line-height:1.2}
+  .beat .b .tag{display:inline-block;vertical-align:middle;font-size:9px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:999px;margin-left:8px;position:relative;top:-2px}
   .tag.big{background:var(--txt);color:var(--bg)}
-  .beat .d{grid-column:2;font-size:15.5px;color:var(--dim);max-width:720px}
+  .beat .d{grid-column:2;font-size:14px;color:var(--dim)}
   .beat .d b{color:var(--txt)}
-  .beat .d i{color:var(--faint)}
-  .beat.key .b{color:var(--acc)}
   .beat.past{opacity:.45}
   .beat.now{opacity:1}
-  .beat.now::before{content:'';position:absolute;left:calc(-1*var(--g));top:0;bottom:0;width:3px;background:var(--acc)}
+  .beat.now::before{content:'';position:absolute;left:-18px;top:0;bottom:0;width:3px;background:var(--acc)}
   .beat.now .t{color:var(--acc)}
-
-
-  /* a piece: one card, short beats, one listen row */
-  .piece{display:block;margin-top:22px;padding:0 0 12px;border-bottom:1px solid var(--line)}
-  .moment .txt .piece:first-child{margin-top:0}
-  .piece .ph2{border-bottom:0;padding-bottom:6px}
-  .piece .ph2 .m{padding-left:14px}
-  .piece .beats{border-top:0;margin-top:0}
-  .piece .beat{padding:10px 0;border-bottom:1px solid var(--line2);grid-template-columns:76px 1fr}
-  .piece .beat:last-child{border-bottom:0}
-  .piece .beat .t{font-size:12px;padding-top:2px}
-  .piece .beat .b{font-size:17px}
-  .piece .beat .d{font-size:14px;line-height:1.45}
-  .listen{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+  /* the transition: what has to be coordinated to get into the next song */
+  .trans{display:flex;gap:12px;align-items:baseline;padding:11px 18px;border-top:1px solid var(--line2);font-size:13.5px;color:var(--txt);background:var(--acc-faint)}
+  .trans .tl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--acc);white-space:nowrap;font-weight:700}
+  .trans.hard{background:rgba(255,92,92,.12)}
+  .trans.hard .tl{color:var(--stop)}
+  .trans.open{background:rgba(255,209,102,.1)}
+  .trans.open .tl{color:#ffd166}
+  /* listen */
+  .listen{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
   .listen .ll{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-right:2px}
   .listen .li{font:inherit;font-size:12px;line-height:1;display:inline-flex;align-items:center;gap:6px;padding:7px 10px 7px 8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;position:relative;overflow:hidden}
   .listen .li i{font-style:normal;font-size:10px;color:var(--faint);width:12px;text-align:center}
   .listen .li b{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
   .listen .li small{font-family:var(--mono);font-size:10px;color:var(--faint)}
-  .listen .li.sk b{color:#bfe8a3}
+  .listen .li.sk b{color:var(--go)}
   .listen .li.vb b{color:var(--acc)}
   .listen .li.on{color:var(--txt);border-color:var(--txt)}
-  .listen .li.sk.on i{color:#bfe8a3}
   .listen .li .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(191,232,163,.16);z-index:-1}
   .listen .li>*{position:relative;z-index:1}
   .listen .lnote{flex-basis:100%;font-size:12px;color:var(--faint);font-style:italic;display:none;margin-top:2px}
@@ -242,75 +125,40 @@
   .listen .lslot{flex-basis:100%;display:none}
   .listen .lslot.on{display:block}
   .listen .lslot iframe{display:block;width:100%;height:80px;border:0;border-radius:10px;background:#000}
-  .poems{margin-top:8px}
-  @media (max-width:600px){ .piece .beat{grid-template-columns:1fr} }
 
-  /* THE WALL PINS. The act's picture stays under the header while its music
-     scrolls beneath it; the caption names the beat you are reading, and the
-     picture swaps to the launch clip at 8:14. Desktop keeps the sticky side
-     column; on the phone the picture is short so the music has the room. */
-  :root{--hdr:40px}
-  .moment .side{position:sticky;top:var(--hdr);z-index:20;background:var(--bg);padding:8px 0}
-  @media (min-width:900px){ .moment .side{top:calc(var(--hdr) + 20px);padding:0} }
-  @media (max-width:899px){ .moment .vis{aspect-ratio:16/7} .moment .vis.dark{aspect-ratio:16/5} }
-  .moment .vis .clip{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2}
-  .moment .vis.launch .clip{display:block}
-  .moment .vis .cap{display:flex;gap:10px;align-items:baseline;padding:22px 12px 9px;pointer-events:none}
-  .moment .vis .cap .on{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);white-space:nowrap}
-  .moment .vis .cap .what{font-size:13px;font-weight:700;color:var(--txt);letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .moment .vis.dark .cap{position:absolute;left:0;right:0;bottom:0;background:none}
-  .moment .txt .note{margin-top:18px;padding-top:12px;border-top:1px solid var(--line2)}
-  .who2{display:flex;flex-wrap:wrap;gap:4px 14px;margin:2px 0 6px;font-size:12px;color:var(--dim)}
-  .who2 b{color:var(--txt);font-weight:600;margin-right:4px}
-  .ph2 .n{white-space:nowrap}
-  /* rules */
-  .rules{margin:60px auto 0;max-width:1100px;padding:0 var(--g)}
-  .rules h3{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:14px}
-  .rules ul{list-style:none;display:grid;gap:10px;max-width:720px}
-  .rules li{padding-left:22px;position:relative;font-size:16px;color:var(--dim)}
+  .rules{margin:44px auto 0;max-width:1100px;padding:0 var(--g)}
+  .rules h3{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--acc);margin-bottom:12px}
+  .rules ul{list-style:none;display:grid;gap:8px;max-width:720px}
+  .rules li{padding-left:20px;position:relative;font-size:15px;color:var(--dim)}
   .rules li b{color:var(--txt)}
-  .rules li::before{content:'';position:absolute;left:0;top:10px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
-
-  footer{max-width:1100px;margin:60px auto 0;padding:24px var(--g) 60px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .rules li::before{content:'';position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+  footer{max-width:1100px;margin:50px auto 0;padding:24px var(--g) 60px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
   footer a{color:var(--dim);border-bottom:1px solid var(--line)}
 
-  /* wider than a phone: acts side by side at the top, stills beside the beats */
-  @media (min-width:900px){
-    .act{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;align-items:start}
-    .act .still{grid-column:1;position:sticky;top:76px}
-    .act .right{grid-column:2}
-    .act h2{margin-top:0}
-    .map a{min-height:170px}
-    .map .t{font-size:22px}
-    .map .k{font-size:14px}
-  }
+  /* the phone: the wall pins at the top of its song while the song scrolls under it */
   @media (max-width:899px){
-    .act .right{display:contents}
-  }
-  @media (max-width:600px){
-    .map{grid-template-columns:1fr;gap:8px}
-    .map a{min-height:0;padding:14px 16px}
-    .map .t{margin-bottom:6px}
-    .beat{grid-template-columns:1fr;gap:2px 0}
+    .song .side{position:sticky;top:var(--hdr);z-index:20;background:var(--panel);padding:10px 10px 6px}
+    .song .wall{display:none}
+    .who{grid-template-columns:repeat(3,1fr);gap:8px 10px}
+    .beat{grid-template-columns:1fr}
     .beat .d{grid-column:1}
-    .beat .t{padding-top:0}
-    .ref{grid-column:1}
-    .poems{grid-column:1}
-    .piece .m{margin-left:0;width:100%}
-    .prow{grid-template-columns:30px 1fr}
-    .prow .pt{grid-column:2;text-align:left}
-    .prow .pd{grid-column:2}
+    .beat.now::before{left:-18px}
+    .song .key{margin-left:auto}
+  }
+  /* wide: the wall on the left, sticky, the music on the right */
+  @media (min-width:900px){
+    .song .body{grid-template-columns:380px 1fr}
+    .song .side{padding:14px 0 14px 14px;position:sticky;top:calc(var(--hdr) + 12px);align-self:start}
+    .song .vis{aspect-ratio:16/10;border-radius:14px}
+    .song .main{padding:10px 18px 16px 22px}
+    .song .meta{flex-basis:auto;order:0;margin-left:6px}
   }
   @media print{
     :root{--bg:#fff;--panel:#fff;--line:rgba(0,0,0,.3);--line2:rgba(0,0,0,.12);--txt:#000;--dim:#333;--faint:#666;--acc:#b8431c}
-    header,footer,.moment .vis,.cta,.listen{display:none}
-    .moment .side{position:static}
-    .moment{display:block}
-    .hero{padding-top:0}
-    .act{page-break-before:always;margin-top:0;display:block}
-    .beat{page-break-inside:avoid;padding:8px 0}
+    header,footer,.song .vis,.cta,.listen,.strip{display:none}
+    .song{page-break-inside:avoid}
+    .song .side{position:static}
     .beat.past{opacity:1}
-    .tag.big{border:1px solid #000;background:#fff;color:#000}
   }
   @media (prefers-reduced-motion:no-preference){.beat.now::before{animation:glow 1.4s ease-in-out infinite}}
   @keyframes glow{0%,100%{opacity:1}50%{opacity:.35}}
@@ -323,157 +171,146 @@
 </header>
 
 <section class="top">
-  <h1>Birth of a Temple <em>· the Celebration · run of show</em></h1>
+  <h1>Birth of a Temple <em>· run of show</em></h1>
   <div class="line"><span>Thu Oct 1</span><span>Dustin Yellin Studio, 153 Pioneer St</span><span>doors <b>7:30</b></span><span>show <b>from 8:00</b>, about an hour</span><span>DJ till 10:20</span></div>
-  <p class="lineup"><b>Nima</b> synth, Nord, modular · <b>Lance</b> keys, strings, guitar, piano · <b>Fresco</b> kit · <b>Jeff</b> flute · <b>Edson</b> AV theremin.<br>Six pieces, two an act, 5 to 10 minutes each: the set may come in under an hour, and that leaves room for talking. Times after 8:00 are rough. Left is the wall, live and muted. Right is the music. LISTEN rows are sketches and vibe tracks for the feel only.</p>
+  <p class="lineup"><b>Lance</b> keys, strings, guitar, piano · <b>Nima</b> synth, Nord, modular · <b>Fresco</b> kit · <b>Jeff</b> flute · <b>Edson</b> AV theremin.<br>Six songs, 5 to 10 minutes each. One card per song: who, the key, the wall, the cues. Red bars are the cuts to hit together.</p>
   <div class="cta"><a class="set" href="#">▶ The set on the wall</a><a href="../">The wall</a><a href="https://partiful.com/e/LHgmbQlh0hspkJwcaMuc">Invite</a></div>
 </section>
 
+<nav class="strip" aria-label="the songs">
+  <a href="#s0"><i>0</i>Nima<b>any</b></a><a href="#s1"><i>1</i>Opener<b>Cm</b></a><a href="#s2"><i>2</i>Launch<b>Gm</b></a><a href="#s3"><i>3</i>Glitch<b>noise</b></a><a href="#s4"><i>4</i>Ceremony<b>Em</b></a><a href="#s5"><i>5</i>Am jam<b>Am</b></a><a href="#s6"><i>6</i>Cm jam<b>Cm</b></a>
+</nav>
 
-<section class="actband" id="prelude"><h2>Opening</h2><div class="when">7:30 → 8:00 · NIMA MAKES SOUND</div><p class="on"><b>Nima</b> alone for thirty minutes. Low stakes, people arriving. The wall stays dark until Act 1.</p></section>
+<section class="actband" id="prelude"><h2>Opening <em>· 7:30 → 8:00</em></h2><p class="on">Doors. Nima makes sound for thirty minutes. The wall stays dark.</p></section>
 
-<section class="moment act" id="p0">
-  <div class="side">
-    <div class="vis dark"><span>THE WALL IS DARK</span><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
+<section class="song" id="s0">
+  <div class="head"><span class="num">0</span><span class="name">Nima makes sound</span><span class="meta">7:30 → 8:00 · 30 MIN</span><span class="key">Any key<small>low stakes</small></span></div>
+  <div class="body">
+    <div class="side"><div class="vis dark"><span>THE WALL IS DARK</span><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div><p class="wall">Dark until Act 1. Light on the works only.</p></div>
+    <div class="main">
+      <div class="who"><div class="p out"><b>Lance</b><span>—</span></div><div class="p"><b>Nima</b><span>sound for the room</span></div><div class="p out"><b>Fresco</b><span>—</span></div><div class="p out"><b>Jeff</b><span>—</span></div><div class="p out"><b>Edson</b><span>—</span></div></div>
+      <div class="beats"><div class="beat" data-s="19:30" data-e="20:00"><div class="t">7:30</div><div class="b">Sound for the room</div><div class="d">Thirty minutes, low enough to talk over. Any key.</div></div></div>
+      <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="0RLkIJSQ2gMSZNhesO44Cx" data-note="a drone, layers arriving and leaving"><i>♫</i><b>Vibe · Nima</b>Fred again.. &amp; Brian Eno · Pause</button><div class="lnote"></div><div class="lslot"></div></div>
+    </div>
   </div>
-  <div class="txt">
-    <div class="piece">
-    <div class="ph2"><span class="n">PIECE 0 · Opening</span><span class="k">Any key<small>Nima alone</small></span><span class="m">7:30 → 8:00 · 30 MIN</span></div>
-    <div class="who2"><span><b>Nima</b>sound for the room</span></div>
-    <div class="beats">
-      <div class="beat" data-s="19:30" data-e="20:00"><div class="t">7:30 → 8:00</div><div class="b">Nima makes sound</div><div class="d">Thirty minutes of sound for the room, low enough to talk over. Any key.</div></div>
-    </div>
-    <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="0RLkIJSQ2gMSZNhesO44Cx" data-note="a drone, layers arriving and leaving"><i>♫</i><b>Vibe · Nima</b>Fred again.. &amp; Brian Eno · Pause</button><div class="lnote"></div><div class="lslot"></div></div>
-    </div>
-
-    <p class="note"><b>Edson:</b> Nothing on the wall until Act 1. Light on the works only.</p>
-    </div>
+  <div class="trans hard"><span class="tl">→ 8:00</span><span class="tt">Edson goes to the instrument. Nima brings it down. Act 1 starts on Edson's drone.</span></div>
 </section>
-<section class="actband" id="act1"><h2>Act 1 <em>· Opening</em></h2><div class="when">FROM 8:00 · 2 PIECES · Cm → Gm</div><p class="on"><b>Lance</b> keys, then strings · <b>Nima</b> bed, then Nord · <b>Jeff</b> flute · <b>Fresco</b> sits out the opener, enters for the launch. Build the energy, tension, curiosity, then the rocket.</p></section>
 
-<section class="moment act" id="act1-wall">
-  <div class="side">
-    <div class="vis" data-live="SRC-66"><img src="img/act1.jpg" alt="Act 1 · Light Eclipse" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><video class="clip" src="launch.mp4" poster="img/launch.jpg" muted loop playsinline preload="metadata"></video><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
+<section class="actband" id="act1"><h2>Act 1 <em>· Opening · from 8:00</em></h2><p class="on">Build the energy, tension, curiosity. Then the rocket.</p></section>
+
+<section class="song" id="s1">
+  <div class="head"><span class="num">1</span><span class="name">Opener</span><span class="meta">from 8:00 · 5–10 MIN · slow build</span><span class="key">C minor<small>A♭ minor bridge · Lance's song</small></span></div>
+  <div class="body">
+    <div class="side"><div class="vis" data-live="SRC-66"><img src="img/act1.jpg" alt="Opener" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><video class="clip" src="launch.mp4" poster="img/launch.jpg" muted loop playsinline preload="metadata"></video><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div><p class="wall">The Light Eclipse in C minor: a point opens into a disc, a ring, an eclipse. Then the Names and the Cable Sphere as layers.</p></div>
+    <div class="main">
+      <div class="who"><div class="p"><b>Lance</b><span>keys, the song</span></div><div class="p"><b>Nima</b><span>bed in Cm</span></div><div class="p out"><b>Fresco</b><span>—</span></div><div class="p"><b>Jeff</b><span>flute</span></div><div class="p"><b>Edson</b><span>theremin, opens</span></div></div>
+      <div class="beats"><div class="beat" data-s="20:00" data-e="20:01"><div class="t">8:00</div><div class="b">Edson opens <span class="tag big">cue</span></div><div class="d">His drone and the sparkle on the wall, in C minor. <b>Follow him in.</b></div></div><div class="beat" data-s="20:01" data-e="20:10"><div class="t">8:01 →</div><div class="b">The song</div><div class="d"><b>Lance's composed song: C minor, A♭ minor bridge.</b> Build the energy, tension, curiosity. Nima holds the bed, Jeff on flute. <b>No drums.</b></div></div></div>
+      <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="4LYwnQN8yP032iEZLHpN6g" data-note="builds layer by layer, never announces itself"><i>♫</i><b>Vibe · Lance &amp; Nima</b>Fred again.. &amp; Brian Eno · I Saw You</button><div class="lnote"></div><div class="lslot"></div></div>
+    </div>
   </div>
-  <div class="txt">
-    <div class="piece">
-    <div class="ph2"><span class="n">PIECE 1 · Opener</span><span class="k">C minor<small>A♭ minor bridge · Lance's composed song</small></span><span class="m">from 8:00 · 5–10 MIN</span></div>
-    <div class="who2"><span><b>Lance</b>the song</span><span><b>Nima</b>bed in Cm</span><span><b>Jeff</b>flute</span><span><b>Fresco</b>sits out</span></div>
-    <div class="beats">
-      <div class="beat key" data-s="20:00" data-e="20:01"><div class="t">8:00</div><div class="b">Edson opens <span class="tag big">cue</span></div><div class="d">His drone and the sparkle on the wall, <b>now in C minor</b>. Follow him in.</div></div>
-      <div class="beat" data-s="20:01" data-e="20:10"><div class="t">8:01 → 8:10</div><div class="b">The opener</div><div class="d"><b>Lance's composed song: C minor, A♭ minor bridge.</b> Build the energy, tension, curiosity. Nima holds the bed in Cm, Jeff on flute. No drums yet.</div></div>
-    </div>
-    <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="4LYwnQN8yP032iEZLHpN6g" data-note="builds layer by layer, never announces itself"><i>♫</i><b>Vibe · Lance &amp; Nima</b>Fred again.. &amp; Brian Eno · I Saw You</button><div class="lnote"></div><div class="lslot"></div></div>
-    </div>
-
-    <div class="piece">
-    <div class="ph2"><span class="n">PIECE 2 · Rocket Launch</span><span class="k">G minor<small>strings, Hans Zimmer style</small></span><span class="m">~8:10 · 5–10 MIN</span></div>
-    <div class="who2"><span><b>Lance</b>strings</span><span><b>Nima</b>Nord</span><span><b>Jeff</b>flute</span><span><b>Fresco</b>drums</span></div>
-    <div class="beats">
-      <div class="beat" data-s="20:10" data-e="20:14"><div class="t">~8:10</div><div class="b">Start slow</div><div class="d">G minor strings, low and wide. Fresco comes in as it grows.</div></div>
-      <div class="beat key" data-s="20:14" data-e="20:16" data-vis="launch"><div class="t">~8:14</div><div class="b">🚀 The launch</div><div class="d"><b>Get epic for the launch.</b> The clip plays on the wall over everything, with its own sound.</div></div>
-      <div class="beat" data-s="20:16" data-e="20:19"><div class="t">~8:16</div><div class="b">In space</div><div class="d"><b>Bring it down. No drums.</b> Floating.</div></div>
-      <div class="beat key" data-s="20:19" data-e="20:20"><div class="t">~8:19</div><div class="b">Back up, then the cut <span class="tag big">cue</span></div><div class="d">Bring the energy back up, then a <b>sharp cut-off</b>. Hard stop into Act 2.</div></div>
-    </div>
-    <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act1-launch-synth-arp.m4a" data-dur="1:11" data-note=""><i>▶</i><b>Sketch</b>Launch synth arp<small>1:11</small></button><button class="li vb" type="button" data-track="2qMLbeUM1IunPifKpvzqDx" data-note="swells that arrive like rain, for the space part"><i>♫</i><b>Vibe · Lance &amp; Nima</b>Fred again.. &amp; Brian Eno · Enough</button><div class="lnote"></div><div class="lslot"></div></div>
-    </div>
-
-    <p class="note"><b>Edson:</b> The Light Eclipse opens alone, a point into a disc, a ring, an eclipse, then the Names and the Cable Sphere as layers. The LAUNCH is a button: one press and the rocket plays over everything, with its sound, then it is gone.</p>
-    </div>
+  <div class="trans soft"><span class="tl">→ into 2</span><span class="tt">The strings take over from the song. Fresco comes in as they grow. No cut.</span></div>
 </section>
-<section class="actband" id="act2"><h2>Act 2 <em>· Ritual</em></h2><div class="when">~8:20 · 2 PIECES · NOISE → Em</div><p class="on"><b>Edson</b> opens on the theremin · <b>Fresco</b> drums · <b>Lance</b> guitar · <b>Nima</b> Nord, then bed · <b>Jeff</b> flute. The glitch degrades into chaos, then the guitar makes room for the ceremony.</p></section>
 
-<section class="moment act" id="act2-wall">
-  <div class="side">
-    <div class="vis" data-live="SRC-68"><img src="img/act2.jpg" alt="Act 2 · the Beam" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
+<section class="song" id="s2">
+  <div class="head"><span class="num">2</span><span class="name">Rocket Launch</span><span class="meta">~8:10 · 5–10 MIN · slow → epic → space → up</span><span class="key">G minor<small>strings, Hans Zimmer style</small></span></div>
+  <div class="body">
+    <div class="side"><div class="vis" data-live="SRC-66"><img src="img/act1.jpg" alt="Rocket Launch" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><video class="clip" src="launch.mp4" poster="img/launch.jpg" muted loop playsinline preload="metadata"></video><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div><p class="wall">Same scene. At the launch Edson presses LAUNCH: the clip plays over everything with its own sound, then it is gone.</p></div>
+    <div class="main">
+      <div class="who"><div class="p"><b>Lance</b><span>strings</span></div><div class="p"><b>Nima</b><span>Nord</span></div><div class="p"><b>Fresco</b><span>drums</span></div><div class="p"><b>Jeff</b><span>flute</span></div><div class="p"><b>Edson</b><span>the LAUNCH button</span></div></div>
+      <div class="beats"><div class="beat" data-s="20:10" data-e="20:14"><div class="t">~8:10</div><div class="b">Start slow</div><div class="d">G minor strings, low and wide.</div></div><div class="beat" data-s="20:14" data-e="20:16" data-vis="launch"><div class="t">~8:14</div><div class="b">🚀 The launch <span class="tag big">cue</span></div><div class="d"><b>Get epic for the launch.</b> Edson fires the clip on the wall; the band peaks with it.</div></div><div class="beat" data-s="20:16" data-e="20:19"><div class="t">~8:16</div><div class="b">In space</div><div class="d"><b>Bring it down. No drums.</b> Floating.</div></div><div class="beat" data-s="20:19" data-e="20:20"><div class="t">~8:19</div><div class="b">Back up</div><div class="d">Bring the energy back up.</div></div></div>
+      <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act1-launch-synth-arp.m4a" data-dur="1:11" data-note=""><i>▶</i><b>Sketch</b>Launch synth arp<small>1:11</small></button><button class="li vb" type="button" data-track="2qMLbeUM1IunPifKpvzqDx" data-note="swells that arrive like rain, for the space part"><i>♫</i><b>Vibe · Lance &amp; Nima</b>Fred again.. &amp; Brian Eno · Enough</button><div class="lnote"></div><div class="lslot"></div></div>
+    </div>
   </div>
-  <div class="txt">
-    <div class="piece">
-    <div class="ph2"><span class="n">PIECE 3 · Glitch Moment</span><span class="k">Noise → chaos<small>the wall is in E minor</small></span><span class="m">~8:20 · 5–10 MIN</span></div>
-    <div class="who2"><span><b>Edson</b>theremin</span><span><b>Fresco</b>drums</span><span><b>Lance</b>guitar</span><span><b>Nima</b>Nord</span><span><b>Jeff</b>flute</span></div>
-    <div class="beats">
-      <div class="beat" data-s="20:20" data-e="20:23"><div class="t">~8:20</div><div class="b">Edson's drone</div><div class="d">From the cut, one <b>big drone</b> on the theremin. Wait.</div></div>
-      <div class="beat" data-s="20:23" data-e="20:26"><div class="t">~8:23</div><div class="b">It glitches</div><div class="d">The drone breaks up into a <b>white-noise groove</b>. Jeff spits flute, percussively, over it.</div></div>
-      <div class="beat" data-s="20:26" data-e="20:30"><div class="t">~8:26</div><div class="b">The band joins</div><div class="d">Everyone in, and it <b>degrades into chaos</b>.</div></div>
-    </div>
-    <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act2-chaos.m4a" data-dur="11:34" data-note="sketched in C minor; the wall is in E minor"><i>▶</i><b>Sketch</b>Chaos<small>11:34</small></button><div class="lnote"></div><div class="lslot"></div></div>
-    </div>
-
-    <div class="piece">
-    <div class="ph2"><span class="n">PIECE 4 · Ceremony</span><span class="k">E minor<small>the guitar riff, tons of space</small></span><span class="m">~8:30 · 5–10 MIN</span></div>
-    <div class="who2"><span><b>Lance</b>guitar</span><span><b>Fresco</b>accents only</span><span><b>Nima</b>bed</span><span><b>Jeff</b>flute</span></div>
-    <div class="beats">
-      <div class="beat key" data-s="20:30" data-e="20:32"><div class="t">~8:30</div><div class="b">The riff <span class="tag key">key change</span></div><div class="d">Out of the chaos, <b>Lance starts the Em riff on guitar, tons of space.</b> Everyone calms down and gives the guitar room.</div></div>
-      <div class="beat" data-s="20:32" data-e="20:39"><div class="t">~8:32 → 8:39</div><div class="b">Edson leads</div><div class="d"><b>A seven-minute session, Edson leading.</b> Fresco accents only. Nima on the bed, Jeff on flute. Keep the space.</div></div>
-    </div>
-    <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act2-idea1-acoustic.m4a" data-dur="1:54" data-note=""><i>▶</i><b>Sketch</b>Idea 1 · acoustic<small>1:54</small></button><button class="li sk" type="button" data-src="audio/act2-idea2-piano-c.m4a" data-dur="1:29" data-note=""><i>▶</i><b>Sketch</b>Idea 2 · piano in C<small>1:29</small></button><button class="li vb" type="button" data-track="6omcpeBhvzHZbeYfgseMa0" data-note="rim clicks, air between hits: accents, not a beat"><i>♫</i><b>Vibe · Fresco</b>daoud · dijon</button><div class="lnote"></div><div class="lslot"></div></div>
-    </div>
-
-    <p class="note"><b>Edson:</b> The Beam from black, one hand, then the chaos. Then the layers: Ligam, the Passage as rain with its direction and wind on two knobs, the QR for the sending, the Names as a single cell that divides after the names are sent.</p>
-    </div>
+  <div class="trans hard"><span class="tl">→ into 3</span><span class="tt"><b>SHARP CUT-OFF.</b> Everyone stops together. The wall goes to black. Then Edson's drone, alone.</span></div>
 </section>
-<section class="actband" id="act3"><h2>Act 3 <em>· Get people dancing</em></h2><div class="when">~8:40 · 2 PIECES · Am → Cm</div><p class="on"><b>Lance</b> Nord Stage synth, then piano · <b>Nima</b> Nord, then the modular · <b>Fresco</b> drums · <b>Jeff</b> flute. Two jams: A minor, then C minor.</p></section>
 
-<section class="moment act" id="act3-wall">
-  <div class="side">
-    <div class="vis" data-live="SRC-64"><img src="img/act3.jpg" alt="Act 3 · Ascension" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div>
+<section class="actband" id="act2"><h2>Act 2 <em>· Ritual · ~8:20</em></h2><p class="on">The glitch degrades into chaos. Then the guitar makes room for the ceremony.</p></section>
+
+<section class="song" id="s3">
+  <div class="head"><span class="num">3</span><span class="name">Glitch Moment</span><span class="meta">~8:20 · 5–10 MIN · drone → glitch → chaos</span><span class="key">Noise<small>no key · the wall is in E minor</small></span></div>
+  <div class="body">
+    <div class="side"><div class="vis" data-live="SRC-68"><img src="img/act2.jpg" alt="Glitch Moment" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div><p class="wall">The Beam from black, one hand, then the chaos. Layers: Ligam, the Passage as rain.</p></div>
+    <div class="main">
+      <div class="who"><div class="p"><b>Lance</b><span>guitar</span></div><div class="p"><b>Nima</b><span>Nord</span></div><div class="p"><b>Fresco</b><span>drums</span></div><div class="p"><b>Jeff</b><span>flute, percussive spits</span></div><div class="p"><b>Edson</b><span>theremin, leads</span></div></div>
+      <div class="beats"><div class="beat" data-s="20:20" data-e="20:23"><div class="t">~8:20</div><div class="b">Edson's drone</div><div class="d">From the cut, one <b>big drone</b> on the theremin. <b>Wait.</b></div></div><div class="beat" data-s="20:23" data-e="20:26"><div class="t">~8:23</div><div class="b">It glitches</div><div class="d">The drone breaks up into a <b>white-noise groove</b>. Jeff spits flute, percussively, over it.</div></div><div class="beat" data-s="20:26" data-e="20:30"><div class="t">~8:26</div><div class="b">The band joins</div><div class="d">Everyone in, and it <b>degrades into chaos</b>.</div></div></div>
+      <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act2-chaos.m4a" data-dur="11:34" data-note="sketched in C minor; the wall is in E minor"><i>▶</i><b>Sketch</b>Chaos<small>11:34</small></button><div class="lnote"></div><div class="lslot"></div></div>
+    </div>
   </div>
-  <div class="txt">
-    <div class="piece">
-    <div class="ph2"><span class="n">PIECE 5 · Song 1</span><span class="k">A minor jam<small>the wall is silent in Act 3</small></span><span class="m">~8:40 · 5–10 MIN</span></div>
-    <div class="who2"><span><b>Lance</b>Nord Stage synth, A:26</span><span><b>Nima</b>Nord</span><span><b>Fresco</b>drums</span><span><b>Jeff</b>flute</span></div>
-    <div class="beats">
-      <div class="beat" data-s="20:40" data-e="20:44"><div class="t">~8:40</div><div class="b">Fuck around in Am</div><div class="d">Play with the intro, build up to the song.</div></div>
-      <div class="beat key" data-s="20:44" data-e="20:50"><div class="t">~8:44</div><div class="b">Am, Gm</div><div class="d"><b>Play the Am → Gm. Fresco starts a breakbeat.</b></div></div>
-    </div>
-    <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act3-idea2-am-gm-breakbeat.m4a" data-dur="1:29" data-note="the Am → Gm with the break, as written"><i>▶</i><b>Sketch</b>Am → Gm breakbeat<small>1:29</small></button><button class="li sk" type="button" data-src="audio/act3-idea1-am-hiphop.m4a" data-dur="1:39" data-note=""><i>▶</i><b>Sketch</b>Am hip hop<small>1:39</small></button><button class="li vb" type="button" data-track="1q4ZXBVohhj071kU6PkOW3" data-note="a vintage break that makes people move"><i>♫</i><b>Vibe · Fresco</b>Chet Faker · Over You</button><div class="lnote"></div><div class="lslot"></div></div>
-    </div>
+  <div class="trans hard"><span class="tl">→ into 4</span><span class="tt"><b>Listen for the riff.</b> Out of the chaos Lance starts the Em riff on guitar. Everyone else drops back and makes room.</span></div>
+</section>
 
-    <div class="piece">
-    <div class="ph2"><span class="n">PIECE 6 · Song 2</span><span class="k">C minor jam<small>the walk-up</small></span><span class="m">~8:50 · 5–10 MIN</span></div>
-    <div class="who2"><span><b>Lance</b>piano</span><span><b>Nima</b>Cm arp on the modular</span><span><b>Fresco</b>drums</span><span><b>Jeff</b>flute</span></div>
-    <div class="beats">
-      <div class="beat" data-s="20:50" data-e="20:53"><div class="t">~8:50</div><div class="b">Fuck around in Cm</div><div class="d">Lance on piano. Nima's Cm arp on the modular could be sick.</div></div>
-      <div class="beat key" data-s="20:53" data-e="21:00"><div class="t">~8:53</div><div class="b">The walk-up</div><div class="d"><b>Cm, right hand walks up.</b> Bass notes on A♭, F, C, E♭.</div></div>
-      <div class="beat" data-s="21:00" data-e="21:05"><div class="t">~9:00</div><div class="b">End</div><div class="d">Then the DJ until 10:20.</div></div>
+<section class="song" id="s4">
+  <div class="head"><span class="num">4</span><span class="name">Ceremony</span><span class="meta">~8:30 · 5–10 MIN · Edson leads ~7 min</span><span class="key">E minor<small>the guitar riff, tons of space</small></span></div>
+  <div class="body">
+    <div class="side"><div class="vis" data-live="SRC-68"><img src="img/act2.jpg" alt="Ceremony" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div><p class="wall">The QR for the sending; the Names as a single cell that divides after the names are sent. Never pull attention while people are on their phones.</p></div>
+    <div class="main">
+      <div class="who"><div class="p"><b>Lance</b><span>guitar, the riff</span></div><div class="p"><b>Nima</b><span>bed</span></div><div class="p"><b>Fresco</b><span>accents only</span></div><div class="p"><b>Jeff</b><span>flute</span></div><div class="p"><b>Edson</b><span>leads the room</span></div></div>
+      <div class="beats"><div class="beat" data-s="20:30" data-e="20:32"><div class="t">~8:30</div><div class="b">The riff</div><div class="d"><b>Em riff on guitar, tons of space.</b> Everyone calms down and gives the guitar room.</div></div><div class="beat" data-s="20:32" data-e="20:39"><div class="t">~8:32 →</div><div class="b">Edson leads</div><div class="d"><b>About seven minutes, Edson leading the room.</b> Fresco accents only. Nima on the bed, Jeff on flute. Keep the space.</div></div></div>
+      <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act2-idea1-acoustic.m4a" data-dur="1:54" data-note=""><i>▶</i><b>Sketch</b>Idea 1 · acoustic<small>1:54</small></button><button class="li sk" type="button" data-src="audio/act2-idea2-piano-c.m4a" data-dur="1:29" data-note=""><i>▶</i><b>Sketch</b>Idea 2 · piano in C<small>1:29</small></button><button class="li vb" type="button" data-track="6omcpeBhvzHZbeYfgseMa0" data-note="rim clicks, air between hits: accents, not a beat"><i>♫</i><b>Vibe · Fresco</b>daoud · dijon</button><div class="lnote"></div><div class="lslot"></div></div>
     </div>
-    <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="7EdQ9Z80HAKiISr1MZABpZ" data-note="a hip hop groove with jazz hands, laid back"><i>♫</i><b>Vibe · Fresco</b>Venna · Sicily' Box (Yussef Dayes)</button><button class="li vb" type="button" data-track="3wQucPL02xA7Q8iU2b5aXO" data-note="jungle gear played live, speed with control"><i>♫</i><b>Vibe · Fresco</b>daoud · loulou &amp; the loulous</button><div class="lnote"></div><div class="lslot"></div></div>
-    </div>
+  </div>
+  <div class="trans open"><span class="tl">→ into 5</span><span class="tt"><b>Not decided yet:</b> how the ceremony hands over to the Am jam. Decide at sound check.</span></div>
+</section>
 
-    <p class="note"><b>Edson:</b> The Passage going up, the rise from Act 2 with no cut. Then Ascension, the shards that break free; the Point, Returned; and last the Light Eclipse, the picture the night opened on. It starts and finishes in the same place.</p>
+<section class="actband" id="act3"><h2>Act 3 <em>· Get people dancing · ~8:40</em></h2><p class="on">Two jams: A minor, then C minor. The wall is silent in Act 3.</p></section>
+
+<section class="song" id="s5">
+  <div class="head"><span class="num">5</span><span class="name">Am Jam</span><span class="meta">~8:40 · 5–10 MIN · make them move</span><span class="key">A minor<small>→ Gm · the breakbeat</small></span></div>
+  <div class="body">
+    <div class="side"><div class="vis" data-live="SRC-64"><img src="img/act3.jpg" alt="Am Jam" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div><p class="wall">The Passage going up, the rise from Act 2. Then Ascension, the shards that break free. No sound from the wall.</p></div>
+    <div class="main">
+      <div class="who"><div class="p"><b>Lance</b><span>Nord Stage synth (A:26)</span></div><div class="p"><b>Nima</b><span>Nord</span></div><div class="p"><b>Fresco</b><span>drums, the breakbeat</span></div><div class="p"><b>Jeff</b><span>flute</span></div><div class="p"><b>Edson</b><span>the wall, silent</span></div></div>
+      <div class="beats"><div class="beat" data-s="20:40" data-e="20:44"><div class="t">~8:40</div><div class="b">Fuck around in Am</div><div class="d">Play with the intro, build up to the song.</div></div><div class="beat" data-s="20:44" data-e="20:50"><div class="t">~8:44</div><div class="b">Am → Gm <span class="tag big">cue</span></div><div class="d"><b>Play the Am → Gm. Fresco starts a breakbeat.</b></div></div></div>
+      <div class="listen"><span class="ll">Listen</span><button class="li sk" type="button" data-src="audio/act3-idea2-am-gm-breakbeat.m4a" data-dur="1:29" data-note="the Am → Gm with the break, as written"><i>▶</i><b>Sketch</b>Am → Gm breakbeat<small>1:29</small></button><button class="li sk" type="button" data-src="audio/act3-idea1-am-hiphop.m4a" data-dur="1:39" data-note=""><i>▶</i><b>Sketch</b>Am hip hop<small>1:39</small></button><button class="li vb" type="button" data-track="1q4ZXBVohhj071kU6PkOW3" data-note="a vintage break that makes people move"><i>♫</i><b>Vibe · Fresco</b>Chet Faker · Over You</button><div class="lnote"></div><div class="lslot"></div></div>
     </div>
+  </div>
+  <div class="trans soft"><span class="tl">→ into 6</span><span class="tt">Lance moves to the piano and starts in Cm. Nima brings the modular arp in under him.</span></div>
+</section>
+
+<section class="song" id="s6">
+  <div class="head"><span class="num">6</span><span class="name">Cm Jam</span><span class="meta">~8:50 · 5–10 MIN · dance</span><span class="key">C minor<small>the walk-up</small></span></div>
+  <div class="body">
+    <div class="side"><div class="vis" data-live="SRC-64"><img src="img/act3.jpg" alt="Cm Jam" loading="lazy"><div class="ctl"><button class="snd" type="button" title="sound on / off" aria-label="sound">🔇</button><a class="full" href="#" target="_blank" rel="noopener" title="open on the wall">↗</a></div><div class="cap"><span class="on">On the wall</span><span class="what"></span></div></div><p class="wall">The Point, Returned, and last the Light Eclipse: the picture the night opened on. It ends where it began.</p></div>
+    <div class="main">
+      <div class="who"><div class="p"><b>Lance</b><span>piano</span></div><div class="p"><b>Nima</b><span>Cm arp on the modular</span></div><div class="p"><b>Fresco</b><span>drums</span></div><div class="p"><b>Jeff</b><span>flute</span></div><div class="p"><b>Edson</b><span>the wall, silent</span></div></div>
+      <div class="beats"><div class="beat" data-s="20:50" data-e="20:53"><div class="t">~8:50</div><div class="b">Fuck around in Cm</div><div class="d">Lance on piano. Nima's Cm arp on the modular could be sick.</div></div><div class="beat" data-s="20:53" data-e="21:00"><div class="t">~8:53</div><div class="b">The walk-up</div><div class="d"><b>Cm, right hand walks up.</b> Bass notes on A♭, F, C, E♭.</div></div><div class="beat" data-s="21:00" data-e="21:05"><div class="t">~9:00</div><div class="b">End</div><div class="d">Bows. Then the DJ until 10:20.</div></div></div>
+      <div class="listen"><span class="ll">Listen</span><button class="li vb" type="button" data-track="7EdQ9Z80HAKiISr1MZABpZ" data-note="a hip hop groove with jazz hands, laid back"><i>♫</i><b>Vibe · Fresco</b>Venna · Sicily' Box (Yussef Dayes)</button><button class="li vb" type="button" data-track="3wQucPL02xA7Q8iU2b5aXO" data-note="jungle gear played live, speed with control"><i>♫</i><b>Vibe · Fresco</b>daoud · loulou &amp; the loulous</button><div class="lnote"></div><div class="lslot"></div></div>
+    </div>
+  </div>
+  
 </section>
 
 <section class="rules">
   <h3>The six things to remember</h3>
   <ul>
-    <li><b>8:00: Edson opens, you follow him in.</b> The opener is Lance's song in C minor with the A♭ minor bridge, and the wall is in C minor with it. Pieces run 5 to 10 minutes; if the set comes in under an hour, fine.</li>
+    <li><b>8:00: Edson opens, you follow him in.</b> The opener is Lance's song in C minor, and the wall is in C minor with it.</li>
     <li><b>Fresco sits out the opener</b> and enters for the launch.</li>
-    <li><b>In space, no drums.</b> Then the energy comes back up and a sharp cut-off ends Act 1.</li>
+    <li><b>In space, no drums.</b> Then the energy comes back up and a sharp cut-off ends Act 1. That cut is the one to rehearse.</li>
     <li><b>The ceremony belongs to the guitar.</b> Em riff, tons of space, Edson leads seven minutes, drums are accents.</li>
     <li><b>Act 3 is to dance.</b> A minor then C minor. Fresco's breakbeat starts on the Am → Gm.</li>
-    <li><b>Keys on the wall:</b> Act 1 C minor · Act 2 E minor · Act 3 the wall is silent. The sketches and vibe tracks are for the feel only.</li>
+    <li><b>Keys on the wall:</b> 1–2 C minor · 3–4 E minor · 5–6 silent. Sketches and vibe tracks are for the feel only.</li>
   </ul>
 </section>
 
 <section class="rules">
   <h3>Rehearsals</h3>
   <ul>
-    <li><b>Wed Sep 30, at the studio.</b> Sound check, then a full pass. Before you leave: the 8:00 open, the launch with the cut-off, the Em riff out of the chaos, the Am → Gm with the break, the Cm walk-up.</li>
+    <li><b>Wed Sep 30, at the studio.</b> Sound check, then a full pass. Before you leave: the 8:00 open, the launch with the cut-off, the Em riff out of the chaos, the ceremony into the Am jam, the Am → Gm with the break, the Cm walk-up.</li>
     <li><b>Thu Oct 1, call time 6:30 PM</b> <i>(proposed)</i>. Line check with the doors closed, done before 7:30, when Nima starts.</li>
   </ul>
 </section>
 
 <section class="rules">
-  <h3>Still open, to decide together</h3>
+  <h3>Still open</h3>
   <ul>
+    <li><b>Ceremony → Am jam.</b> How the hand-over goes. Decide at sound check.</li>
     <li><b>The poems.</b> Edson may have cut them from Act 3. Confirm with him; the page has them out.</li>
     <li><b>Call time on Oct 1.</b> 6:30 PM proposed.</li>
   </ul>
 </section>
 
 <footer>
-  <div>BIRTH OF A TEMPLE · Thu Oct 1, 2026 · from Edson's run of show, Sep 27, and the band's run-through, Sep 30 · updated Sep 30, with Lance's answers</div>
+  <div>BIRTH OF A TEMPLE · Thu Oct 1, 2026 · from Edson's run of show, Sep 27, and the band's run-through, Sep 30 · updated Sep 30</div>
   <div><a href="../">the wall</a> · <a href="https://orbitaltemple.art/">orbitaltemple.art</a></div>
 </footer>
 
@@ -558,7 +395,7 @@
   const hdr = document.querySelector('header');
   const setHdr = () => document.documentElement.style.setProperty('--hdr', hdr.offsetHeight + 'px');
   setHdr(); addEventListener('resize', setHdr);
-  const acts = [...document.querySelectorAll('.moment.act')].map(m => ({ m, vis: m.querySelector('.vis'), what: m.querySelector('.cap .what'), beats: [...m.querySelectorAll('.beat')], cur: null }));
+  const acts = [...document.querySelectorAll('.song')].map(m => ({ m, vis: m.querySelector('.vis'), what: m.querySelector('.cap .what'), beats: [...m.querySelectorAll('.beat')], cur: null }));
   function wall() {
     acts.forEach(a => {
       const line = a.vis.getBoundingClientRect().bottom + 24;
