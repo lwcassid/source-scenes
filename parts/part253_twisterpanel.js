@@ -54,9 +54,9 @@
 
     cv = document.createElement('canvas');
     cv.id = 'twSurface';
-    cv.title = 'The Twister as it is right now — MAP to change what each knob does';
+    cv.title = 'The Twister as it is right now — click a knob to push it, drag it to turn it; MAP to change what each knob does';
     cv.style.cssText = 'display:block;width:100%;cursor:pointer;margin:0 0 12px';
-    cv.addEventListener('click', () => openPop(true));
+    mouse(cv);
     g.appendChild(cv);
 
     btnRow = document.createElement('div');
@@ -81,6 +81,83 @@
       'Ask the browser for MIDI. Permission is per page load, so a reload always needs this again.',
       () => TWIST.connect()));
     g.appendChild(connRow);
+  }
+
+  /* ---- THE MOUSE (Edson, Sep 30: "if I click in a knob is a click, if I
+     click and drag it changes the [value] of that knob") ----
+     The picture is also a Twister you can play without the hardware:
+       CLICK a knob     = its PUSH, exactly as the hardware press (and it burns)
+       DRAG a knob      = its TURN: up or right = more, ~160 px end to end,
+                          SHIFT for fine. Picks up from where the control is.
+       CLICK elsewhere  = MAP, as the picture always did — so does a knob that
+                          does nothing here, which is the one you want to map.
+     A press never fires after a drag, and a drag never starts under 4 px, so
+     a slightly shaky click is still a click. Everything goes through
+     TWIST.fire, the same door the hardware uses, so the show cannot tell the
+     mouse from the knob. Same knobs as the picture: nothing is clickable that
+     is not drawn live (no MIDI, off the desk, a dark scene's fifteen). */
+  let geo = null;                                   // the last draw's geometry
+  const DRAG_PX = 160, SLOP = 4;
+  function knobAt(ev) {
+    if (!geo || !cv) return -1;
+    const r = cv.getBoundingClientRect(); if (!r.width) return -1;
+    const k = geo.W / r.width, x = (ev.clientX - r.left) * k, y = (ev.clientY - r.top) * k;
+    const col = Math.floor(x / geo.cw), row = Math.floor(y / geo.ch);
+    if (col < 0 || col > 3 || row < 0 || row > 3) return -1;
+    const cx = (col + 0.5) * geo.cw, cy = row * geo.ch + geo.R + 3;
+    return Math.hypot(x - cx, y - cy) <= geo.R + 6 ? row * 4 + col : -1;
+  }
+  function liveSlot(i) {
+    const T = window.TWIST; if (i < 0 || !T || !T.hasAccess()) return null;
+    const hit = T.live().find(p => p[0] === i), S = hit && hit[1];
+    return S && (S.turn !== 'none' || S.push !== 'none') ? S : null;
+  }
+  function mouse(el) {
+    let d = null;                                   // the gesture in progress
+    const end = () => { d = null; el.style.cursor = 'pointer'; };
+    el.addEventListener('pointerdown', ev => {
+      if (ev.button !== 0 || d) return;
+      const i = knobAt(ev), S = liveSlot(i);
+      d = { id: ev.pointerId, i: S ? i : -1, S, x: ev.clientX, y: ev.clientY,
+            lx: ev.clientX, ly: ev.clientY, moved: false, v: 0 };
+      if (S) {
+        ev.preventDefault();                        // no text selection, no focus theft
+        if (S.turn !== 'none') d.v = clamp(TWIST.current(S.turn));
+      }
+      try { el.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+    el.addEventListener('pointermove', ev => {
+      if (!d || ev.pointerId !== d.id) return;
+      if (!d.moved) {
+        if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) < SLOP) return;
+        d.moved = true; d.lx = d.x; d.ly = d.y;     // the slop counts toward the turn
+        if (d.S && d.S.turn !== 'none') el.style.cursor = 'ns-resize';
+      }
+      const dx = ev.clientX - d.lx, dy = ev.clientY - d.ly;
+      d.lx = ev.clientX; d.ly = ev.clientY;
+      if (!d.S || d.S.turn === 'none') return;
+      const next = clamp(d.v + (dx - dy) / DRAG_PX * (ev.shiftKey ? 0.2 : 1));
+      if (next === d.v) return;
+      d.v = next;
+      const T = TWIST;
+      T.fire(d.S.turn, next);
+      // a relative encoder keeps its own running value; keep it in step so
+      // the hardware picks up where the mouse left it instead of jumping back
+      if (T._acc && T._acc[d.S.turn] !== undefined) T._acc[d.S.turn] = next;
+      draw();
+    });
+    el.addEventListener('pointerup', ev => {
+      if (!d || ev.pointerId !== d.id) return;
+      const g = d; end();
+      if (g.moved) return;
+      if (g.S) {
+        if (g.S.push !== 'none') { TWIST.hit(g.i); TWIST.fire(g.S.push, 1); draw(); }
+        return;                                     // a turn-only knob: a click is nothing
+      }
+      openPop(true);
+    });
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('lostpointercapture', ev => { if (d && ev.pointerId === d.id) end(); });
   }
 
   /* ---- the picture ----
@@ -113,6 +190,7 @@
        grid the hardware is. */
     const cw = W / 4, ch = cw * 0.98, R = cw * 0.29;
     const H = Math.round(ch * 4);
+    geo = { W, cw, ch, R };
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     if (cv.width !== W * dpr || cv.height !== H * dpr) {
       cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + 'px';

@@ -51,12 +51,12 @@ await open('set=BIRTH+OF+A+TEMPLE');
 const set = await pg.evaluate(() => ({ ids: QUEUE.shared.slice(),
   latest: ['SRC-66', 'SRC-68', 'SRC-64'].map(f => { const v = PIECES.filter(p => (p.family || p.id) === f); return v[v.length - 1].id + '|' + v[v.length - 1].title; }) }));
 ok('set order SRC-66, SRC-68, SRC-64', set.ids.join() === 'SRC-66,SRC-68,SRC-64', set.ids);
-ok('latest of each family is the act host, titled', set.latest.join() === 'SRC-66.7|Act 1 · Expectation and Launch,SRC-68.5|Act 2 · The Depths,SRC-64.4|Act 3 · The Collective Witnesses', set.latest);
+ok('latest of each family is titled as its act (a later round, e.g. a bend on Act 1, may sit on top)', set.latest.map(x => x.split('|')[1]).join() === 'Act 1 · Expectation and Launch,Act 2 · The Depths,Act 3 · The Collective Witnesses', set.latest);
 
 const ACTS = [
-  { id: 'SRC-66.7', layers: 'SRC-66.4,SRC-59,SRC-80.3', macros: '', shots: 1 },
-  { id: 'SRC-68.5', layers: 'SRC-68.2,SRC-70.3,SRC-58.4,SRC-79,SRC-59.2', macros: 'DIRECTION,WIND,DIVIDE,INSIDE', shots: 0 },
-  { id: 'SRC-64.4', layers: 'SRC-58.4,SRC-60,SRC-61,SRC-66.4', macros: 'DIRECTION,WIND', shots: 0 },
+  { id: 'SRC-66.10', layers: 'SRC-66.9,SRC-59.3,SRC-80.4', macros: '', shots: 1 },
+  { id: 'SRC-68.8', layers: 'SRC-68.7,SRC-70.4,SRC-58.5,SRC-79,SRC-59.3', macros: 'DIRECTION,WIND,DIVIDE,INSIDE', shots: 0 },
+  { id: 'SRC-64.5', layers: 'SRC-58.5,SRC-60.2,SRC-61.2,SRC-66.9', macros: 'DIRECTION,WIND', shots: 0 },
 ];
 const report = {};
 for (const A of ACTS) {
@@ -81,8 +81,8 @@ for (const A of ACTS) {
   report[A.id] = r.map(x => x.f);
 }
 
-console.log('SRC-58.4 WIND: the rain leans with the knob, and still air is 58.3');
-await open('scene=SRC-64.4');
+console.log('SRC-58.5 WIND: the rain leans with the knob, and still air is 58.3');
+await open('scene=SRC-64.5');
 const w = await pg.evaluate(async () => {
   const sub = focus.P.state.insts[0], st = sub.state;
   MIX.macro(1, 1); await new Promise(r => setTimeout(r, 2500));
@@ -92,13 +92,13 @@ const w = await pg.evaluate(async () => {
 });
 ok('WIND 1 blows right, 0 blows left, 0.5 is still', w.right > 0.01 && w.left < -0.01 && Math.abs(w.still) < 0.002, w);
 if (SHOTS) {
-  await frame('SRC-64.4_wind_right', [1, 0, 0, 0], [1, 1], [0.7, 0.7]);
-  await open('scene=SRC-68.5');
-  await frame('SRC-68.5_rain_down_wind_left', [0, 0, 1, 0, 0], [0, 0.1, null, null], [0.7, 0.7]);
+  await frame('SRC-64.5_wind_right', [1, 0, 0, 0], [1, 1], [0.7, 0.7]);
+  await open('scene=SRC-68.8');
+  await frame('SRC-68.8_rain_down_wind_left', [0, 0, 1, 0, 0], [0, 0.1, null, null], [0.7, 0.7]);
 }
-await open('scene=SRC-58.4');
+await open('scene=SRC-58.5');
 const alone = await pg.evaluate(async () => { await new Promise(r => setTimeout(r, 1500)); return focus.P.state.vx; });
-ok('58.4 standalone: no wind', Math.abs(alone) < 1e-9, alone);
+ok('58.5 standalone: no wind', Math.abs(alone) < 1e-9, alone);
 
 ok('zero page errors', errs.length === 0, errs.slice(0, 5));
 console.log('FPS (layers alone, then adjacent pairs):', JSON.stringify(report));
