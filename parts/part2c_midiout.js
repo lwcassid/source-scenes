@@ -22,6 +22,51 @@ const MOut = {
     strings: '#c9a2ff', shrine: '#ffb84d', mellotron: '#ffe14d', choir: '#ffc2e0', sax: '#8affab' },
   lastByRole: {},
   log: [], ccLog: { L: [], R: [] },
+  /* OUR OWN ECHO, BY THE BYTES (Nima, Oct 2026 — "the controller works on
+     the wall but not in a scene"). A mac IAC bus mirrors everything sent
+     into it back out to every listener, so the browser hears every note it
+     plays into Live (Lance's queue-jump bug: scene notes masqueraded as pad
+     hits, stray echoes poisoned LEARN). The first fix dropped any message
+     arriving from a port with the SAME NAME as MIDI OUT — and a USB
+     controller's input and output ports share a name. On a laptop with no
+     virtual bus the out-port auto-pick's last resort is "first output",
+     i.e. the controller itself: the wall worked (OUT=web, no port yet),
+     then every default-set scene carries OUT=both/midi, the poll grabbed
+     the port, and the hands' own messages were thrown away as echo.
+     Echo is now recognised the only way that is actually true: the exact
+     bytes we sent, arriving back within a short window of when we sent
+     them. Hardware never echoes, so nothing a hand or pad sends can match
+     unless we literally just sent it. Every port goes through _adopt() so
+     all sends — notes, CC, clock, song position — are logged in one place. */
+  _sentLog: [],
+  _logSend(bytes, at) {
+    if (!bytes || bytes.length < 2) return;   // 1-byte realtime (clock/start/stop): nothing parses it as a hand or a pad
+    const now = performance.now();
+    const log = this._sentLog;
+    log.push({ b: bytes[0], c: bytes[1], d: bytes.length > 2 ? bytes[2] : -1, at: (at && at > now) ? at : now });
+    if (log.length > 2048) this._sentLog = log.filter(s => s.at >= now - 1000);
+  },
+  isEcho(e) {
+    const log = this._sentLog;
+    if (!log.length || !e || !e.data || e.data.length < 2) return false;
+    const now = performance.now();
+    const t = (e.timeStamp && e.timeStamp > 0) ? e.timeStamp : now;
+    const b = e.data[0], c = e.data[1], d = e.data.length > 2 ? e.data[2] : -1;
+    for (let i = log.length - 1; i >= 0; i--) {
+      const s = log[i];
+      if (s.at < now - 1000) continue;        // can no longer echo; filtered out by the next _logSend prune
+      if (s.b === b && s.c === c && s.d === d && Math.abs(t - s.at) < 150) return true;
+    }
+    return false;
+  },
+  _adopt(p) {
+    if (p && !p.__srcLogged) {
+      const raw = p.send.bind(p);
+      p.send = (bytes, at) => { this._logSend(bytes, at); return raw(bytes, at); };
+      p.__srcLogged = true;
+    }
+    return p;
+  },
   chFor(role) { return this.roles[role] || 1; },
   f2n(f) { return Math.max(0, Math.min(127, Math.round(69 + 12 * Math.log2(f / 440)))); },
   v2v(vol) { return Math.max(10, Math.min(120, Math.round(28 + vol * 380))); },
@@ -360,7 +405,7 @@ const MOut = {
     const outs = [...midi.access.outputs.values()];
     const p = outs.find(o => o.name === name);
     if (!p) return false;
-    this.port = p;
+    this.port = this._adopt(p);
     try { localStorage.setItem('srcOutPort', name); } catch (e) {}
     if (this.wants()) this._reassert();   // same contract as the poll's acquire
     this.refreshUI();
@@ -509,7 +554,7 @@ const MOut = {
               let i = saved ? outs.findIndex(o => o.name === saved) : -1;
               if (i < 0 && typeof RIGDOC !== 'undefined' && RIGDOC.port) i = outs.findIndex(o => o.name === RIGDOC.port);
               if (i < 0) i = outs.findIndex(o => /iac|virtual|loopmidi|bus/i.test(o.name));
-              this.port = outs[i >= 0 ? i : 0];
+              this.port = this._adopt(outs[i >= 0 ? i : 0]);
               sel.value = String(i >= 0 ? i : 0);
               this._reassert();
             }
@@ -539,7 +584,7 @@ const MOut = {
           let i = saved ? outs.findIndex(o => o.name === saved) : -1;
           if (i < 0 && typeof RIGDOC !== 'undefined' && RIGDOC.port) i = outs.findIndex(o => o.name === RIGDOC.port);
           if (i < 0) i = outs.findIndex(o => /iac|virtual|loopmidi|bus/i.test(o.name));
-          this.port = outs[i >= 0 ? i : 0];
+          this.port = this._adopt(outs[i >= 0 ? i : 0]);
           sel.value = String(i >= 0 ? i : 0);
           this._reassert();   // the port just became real: bed, CC74 park, scene holds
         }
