@@ -40,6 +40,13 @@ mime = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp
         '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg'}
 for relpath in sorted(set(re.findall(r"'(assets/[^']+)'", src))):
     ext = os.path.splitext(relpath)[1].lower()
+    if not os.path.exists(relpath):
+        # assets/media/* is gitignored by design (see its README): the show
+        # laptop carries the clips, the repo does not. A fresh clone must
+        # still build a preview — leave the path alone and the MEDIA layer
+        # prints its own MEDIA NOT FOUND frame instead of the build dying.
+        print('preview: skipping missing asset', relpath)
+        continue
     b64 = base64.b64encode(open(relpath, 'rb').read()).decode()
     src = src.replace(f"'{relpath}'", f"'data:{mime.get(ext, 'application/octet-stream')};base64,{b64}'")
 src = src.replace('</head>', '<script>' + '\n'.join(consts) + '</script>\n</head>', 1)

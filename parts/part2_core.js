@@ -662,12 +662,13 @@ function srcMatches(m, p) {
 function onMidiMsg(e) {
   // OUR OWN ECHO (Lance's queue-jump bug, Aug 2026): a mac IAC bus mirrors
   // everything sent into it back out to every listener, so the browser
-  // hears every note it plays into Live. Drop anything arriving from the
-  // port MIDI OUT is talking to — otherwise scene notes masquerade as pad
+  // hears every note it plays into Live — scene notes masquerade as pad
   // hits (opening Rain "pressed" a queue pad) and a stray echo during
-  // PAD LEARN or hand LEARN poisons the mapping.
-  if (typeof MOut !== 'undefined' && MOut.port && e.target &&
-      e.target.name && e.target.name === MOut.port.name) return;
+  // PAD LEARN or hand LEARN poisons the mapping. Matched by the BYTES WE
+  // SENT (MOut._sentLog), not by port name: a USB controller's in and out
+  // ports share a name, and the name test silenced the hands the moment a
+  // scene's OUT override made MOut pick that controller as its port.
+  if (typeof MOut !== 'undefined' && MOut.isEcho(e)) return;
   // SHOW CONTROL (ADR-0008) gets first look, BEFORE the hands' midi.inputId
   // filter below. That filter is one global scalar: the moment an operator
   // picks a specific device for the hands, a second device's CCs would be
